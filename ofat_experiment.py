@@ -29,7 +29,7 @@ combinations are skipped on re-launch. So if it is interrupted, just run the
 same command again and it continues. `analyze` runs automatically once the
 sweep is complete.
 """
-import os, sys, json, time, copy, contextlib, io
+import os, sys, json, time, copy, contextlib, io, shutil
 from dataclasses import replace
 import numpy as np
 import pandas as pd
@@ -41,6 +41,7 @@ DATA = "data_expanded.xlsx"
 OUTD = "ofat_out"
 CSV  = os.path.join(OUTD, "ofat_results.csv")
 os.makedirs(OUTD, exist_ok=True)
+REQUIRED_RESULT_COLUMNS = {"param", "level_pct", "seed"}
 
 # ════════════════════════════════════════════════════════════════════
 # CONFIG  (defaults = FULL scale, as chosen)
@@ -234,6 +235,12 @@ def done_keys():
     if not os.path.exists(CSV):
         return set()
     df = pd.read_csv(CSV)
+    if not REQUIRED_RESULT_COLUMNS.issubset(df.columns):
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        backup = os.path.join(OUTD, f"ofat_results_legacy_{stamp}.csv")
+        shutil.move(CSV, backup)
+        print(f"[OFAT] Existing result CSV has old/incompatible columns; moved to {backup}")
+        return set()
     return set(zip(df["param"], df["level_pct"], df["seed"]))
 
 
@@ -287,6 +294,10 @@ def analyze():
     if not os.path.exists(CSV):
         print("[OFAT] no results yet."); return
     df = pd.read_csv(CSV)
+    if not REQUIRED_RESULT_COLUMNS.issubset(df.columns):
+        print(f"[OFAT] incompatible result CSV columns: {list(df.columns)}")
+        print("[OFAT] remove or rename ofat_out/ofat_results.csv, then rerun.")
+        return
     share_cols = [f"share_{e}" for e in ENTRIES] + ["share_sea"]
     obj_cols   = ["cost", "emission_gCO2", "time_h"]
     agg_cols   = share_cols + obj_cols + ["max_border_util", "feasible",
