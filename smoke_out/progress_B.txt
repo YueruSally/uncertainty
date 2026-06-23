@@ -1,0 +1,21 @@
+=== V1 WIRING SMOKE TEST — scenario B (B_khorgos_tight) ===
+[CHECK1] border_delay_map entries total = 93
+[CHECK1] break-of-gauge delay entries (sample): {('Khorgos', 'road'): 6.2, ('Khorgos', 'rail'): 42.6, ('Khorgos', 'water'): 2.0, ('Manzhouli', 'road'): 6.2, ('Manzhouli', 'rail'): 42.6, ('Manzhouli', 'water'): 2.0, ('Erenhot', 'road'): 6.2, ('Erenhot', 'rail'): 42.6}
+[CHECK1] Brest rail delay = 42.6, road = 26.0
+[CHECK2] BORDER_CAPACITY active(BoG) = {'Malaszewicze': 500.0, 'Brest': 600.0, 'Dostyk': 800.0, 'Altynkol': 700.0, 'Erenhot': 900.0, 'Zabaykalsk': 700.0, 'Khorgos': 900.0, 'Alashankou': 900.0, 'Manzhouli': 900.0}
+[CHECK2] BACKGROUND_FLOW active(BoG) = {'Brest': 350.0, 'Dostyk': 450.0, 'Altynkol': 350.0, 'Erenhot': 450.0, 'Zabaykalsk': 350.0, 'Khorgos': 500.0, 'Alashankou': 500.0, 'Manzhouli': 450.0}
+[INFO] using 14 batches, pop=140, gens=140
+
+--- Scenario B: B_khorgos_tight overrides={'Khorgos': 400} ---
+
+[DONE B] feasible=True pareto=75 cost=3.878e+06 time=467.8h
+  max_border_util=0.998 border_cap_excess=0.0
+   Khorgos        flow=0.0      util=0.0    cap=400
+   Alashankou     flow=0.0      util=0.0    cap=900.0
+   Erenhot        flow=785.0    util=0.998  cap=900.0
+   Manzhouli      flow=0.0      util=0.0    cap=900.0
+   Zabaykalsk     flow=100.0    util=0.643  cap=700.0
+   Dostyk         flow=0.0      util=0.0    cap=800.0
+   Altynkol       flow=0.0      util=0.0    cap=700.0
+   Brest          flow=0.0      util=0.0    cap=600.0
+   Malaszewicze   flow=0.0      util=0.0    cap=500.0

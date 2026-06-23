@@ -1,0 +1,48 @@
+{
+  "feasible": true,
+  "penalty": 0.0,
+  "cost": 3877899.1757530873,
+  "emission_gCO2": 4688444745.266241,
+  "time_h": 467.83142857142855,
+  "max_border_util": 0.9980900164839103,
+  "border_cap_excess": 0.0,
+  "arc_cap_excess": 0.0,
+  "late_teu_h": 0.0,
+  "flow_through": {
+    "Khorgos": 0.0,
+    "Alashankou": 0.0,
+    "Erenhot": 785.0,
+    "Manzhouli": 0.0,
+    "Zabaykalsk": 100.0,
+    "Dostyk": 0.0,
+    "Altynkol": 0.0,
+    "Brest": 0.0,
+    "Malaszewicze": 0.0
+  },
+  "peak_util": {
+    "Khorgos": 0.0,
+    "Alashankou": 0.0,
+    "Erenhot": 0.998,
+    "Manzhouli": 0.0,
+    "Zabaykalsk": 0.643,
+    "Dostyk": 0.0,
+    "Altynkol": 0.0,
+    "Brest": 0.0,
+    "Malaszewicze": 0.0
+  },
+  "scenario": "B_khorgos_tight",
+  "cap_used": {
+    "Khorgos": 400,
+    "Alashankou": 900.0,
+    "Erenhot": 900.0,
+    "Manzhouli": 900.0,
+    "Zabaykalsk": 700.0,
+    "Dostyk": 800.0,
+    "Altynkol": 700.0,
+    "Brest": 600.0,
+    "Malaszewicze": 500.0
+  },
+  "runtime_s": 14.7,
+  "pareto_size": 75,
+  "n_feasible_pop": 140
+}

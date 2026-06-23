@@ -1,0 +1,12 @@
+A_baseline: feasible=True cost=3.864e+06 time=467.8 max_util=0.989 cap_excess=0.0 pareto=101
+  flows: Khorgos=130.0 Alashankou=0.0 Erenhot=655.0 Manzhouli=0.0 Brest=0.0 Malaszewicze=20.6
+  utils: Khorgos=0.666 Erenhot=0.989 Brest=0.0 Malaszewicze=0.023
+
+B_khorgos_tight: feasible=True cost=3.878e+06 time=467.8 max_util=0.998 cap_excess=0.0 pareto=75
+  flows: Khorgos=0.0 Alashankou=0.0 Erenhot=785.0 Manzhouli=0.0 Brest=0.0 Malaszewicze=0.0
+  utils: Khorgos=0.0 Erenhot=0.998 Brest=0.0 Malaszewicze=0.0
+
+C_brest_tight: feasible=True cost=3.863e+06 time=467.8 max_util=0.894 cap_excess=0.0 pareto=120
+  flows: Khorgos=230.0 Alashankou=0.0 Erenhot=555.0 Manzhouli=0.0 Brest=0.0 Malaszewicze=110.0
+  utils: Khorgos=0.7 Erenhot=0.894 Brest=0.0 Malaszewicze=0.22
+

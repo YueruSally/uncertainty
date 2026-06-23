@@ -1,0 +1,4 @@
+scenario,feasible,cost,emission_gCO2,time_h,max_border_util,border_cap_excess,pareto_size,runtime_s,flow_Khorgos,flow_Alashankou,flow_Erenhot,flow_Manzhouli,flow_Zabaykalsk,flow_Dostyk,flow_Altynkol,flow_Brest,flow_Malaszewicze,util_Khorgos,util_Alashankou,util_Erenhot,util_Manzhouli,util_Zabaykalsk,util_Dostyk,util_Altynkol,util_Brest,util_Malaszewicze
+A_baseline,True,3863776.968067542,4581828510.255747,467.83142857142855,0.9888888888888889,0.0,101,16.0,130.0,0.0,655.0,0.0,0.0,0.0,99.2,0.0,20.6,0.666,0.0,0.989,0.0,0.0,0.0,0.612,0.0,0.023
+B_khorgos_tight,True,3877899.1757530873,4688444745.266241,467.83142857142855,0.9980900164839103,0.0,75,14.7,0.0,0.0,785.0,0.0,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.998,0.0,0.643,0.0,0.0,0.0,0.0
+C_brest_tight,True,3863282.302369137,4508830849.9800005,467.83142857142855,0.8944444444444445,0.0,120,16.6,230.0,0.0,555.0,0.0,0.0,0.0,100.0,0.0,110.0,0.7,0.0,0.894,0.0,0.0,0.0,0.643,0.0,0.22
