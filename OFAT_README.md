@@ -34,3 +34,36 @@ Outputs are saved in `ofat_out/`:
 
 The script keeps the model deterministic. It only perturbs input parameters in
 temporary workbook copies, then calls `baseline3_v1.py`.
+
+## Formal 40-batch experiment
+
+Use `ofat_experiment.py` for the paper-ready OFAT run:
+
+```bash
+python3 ofat_experiment.py run
+```
+
+Default full setting:
+
+- 40 batches (`N_BATCHES=None`)
+- population size `200`
+- generations `150`
+- seeds `2026`, `7`, `99`
+- representative solution: minimum-cost feasible Pareto solution
+- parameters: P1-P10 with `-30%`, `-15%`, `+15%`, `+30%`
+
+The full run is resumable. If the server disconnects, run the same command
+again and completed `(parameter, level, seed)` combinations will be skipped.
+
+Formal outputs:
+
+- `ofat_out/ofat_results.csv`
+- `ofat_out/summary_by_param_level.csv`
+- `ofat_out/sensitivity_ranking.csv`
+- `ofat_out/sensitivity_ranking.txt`
+
+For a quick check only:
+
+```bash
+python3 ofat_experiment.py run --test
+```
