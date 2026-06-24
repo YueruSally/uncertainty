@@ -67,3 +67,38 @@ For a quick check only:
 ```bash
 python3 ofat_experiment.py run --test
 ```
+
+## Bottleneck stress test
+
+Use this after the formal OFAT ranking if you want to test whether congestion
+becomes dominant near critical utilisation:
+
+```bash
+python3 bottleneck_stress.py run
+```
+
+It only stresses P1/P2/P3:
+
+- `P2_border_capacity`: capacity factors `0.70`, `0.50`, `0.30`
+- `P3_background_flow`: background-flow factors `1.30`, `1.50`, `2.00`
+- `P1_border_delay_rail`: rail-delay factors `1.30`, `1.50`, `2.00`
+
+Formal defaults:
+
+- 40 batches
+- population size `200`
+- generations `150`
+- seeds `2026`, `7`, `99`
+- representative solution: minimum-cost feasible Pareto solution
+
+Outputs are saved in `stress_out/`:
+
+- `stress_results.csv`
+- `stress_summary.csv`
+- `stress_interpretation.txt`
+
+Quick check:
+
+```bash
+python3 bottleneck_stress.py run --test
+```
