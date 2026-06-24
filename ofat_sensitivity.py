@@ -68,7 +68,8 @@ def node_mask(df: pd.DataFrame) -> pd.Series:
 def multiply_existing(df: pd.DataFrame, column: str, mask: pd.Series, factor: float) -> None:
     if column not in df.columns:
         return
-    vals = pd.to_numeric(df.loc[mask, column], errors="coerce").fillna(0.0)
+    df[column] = pd.to_numeric(df[column], errors="coerce").fillna(0.0).astype(float)
+    vals = df.loc[mask, column]
     df.loc[mask, column] = vals * factor
 
 
@@ -221,6 +222,8 @@ def summarize(ind, batches, scenario: Dict, baseline_sig=None) -> Dict:
     bu = getattr(ind, "border_util", {}) or {}
     vb = ind.vio_breakdown or {}
     sig = allocation_signature(ind, batches)
+    total_demand = float(sum(batch.quantity for batch in batches))
+    tracked_flow = sum(float(bf.get(node, 0.0)) for node in TRACK_NODES)
 
     row = {
         "scenario_id": scenario["scenario_id"],
@@ -238,9 +241,13 @@ def summarize(ind, batches, scenario: Dict, baseline_sig=None) -> Dict:
         "arc_cap_excess": float(vb.get("cap_excess", 0.0)),
         "late_teu_h": float(vb.get("late_teu_h", 0.0)),
         "route_change_ratio": route_change_ratio(sig, baseline_sig),
+        "total_demand": total_demand,
+        "share_other": max(0.0, total_demand - tracked_flow) / total_demand if total_demand else 0.0,
     }
     for node in TRACK_NODES:
-        row[f"flow_{node}"] = float(bf.get(node, 0.0))
+        flow = float(bf.get(node, 0.0))
+        row[f"flow_{node}"] = flow
+        row[f"share_{node}"] = flow / total_demand if total_demand else 0.0
         row[f"util_{node}"] = float(bu.get(node, 0.0))
     return row
 
