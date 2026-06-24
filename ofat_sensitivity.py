@@ -114,14 +114,29 @@ def apply_scenario(sheets: Dict[str, pd.DataFrame], group: str, factor: float) -
             df = sheets["Timetable"]
             modes = df["Mode"].astype(str).str.lower().isin(["rail", "water"])
             if "Frequency_per_week" in df.columns:
-                freq = pd.to_numeric(df.loc[modes, "Frequency_per_week"], errors="coerce").fillna(1.0)
+                df["Frequency_per_week"] = (
+                    pd.to_numeric(df["Frequency_per_week"], errors="coerce")
+                    .fillna(1.0)
+                    .astype(float)
+                )
+                freq = df.loc[modes, "Frequency_per_week"]
                 new_freq = np.maximum(freq * factor, 0.1)
                 df.loc[modes, "Frequency_per_week"] = new_freq
                 if "Headway_Hours" in df.columns:
+                    df["Headway_Hours"] = (
+                        pd.to_numeric(df["Headway_Hours"], errors="coerce")
+                        .fillna(168.0)
+                        .astype(float)
+                    )
                     df.loc[modes, "Headway_Hours"] = 168.0 / new_freq
             elif "Headway_Hours" in df.columns:
                 # Higher factor means better frequency, therefore shorter headway.
-                headway = pd.to_numeric(df.loc[modes, "Headway_Hours"], errors="coerce").fillna(168.0)
+                df["Headway_Hours"] = (
+                    pd.to_numeric(df["Headway_Hours"], errors="coerce")
+                    .fillna(168.0)
+                    .astype(float)
+                )
+                headway = df.loc[modes, "Headway_Hours"]
                 df.loc[modes, "Headway_Hours"] = headway / max(factor, 0.1)
         return
 
