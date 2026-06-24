@@ -46,7 +46,7 @@ jobs:
       - name: Run enhanced OFAT
         shell: bash
         run: |
-          read -r -a GROUPS <<< "${{ inputs.groups }}"
+          read -r -a PARAM_GROUPS <<< "${{ inputs.groups }}"
           read -r -a LEVELS <<< "${{ inputs.levels }}"
           read -r -a SEEDS <<< "${{ inputs.seeds }}"
 
@@ -70,7 +70,7 @@ jobs:
             --data data_expanded.xlsx \
             --out enhanced_ofat_out \
             --preset full \
-            --groups "${GROUPS[@]}" \
+            --groups "${PARAM_GROUPS[@]}" \
             --levels "${LEVELS[@]}" \
             --seeds "${SEEDS[@]}" \
             --batches "${BATCHES}" \
