@@ -1,0 +1,147 @@
+name: Enhanced OFAT sensitivity
+
+on:
+  workflow_dispatch:
+    inputs:
+      scale:
+        description: "Run scale"
+        required: true
+        default: "quick"
+        type: choice
+        options:
+          - quick
+          - formal
+      groups:
+        description: "Parameter groups to test"
+        required: true
+        default: "P10_latest_time P2_border_capacity P3_background_flow P6_service_frequency P1_border_delay_rail P9_quantity"
+      levels:
+        description: "OFAT perturbation levels as decimals"
+        required: true
+        default: "-0.40 -0.30 -0.20 -0.10 0.10 0.20 0.30 0.40"
+      seeds:
+        description: "Random seeds"
+        required: true
+        default: "2026 7 99"
+
+jobs:
+  enhanced-ofat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run enhanced OFAT
+        shell: bash
+        run: |
+          read -r -a GROUPS <<< "${{ inputs.groups }}"
+          read -r -a LEVELS <<< "${{ inputs.levels }}"
+          read -r -a SEEDS <<< "${{ inputs.seeds }}"
+
+          if [ "${{ inputs.scale }}" = "formal" ]; then
+            BATCHES=40
+            POP=200
+            GENS=150
+            DFS_PATHS=150
+            TOPK=15
+            PATH_CAP=45
+          else
+            BATCHES=14
+            POP=90
+            GENS=80
+            DFS_PATHS=120
+            TOPK=12
+            PATH_CAP=36
+          fi
+
+          python ofat_sensitivity.py \
+            --data data_expanded.xlsx \
+            --out enhanced_ofat_out \
+            --preset full \
+            --groups "${GROUPS[@]}" \
+            --levels "${LEVELS[@]}" \
+            --seeds "${SEEDS[@]}" \
+            --batches "${BATCHES}" \
+            --pop "${POP}" \
+            --gens "${GENS}" \
+            --dfs-paths "${DFS_PATHS}" \
+            --topk "${TOPK}" \
+            --path-cap "${PATH_CAP}"
+
+      - name: Build sensitivity ranking
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+
+          out = Path("enhanced_ofat_out")
+          df = pd.read_csv(out / "ofat_results.csv")
+          share_cols = [c for c in df.columns if c.startswith("share_")]
+          util_cols = [c for c in df.columns if c.startswith("util_")]
+          obj_cols = ["cost", "emission_gCO2", "time_h"]
+
+          grouped = df.groupby(["group", "delta"], dropna=False).mean(numeric_only=True).reset_index()
+          base = grouped[grouped["group"] == "baseline"].iloc[0]
+
+          rows = []
+          for group in [g for g in grouped["group"].unique() if g != "baseline"]:
+              sub = grouped[grouped["group"] == group]
+              share_swing = max(
+                  sum(abs(row[c] - base[c]) for c in share_cols)
+                  for _, row in sub.iterrows()
+              )
+              obj_swing_rel = 0.0
+              for _, row in sub.iterrows():
+                  for col in obj_cols:
+                      if base[col] != 0:
+                          obj_swing_rel = max(obj_swing_rel, abs(row[col] - base[col]) / abs(base[col]))
+              util_swing = max(
+                  max(abs(row[c] - base[c]) for c in util_cols)
+                  for _, row in sub.iterrows()
+              )
+              route_change = sub["route_change_ratio"].max()
+              rows.append({
+                  "group": group,
+                  "share_swing": round(float(share_swing), 4),
+                  "obj_swing_rel": round(float(obj_swing_rel), 4),
+                  "util_swing": round(float(util_swing), 4),
+                  "max_route_change_ratio": round(float(route_change), 4),
+              })
+
+          ranking = pd.DataFrame(rows).sort_values("share_swing", ascending=False)
+          ranking.to_csv(out / "enhanced_sensitivity_ranking.csv", index=False)
+
+          text = ranking.to_string(index=False)
+          (out / "enhanced_sensitivity_ranking.txt").write_text(text + "\n", encoding="utf-8")
+          print(text)
+
+          summary = "## Enhanced OFAT sensitivity ranking\n\n"
+          summary += "| group | share_swing | obj_swing_rel | util_swing | max_route_change_ratio |\n"
+          summary += "|---|---:|---:|---:|---:|\n"
+          for _, row in ranking.iterrows():
+              summary += (
+                  f"| {row['group']} | {row['share_swing']:.4f} | "
+                  f"{row['obj_swing_rel']:.4f} | {row['util_swing']:.4f} | "
+                  f"{row['max_route_change_ratio']:.4f} |\n"
+              )
+          summary += "\n"
+          Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).write_text(summary, encoding="utf-8")
+          PY
+
+      - name: Upload OFAT outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: enhanced-ofat-${{ inputs.scale }}
+          path: enhanced_ofat_out/
