@@ -1,0 +1,83 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "expanda: smoke run",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["run_network_experiments.py", "--mode", "smoke"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "expanda: smoke compare",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["compare_network_results.py", "--mode", "smoke"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "expanda: quick run",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["run_network_experiments.py", "--mode", "quick"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "expanda: quick compare",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["compare_network_results.py", "--mode", "quick"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "expanda: full run",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["run_network_experiments.py", "--mode", "full"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "expanda: full compare",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["compare_network_results.py", "--mode", "full"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    }
+  ]
+}
