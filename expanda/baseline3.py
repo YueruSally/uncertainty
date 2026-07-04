@@ -2403,7 +2403,7 @@ if __name__ == "__main__":
     ax.legend(fontsize=8); ax.grid(True, ls=":", alpha=0.5)
     plt.tight_layout(); plt.savefig(p("plot_FeasibleCount.png")); plt.close()
 
-    rts = [r["runtime_s"] for r in all_run_rows[:-1]]
+    rts = [r["runtime_s"] for r in all_run_rows]
     avg_rt = float(np.mean(rts))
     colors_rt = ["#E53935" if r > avg_rt else "#1976D2" for r in rts]
     fig, ax = plt.subplots(figsize=(max(8, RUNS*0.4), 4), dpi=180)
