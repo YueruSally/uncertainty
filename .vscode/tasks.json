@@ -2,10 +2,10 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "expanda: smoke run",
+      "label": "expanda: operational screening smoke",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["run_network_experiments.py", "--mode", "smoke"],
+      "args": ["run_operational_screening.py", "--mode", "smoke"],
       "options": {
         "cwd": "${workspaceFolder}/expanda",
         "env": {
@@ -15,10 +15,10 @@
       "problemMatcher": []
     },
     {
-      "label": "expanda: smoke compare",
+      "label": "expanda: operational screening quick",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["compare_network_results.py", "--mode", "smoke"],
+      "args": ["run_operational_screening.py", "--mode", "quick"],
       "options": {
         "cwd": "${workspaceFolder}/expanda",
         "env": {
@@ -28,10 +28,10 @@
       "problemMatcher": []
     },
     {
-      "label": "expanda: quick run",
+      "label": "expanda: operational screening coarse",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["run_network_experiments.py", "--mode", "quick"],
+      "args": ["run_operational_screening.py", "--mode", "coarse"],
       "options": {
         "cwd": "${workspaceFolder}/expanda",
         "env": {
@@ -41,36 +41,10 @@
       "problemMatcher": []
     },
     {
-      "label": "expanda: quick compare",
+      "label": "expanda: operational screening full",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["compare_network_results.py", "--mode", "quick"],
-      "options": {
-        "cwd": "${workspaceFolder}/expanda",
-        "env": {
-          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
-        }
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "expanda: full run",
-      "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["run_network_experiments.py", "--mode", "full"],
-      "options": {
-        "cwd": "${workspaceFolder}/expanda",
-        "env": {
-          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
-        }
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "expanda: full compare",
-      "type": "shell",
-      "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["compare_network_results.py", "--mode", "full"],
+      "args": ["run_operational_screening.py", "--mode", "full"],
       "options": {
         "cwd": "${workspaceFolder}/expanda",
         "env": {

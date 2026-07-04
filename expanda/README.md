@@ -1,80 +1,108 @@
-# Expanda Network Scenario Experiments
+# Operational Uncertainty Screening Experiments
 
-这个文件夹用于做导师建议的实验：**同一个 NSGA-II 程序，在不同网络数据上运行，然后比较结果差异**。
+这个文件夹现在只保留博士论文下一章需要运行的 operational uncertainty screening 主线：用同一个 40-batch expanded network，在运营者视角下对候选不确定性做粗筛，再把筛出来的少数因素送入后续正式随机/鲁棒路径规划模型。
 
 ## 文件说明
 
-- `baseline3.py`：参数化后的主程序，可以指定输入数据、输出目录、种群规模、迭代代数和运行次数。
-- `baseline3_desktop_original.py`：从桌面复制来的原始脚本备份。
-- `data/data_original.xlsx`：原始网络数据。
-- `data/data_expanded.xlsx`：扩展网络数据。
-- `run_network_experiments.py`：一键运行 original 和 expanded 两个网络场景。
-- `compare_network_results.py`：汇总两个网络的 `run_summary.xlsx`，生成对比表。
-- `.vscode/tasks.json`：VSCode 任务配置。
+- `baseline3.py`：三目标 NSGA-II 路径规划核心模型。
+- `run_operational_screening.py`：新的粗筛实验入口。
+- `data/data_expanded.xlsx`：40 个 batch 的 expanded network 数据。
+- `baseline3_desktop_original.py`：原始脚本备份。
+- `.vscode/tasks.json`：VSCode 运行任务。
 
-## 推荐实验流程
+旧的 10 因素 OFAT、enhanced OFAT、bottleneck stress 脚本和相关结果已移除，避免和现在的 operational screening 混用。
 
-如果是在 VS Code Remote SSH 连接学校电脑，建议打开整个 GitHub 仓库后，在 Terminal 里运行：
+## 粗筛候选因素
+
+| 编号 | 候选因素 | 运营含义 | 文献母类 |
+|---|---|---|---|
+| C1 | 干线运输时间不确定性 | 铁路、公路、水运主运段实现运行时间偏离计划 | transit time / travel time reliability |
+| C2 | 边境通关/换轨处理时间不确定性 | 口岸通关、查验、换轨、排队等待 | service/transfer time + queueing delay |
+| C3 | 场站/枢纽换装时间不确定性 | 场站、港口、枢纽的换装处理时间波动 | transfer time / terminal handling time |
+| C4 | 服务能力/节点/舱位容量不确定性 | 链路、节点、枢纽、班次、slot 或舱位执行期不足 | capacity uncertainty |
+| C5 | 需求/货量不确定性 | 批次货量或短期 OD 货量波动 | demand uncertainty |
+| C6 | 通道/线路中断不确定性 | 走廊、口岸、线路、节点临时降容或不可用 | link-node failure / disruption |
+
+实验规则：
+
+- C1/C2/C3 都属于 realized time uncertainty，但发生位置不同，粗筛时分开测试。
+- C4 与 C2/C3 存在“容量不足导致排队延误”的因果关系；粗筛可分别测试，进入最终模型时只选一种表示，避免重复计算。
+- 交付时间窗作为可靠性约束和评价口径，不作为粗筛扰动因素。
+- 罕见地缘级中断不进入随机粗筛，后续可单列为韧性情景。
+
+## 运行方式
+
+先安装依赖：
 
 ```bash
 cd expanda
-python3 -m venv ../.venv
 ../.venv/bin/python -m pip install -r requirements.txt
 ```
 
-如果仓库根目录已经有 `.venv`，只需要执行安装依赖这一句即可。
-
-先做 smoke test，确认程序和数据能跑通：
+快速检查程序链路：
 
 ```bash
 cd expanda
-../.venv/bin/python run_network_experiments.py --mode smoke
-../.venv/bin/python compare_network_results.py --mode smoke
+../.venv/bin/python run_operational_screening.py --mode smoke
 ```
 
-然后做 quick experiment，用于看趋势：
+建议用于论文粗筛的运行：
 
 ```bash
 cd expanda
-../.venv/bin/python run_network_experiments.py --mode quick
-../.venv/bin/python compare_network_results.py --mode quick
+../.venv/bin/python run_operational_screening.py --mode coarse
 ```
 
-最后做论文正式结果：
+正式更重的版本：
 
 ```bash
 cd expanda
-../.venv/bin/python run_network_experiments.py --mode full
-../.venv/bin/python compare_network_results.py --mode full
+../.venv/bin/python run_operational_screening.py --mode full
 ```
 
-## 对比指标
+也可以只跑某几个候选因素：
 
-主要看 `outputs/network_comparison_*.xlsx`：
+```bash
+cd expanda
+../.venv/bin/python run_operational_screening.py \
+  --mode quick \
+  --candidates C2 C6 \
+  --levels low medium high \
+  --seeds 2026 7 99
+```
 
-- `pareto_size_mean`：Pareto 解数量，反映可选运输方案丰富度。
-- `feas_soft_mean` / `feas_strict_mean`：可行解比例，反映网络是否更容易满足约束。
-- `hv_mean`：Hypervolume，越高通常说明 Pareto front 覆盖更好。
-- `igd_plus_mean`：IGD+，越低通常越好。
-- `spacing_mean`：解分布均匀程度。
-- `runtime_s_mean`：计算时间，用于说明网络规模变大后的计算成本。
+所有模式默认检查 `expected-batches=40`，确保使用的是当前 40-batch 数据。
 
-每个场景的详细输出在：
+## 输出
 
-- `outputs/original_<mode>/`
-- `outputs/expanded_<mode>/`
+输出目录默认在：
 
-其中 `result.txt` 和 `pareto_points.json` 可以继续用于分析路径选择、运输方式占比、瓶颈节点和成本-排放-时间 trade-off。
+```text
+expanda/outputs/operational_screening_<mode>/
+```
 
-## 在 VS Code 里运行
+主要文件：
 
-方式一：打开仓库根目录 `uncertainty`，然后使用：
+- `screening_results.csv`：每个 seed、candidate、level 的原始结果。
+- `screening_summary.csv`：按 candidate 和 level 聚合后的 KPI 与决策影响。
+- `screening_ranking.csv`：粗筛排序与是否进入细筛的建议。
+- `screening_report.md`：可直接复制进实验记录的说明和表格。
+- `manifest.json`：运行配置和候选因素定义。
 
-1. `Terminal` -> `Run Task...`
-2. 选择 `expanda: smoke run`
-3. 再选择 `expanda: smoke compare`
-4. smoke 能跑通后，再运行 `expanda: quick run` 和 `expanda: quick compare`
+注意：当前 `baseline3.py` 的 hard-feasible 标记非常严格，只要存在迟到罚时或容量超限就不会被标记为 hard feasible。粗筛脚本在没有 hard-feasible Pareto 解时，会自动选取当前 population 中 penalty 最低的代表解继续计算 KPI 和路径变化；结果表中的 `feasible`、`penalty`、`late_teu_h` 和 `infeasible_teu` 用于判断该代表解的约束表现。
 
-方式二：只打开 `expanda` 文件夹，也可以使用同样的 `Terminal` -> `Run Task...` 运行任务。
+## 粗筛判据
 
-正式实验运行 `expanda: full run`。这个会按 `pop=250, gens=200, runs=30` 跑 original 和 expanded 两个网络，耗时会明显比 smoke/quick 长，适合放在学校电脑上跑。
+每个候选因素施加执行期扰动后，记录两类影响：
+
+- KPI impact：总成本、总运输时间、准点率、P90/P95 延误、不可行量、容量超限。
+- Decision impact：相对于 deterministic baseline 的路径分配变化比例。
+
+候选因素被保留的逻辑是：
+
+- 同时影响 KPI 和路径决策：进入核心细筛池。
+- 只影响 KPI：作为 reliability-risk factor 进入细筛或保留为补充。
+- 只改变路径但 KPI 不明显：作为 strategy-shift factor 视结果保留。
+- 两者都不明显：粗筛淘汰。
+
+这一章的定位不是最终随机优化模型，而是为后续模型提供入口论证：只有经过 operational screening 证明 decision-relevant 的不确定性，才进入下一章正式建模。
