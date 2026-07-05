@@ -17,6 +17,10 @@ OUTPUT_ROOT = ROOT / "outputs"
 SCENARIOS = ("original", "expanded")
 
 
+def scenario_dir_name(scenario: str, mode: str, tag: str) -> str:
+    return f"{scenario}_{tag}_{mode}" if tag else f"{scenario}_{mode}"
+
+
 def numeric_summary(path: Path) -> dict[str, float | int | str]:
     df = pd.read_excel(path, sheet_name="RunSummary")
     runs = df[pd.to_numeric(df["run_id"], errors="coerce").notna()].copy()
@@ -41,11 +45,13 @@ def numeric_summary(path: Path) -> dict[str, float | int | str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Compare original vs expanded network results.")
     parser.add_argument("--mode", default="quick", help="Mode suffix used by run_network_experiments.py.")
+    parser.add_argument("--tag", default="b20",
+                        help="Optional result tag between scenario and mode, e.g. b20.")
     args = parser.parse_args()
 
     rows = []
     for scenario in SCENARIOS:
-        summary_path = OUTPUT_ROOT / f"{scenario}_{args.mode}" / "run_summary.xlsx"
+        summary_path = OUTPUT_ROOT / scenario_dir_name(scenario, args.mode, args.tag) / "run_summary.xlsx"
         if not summary_path.exists():
             print(f"[SKIP] Missing {summary_path}")
             continue
@@ -72,8 +78,9 @@ def main() -> None:
                 if base["runtime_s_mean"] else float("nan")
             )
 
-    out_csv = OUTPUT_ROOT / f"network_comparison_{args.mode}.csv"
-    out_xlsx = OUTPUT_ROOT / f"network_comparison_{args.mode}.xlsx"
+    out_stem = f"network_comparison_{args.tag}_{args.mode}" if args.tag else f"network_comparison_{args.mode}"
+    out_csv = OUTPUT_ROOT / f"{out_stem}.csv"
+    out_xlsx = OUTPUT_ROOT / f"{out_stem}.xlsx"
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_csv, index=False)
     df.to_excel(out_xlsx, index=False)

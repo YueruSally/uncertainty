@@ -1,5 +1,54 @@
 # Operational Uncertainty Screening Experiments
 
+## Network Expansion B20 Experiment
+
+这个实验专门回答导师提出的网络扩展问题：
+
+> 保持同一组 20 个 batch demand 不变，只把网络从 original network 扩展到 expanded network，观察路径选择、Pareto 解和算法指标是否变化。
+
+关键控制变量：
+
+- original 和 expanded 都使用同一个共享需求文件：`data/batches_20_original.csv`。
+- expanded 只改变网络节点、线路、时刻表、容量等网络条件。
+- 输出目录带有 `b20` 标记，避免和之前 40-batch expanded 结果混淆。
+
+运行正式实验：
+
+```bash
+cd expanda
+nohup ../.venv/bin/python run_network_experiments.py --mode full > b20_1.txt 2>&1 &
+```
+
+如果只想补跑 expanded network：
+
+```bash
+cd expanda
+nohup ../.venv/bin/python run_network_experiments.py --mode full --scenario expanded > expanded_b20_1.txt 2>&1 &
+```
+
+生成对比表：
+
+```bash
+cd expanda
+../.venv/bin/python compare_network_results.py --mode full --tag b20
+```
+
+生成路线选择对比表：
+
+```bash
+cd expanda
+../.venv/bin/python summarize_network_routes.py --mode full --tag b20
+```
+
+主要输出：
+
+```text
+outputs/original_b20_full/
+outputs/expanded_b20_full/
+outputs/network_comparison_b20_full.xlsx
+outputs/network_routes_b20_full.xlsx
+```
+
 这个文件夹现在只保留博士论文下一章需要运行的 operational uncertainty screening 主线：用同一个 40-batch expanded network，在运营者视角下对候选不确定性做粗筛，再把筛出来的少数因素送入后续正式随机/鲁棒路径规划模型。
 
 ## 文件说明

@@ -78,6 +78,45 @@
         }
       },
       "problemMatcher": []
+    },
+    {
+      "label": "expanda: b20 network full run",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["run_network_experiments.py", "--mode", "full"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "expanda: b20 network full compare",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["compare_network_results.py", "--mode", "full", "--tag", "b20"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "expanda: b20 network route summary",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["summarize_network_routes.py", "--mode", "full", "--tag", "b20"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
     }
   ]
 }

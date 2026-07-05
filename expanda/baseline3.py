@@ -798,6 +798,31 @@ def augment_batches_to_20(bdf, node_region, random_seed=2026):
     return df_out
 
 
+def load_batches_from_csv(filename: str) -> List[Batch]:
+    df = pd.read_csv(filename)
+    required = ["batch_id", "origin", "destination", "quantity", "ET", "LT"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(f"Batch CSV missing required columns: {missing}")
+
+    batches: List[Batch] = []
+    for _, row in df.iterrows():
+        batches.append(Batch(
+            batch_id=int(row.get("batch_id", 0)),
+            origin=str(row.get("origin", "")).strip(),
+            destination=str(row.get("destination", "")).strip(),
+            quantity=safe_float(row.get("quantity"), default=0.0),
+            ET=safe_float(row.get("ET"), default=0.0),
+            LT=safe_float(row.get("LT"), default=0.0),
+            penalty_per_teu_h=safe_float(
+                row.get("penalty_per_teu_h"),
+                default=DEFAULT_PENALTY_PER_TEU_H,
+            ),
+        ))
+    print(f"[INFO] Batches overridden from CSV: {filename} ({len(batches)} batches)")
+    return batches
+
+
 # ════════════════════════════════════════════════════════
 # Path library
 # ════════════════════════════════════════════════════════
@@ -2021,6 +2046,8 @@ if __name__ == "__main__":
     parser.add_argument("--runs", type=int, default=30, help="Number of random-seed runs.")
     parser.add_argument("--seed", type=int, default=1000, help="Base random seed.")
     parser.add_argument("--out", default="out_baseline", help="Output directory.")
+    parser.add_argument("--batches-csv", default="",
+                        help="Optional shared demand CSV. When set, overrides workbook Batches.")
     parser.add_argument("--expected-batches", type=int, default=0,
                         help="Optional exact batch count check; 0 disables the check.")
     args = parser.parse_args()
@@ -2054,6 +2081,9 @@ if __name__ == "__main__":
      waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
      carbon_tax_map, emission_factor_map, mode_speeds_map,
      trans_map, border_delay_map, theta_rm) = load_network_from_extended(DATA_FILE)
+
+    if args.batches_csv:
+        raw_batches = load_batches_from_csv(args.batches_csv)
 
     if args.expected_batches:
         assert len(raw_batches) == args.expected_batches, \
