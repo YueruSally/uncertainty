@@ -6,6 +6,7 @@
 
 - `baseline3.py`：三目标 NSGA-II 路径规划核心模型。
 - `run_operational_screening.py`：新的粗筛实验入口。
+- `run_refined_operational_experiments.py`：粗筛之后的细筛实验入口，默认重点分析 C2/C4/C6。
 - `data/data_expanded.xlsx`：40 个 batch 的 expanded network 数据。
 - `baseline3_desktop_original.py`：原始脚本备份。
 - `.vscode/tasks.json`：VSCode 运行任务。
@@ -60,6 +61,30 @@ cd expanda
 ../.venv/bin/python run_operational_screening.py --mode full
 ```
 
+粗筛完成后，运行第二阶段细筛：
+
+```bash
+cd expanda
+../.venv/bin/python run_refined_operational_experiments.py --mode refined
+```
+
+细筛默认使用粗筛结果中最适合作为核心 operational uncertainty 的：
+
+- `C2` 边境通关/换轨处理时间
+- `C4` 服务能力/节点/舱位容量
+- `C6` 通道/线路中断
+
+细筛和粗筛不同：它固定 baseline 生成的 path-library 拓扑，只在同一套候选路径上改变不确定性参数并重新优化。这样可以减少“每个场景重新随机搜路”导致的 route-change 指标虚高。
+
+如果要把 C1/C5 也作为 benchmark 加入细筛：
+
+```bash
+cd expanda
+../.venv/bin/python run_refined_operational_experiments.py \
+  --mode refined \
+  --candidates C2 C4 C6 C1 C5
+```
+
 也可以只跑某几个候选因素：
 
 ```bash
@@ -81,6 +106,12 @@ cd expanda
 expanda/outputs/operational_screening_<mode>/
 ```
 
+细筛输出目录默认在：
+
+```text
+expanda/outputs/operational_refined_<mode>/
+```
+
 主要文件：
 
 - `screening_results.csv`：每个 seed、candidate、level 的原始结果。
@@ -88,6 +119,14 @@ expanda/outputs/operational_screening_<mode>/
 - `screening_ranking.csv`：粗筛排序与是否进入细筛的建议。
 - `screening_report.md`：可直接复制进实验记录的说明和表格。
 - `manifest.json`：运行配置和候选因素定义。
+
+细筛主要文件：
+
+- `refined_results.csv`：每个 seed、scenario、level 的原始结果。
+- `refined_summary.csv`：5 档强度下的 KPI 和路径变化汇总。
+- `refined_ranking.csv`：细筛后的核心/benchmark/secondary 排序。
+- `refined_combination_summary.csv`：C2/C4/C6 组合扰动结果。
+- `refined_report.md`：细筛报告。
 
 注意：当前 `baseline3.py` 的 hard-feasible 标记非常严格，只要存在迟到罚时或容量超限就不会被标记为 hard feasible。粗筛脚本在没有 hard-feasible Pareto 解时，会自动选取当前 population 中 penalty 最低的代表解继续计算 KPI 和路径变化；结果表中的 `feasible`、`penalty`、`late_teu_h` 和 `infeasible_teu` 用于判断该代表解的约束表现。
 

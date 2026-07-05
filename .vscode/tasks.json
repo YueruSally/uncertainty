@@ -52,6 +52,32 @@
         }
       },
       "problemMatcher": []
+    },
+    {
+      "label": "expanda: refined operational smoke",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["run_refined_operational_experiments.py", "--mode", "smoke"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "expanda: refined operational run",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["run_refined_operational_experiments.py", "--mode", "refined"],
+      "options": {
+        "cwd": "${workspaceFolder}/expanda",
+        "env": {
+          "MPLCONFIGDIR": "${workspaceFolder}/expanda/outputs/.matplotlib"
+        }
+      },
+      "problemMatcher": []
     }
   ]
 }
