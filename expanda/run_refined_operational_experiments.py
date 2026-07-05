@@ -33,6 +33,8 @@ OUTPUT_ROOT = ROOT / "outputs"
 REFINED_LEVELS: dict[str, dict[str, float]] = {
     "r1": {
         "intensity": 1,
+        "boundary_capacity_loss": 0.08,
+        "boundary_background_growth": 0.05,
         "line_time_spread": 0.05,
         "border_time_spread": 0.10,
         "terminal_time_spread": 0.10,
@@ -44,6 +46,8 @@ REFINED_LEVELS: dict[str, dict[str, float]] = {
     },
     "r2": {
         "intensity": 2,
+        "boundary_capacity_loss": 0.15,
+        "boundary_background_growth": 0.12,
         "line_time_spread": 0.12,
         "border_time_spread": 0.22,
         "terminal_time_spread": 0.18,
@@ -55,6 +59,8 @@ REFINED_LEVELS: dict[str, dict[str, float]] = {
     },
     "r3": {
         "intensity": 3,
+        "boundary_capacity_loss": 0.25,
+        "boundary_background_growth": 0.25,
         "line_time_spread": 0.18,
         "border_time_spread": 0.35,
         "terminal_time_spread": 0.30,
@@ -66,6 +72,8 @@ REFINED_LEVELS: dict[str, dict[str, float]] = {
     },
     "r4": {
         "intensity": 4,
+        "boundary_capacity_loss": 0.35,
+        "boundary_background_growth": 0.40,
         "line_time_spread": 0.25,
         "border_time_spread": 0.50,
         "terminal_time_spread": 0.42,
@@ -77,6 +85,8 @@ REFINED_LEVELS: dict[str, dict[str, float]] = {
     },
     "r5": {
         "intensity": 5,
+        "boundary_capacity_loss": 0.45,
+        "boundary_background_growth": 0.60,
         "line_time_spread": 0.35,
         "border_time_spread": 0.70,
         "terminal_time_spread": 0.55,
@@ -95,7 +105,7 @@ MODES: dict[str, dict[str, Any]] = {
         "gens": 6,
         "seeds": [2026],
         "levels": ["r3"],
-        "candidates": ["C2", "C4", "C6"],
+        "candidates": ["M1", "M2"],
         "combo_levels": [],
     },
     "quick": {
@@ -103,7 +113,7 @@ MODES: dict[str, dict[str, Any]] = {
         "gens": 30,
         "seeds": [2026, 7],
         "levels": ["r1", "r2", "r3", "r4", "r5"],
-        "candidates": ["C2", "C4", "C6"],
+        "candidates": ["M1", "M2"],
         "combo_levels": ["r3"],
     },
     "refined": {
@@ -111,7 +121,7 @@ MODES: dict[str, dict[str, Any]] = {
         "gens": 80,
         "seeds": [2026, 7, 99, 1000],
         "levels": ["r1", "r2", "r3", "r4", "r5"],
-        "candidates": ["C2", "C4", "C6"],
+        "candidates": ["M1", "M2"],
         "combo_levels": ["r3", "r5"],
     },
     "full": {
@@ -119,18 +129,46 @@ MODES: dict[str, dict[str, Any]] = {
         "gens": 150,
         "seeds": [2026, 7, 99, 1000, 42],
         "levels": ["r1", "r2", "r3", "r4", "r5"],
-        "candidates": ["C2", "C4", "C6", "C1", "C5"],
+        "candidates": ["M1", "M2", "B1", "B2"],
         "combo_levels": ["r3", "r5"],
     },
 }
 
 
 DEFAULT_COMBINATIONS = [
-    ("C2", "C6"),
-    ("C2", "C4"),
-    ("C4", "C6"),
-    ("C2", "C4", "C6"),
+    ("M1", "M2"),
 ]
+
+
+SCENARIO_DEFS: dict[str, dict[str, str]] = {
+    "M1": {
+        "label": "Boundary bottleneck congestion",
+        "role": "core",
+        "description": (
+            "Border capacity pressure creates endogenous processing delay "
+            "through a BPR congestion function; this merges C4 and C2 into "
+            "one mechanism."
+        ),
+    },
+    "M2": {
+        "label": "Corridor/link disruption",
+        "role": "core",
+        "description": "Recurrent link, node or corridor disruption.",
+    },
+    "B1": {
+        "label": "Line-haul travel time benchmark",
+        "role": "benchmark",
+        "description": "Benchmark for established travel-time reliability uncertainty.",
+    },
+    "B2": {
+        "label": "Shipment volume benchmark",
+        "role": "benchmark",
+        "description": "Benchmark for established demand/volume uncertainty.",
+    },
+}
+
+BPR_ALPHA = 0.15
+BPR_BETA = 4.0
 
 
 def patch_refined_levels() -> None:
@@ -188,6 +226,107 @@ def rebuild_path_library_from_signatures(
     return rebuilt
 
 
+def bpr_delay_multiplier(utilisation: float, alpha: float = BPR_ALPHA, beta: float = BPR_BETA) -> float:
+    u = max(0.0, float(utilisation))
+    return float(1.0 + alpha * (u ** beta))
+
+
+def apply_boundary_bottleneck_congestion(
+    inputs: S.ModelInputs,
+    level: str,
+    cascade_nodes: list[str] | None = None,
+) -> tuple[S.ModelInputs, dict[str, Any]]:
+    cfg = REFINED_LEVELS[level]
+    capacity_loss = float(cfg["boundary_capacity_loss"])
+    background_growth = float(cfg["boundary_background_growth"])
+    cascade_nodes = cascade_nodes or []
+    active_nodes = sorted(
+        n for n in B.BREAK_OF_GAUGE_NODES
+        if n in inputs.border_capacity or any(k[0] == n for k in inputs.border_delay_map)
+    )
+
+    cascade_factor = 0.0
+    if cascade_nodes:
+        disrupted_border_count = sum(1 for n in cascade_nodes if n in active_nodes)
+        cascade_factor = 0.06 * float(cfg["intensity"]) * max(1, disrupted_border_count)
+
+    node_params: dict[str, dict[str, float]] = {}
+    for node in active_nodes:
+        base_capacity = float(inputs.border_capacity.get(node, 0.0))
+        if base_capacity > 0.0:
+            effective_capacity = max(1.0, base_capacity * max(0.02, 1.0 - capacity_loss))
+            inputs.border_capacity[node] = effective_capacity
+        else:
+            effective_capacity = 0.0
+
+        base_background = float(inputs.background_flow.get(node, 0.0))
+        bg_multiplier = 1.0 + background_growth
+        if cascade_factor > 0.0 and node not in cascade_nodes:
+            bg_multiplier += cascade_factor
+        effective_background = base_background * bg_multiplier
+        if effective_background > 0.0:
+            inputs.background_flow[node] = effective_background
+
+        utilisation = (
+            effective_background / effective_capacity
+            if effective_capacity > 0.0 else 0.0
+        )
+        delay_multiplier = bpr_delay_multiplier(utilisation)
+        node_params[node] = {
+            "base_capacity": base_capacity,
+            "effective_capacity": effective_capacity,
+            "base_background": base_background,
+            "effective_background": effective_background,
+            "utilisation": utilisation,
+            "bpr_delay_multiplier": delay_multiplier,
+        }
+
+    new_delay_map = {}
+    for key, value in inputs.border_delay_map.items():
+        node, _mode = key
+        multiplier = node_params.get(node, {}).get("bpr_delay_multiplier", 1.0)
+        new_delay_map[key] = float(value) * multiplier
+    inputs.border_delay_map = new_delay_map
+
+    utilisations = [p["utilisation"] for p in node_params.values()]
+    multipliers = [p["bpr_delay_multiplier"] for p in node_params.values()]
+    params = {
+        "mechanism": "M1_boundary_bottleneck_congestion",
+        "capacity_loss": capacity_loss,
+        "background_growth": background_growth,
+        "bpr_alpha": BPR_ALPHA,
+        "bpr_beta": BPR_BETA,
+        "cascade_nodes": list(cascade_nodes),
+        "cascade_background_factor": cascade_factor,
+        "mean_utilisation": float(np.mean(utilisations)) if utilisations else 0.0,
+        "max_utilisation": float(np.max(utilisations)) if utilisations else 0.0,
+        "mean_bpr_delay_multiplier": float(np.mean(multipliers)) if multipliers else 1.0,
+        "max_bpr_delay_multiplier": float(np.max(multipliers)) if multipliers else 1.0,
+        "node_params": node_params,
+    }
+    return inputs, params
+
+
+def apply_atomic_scenario(
+    inputs: S.ModelInputs,
+    scenario_token: str,
+    level: str,
+    seed: int,
+    disruption_nodes: list[str],
+) -> tuple[S.ModelInputs, dict[str, Any]]:
+    if scenario_token == "M1":
+        return apply_boundary_bottleneck_congestion(inputs, level)
+    if scenario_token == "M2":
+        return S.apply_candidate(inputs, "C6", level, seed, disruption_nodes)
+    if scenario_token == "B1":
+        return S.apply_candidate(inputs, "C1", level, seed, disruption_nodes)
+    if scenario_token == "B2":
+        return S.apply_candidate(inputs, "C5", level, seed, disruption_nodes)
+    if scenario_token in S.CANDIDATES:
+        return S.apply_candidate(inputs, scenario_token, level, seed, disruption_nodes)
+    raise ValueError(f"Unknown refined scenario token: {scenario_token}")
+
+
 def apply_scenario(
     base_inputs: S.ModelInputs,
     scenario_candidates: list[str],
@@ -203,28 +342,143 @@ def apply_scenario(
         "candidates": scenario_candidates,
         "candidate_params": {},
     }
-    for candidate in scenario_candidates:
-        scenario_inputs, candidate_params = S.apply_candidate(
-            scenario_inputs,
-            candidate=candidate,
-            level=level,
-            seed=seed,
-            disruption_pool=disruption_nodes,
-        )
+    ordered_candidates = [c for c in scenario_candidates if c != "M1"]
+    if "M1" in scenario_candidates:
+        ordered_candidates.append("M1")
+
+    cascade_nodes: list[str] = []
+    for candidate in ordered_candidates:
+        if candidate == "M1":
+            scenario_inputs, candidate_params = apply_boundary_bottleneck_congestion(
+                scenario_inputs,
+                level=level,
+                cascade_nodes=cascade_nodes if "M2" in scenario_candidates else None,
+            )
+        else:
+            scenario_inputs, candidate_params = apply_atomic_scenario(
+                scenario_inputs,
+                scenario_token=candidate,
+                level=level,
+                seed=seed,
+                disruption_nodes=disruption_nodes,
+            )
+            if candidate == "M2":
+                cascade_nodes = list(candidate_params.get("disrupted_nodes", []))
         params["candidate_params"][candidate] = candidate_params
     return scenario_inputs, params
 
 
 def candidate_label(scenario_id: str) -> str:
+    if scenario_id in SCENARIO_DEFS:
+        return SCENARIO_DEFS[scenario_id]["label"]
     if "+" not in scenario_id:
         return S.CANDIDATES[scenario_id]["label"]
-    return " + ".join(S.CANDIDATES[c]["name"] for c in scenario_id.split("+"))
+    return " + ".join(candidate_label(c) for c in scenario_id.split("+"))
 
 
 def scenario_type(scenario_id: str) -> str:
     if scenario_id == "baseline":
         return "baseline"
     return "combination" if "+" in scenario_id else "single"
+
+
+def path_border_key(path: B.Path) -> str:
+    for node in path.nodes:
+        if node in B.BREAK_OF_GAUGE_NODES:
+            return node
+    return "other"
+
+
+def batch_border_share_map(ind: B.Individual, batch: B.Batch) -> dict[str, float]:
+    key = (batch.origin, batch.destination, batch.batch_id)
+    out: dict[str, float] = {}
+    for alloc in ind.od_allocations.get(key, []):
+        border = path_border_key(alloc.path)
+        out[border] = out.get(border, 0.0) + float(alloc.share)
+    return out
+
+
+def network_border_share_map(ind: B.Individual, inputs: S.ModelInputs) -> dict[str, float]:
+    total = 0.0
+    out: dict[str, float] = {}
+    for batch in inputs.batches:
+        for border, share in batch_border_share_map(ind, batch).items():
+            flow = float(batch.quantity) * float(share)
+            out[border] = out.get(border, 0.0) + flow
+            total += flow
+    if total <= 1e-12:
+        return out
+    return {k: v / total for k, v in out.items()}
+
+
+def rerouted_volume_share_by_border(
+    baseline_ind: B.Individual,
+    scenario_ind: B.Individual,
+    baseline_inputs: S.ModelInputs,
+    scenario_inputs: S.ModelInputs,
+) -> float:
+    baseline_by_id = {b.batch_id: b for b in baseline_inputs.batches}
+    rerouted_teu = 0.0
+    total_teu = 0.0
+    for batch in scenario_inputs.batches:
+        base_batch = baseline_by_id.get(batch.batch_id)
+        if base_batch is None:
+            continue
+        base_map = batch_border_share_map(baseline_ind, base_batch)
+        scenario_map = batch_border_share_map(scenario_ind, batch)
+        overlap = 0.0
+        for border, scenario_share in scenario_map.items():
+            overlap += min(float(scenario_share), float(base_map.get(border, 0.0)))
+        rerouted = max(0.0, 1.0 - min(1.0, overlap))
+        rerouted_teu += float(batch.quantity) * rerouted
+        total_teu += float(batch.quantity)
+    return float(rerouted_teu / total_teu) if total_teu > 0 else 0.0
+
+
+def border_share_shift(
+    baseline_ind: B.Individual,
+    scenario_ind: B.Individual,
+    baseline_inputs: S.ModelInputs,
+    scenario_inputs: S.ModelInputs,
+) -> float:
+    base = network_border_share_map(baseline_ind, baseline_inputs)
+    scenario = network_border_share_map(scenario_ind, scenario_inputs)
+    keys = set(base) | set(scenario)
+    return float(sum(abs(float(scenario.get(k, 0.0)) - float(base.get(k, 0.0))) for k in keys))
+
+
+def decision_metrics(
+    baseline_ind: B.Individual,
+    scenario_ind: B.Individual,
+    baseline_inputs: S.ModelInputs,
+    scenario_inputs: S.ModelInputs,
+    baseline_metrics: dict[str, Any],
+    scenario_metrics: dict[str, Any],
+) -> dict[str, float]:
+    recovery_cost_delta = float(scenario_metrics["cost"] - baseline_metrics["cost"])
+    recovery_cost_delta_rel = S.rel_delta(scenario_metrics["cost"], baseline_metrics["cost"])
+    return {
+        "path_route_change_ratio": S.route_change_ratio(
+            baseline_ind,
+            scenario_ind,
+            baseline_inputs,
+            scenario_inputs,
+        ),
+        "rerouted_volume_share": rerouted_volume_share_by_border(
+            baseline_ind,
+            scenario_ind,
+            baseline_inputs,
+            scenario_inputs,
+        ),
+        "border_share_shift": border_share_shift(
+            baseline_ind,
+            scenario_ind,
+            baseline_inputs,
+            scenario_inputs,
+        ),
+        "recovery_cost_delta": recovery_cost_delta,
+        "recovery_cost_delta_rel": recovery_cost_delta_rel,
+    }
 
 
 def build_refined_row(
@@ -235,7 +489,7 @@ def build_refined_row(
     metrics: dict[str, Any],
     meta: dict[str, Any],
     baseline_metrics: dict[str, Any],
-    route_change: float,
+    decision: dict[str, float],
 ) -> dict[str, Any]:
     row = {
         "scenario_id": scenario_id,
@@ -244,7 +498,12 @@ def build_refined_row(
         "level": level,
         "intensity": REFINED_LEVELS.get(level, {}).get("intensity", 0),
         "seed": int(seed),
-        "route_change_ratio": float(route_change),
+        "route_change_ratio": float(decision.get("path_route_change_ratio", 0.0)),
+        "path_route_change_ratio": float(decision.get("path_route_change_ratio", 0.0)),
+        "rerouted_volume_share": float(decision.get("rerouted_volume_share", 0.0)),
+        "border_share_shift": float(decision.get("border_share_shift", 0.0)),
+        "recovery_cost_delta": float(decision.get("recovery_cost_delta", 0.0)),
+        "recovery_cost_delta_rel": float(decision.get("recovery_cost_delta_rel", 0.0)),
         **metrics,
         **meta,
         "scenario_params_json": json.dumps(params, ensure_ascii=False, sort_keys=True),
@@ -300,9 +559,15 @@ def summarize_refined(rows: list[dict[str, Any]]) -> tuple[pd.DataFrame, pd.Data
             time_delta_rel_mean=("time_delta_rel", "mean"),
             emission_delta_rel_mean=("emission_delta_rel", "mean"),
             on_time_drop_mean=("on_time_drop", "mean"),
+            on_time_rate_mean=("on_time_rate", "mean"),
             late_h_per_teu_delta_mean=("late_h_per_teu_delta", "mean"),
             p95_lateness_delta_h_mean=("p95_lateness_delta_h", "mean"),
             route_change_ratio_mean=("route_change_ratio", "mean"),
+            path_route_change_ratio_mean=("path_route_change_ratio", "mean"),
+            rerouted_volume_share_mean=("rerouted_volume_share", "mean"),
+            border_share_shift_mean=("border_share_shift", "mean"),
+            recovery_cost_delta_mean=("recovery_cost_delta", "mean"),
+            recovery_cost_delta_rel_mean=("recovery_cost_delta_rel", "mean"),
             infeasible_teu_mean=("infeasible_teu", "mean"),
             total_teu_mean=("total_teu", "mean"),
             feasible_ratio_mean=("final_feasible_ratio", "mean"),
@@ -318,7 +583,8 @@ def summarize_refined(rows: list[dict[str, Any]]) -> tuple[pd.DataFrame, pd.Data
     for scenario_id, sub in single.groupby("scenario_id", dropna=False):
         sub = sub.sort_values("intensity")
         kpis = sub["kpi_score"].to_numpy(dtype=float)
-        route = sub["route_change_ratio_mean"].to_numpy(dtype=float)
+        route = sub["rerouted_volume_share_mean"].to_numpy(dtype=float)
+        recovery = sub["recovery_cost_delta_rel_mean"].to_numpy(dtype=float)
         monotonic_steps = 0
         if len(kpis) > 1:
             monotonic_steps = int(sum(kpis[i] >= kpis[i - 1] - 1e-9 for i in range(1, len(kpis))))
@@ -328,15 +594,24 @@ def summarize_refined(rows: list[dict[str, Any]]) -> tuple[pd.DataFrame, pd.Data
             "candidate_label": str(sub["candidate_label"].iloc[0]),
             "max_kpi_score": float(np.max(kpis)) if len(kpis) else 0.0,
             "mean_kpi_score": float(np.mean(kpis)) if len(kpis) else 0.0,
-            "max_route_change_ratio": float(np.max(route)) if len(route) else 0.0,
-            "mean_route_change_ratio": float(np.mean(route)) if len(route) else 0.0,
+            "max_rerouted_volume_share": float(np.max(route)) if len(route) else 0.0,
+            "mean_rerouted_volume_share": float(np.mean(route)) if len(route) else 0.0,
+            "max_recovery_cost_delta_rel": float(np.max(recovery)) if len(recovery) else 0.0,
+            "mean_recovery_cost_delta_rel": float(np.mean(recovery)) if len(recovery) else 0.0,
             "monotonicity_score": float(monotonicity),
             "recommended_role": recommended_role(str(scenario_id), float(np.max(kpis)) if len(kpis) else 0.0),
         })
-    ranking = pd.DataFrame(ranking_rows).sort_values(
-        ["recommended_role", "max_kpi_score", "monotonicity_score"],
-        ascending=[True, False, False],
-    )
+    ranking = pd.DataFrame(ranking_rows)
+    if not ranking.empty:
+        ranking["role_priority"] = ranking["recommended_role"].map({
+            "core": 0,
+            "benchmark": 1,
+            "secondary": 2,
+        }).fillna(9)
+        ranking = ranking.sort_values(
+            ["role_priority", "max_kpi_score", "max_recovery_cost_delta_rel", "monotonicity_score"],
+            ascending=[True, False, False, False],
+        )
 
     combo = summary[summary["scenario_type"] == "combination"].copy()
     if not combo.empty:
@@ -345,7 +620,9 @@ def summarize_refined(rows: list[dict[str, Any]]) -> tuple[pd.DataFrame, pd.Data
 
 
 def recommended_role(scenario_id: str, max_kpi_score: float) -> str:
-    if scenario_id in {"C2", "C4", "C6"} and max_kpi_score >= 0.02:
+    if scenario_id in SCENARIO_DEFS:
+        return SCENARIO_DEFS[scenario_id]["role"]
+    if scenario_id in {"C6"} and max_kpi_score >= 0.02:
         return "core"
     if scenario_id in {"C1", "C5"}:
         return "benchmark"
@@ -381,8 +658,11 @@ def write_report(
         "",
         "## Interpretation",
         "",
-        "- C2, C4 and C6 are treated as core operational candidates from coarse screening.",
-        "- C1 and C5 can be added as benchmarks, because they are established uncertainty classes.",
+        "- M1 is boundary bottleneck congestion: border capacity pressure creates endogenous delay through a BPR function.",
+        "- M2 is corridor/link disruption.",
+        "- M1+M2 is the main cascade scenario: disruption pushes flow toward remaining borders and amplifies bottleneck congestion.",
+        "- On-time delivery is retained as a service KPI. Recovery cost is the main economic decision indicator; rerouted volume and border-share shift are supporting flow-reallocation indicators.",
+        "- B1 and B2 can be added as benchmarks, because line-haul travel-time and demand uncertainty are established uncertainty classes.",
         "- C3 is not included by default because coarse screening showed the weakest KPI impact.",
         "",
         "## Refined Ranking",
@@ -426,7 +706,8 @@ def parse_args() -> argparse.Namespace:
     args.combo_levels = [] if args.no_combinations else (
         args.combo_levels if args.combo_levels is not None else list(mode_cfg["combo_levels"])
     )
-    bad = sorted(set(args.candidates) - set(S.CANDIDATES))
+    allowed = set(S.CANDIDATES) | set(SCENARIO_DEFS)
+    bad = sorted(set(args.candidates) - allowed)
     if bad:
         raise ValueError(f"Unknown candidates: {bad}")
     return args
@@ -488,7 +769,13 @@ def main() -> None:
             metrics=baseline_metrics,
             meta=baseline_meta,
             baseline_metrics=baseline_metrics,
-            route_change=0.0,
+            decision={
+                "path_route_change_ratio": 0.0,
+                "rerouted_volume_share": 0.0,
+                "border_share_shift": 0.0,
+                "recovery_cost_delta": 0.0,
+                "recovery_cost_delta_rel": 0.0,
+            },
         ))
 
     scenario_specs: list[tuple[str, list[str], list[str]]] = [
@@ -523,11 +810,13 @@ def main() -> None:
                 )
                 scenario_metrics = S.solution_metrics(scenario_ind, scenario_inputs)
                 baseline_ind, baseline_metrics, _baseline_meta = baseline_by_seed[seed]
-                change = S.route_change_ratio(
+                decision = decision_metrics(
                     baseline_ind,
                     scenario_ind,
                     base_inputs,
                     scenario_inputs,
+                    baseline_metrics,
+                    scenario_metrics,
                 )
                 rows.append(build_refined_row(
                     scenario_id=scenario_id,
@@ -537,7 +826,7 @@ def main() -> None:
                     metrics=scenario_metrics,
                     meta=scenario_meta,
                     baseline_metrics=baseline_metrics,
-                    route_change=change,
+                    decision=decision,
                 ))
 
     results = pd.DataFrame(rows)
@@ -565,7 +854,11 @@ def main() -> None:
         "expected_batches": args.expected_batches,
         "fixed_path_library": True,
         "candidate_definitions": S.CANDIDATES,
+        "scenario_definitions": SCENARIO_DEFS,
         "level_definitions": REFINED_LEVELS,
+        "m1_congestion_formula": "border_delay = base_border_delay * (1 + alpha * utilisation ** beta)",
+        "m1_bpr_alpha": BPR_ALPHA,
+        "m1_bpr_beta": BPR_BETA,
         "default_combinations": ["+".join(c) for c in DEFAULT_COMBINATIONS],
     }
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -584,7 +877,8 @@ def main() -> None:
             "scenario_id",
             "candidate_label",
             "max_kpi_score",
-            "max_route_change_ratio",
+            "max_recovery_cost_delta_rel",
+            "max_rerouted_volume_share",
             "monotonicity_score",
             "recommended_role",
         ]
