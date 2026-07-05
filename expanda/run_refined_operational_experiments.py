@@ -250,9 +250,22 @@ def apply_boundary_bottleneck_congestion(
         disrupted_border_count = sum(1 for n in cascade_nodes if n in active_nodes)
         cascade_factor = 0.06 * float(cfg["intensity"]) * max(1, disrupted_border_count)
 
+    disrupted_set = set(cascade_nodes)
     node_params: dict[str, dict[str, float]] = {}
     for node in active_nodes:
         base_capacity = float(inputs.border_capacity.get(node, 0.0))
+        if node in disrupted_set:
+            node_params[node] = {
+                "base_capacity": base_capacity,
+                "effective_capacity": base_capacity,
+                "base_background": float(inputs.background_flow.get(node, 0.0)),
+                "effective_background": float(inputs.background_flow.get(node, 0.0)),
+                "utilisation": 0.0,
+                "bpr_delay_multiplier": 1.0,
+                "excluded_from_m1_bpr": 1.0,
+            }
+            continue
+
         if base_capacity > 0.0:
             effective_capacity = max(1.0, base_capacity * max(0.02, 1.0 - capacity_loss))
             inputs.border_capacity[node] = effective_capacity
@@ -297,6 +310,7 @@ def apply_boundary_bottleneck_congestion(
         "bpr_alpha": BPR_ALPHA,
         "bpr_beta": BPR_BETA,
         "cascade_nodes": list(cascade_nodes),
+        "m1_bpr_scope": "open_boundary_nodes_only" if cascade_nodes else "all_boundary_nodes",
         "cascade_background_factor": cascade_factor,
         "mean_utilisation": float(np.mean(utilisations)) if utilisations else 0.0,
         "max_utilisation": float(np.max(utilisations)) if utilisations else 0.0,
