@@ -1,0 +1,263 @@
+% 随机建模方法（与 expanda/baseline_uncertainty.py 一致）
+% 本文件可用 XeLaTeX + ctex 编译，也可在定稿时翻译为英文。
+
+\section{随机建模框架}\label{sec:stochastic}
+
+确定性模型假设弧段运输时间和边境处理时间已知。本文在保持路径分配、流守恒、
+预订运力和模态转换等一阶段决策不变的基础上，引入运输时间和边境延误两类不确定性。
+采用有限场景样本近似真实分布，并以经验分位数定义成本、排放和最大完工时刻的
+机会约束目标值。有限样本得到的是原随机问题的确定性近似，而不是原概率模型的精确
+确定性等价形式。
+
+\subsection{符号与路径分配}
+
+令 $\mathcal K$ 为批次集合，$\mathcal P_k$ 为批次 $k$ 的候选路径集合，$q_k$
+为货量（TEU）。$x_{kp}\in[0,1]$ 表示批次 $k$ 分配到路径 $p$ 的比例，并满足
+\begin{equation}
+  \sum_{p\in\mathcal P_k}x_{kp}=1,\qquad \forall k.
+\end{equation}
+令 $z_{kp}=\mathbf 1\{x_{kp}>0\}$ 表示路径是否实际使用。所有最大到达时刻、迟到量
+和服务约束只对 $z_{kp}=1$ 的路径计算，未选择的候选路径不参与批次完成时刻。
+
+\subsection{随机运输时间}
+
+对弧 $a=(i,j,m)$，标称运输时间记为 $\bar T_a$。当存在来源明确且单位为小时的
+班次运行时间字段（例如 \texttt{TravelTime\_h}）时，优先使用班次运行时间；否则使用
+\begin{equation}
+  \bar T_a=\frac{d_a}{v_m}.
+\end{equation}
+含义或单位不明确的 \texttt{time} 字段不直接作为逐弧运行时间。
+
+场景 $s$ 中的弧段时间为
+\begin{equation}\label{eq:travel_random_cn}
+  \tilde T_a^{(s)}=\bar T_a\xi_a^{(s)}.
+\end{equation}
+采用对数正态乘法扰动作为基线实验假设，其理由是运输时间非负，且延误通常形成右尾。
+道路交通研究在部分稳定交通状态下支持对数正态表示，但该证据不能直接推广到铁路、
+水运或所有交通状态。因此，分布类型及其参数均需进行敏感性分析
+\citep{Chalumuri2014,Rakha2010,Zhao2018,Hrusovsky2018}。
+
+令潜在乘数 $Z_m$ 满足
+\begin{equation}
+ \ln Z_m\sim\mathcal N\!\left(\mu_m,\sigma_m^2\right),
+ \qquad \sigma_m=\sqrt{\ln(1+\mathrm{CV}_m^2)},
+\end{equation}
+并定义
+\begin{equation}
+  \xi_a^{(s)}=\min(Z_m^{(s)},c_m).
+\end{equation}
+代码数值求解位置参数 $\mu_m$，使
+$\mathbb E[\min(Z_m,c_m)]=1$。因此 $\mathbb E[\xi_a]=1$，同时最终上界严格保持为
+$c_m$。这里的 $\mathrm{CV}_m$ 决定潜在未截断分布的 $\sigma_m$；截断后实现的 CV 会略有
+变化。若要求截断后的 CV 也严格等于目标值，应联合数值校准 $\mu_m$ 和 $\sigma_m$。
+
+基线实验参数为
+\begin{equation}
+ (\mathrm{CV}_{\mathrm{road}},\mathrm{CV}_{\mathrm{rail}},
+ \mathrm{CV}_{\mathrm{water}})=(0.15,0.10,0.20),
+\end{equation}
+\begin{equation}
+ (c_{\mathrm{road}},c_{\mathrm{rail}},c_{\mathrm{water}})=(2.0,1.8,2.5).
+\end{equation}
+这些数值是基线实验假设，不是从某一篇论文直接估计的经验参数。
+
+\subsection{随机边境延误}
+
+令 $b=(u,v,m)$ 表示一个双边过境事件，其中 $u$ 是出境侧口岸，$v$ 是入境侧口岸。
+CAREC CPMM 数据按国家、口岸、运输方式和方向报告年度平均处理时间，因此分别建模
+出境侧和入境侧：
+\begin{equation}\label{eq:border_two_sides_cn}
+  \tilde D_b^{(s)}=
+  \tilde D_{u,\mathrm{out}}^{m,(s)}+
+  \tilde D_{v,\mathrm{in}}^{m,(s)}.
+\end{equation}
+若数据表中的某个参数已经表示完整双边过境过程，则只能增加一次，避免重复计时。
+
+每一侧的随机延误使用与式~\eqref{eq:travel_random_cn} 相同的截断并均值校正的
+对数正态乘数。基线 CV 设为
+\begin{equation}
+ (\mathrm{CV}_{b}^{\mathrm{road}},\mathrm{CV}_{b}^{\mathrm{rail}},
+ \mathrm{CV}_{b}^{\mathrm{water}})=(0.45,0.60,0.30),
+\end{equation}
+截断因子为 $c_b=3.5$。上述 CV 和截断因子都是实验设定。CAREC 年度均值只能支持
+不同年份、口岸和方向存在明显差异，不能直接识别单次运输层面的 CV。CAREC 数据也
+不能直接支持海港延误 CV，海运参数应由港口或班轮数据校准。对 CV=0.60 的均值为一
+的对数正态变量，未校正截断前超过 3.5 倍均值的概率约为 0.56\%，而不是 0.3\%。
+
+\subsection{固定场景集与不确定性传播}
+
+在优化开始前一次性生成包含全部随机变量的场景集
+\begin{equation}\label{eq:frozen_scenarios_cn}
+  \Omega_S=\{\omega^{(1)},\ldots,\omega^{(S)}\},
+\end{equation}
+\begin{equation}
+ \omega^{(s)}=
+ \left\{\xi_a^{(s)}\ \forall a,\quad
+ \tilde D_{u,\mathrm{out}}^{m,(s)},
+ \tilde D_{v,\mathrm{in}}^{m,(s)}\ \forall b\right\}.
+\end{equation}
+同一场景、同一弧或口岸的实现值由所有批次和所有候选方案共享。场景集生成后冻结，
+适应度评价函数内部不再调用随机数生成器。
+
+对批次 $k$、实际使用的路径 $p$ 和场景 $s$，时钟从最早出发时刻开始：
+\begin{equation}
+ t_{k,0}^{(s)}=\mathrm{ET}_k.
+\end{equation}
+在逐弧模拟中依次加入确定性换装时间、随机边境处理时间和班次等待时间。对铁路和水运，
+令 $\operatorname{dep}_a(t)$ 表示不早于 $t$ 的下一班发车时刻；对公路定义
+$\operatorname{dep}_a(t)=t$。递推式为
+\begin{align}
+ t &\leftarrow t+\tau_j^{m_{\mathrm{in}}\to m_{\mathrm{out}}},\\
+ t &\leftarrow t+\tilde D_b^{(s)},\\
+ w_{k,a}^{(s)}&=\operatorname{dep}_a(t)-t,\\
+ t &\leftarrow \operatorname{dep}_a(t)+\bar T_a\xi_a^{(s)}.
+\end{align}
+路径绝对到达时刻和运输持续时间分别为
+\begin{equation}
+ a_{kp}^{(s)}=t_{k,L}^{(s)},\qquad
+ \tau_{kp}^{(s)}=a_{kp}^{(s)}-\mathrm{ET}_k.
+\end{equation}
+批次完成时刻只对实际使用的路径取最大值：
+\begin{equation}
+ a_k^{(s)}=\max_{p:z_{kp}=1}a_{kp}^{(s)}.
+\end{equation}
+
+基线代码将路径运力视为预订的一阶段约束，在标称计划上检查容量。随机延误影响到达、
+等待、迟到与目标函数，但暂不引入随机容量。若未来把错过班次后的货物重新分配到具体
+后续班次，则必须按场景重新检查班次容量，并把该规则明确为补救决策。
+
+\subsection{场景目标函数}
+
+场景 $s$ 的成本为
+\begin{align}
+ C^{(s)}={}&C^{\mathrm{transport}}+C^{\mathrm{carbon}}
+ +C^{\mathrm{transship}}
+ +C^{\mathrm{wait},(s)}+C^{\mathrm{border},(s)}
+ +C^{\mathrm{late},(s)},\\
+ C^{\mathrm{late},(s)}={}&
+ \sum_k\sum_{p:z_{kp}=1}
+ p_k q_kx_{kp}\,[a_{kp}^{(s)}-\mathrm{LT}_k]^+.
+\end{align}
+迟到罚款进入随机成本目标，但迟到本身并不自动使方案不可行。
+
+场景排放为
+\begin{equation}
+ E^{(s)}=E^{\mathrm{linehaul}}+
+ \sum_k\sum_a e_a^{\mathrm{wait}}q_kx_{kp}w_{k,a}^{(s)}.
+\end{equation}
+当基线设定 $e_a^{\mathrm{wait}}=0$ 时，排放在场景间相同。这是系统边界假设，此时排放
+目标退化为确定性目标，排放置信水平不影响结果。
+
+\subsection{迟到费率、载重和参数来源}
+
+基线迟到费率采用 Zhao 等使用的 50 USD/TEU/day，并统一换算为
+$50/24=2.0833$ USD/TEU/hour \citep{Zhao2018}。当前原始工作簿中的
+30--100 USD/TEU/hour 比该文献基准高约 14--48 倍，因此代码默认不使用这些值。只有在
+这些逐批次费率有合同、报价或访谈记录时，才通过
+\texttt{--use-input-late-penalties} 启用，并在论文中说明其来源。迟到费率只进入成本；
+即使支付罚款，式~\eqref{eq:max_late_cn} 的最大迟到上限仍不可违反。
+
+输入排放因子以 gCO$_2$/t-km 给出时，需要乘以每 TEU 平均载重。代码将该值显式设为
+\texttt{--payload-tonnes-per-teu}，而不再隐藏写死。缺少本研究货物清单或运营数据时，
+10 t/TEU 只能标注为实验假设，不能写成经验事实；至少对 10、14 和 15.5 t/TEU 做
+敏感性分析。若使用已经按 10 t/TEU 换算的排放表，代码会按所选载重同比例缩放。
+
+参数来源按以下优先级记录：研究网络对应的政府或运营方原始数据；官方统计或报告；
+同行评议论文；合同/访谈数据；最后才是明确标注的实验假设。每次运行的场景种子、CV、
+截断值、置信水平、迟到费率来源、载重和等待排放均写入
+\texttt{scenario\_manifest.json}。没有来源的数值不得描述为“实测”或“采用自某文献”。
+
+场景最大完工时刻为
+\begin{equation}
+ T^{(s)}=\max_{k\in\mathcal K}a_k^{(s)}.
+\end{equation}
+所有 $\mathrm{ET}_k$ 和 $\mathrm{LT}_k$ 必须相对于同一个时间原点计量。
+
+\subsection{多目标机会约束模型}
+
+一般形式为
+\begin{equation}
+ \min(f_C,f_E,f_T)
+\end{equation}
+\begin{align}
+ \Pr_{\omega}\{C(x,\omega)\le f_C\}&\ge\gamma_C,\\
+ \Pr_{\omega}\{E(x,\omega)\le f_E\}&\ge\gamma_E,\\
+ \Pr_{\omega}\{T(x,\omega)\le f_T\}&\ge\gamma_T.
+\end{align}
+$f_C,f_E,f_T$ 是待最小化的可靠性上界，而不是预先指定的政策限额。若存在外部预算、
+排放或时间上限，可另加 $f_C\le\bar C$、$f_E\le\bar E$、$f_T\le\bar T$。
+
+每个批次还须满足边际准时机会约束
+\begin{equation}\label{eq:ontime_marginal_cn}
+ \Pr_{\omega}\{a_k(x,\omega)\le\mathrm{LT}_k\}
+ \ge\gamma_{\mathrm{on}},\qquad\forall k.
+\end{equation}
+令
+\begin{equation}
+ L_k^{(s)}=[a_k^{(s)}-\mathrm{LT}_k]^+,
+\end{equation}
+并在全部训练场景上执行最大迟到约束
+\begin{equation}\label{eq:max_late_cn}
+ L_k^{(s)}\le L_k^{\max},\qquad\forall k,s.
+\end{equation}
+$L_k^{\max}$ 优先采用合同或 SLA。缺少业务数据时，代码采用
+\begin{equation}
+ L_k^{\max}=\rho(\mathrm{LT}_k-\mathrm{ET}_k),\qquad \rho=0.50,
+\end{equation}
+并对 $\rho\in\{0.25,0.50,0.75\}$ 进行敏感性分析。式~\eqref{eq:max_late_cn}
+只保证有限训练场景满足，不等于整个不确定集合的鲁棒保证。
+
+式~\eqref{eq:ontime_marginal_cn} 是逐批次边际约束。每个批次分别达到 90\% 准时率，
+不代表全部批次同时准时的概率为 90\%。如果决策问题关注整体同时可靠性，应另设联合
+机会约束
+\begin{equation}
+ \Pr_{\omega}\{a_k(x,\omega)\le\mathrm{LT}_k,\ \forall k\}
+ \ge\gamma_{\mathrm{joint}}.
+\end{equation}
+
+\subsection{从随机模型到确定的适应度值}
+
+固定场景集把每一个随机变量变成场景表中的具体数值。对候选方案 $x$，分别执行 $S$
+次普通确定性正向模拟，得到
+\begin{equation}
+ \{C^{(s)}(x),E^{(s)}(x),T^{(s)}(x)\}_{s=1}^{S}.
+\end{equation}
+将每组结果从小到大排序。对任一目标 $Y$ 和置信水平 $\gamma$，定义经验 CCP 值
+\begin{equation}\label{eq:empirical_quantile_cn}
+ \hat f_Y(x)=Y^{(\lceil\gamma S\rceil)}(x).
+\end{equation}
+因此每个候选方案最终对应三个确定数值
+\begin{equation}
+ \hat F(x)=\bigl(\hat f_C(x),\hat f_E(x),\hat f_T(x)\bigr),
+\end{equation}
+NSGA-II 直接使用这三个数进行非支配排序，不需要在个体评价中显式建立 big-$M$ 和二元
+场景违反变量。big-$M$ 形式只用于解释与机会约束文献的理论对应关系
+\citep{Wang2021CCP,Li2026MOCCP}。
+
+在固定 $\Omega_S$ 的条件下，同一个体无论评价多少次都得到完全相同的目标和约束值，
+因此适应度评价中没有残余蒙特卡洛噪声。但是 NSGA-II 的初始化、交叉和变异仍具有算法
+随机性；代码通过固定随机种子保证单次运行可复现，并通过多个独立算法种子评价搜索稳定性。
+
+\subsection{样本外验证与敏感性分析}
+
+优化完成后，应使用与训练场景独立的大型测试集评价最终 Pareto 解，不重新优化。
+建议 $N_{\mathrm{test}}=5000$，报告样本外成本、排放和时间分位数、逐批次准时率、
+超过 $L_k^{\max}$ 的频率、最大观察迟到以及二项比例置信区间
+\citep{LuedtkeAhmed2008}。
+
+所有 Pareto 解使用同一个测试集，以保证公平比较。算法稳定性则应通过 5--10 次完整
+优化运行检验，每次改变 NSGA-II 种子和训练场景种子；仅重复测试集不能证明优化解稳定。
+
+敏感性分析至少包括：运输时间 CV、边境延误 CV、对数正态/截断正态分布、各截断因子、
+三个目标置信水平、逐批次准时置信水平、训练场景数 $S\in\{100,200,500\}$、最大迟到
+比例以及非零等待排放。Pareto 超体积变化低于 2\% 只能称为经验稳定判据，比较时必须
+固定归一化方法和参考点，并在多个算法种子下报告均值与标准差。
+
+% 主要参考文献 DOI：
+% Wang et al. (2021): 10.1016/j.trc.2021.103382
+% Li et al. (2026): 10.1016/j.trc.2026.105699
+% Zhao et al. (2018): 10.1155/2018/6051029
+% Hrusovsky et al. (2018): 10.1007/s10696-016-9267-1
+% Chalumuri and Asakura (2014): 10.1007/s12544-013-0111-3
+% Rakha et al. (2010): 10.1080/15472450.2010.517477
+% Luedtke and Ahmed (2008): 10.1137/070702928

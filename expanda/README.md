@@ -1,5 +1,63 @@
 # Operational Uncertainty Screening Experiments
 
+## 三目标机会约束基线
+
+`baseline_uncertainty.py` 在确定性 `baseline3.py` 的路径分配和 NSGA-II 框架上增加：
+
+- 一次性生成并冻结运输时间与边境延误场景；
+- 所有候选方案使用同一场景集，不在适应度函数内重新抽样；
+- 每个方案分别得到 `S` 个成本、排放和最大完工时刻；
+- 以 `ceil(confidence × S)` 顺序统计量形成三个确定的 CCP 目标；
+- 迟到罚款进入场景成本，同时执行逐批次准时机会约束和最大迟到约束；
+- 自动补造 batch 的逻辑已取消，实验必须使用工作簿或有来源的 CSV 数据。
+
+固定场景后，同一个体的适应度评价完全可复现；NSGA-II 的初始化、交叉和变异仍由
+`--seed` 控制。完整中文模型说明见 `stochastic_methodology_cn.tex`。
+
+当前代码会在路径经过的每一个已列入口岸节点上加入该节点的方向性延误。因此双边
+口岸是否完整，取决于网络数据是否同时列出出境侧和入境侧节点；如果一个输入值已经
+代表完整的双边过境时间，就只应保留一次，以免重复计算。
+
+快速运行：
+
+```bash
+cd expanda
+../.venv/bin/python baseline_uncertainty.py \
+  --data data/data_original.xlsx \
+  --batches-csv data/batches_20_original.csv \
+  --expected-batches 20 \
+  --pop 20 --gens 5 --runs 1 --mc-scenarios 50 \
+  --out outputs/uncertainty_smoke
+```
+
+远程 Linux 环境可直接使用仓库内的包装脚本（默认寻找 `.venv/bin/python`）：
+
+```bash
+cd expanda
+bash run_uncertainty_ccp.sh \
+  --data data/data_original.xlsx \
+  --batches-csv data/batches_20_original.csv \
+  --expected-batches 20
+```
+
+正式基线建议从 `--mc-scenarios 200` 开始，并分别设置
+`--cost-confidence`、`--emission-confidence`、`--time-confidence` 和
+`--ontime-confidence`。运行 `--help` 可查看运输时间 CV、截断上界、边境 CV 和
+最大迟到参数。
+
+迟到罚款默认采用 50 USD/TEU/day，并在程序中换算为 2.0833 USD/TEU/hour；输入表中
+原有的 30--100 USD/TEU/hour 不再默认使用。只有这些数值有合同或其他直接证据时，才
+添加 `--use-input-late-penalties`。`--payload-tonnes-per-teu` 将原来写死的 10 t/TEU
+变成显式排放换算假设；建议至少比较 10、14 和 15.5。若取得等待或怠速排放数据，可用
+`--wait-emission-g-per-teu-h` 加入，这时排放目标才会随时间场景变化。
+
+验证固定场景和经验分位数：
+
+```bash
+cd expanda
+../.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
+```
+
 ## Network Expansion B20 Experiment
 
 这个实验专门回答导师提出的网络扩展问题：

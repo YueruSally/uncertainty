@@ -7,9 +7,10 @@ import pathlib
 import time
 import argparse
 import os
+from statistics import NormalDist
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path as FSPath
 import json as _json
 
@@ -79,7 +80,6 @@ HARD_TIME_WINDOW = False
 PEN_MISS_TT            = 5e7
 PEN_MISS_ALLOC         = 1e9
 PEN_CAP_EXCESS_PER_TEU = 5e7
-PEN_LATE_PER_TEU_H = 1.0e6
 
 WAITING_COST_PER_TEU_HOUR_DEFAULT    = 0.8
 WAIT_EMISSION_gCO2_per_TEU_H_DEFAULT = 0.0
@@ -119,16 +119,24 @@ PSTAR_MAX_TOTAL   = 50000
 HV_REF_NORM = (1.2, 1.2, 1.2)
 HV_MC_SEED  = 12345
 
-DEFAULT_PENALTY_PER_TEU_H = 65.0
+DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY = 50.0
+DEFAULT_PENALTY_PER_TEU_H = DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY / 24.0
+PAYLOAD_TONNES_PER_TEU = 10.0
 
 NUM_OBJ = 3  # Cost, Emission, Time
 
-# ── Stochastic extension: stepwise sampling + chance constraint ─────────
+# ── Stochastic extension: frozen scenarios + empirical CCP quantiles ────
 STOCHASTIC_EVAL = True
-MC_SCENARIOS = 300
+MC_SCENARIOS = 200
 MC_BASE_SEED = 1000003
-CHANCE_ALPHA = 0.90
+CONFIDENCE_COST = 0.90
+CONFIDENCE_EMISSION = 0.90
+CONFIDENCE_TIME = 0.90
+CONFIDENCE_ONTIME = 0.90
 PEN_CHANCE_VIOLATION = 1.0e9
+PEN_MAX_LATE_EXCESS_PER_H = 1.0e9
+MAX_LATE_RATIO = 0.50
+MAX_LATE_H_OVERRIDE: Optional[float] = None
 
 MODE_TIME_CV = {
     "road": 0.15,
@@ -136,8 +144,23 @@ MODE_TIME_CV = {
     "water": 0.20,
 }
 
-BORDER_DELAY_CV = 0.50
-BORDER_DELAY_MAX_FACTOR = 4.0
+MODE_TIME_MAX_FACTOR = {
+    "road": 2.0,
+    "rail": 1.8,
+    "water": 2.5,
+}
+
+BORDER_DELAY_CV = {
+    "road": 0.45,
+    "rail": 0.60,
+    "water": 0.30,
+}
+BORDER_DELAY_MAX_FACTOR = 3.5
+
+# Generated once after the input data are loaded.  Fitness evaluation only
+# reads this object, so Monte Carlo draws never occur inside NSGA-II.
+ACTIVE_SCENARIO_SET: Optional["ScenarioSet"] = None
+_PATH_SCENARIO_CACHE: Dict[Any, "PathScenarioResult"] = {}
 
 
 # ════════════════════════════════════════════════════════
@@ -200,27 +223,67 @@ def safe_float(x, default=0.0) -> float:
         return default
 
 
-def sample_lognormal_multiplier(cv: float, rng: np.random.Generator) -> float:
-    """Mean-one lognormal multiplier for arc travel time uncertainty."""
-    if cv <= 1e-12:
-        return 1.0
-    sigma = math.sqrt(math.log(1.0 + cv * cv))
-    mu = -0.5 * sigma * sigma
-    return float(rng.lognormal(mean=mu, sigma=sigma))
+def capped_lognormal_mean(mu: float, sigma: float, cap_factor: float) -> float:
+    """Return E[min(exp(N(mu, sigma^2)), cap_factor)]."""
+    if cap_factor <= 0.0:
+        raise ValueError("cap_factor must be positive")
+    if sigma <= 1e-12:
+        return min(math.exp(mu), cap_factor)
+    log_cap = math.log(cap_factor)
+    normal = NormalDist()
+    below_first_moment = (
+        math.exp(mu + 0.5 * sigma * sigma)
+        * normal.cdf((log_cap - mu - sigma * sigma) / sigma)
+    )
+    tail_probability = 1.0 - normal.cdf((log_cap - mu) / sigma)
+    return below_first_moment + cap_factor * tail_probability
 
 
-def sample_bounded_lognormal_delay(
-    base_h: float,
-    rng: np.random.Generator,
-    cv: float = BORDER_DELAY_CV,
-    max_factor: float = BORDER_DELAY_MAX_FACTOR,
-) -> float:
-    """Aggregate right-skewed border delay, capped by a scenario upper bound."""
-    if base_h <= 1e-12:
+def calibrated_capped_lognormal_mu(cv: float, cap_factor: float) -> float:
+    """Choose mu so the capped multiplier has mean one and cap unchanged."""
+    if cap_factor < 1.0:
+        raise ValueError("cap_factor must be at least 1 for a mean-one multiplier")
+    sigma = math.sqrt(math.log1p(max(0.0, cv) ** 2))
+    if sigma <= 1e-12 or cap_factor <= 1.0 + 1e-12:
         return 0.0
-    sigma = math.sqrt(math.log(1.0 + cv * cv))
-    mu = math.log(base_h) - 0.5 * sigma * sigma
-    return min(float(rng.lognormal(mean=mu, sigma=sigma)), max_factor * base_h)
+
+    lower = -50.0
+    upper = math.log(cap_factor) + 50.0
+    for _ in range(120):
+        midpoint = 0.5 * (lower + upper)
+        if capped_lognormal_mean(midpoint, sigma, cap_factor) < 1.0:
+            lower = midpoint
+        else:
+            upper = midpoint
+    return 0.5 * (lower + upper)
+
+
+def sample_capped_mean_one_lognormal(
+    size: int,
+    cv: float,
+    cap_factor: float,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Draw mean-one lognormal multipliers with an unchanged hard cap."""
+    if size <= 0:
+        return np.empty(0, dtype=float)
+    if cv <= 1e-12 or cap_factor <= 1.0 + 1e-12:
+        return np.ones(size, dtype=float)
+    sigma = math.sqrt(math.log1p(cv * cv))
+    mu = calibrated_capped_lognormal_mu(cv, cap_factor)
+    raw = rng.lognormal(mean=mu, sigma=sigma, size=size)
+    return np.minimum(raw, cap_factor)
+
+
+def empirical_ccp_quantile(values: np.ndarray, confidence: float) -> float:
+    """Order-statistic CCP value: sorted[ceil(confidence*S)-1]."""
+    arr = np.asarray(values, dtype=float)
+    if arr.size == 0:
+        return float("inf")
+    confidence = min(1.0, max(0.0, float(confidence)))
+    ordered = np.sort(arr)
+    index = max(0, min(arr.size - 1, math.ceil(confidence * arr.size) - 1))
+    return float(ordered[index])
 
 
 def parse_distance_km(x) -> float:
@@ -304,6 +367,7 @@ class TimetableEntry:
     frequency_per_week: float
     first_departure_hour: float
     headway_hours: float
+    travel_time_h: Optional[float] = None
 
 
 @dataclass
@@ -315,6 +379,7 @@ class Batch:
     ET:        float
     LT:        float
     penalty_per_teu_h: float = DEFAULT_PENALTY_PER_TEU_H
+    max_late_h: Optional[float] = None
 
 
 @dataclass
@@ -361,6 +426,33 @@ class Individual:
     vio_breakdown:  Dict[str, float] = field(default_factory=dict)
     rank:               int   = 0           # [NSGA-II] non-dominated front index (0 = best)
     crowding_distance:  float = 0.0         # [NSGA-II] crowding distance
+
+
+@dataclass(frozen=True)
+class ScenarioSet:
+    """A frozen finite-support approximation of the random environment."""
+    size: int
+    seed: int
+    travel_multiplier: Dict[Tuple[str, str, str], np.ndarray]
+    border_delay_h: Dict[Tuple[str, str], np.ndarray]
+    stochastic: bool = True
+
+    def travel(self, arc: Arc, scenario: int) -> float:
+        key = (arc.from_node, arc.to_node, arc.mode)
+        values = self.travel_multiplier.get(key)
+        return float(values[scenario]) if values is not None else 1.0
+
+    def border(self, node: str, mode: str, scenario: int, base_h: float) -> float:
+        values = self.border_delay_h.get((node, mode))
+        return float(values[scenario]) if values is not None else float(base_h)
+
+
+@dataclass
+class PathScenarioResult:
+    arrival_h: np.ndarray
+    schedule_wait_h: Dict[str, np.ndarray]
+    border_delay_h: Dict[str, np.ndarray]
+    missing_timetable: bool = False
 
 
 # ════════════════════════════════════════════════════════
@@ -527,7 +619,11 @@ def load_emission_factor_map(xls):
             for _, row in df.iterrows():
                 m = normalize_mode(row.get(mc,""))
                 r = str(row.get(rc,"")).strip()
-                if m and r: out[(m, r)] = safe_float(row.get(efc), default=0.0)
+                if m and r:
+                    factor = safe_float(row.get(efc), default=0.0)
+                    if efc == "gCO2_per_TEU_km_assuming10t":
+                        factor *= PAYLOAD_TONNES_PER_TEU / 10.0
+                    out[(m, r)] = factor
         print(f"[INFO] Loaded emission factors for {len(out)} (mode, region) pairs.")
     except Exception as e:
         print(f"[WARN] Failed to read Emission_Factors ({e}).")
@@ -559,8 +655,12 @@ def load_transshipment_map(xls):
         ndc  = next((c for c in ["Node","NodeEN","EnglishName"] if c in df.columns), None)
         imc  = next((c for c in ["InMode","FromMode","mode_in"] if c in df.columns), None)
         omc  = next((c for c in ["OutMode","ToMode","mode_out"] if c in df.columns), None)
-        cstc = next((c for c in ["TransCost","Cost","trans_cost","Cost_per_TEU"] if c in df.columns), None)
-        tmc  = next((c for c in ["TransTime_h","Time_h","trans_time_h","Time"] if c in df.columns), None)
+        cstc = next((c for c in [
+            "TransferCost_USD_per_TEU", "TransCost", "Cost",
+            "trans_cost", "Cost_per_TEU"] if c in df.columns), None)
+        tmc  = next((c for c in [
+            "TransferTime_h", "TransTime_h", "Time_h",
+            "trans_time_h", "Time"] if c in df.columns), None)
         if ndc and imc and omc:
             for _, row in df.iterrows():
                 node     = str(row.get(ndc,"")).strip()
@@ -589,7 +689,8 @@ def load_waiting_params(xls):
                     vals = df[c].dropna().tolist()
                     if vals: return safe_float(vals[0], default=default)
             return default
-        wc = pick(["WaitingCost_per_TEU_h","WaitCost_per_TEU_h"], wc)
+        wc = pick(["W_hold_USD_per_TEU_h", "WaitingCost_per_TEU_h",
+                   "WaitCost_per_TEU_h"], wc)
         we = pick(["WaitEmission_gCO2_per_TEU_h","WaitingEmission_gCO2_per_TEU_h"], we)
         print(f"[INFO] Loaded waiting params: cost={wc}, emission={we}")
     except Exception as e:
@@ -710,7 +811,7 @@ def load_network_from_extended(filename: str):
             if c in arcs_df.columns:
                 epkm = safe_float(row.get(c), default=0.0); break
         if "Emission_gCO2_per_tkm" in arcs_df.columns and epkm > 0:
-            epkm = epkm * 10.0
+            epkm = epkm * PAYLOAD_TONNES_PER_TEU
         if (mode, from_region) in emission_factor_map:
             epkm = emission_factor_map[(mode, from_region)]
 
@@ -742,11 +843,15 @@ def load_network_from_extended(filename: str):
                 fd = 0.0
         timetables.append(TimetableEntry(
             from_node=origin, to_node=dest, mode=mode_norm,
-            frequency_per_week=freq, first_departure_hour=fd, headway_hours=hd
+            frequency_per_week=freq, first_departure_hour=fd, headway_hours=hd,
+            travel_time_h=safe_float(
+                row.get(next((c for c in ["TravelTime_h", "Time_h"]
+                             if c in tdf.columns), "")),
+                default=0.0,
+            ) or None,
         ))
 
     bdf     = pd.read_excel(xls, "Batches")
-    bdf     = augment_batches_to_20(bdf, node_region=node_region, random_seed=2026)
     batches: List[Batch] = []
     for _, row in bdf.iterrows():
         origin = str(row.get("OriginEN","")).strip()
@@ -759,7 +864,8 @@ def load_network_from_extended(filename: str):
                 ET=safe_float(row.get("ET"), default=0.0),
                 LT=safe_float(row.get("LT"), default=0.0),
                 penalty_per_teu_h=safe_float(row.get("PenaltyCost_per_TEU_h"),
-                                             default=DEFAULT_PENALTY_PER_TEU_H)
+                                             default=DEFAULT_PENALTY_PER_TEU_H),
+                max_late_h=(safe_float(row.get("MaxLate_h"), default=0.0) or None),
             ))
 
     print(f"[INFO] Batches loaded: {len(batches)}")
@@ -795,71 +901,116 @@ def build_arc_lookup(arcs):
     return mp
 
 
-# ════════════════════════════════════════════════════════
-# Batch augmentation
-# ════════════════════════════════════════════════════════
+def nominal_arc_travel_time(arc: Arc, tt_dict: Dict) -> float:
+    """Use scheduled running time when available; otherwise distance/speed."""
+    entries = tt_dict.get((arc.from_node, arc.to_node, arc.mode), [])
+    scheduled = [safe_float(e.travel_time_h, 0.0) for e in entries
+                 if safe_float(e.travel_time_h, 0.0) > 0.0]
+    if arc.mode != "road" and scheduled:
+        return float(min(scheduled))
+    return float(arc.distance / max(arc.speed_kmh, 1.0))
 
-def augment_batches_to_20(bdf, node_region, random_seed=2026):
-    df = bdf.copy()
-    required_cols = ["BatchID","OriginEN","DestEN","QuantityTEU","ET","LT"]
-    if any(c not in df.columns for c in required_cols) or len(df) >= 20:
-        return df
-    china_nodes  = [n for n, r in node_region.items()
-                    if r in CHINA_REGIONS and n not in CHINA_BORDER_NODES]
-    europe_nodes = [n for n, r in node_region.items() if r in EUROPE_REGIONS]
-    if not china_nodes or not europe_nodes: return df
-    q_vals  = pd.to_numeric(df["QuantityTEU"], errors="coerce").dropna()
-    q_min   = int(q_vals.min()) if len(q_vals) else 80
-    q_max   = int(q_vals.max()) if len(q_vals) else 150
-    lt_vals = pd.to_numeric(df["LT"], errors="coerce").dropna()
-    lt_vals = lt_vals[lt_vals >= 300]
-    lt_min, lt_max = (int(lt_vals.min()), int(lt_vals.max())) if len(lt_vals) else (360, 504)
-    pen_col_exists = "PenaltyCost_per_TEU_h" in df.columns
-    if pen_col_exists:
-        pv = pd.to_numeric(df["PenaltyCost_per_TEU_h"], errors="coerce").dropna()
-        pv = pv[(pv >= 1.0) & (pv <= 500.0)]
-        pen_min, pen_max = (float(pv.min()), float(pv.max())) if len(pv) else (30.0, 100.0)
-    else:
-        pen_min, pen_max = 30.0, 100.0
-    existing_ids = set(pd.to_numeric(df["BatchID"], errors="coerce").dropna().astype(int).tolist())
-    next_id      = max(existing_ids) + 1 if existing_ids else 11
-    rng          = np.random.default_rng(random_seed)
-    new_rows     = []
-    for i in range(20 - len(df)):
-        new_rows.append({
-            "BatchID":              next_id + i,
-            "OriginEN":             str(rng.choice(china_nodes)),
-            "DestEN":               str(rng.choice(europe_nodes)),
-            "QuantityTEU":          int(rng.integers(q_min, q_max + 1)),
-            "ET":                   0,
-            "LT":                   int(rng.integers(lt_min, lt_max + 1)),
-            "PenaltyCost_per_TEU_h": round(float(rng.uniform(pen_min, pen_max)), 2),
-        })
-    df_out = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
-    print(f"[INFO] Batches augmented: {len(df)} -> {len(df_out)}")
-    return df_out
+
+def build_scenario_set(
+    arcs: List[Arc],
+    border_delay_map: Dict[Tuple[str, str], float],
+    size: int,
+    seed: int,
+    stochastic: bool = True,
+) -> ScenarioSet:
+    """Generate the complete finite scenario set once, before optimisation."""
+    size = max(1, int(size)) if stochastic else 1
+    rng = np.random.default_rng(int(seed))
+    travel_multiplier: Dict[Tuple[str, str, str], np.ndarray] = {}
+    unique_arc_keys = sorted({(a.from_node, a.to_node, a.mode) for a in arcs})
+    for from_node, to_node, mode in unique_arc_keys:
+        if stochastic:
+            travel_multiplier[(from_node, to_node, mode)] = \
+                sample_capped_mean_one_lognormal(
+                    size=size,
+                    cv=MODE_TIME_CV.get(mode, 0.10),
+                    cap_factor=MODE_TIME_MAX_FACTOR.get(mode, 2.0),
+                    rng=rng,
+                )
+        else:
+            travel_multiplier[(from_node, to_node, mode)] = np.ones(1, dtype=float)
+
+    border_delay_h: Dict[Tuple[str, str], np.ndarray] = {}
+    for key in sorted(border_delay_map):
+        node, mode = key
+        base_h = max(0.0, safe_float(border_delay_map[key], 0.0))
+        if base_h <= 0.0:
+            border_delay_h[key] = np.zeros(size, dtype=float)
+        elif stochastic:
+            multipliers = sample_capped_mean_one_lognormal(
+                size=size,
+                cv=BORDER_DELAY_CV.get(mode, 0.50),
+                cap_factor=BORDER_DELAY_MAX_FACTOR,
+                rng=rng,
+            )
+            border_delay_h[key] = base_h * multipliers
+        else:
+            border_delay_h[key] = np.full(1, base_h, dtype=float)
+
+    return ScenarioSet(
+        size=size,
+        seed=int(seed),
+        travel_multiplier=travel_multiplier,
+        border_delay_h=border_delay_h,
+        stochastic=bool(stochastic),
+    )
+
+
+def configure_scenario_set(
+    arcs: List[Arc],
+    border_delay_map: Dict[Tuple[str, str], float],
+    size: int,
+    seed: int,
+    stochastic: bool = True,
+) -> ScenarioSet:
+    global ACTIVE_SCENARIO_SET, _PATH_SCENARIO_CACHE
+    ACTIVE_SCENARIO_SET = build_scenario_set(
+        arcs=arcs,
+        border_delay_map=border_delay_map,
+        size=size,
+        seed=seed,
+        stochastic=stochastic,
+    )
+    _PATH_SCENARIO_CACHE = {}
+    return ACTIVE_SCENARIO_SET
 
 
 def load_batches_from_csv(filename: str) -> List[Batch]:
     df = pd.read_csv(filename)
-    required = ["batch_id", "origin", "destination", "quantity", "ET", "LT"]
-    missing = [c for c in required if c not in df.columns]
+    columns = {
+        "batch_id": next((c for c in ["batch_id", "BatchID"] if c in df.columns), None),
+        "origin": next((c for c in ["origin", "OriginEN"] if c in df.columns), None),
+        "destination": next((c for c in ["destination", "DestEN"] if c in df.columns), None),
+        "quantity": next((c for c in ["quantity", "QuantityTEU"] if c in df.columns), None),
+        "ET": "ET" if "ET" in df.columns else None,
+        "LT": "LT" if "LT" in df.columns else None,
+    }
+    missing = [name for name, column in columns.items() if column is None]
     if missing:
-        raise ValueError(f"Batch CSV missing required columns: {missing}")
+        raise ValueError(f"Batch CSV missing required fields: {missing}")
 
     batches: List[Batch] = []
     for _, row in df.iterrows():
         batches.append(Batch(
-            batch_id=int(row.get("batch_id", 0)),
-            origin=str(row.get("origin", "")).strip(),
-            destination=str(row.get("destination", "")).strip(),
-            quantity=safe_float(row.get("quantity"), default=0.0),
-            ET=safe_float(row.get("ET"), default=0.0),
-            LT=safe_float(row.get("LT"), default=0.0),
+            batch_id=int(row.get(columns["batch_id"], 0)),
+            origin=str(row.get(columns["origin"], "")).strip(),
+            destination=str(row.get(columns["destination"], "")).strip(),
+            quantity=safe_float(row.get(columns["quantity"]), default=0.0),
+            ET=safe_float(row.get(columns["ET"]), default=0.0),
+            LT=safe_float(row.get(columns["LT"]), default=0.0),
             penalty_per_teu_h=safe_float(
-                row.get("penalty_per_teu_h"),
+                row.get("penalty_per_teu_h",
+                        row.get("PenaltyCost_per_TEU_h")),
                 default=DEFAULT_PENALTY_PER_TEU_H,
             ),
+            max_late_h=(safe_float(
+                row.get("max_late_h", row.get("MaxLate_h")),
+                default=0.0) or None),
         ))
     print(f"[INFO] Batches overridden from CSV: {filename} ({len(batches)} batches)")
     return batches
@@ -947,7 +1098,8 @@ def build_path_library(node_names, node_region, arcs, batches, tt_dict, arc_look
                 nodes=nodes, modes=modes, arcs=repaired,
                 base_cost_per_teu=sum(a.cost_per_teu_km * a.distance for a in repaired),
                 base_emission_per_teu=sum(a.emission_per_teu_km * a.distance for a in repaired),
-                base_travel_time_h=sum(a.distance / max(a.speed_kmh, 1.0) for a in repaired),
+                base_travel_time_h=sum(nominal_arc_travel_time(a, tt_dict)
+                                       for a in repaired),
             ))
             next_pid += 1
         if paths_od:
@@ -1011,13 +1163,13 @@ def simulate_path_time_capacity(
     rng: Optional[np.random.Generator] = None,
     stochastic: bool = False,
     mode_time_cv: Optional[Dict[str, float]] = None,
+    scenario_index: int = 0,
     record_capacity: bool = True,
 ) -> Tuple[float, List[Tuple[str, float, float]], int]:
     t                = float(batch.ET)
     miss_tt          = 0
     trans_map        = trans_map or {}
     border_delay_map = border_delay_map or {}
-    rng              = rng or np.random.default_rng()
     mode_time_cv     = mode_time_cv or MODE_TIME_CV
     prev_arc         = None
     node_wait_list: List[Tuple[str, float, float]] = []
@@ -1038,15 +1190,14 @@ def simulate_path_time_capacity(
         # routing monotonicity only.
         if cur_node in BREAK_OF_GAUGE_NODES:
             base_bd = border_delay_map.get((cur_node, arc.mode), 0.0)
-            bd = (sample_bounded_lognormal_delay(base_bd, rng)
-                  if stochastic else base_bd)
+            bd = (ACTIVE_SCENARIO_SET.border(
+                    cur_node, arc.mode, scenario_index, base_bd)
+                  if stochastic and ACTIVE_SCENARIO_SET is not None else base_bd)
             if bd > 0: t += bd; arc_trans_wait += bd
 
-        travel_arc = arc.distance / max(arc.speed_kmh, 1.0)
-        if stochastic:
-            travel_arc *= sample_lognormal_multiplier(
-                mode_time_cv.get(arc.mode, 0.10), rng
-            )
+        travel_arc = nominal_arc_travel_time(arc, tt_dict)
+        if stochastic and ACTIVE_SCENARIO_SET is not None:
+            travel_arc *= ACTIVE_SCENARIO_SET.travel(arc, scenario_index)
         entries    = [] if arc.mode == "road" else \
                      tt_dict.get((cur_node, arc.to_node, arc.mode), [])
         if arc.mode != "road" and not entries:
@@ -1074,6 +1225,96 @@ def simulate_path_time_capacity(
     return (t - batch.ET), node_wait_list, miss_tt
 
 
+def simulate_path_over_scenarios(
+    path: Path,
+    batch: Batch,
+    tt_dict: Dict,
+    trans_map: Dict,
+    border_delay_map: Dict,
+    scenario_set: ScenarioSet,
+) -> PathScenarioResult:
+    """Evaluate one path against an already generated, immutable scenario set."""
+    trans_signature = tuple(
+        (path.arcs[i + 1].from_node, path.arcs[i].mode,
+         path.arcs[i + 1].mode,
+         safe_float(trans_map.get((path.arcs[i + 1].from_node,
+                                   path.arcs[i].mode,
+                                   path.arcs[i + 1].mode), {}).get("time_h"), 0.0))
+        for i in range(len(path.arcs) - 1)
+        if path.arcs[i].mode != path.arcs[i + 1].mode
+    )
+    topology = tuple((a.from_node, a.to_node, a.mode) for a in path.arcs)
+    cache_key = (
+        scenario_set.seed, scenario_set.size, scenario_set.stochastic,
+        batch.batch_id, float(batch.ET), topology, trans_signature,
+    )
+    cached = _PATH_SCENARIO_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    size = scenario_set.size
+    arrivals = np.full(size, float("inf"), dtype=float)
+    schedule_wait_h: Dict[str, np.ndarray] = {}
+    border_delay_h: Dict[str, np.ndarray] = {}
+    missing_timetable = False
+
+    for s in range(size):
+        t = float(batch.ET)
+        prev_arc = None
+        valid = True
+        for arc in path.arcs:
+            node = arc.from_node
+            if prev_arc is not None and prev_arc.mode != arc.mode:
+                rec = trans_map.get((node, prev_arc.mode, arc.mode), {})
+                t += max(0.0, safe_float(rec.get("time_h"), 0.0))
+
+            if node in BREAK_OF_GAUGE_NODES:
+                base_bd = max(0.0, safe_float(
+                    border_delay_map.get((node, arc.mode), 0.0), 0.0))
+                bd = scenario_set.border(node, arc.mode, s, base_bd)
+                if bd > 0.0:
+                    t += bd
+                    border_delay_h.setdefault(
+                        node, np.zeros(size, dtype=float))[s] += bd
+
+            entries = [] if arc.mode == "road" else \
+                tt_dict.get((node, arc.to_node, arc.mode), [])
+            if arc.mode != "road" and not entries:
+                valid = False
+                missing_timetable = True
+                break
+            departure = t if not entries else next_departure_time_programB(t, entries)
+            wait_h = max(0.0, departure - t)
+            if wait_h > 0.0:
+                schedule_wait_h.setdefault(
+                    node, np.zeros(size, dtype=float))[s] += wait_h
+
+            travel_h = nominal_arc_travel_time(arc, tt_dict)
+            travel_h *= scenario_set.travel(arc, s)
+            t = departure + travel_h
+            prev_arc = arc
+
+        if valid:
+            arrivals[s] = t
+
+    result = PathScenarioResult(
+        arrival_h=arrivals,
+        schedule_wait_h=schedule_wait_h,
+        border_delay_h=border_delay_h,
+        missing_timetable=missing_timetable,
+    )
+    _PATH_SCENARIO_CACHE[cache_key] = result
+    return result
+
+
+def batch_max_lateness_h(batch: Batch) -> float:
+    if MAX_LATE_H_OVERRIDE is not None:
+        return max(0.0, float(MAX_LATE_H_OVERRIDE))
+    if batch.max_late_h is not None:
+        return max(0.0, float(batch.max_late_h))
+    return max(0.0, MAX_LATE_RATIO * max(0.0, batch.LT - batch.ET))
+
+
 def evaluate_individual(
     ind, batches, arcs, tt_dict,
     waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
@@ -1081,6 +1322,11 @@ def evaluate_individual(
     carbon_tax_map=None, trans_map=None, border_delay_map=None,
     theta_rm=None, node_trans_cost=None,
 ):
+    """Map a candidate solution to three deterministic empirical CCP values.
+
+    Random variables are never sampled here.  The complete scenario set is
+    generated once by ``configure_scenario_set`` and then treated as fixed data.
+    """
     node_hold_cost   = node_hold_cost   or {}
     node_proc_cost   = node_proc_cost   or {}
     carbon_tax_map   = carbon_tax_map   or {}
@@ -1089,185 +1335,200 @@ def evaluate_individual(
     theta_rm         = theta_rm         or {}
     node_trans_cost  = node_trans_cost  or {}
 
-    total_cost = total_emission_g = makespan = 0.0
+    scenario_set = ACTIVE_SCENARIO_SET
+    if scenario_set is None:
+        scenario_set = configure_scenario_set(
+            arcs, border_delay_map, MC_SCENARIOS, MC_BASE_SEED,
+            stochastic=STOCHASTIC_EVAL)
+    size = scenario_set.size
+    cost_s = np.zeros(size, dtype=float)
+    emission_s = np.zeros(size, dtype=float)
+    makespan_s = np.zeros(size, dtype=float)
+
     arc_flow_map: Dict = {}
-    node_flow_map: Dict = {}   # [V1 WIRING] (node, day-slot) -> TEU throughput
+    node_flow_map: Dict = {}
     arc_caps = {(a.from_node, a.to_node, a.mode): a.capacity for a in arcs}
 
     miss_alloc = miss_tt = 0
-    cap_excess = late_teu_h_total = wait_teu_h_total = 0.0
+    cap_excess = wait_teu_h_total = late_teu_h_total = 0.0
     trans_teu_h_total = trans_cost_total = carbon_cost_total = 0.0
-    chance_violation_total = 0.0
+    chance_violation_total = max_late_excess_h = 0.0
     min_on_time_prob = 1.0
-    mean_arrival_sum = 0.0
+    max_observed_late_h = mean_arrival_sum = 0.0
 
-    for b in batches:
-        key    = (b.origin, b.destination, b.batch_id)
-        allocs = ind.od_allocations.get(key, [])
-        if not allocs: miss_alloc += 1; continue
-
-        batch_finish = b.ET
-        if STOCHASTIC_EVAL:
-            on_time_count = 0
-            scenario_arrivals = []
-            for s in range(MC_SCENARIOS):
-                rng = np.random.default_rng(MC_BASE_SEED + b.batch_id * 10000 + s)
-                scenario_finish = b.ET
-                scenario_ok = True
-                for alloc in allocs:
-                    if alloc.share <= 1e-12:
-                        continue
-                    flow = alloc.share * b.quantity
-                    travel_time_s, _, mtt_s = simulate_path_time_capacity(
-                        alloc.path, b, flow, tt_dict, {},
-                        trans_map=trans_map, border_delay_map=border_delay_map,
-                        rng=rng, stochastic=True, mode_time_cv=MODE_TIME_CV,
-                        record_capacity=False)
-                    if math.isinf(travel_time_s) or mtt_s > 0:
-                        scenario_ok = False
-                        scenario_finish = float("inf")
-                        break
-                    scenario_finish = max(scenario_finish, b.ET + travel_time_s)
-
-                scenario_arrivals.append(scenario_finish)
-                if scenario_ok and scenario_finish <= b.LT:
-                    on_time_count += 1
-
-            p_on_time = on_time_count / max(1, MC_SCENARIOS)
-            finite_arrivals = [x for x in scenario_arrivals if np.isfinite(x)]
-            if finite_arrivals:
-                expected_arrival = float(np.mean(finite_arrivals))
-                batch_finish = max(batch_finish, expected_arrival)
-                mean_arrival_sum += expected_arrival
-            min_on_time_prob = min(min_on_time_prob, p_on_time)
-            chance_violation_total += max(0.0, CHANCE_ALPHA - p_on_time)
-
-        y_jmn_k: Dict[Tuple[str, str, str], float] = {}
-        for alloc in allocs:
-            if alloc.share <= 1e-12: continue
-            flow = alloc.share * b.quantity
-            p    = alloc.path
-
-            travel_time, node_wait_list, mtt = simulate_path_time_capacity(
-                p, b, flow, tt_dict, arc_flow_map,
-                trans_map=trans_map, border_delay_map=border_delay_map,
-                node_flow_map=node_flow_map)
-            if math.isinf(travel_time): miss_tt += mtt; continue
-
-            total_cost       += p.base_cost_per_teu * flow
-            total_emission_g += p.base_emission_per_teu * flow
-
-            # ── 聚合 y_jmn^k：在节点 j 从 mode m_in 转到 mode m_out 的 TEU ──
-            for i in range(len(p.arcs) - 1):
-                if p.arcs[i].mode != p.arcs[i+1].mode:
-                    j_node = p.arcs[i+1].from_node
-                    m_in   = p.arcs[i].mode
-                    m_out  = p.arcs[i+1].mode
-                    y_jmn_k[(j_node, m_in, m_out)] = \
-                        y_jmn_k.get((j_node, m_in, m_out), 0.0) + flow
-
-            cc = 0.0
-            for arc in p.arcs:
-                region = getattr(arc, "from_region", "")
-                # Θ_{r,m}: 缺失时默认 1（向后兼容，全征税）
-                theta = theta_rm.get((region, arc.mode), 1)
-                if theta == 0:
-                    continue
-                tax_rate  = float(carbon_tax_map.get(region, 0.0))
-                emis_tons = arc.emission_per_teu_km * arc.distance * flow / 1e6
-                cc += emis_tons * tax_rate
-            total_cost += cc; carbon_cost_total += cc
-
-
-            for (wnode, sched_h, trans_h) in node_wait_list:
-                hold_rate = node_hold_cost.get(wnode, WAITING_COST_PER_TEU_HOUR_DEFAULT)
-                proc_rate = node_proc_cost.get(wnode, 0.0)
-                if sched_h > 0.0:
-                    total_cost       += hold_rate * flow * sched_h
-                    total_emission_g += wait_emis_g_per_teu_h * flow * sched_h
-                    wait_teu_h_total += flow * sched_h
-                if trans_h > 0.0:
-                    total_cost        += proc_rate * flow * trans_h
-                    trans_teu_h_total += flow * trans_h
-
-            arrival_time = b.ET + travel_time
-            batch_finish = max(batch_finish, arrival_time)
-            if arrival_time > b.LT:
-                late_h            = flow * (arrival_time - b.LT)
-                late_teu_h_total += late_h
-                total_cost       += b.penalty_per_teu_h * late_h
-        # ── 用聚合后的 y_jmn^k 统一计算转运成本 ──
-        for (j_node, m_in, m_out), y_val in y_jmn_k.items():
-            rec       = trans_map.get((j_node, m_in, m_out), {})
-            tc_unit   = safe_float(rec.get("cost_per_teu"), default=0.0)
-            tt_h      = safe_float(rec.get("time_h"),       default=0.0)
-            # (a) 转运处理成本 TC_jmn × y
-            total_cost       += tc_unit * y_val
-            trans_cost_total += tc_unit * y_val
-            # (b) 转运操作成本 W_j^trans × y × TT_jmn （模型公式 12）
-            w_trans            = node_trans_cost.get(j_node, 0.0)
-            total_cost        += w_trans * y_val * tt_h
-            trans_teu_h_total += y_val * tt_h
-
-        makespan = max(makespan, batch_finish)
-
-    for (akey, slot), sf in arc_flow_map.items():
-        cap = arc_caps.get(akey, 1e9)
-        if sf > cap: cap_excess += (sf - cap)
-
-    # ── [V1 WIRING] node/border daily capacity (soft) + utilisation ──
-    # load_j,slot = batch flow through j on that day + daily background flow.
-    # u_j = load / BorderCapacity_j ; excess penalised like arc capacity.
-    # Applied only at BOTTLENECK_NODES that have a positive capacity.
-    border_cap_excess = 0.0
-    max_border_util   = 0.0
-    border_node_flow: Dict[str, float] = {}   # total batch TEU through node
-    border_node_util: Dict[str, float] = {}   # PEAK daily utilisation
-    for (nname, slot), nf in node_flow_map.items():
-        border_node_flow[nname] = border_node_flow.get(nname, 0.0) + nf
-        cap = BORDER_CAPACITY.get(nname, 0.0)
-        if cap <= 0.0:
+    for batch in batches:
+        key = (batch.origin, batch.destination, batch.batch_id)
+        allocs = [a for a in ind.od_allocations.get(key, [])
+                  if a.share > 1e-12]
+        if not allocs:
+            miss_alloc += 1
             continue
-        load = nf + BACKGROUND_FLOW.get(nname, 0.0)
-        u    = load / cap
-        if u > border_node_util.get(nname, 0.0):
-            border_node_util[nname] = u
-        if u > max_border_util:
-            max_border_util = u
-        if load > cap:
-            border_cap_excess += (load - cap)
 
-    penalty = (PEN_MISS_ALLOC * float(miss_alloc) +
-               PEN_MISS_TT    * float(miss_tt)    +
-               PEN_CAP_EXCESS_PER_TEU * float(cap_excess) +
-               PEN_BORDER_CAP_EXCESS_PER_TEU * float(border_cap_excess) +
-               PEN_LATE_PER_TEU_H * float(late_teu_h_total) +
-               PEN_CHANCE_VIOLATION * float(chance_violation_total))
+        batch_arrival_s = np.full(size, batch.ET, dtype=float)
+        y_jmn_k: Dict[Tuple[str, str, str], float] = {}
 
-    ind.objectives    = (float(total_cost), float(total_emission_g), float(makespan))
-    ind.penalty       = float(penalty)
-    hard_ok = (miss_alloc == 0 and miss_tt == 0 and cap_excess <= 1e-9
-               and border_cap_excess <= 1e-9
-               and late_teu_h_total <= 1e-9
-               and chance_violation_total <= 1e-12)
+        for alloc in allocs:
+            flow = alloc.share * batch.quantity
+            path = alloc.path
+
+            # Capacity is a planning constraint and is checked once against the
+            # nominal schedule.  Scenario delays affect performance objectives.
+            travel_time, _, mtt = simulate_path_time_capacity(
+                path, batch, flow, tt_dict, arc_flow_map,
+                trans_map=trans_map, border_delay_map=border_delay_map,
+                node_flow_map=node_flow_map, stochastic=False,
+                record_capacity=True)
+            if math.isinf(travel_time) or mtt > 0:
+                miss_tt += max(1, mtt)
+                batch_arrival_s[:] = float("inf")
+                continue
+
+            path_result = simulate_path_over_scenarios(
+                path, batch, tt_dict, trans_map, border_delay_map,
+                scenario_set)
+            if path_result.missing_timetable:
+                miss_tt += 1
+            batch_arrival_s = np.maximum(
+                batch_arrival_s, path_result.arrival_h)
+
+            deterministic_cost = path.base_cost_per_teu * flow
+            deterministic_emission = path.base_emission_per_teu * flow
+            cost_s += deterministic_cost
+            emission_s += deterministic_emission
+
+            carbon_cost = 0.0
+            for arc in path.arcs:
+                region = getattr(arc, "from_region", "")
+                if theta_rm.get((region, arc.mode), 1) == 0:
+                    continue
+                tax_rate = float(carbon_tax_map.get(region, 0.0))
+                emission_tons = (
+                    arc.emission_per_teu_km * arc.distance * flow / 1e6)
+                carbon_cost += emission_tons * tax_rate
+            cost_s += carbon_cost
+            carbon_cost_total += carbon_cost
+
+            for node, wait_values in path_result.schedule_wait_h.items():
+                hold_rate = node_hold_cost.get(
+                    node, waiting_cost_per_teu_h)
+                cost_s += hold_rate * flow * wait_values
+                emission_s += wait_emis_g_per_teu_h * flow * wait_values
+                wait_teu_h_total += flow * float(np.mean(wait_values))
+
+            for node, delay_values in path_result.border_delay_h.items():
+                proc_rate = node_proc_cost.get(node, 0.0)
+                cost_s += proc_rate * flow * delay_values
+
+            path_lateness = np.maximum(0.0, path_result.arrival_h - batch.LT)
+            cost_s += batch.penalty_per_teu_h * flow * path_lateness
+            late_teu_h_total += flow * float(np.mean(path_lateness))
+
+            for i in range(len(path.arcs) - 1):
+                if path.arcs[i].mode != path.arcs[i + 1].mode:
+                    node = path.arcs[i + 1].from_node
+                    m_in = path.arcs[i].mode
+                    m_out = path.arcs[i + 1].mode
+                    y_jmn_k[(node, m_in, m_out)] = \
+                        y_jmn_k.get((node, m_in, m_out), 0.0) + flow
+
+        for (node, m_in, m_out), transfer_flow in y_jmn_k.items():
+            rec = trans_map.get((node, m_in, m_out), {})
+            unit_cost = safe_float(rec.get("cost_per_teu"), 0.0)
+            transfer_h = safe_float(rec.get("time_h"), 0.0)
+            transfer_cost = unit_cost * transfer_flow
+            operation_cost = (
+                node_trans_cost.get(node, 0.0) * transfer_flow * transfer_h)
+            cost_s += transfer_cost + operation_cost
+            trans_cost_total += transfer_cost + operation_cost
+            trans_teu_h_total += transfer_flow * transfer_h
+
+        on_time_probability = float(np.mean(batch_arrival_s <= batch.LT))
+        min_on_time_prob = min(min_on_time_prob, on_time_probability)
+        chance_violation_total += max(
+            0.0, CONFIDENCE_ONTIME - on_time_probability)
+
+        batch_lateness = np.maximum(0.0, batch_arrival_s - batch.LT)
+        late_limit = batch_max_lateness_h(batch)
+        batch_excess = np.maximum(0.0, batch_lateness - late_limit)
+        if np.any(np.isfinite(batch_excess)):
+            max_late_excess_h += float(np.max(batch_excess))
+        else:
+            max_late_excess_h = float("inf")
+        finite_lateness = batch_lateness[np.isfinite(batch_lateness)]
+        if finite_lateness.size:
+            max_observed_late_h = max(
+                max_observed_late_h, float(np.max(finite_lateness)))
+        finite_arrivals = batch_arrival_s[np.isfinite(batch_arrival_s)]
+        if finite_arrivals.size:
+            mean_arrival_sum += float(np.mean(finite_arrivals))
+        makespan_s = np.maximum(makespan_s, batch_arrival_s)
+
+    for (arc_key, slot), flow in arc_flow_map.items():
+        capacity = arc_caps.get(arc_key, 1e9)
+        if flow > capacity:
+            cap_excess += flow - capacity
+
+    border_cap_excess = 0.0
+    max_border_util = 0.0
+    border_node_flow: Dict[str, float] = {}
+    border_node_util: Dict[str, float] = {}
+    for (node, slot), flow in node_flow_map.items():
+        border_node_flow[node] = border_node_flow.get(node, 0.0) + flow
+        capacity = BORDER_CAPACITY.get(node, 0.0)
+        if capacity <= 0.0:
+            continue
+        load = flow + BACKGROUND_FLOW.get(node, 0.0)
+        utilisation = load / capacity
+        border_node_util[node] = max(
+            border_node_util.get(node, 0.0), utilisation)
+        max_border_util = max(max_border_util, utilisation)
+        if load > capacity:
+            border_cap_excess += load - capacity
+
+    f_cost = empirical_ccp_quantile(cost_s, CONFIDENCE_COST)
+    f_emission = empirical_ccp_quantile(
+        emission_s, CONFIDENCE_EMISSION)
+    f_time = empirical_ccp_quantile(makespan_s, CONFIDENCE_TIME)
+
+    penalty = (
+        PEN_MISS_ALLOC * float(miss_alloc)
+        + PEN_MISS_TT * float(miss_tt)
+        + PEN_CAP_EXCESS_PER_TEU * float(cap_excess)
+        + PEN_BORDER_CAP_EXCESS_PER_TEU * float(border_cap_excess)
+        + PEN_CHANCE_VIOLATION * float(chance_violation_total)
+        + PEN_MAX_LATE_EXCESS_PER_H * float(max_late_excess_h)
+    )
+
+    ind.objectives = (f_cost, f_emission, f_time)
+    ind.penalty = float(penalty)
+    hard_ok = (
+        miss_alloc == 0 and miss_tt == 0
+        and cap_excess <= 1e-9 and border_cap_excess <= 1e-9
+        and chance_violation_total <= 1e-12
+        and max_late_excess_h <= 1e-12
+    )
     ind.feasible_hard = bool(hard_ok)
-    ind.feasible      = bool(hard_ok)
+    ind.feasible = bool(hard_ok)
     ind.vio_breakdown = {
-        "miss_alloc":  float(miss_alloc),
-        "miss_tt":     float(miss_tt),
-        "cap_excess":  float(cap_excess),
+        "miss_alloc": float(miss_alloc),
+        "miss_tt": float(miss_tt),
+        "cap_excess": float(cap_excess),
         "border_cap_excess": float(border_cap_excess),
-        "max_border_util":   float(max_border_util),
-        "late_teu_h":  float(late_teu_h_total),
-        "chance_vio":  float(chance_violation_total),
+        "max_border_util": float(max_border_util),
+        "late_teu_h": float(late_teu_h_total),
+        "max_late_excess_h": float(max_late_excess_h),
+        "max_observed_late_h": float(max_observed_late_h),
+        "chance_vio": float(chance_violation_total),
         "min_on_time_prob": float(min_on_time_prob),
         "mean_arrival_h_sum": float(mean_arrival_sum),
-        "wait_teu_h":  float(wait_teu_h_total),
+        "wait_teu_h": float(wait_teu_h_total),
         "trans_teu_h": float(trans_teu_h_total),
-        "trans_cost":  float(trans_cost_total),
+        "trans_cost": float(trans_cost_total),
         "carbon_cost": float(carbon_cost_total),
+        "scenario_cost_mean": float(np.mean(cost_s)),
+        "scenario_emission_mean": float(np.mean(emission_s)),
+        "scenario_time_mean": float(np.mean(makespan_s)),
     }
-    # [V1 WIRING] per-node detail for sensitivity reporting (not used by GA)
     ind.border_flow = border_node_flow
     ind.border_util = border_node_util
 
@@ -1301,7 +1562,8 @@ def crossover_structural(ind1, ind2, batches):
     return child1, child2
 
 
-def path_from_arcs(new_arcs, origin, destination, path_id=-1, node_region=None):
+def path_from_arcs(new_arcs, origin, destination, path_id=-1,
+                   node_region=None, tt_dict=None):
     if not new_arcs: return None
     nodes = [new_arcs[0].from_node] + [a.to_node for a in new_arcs]
     if nodes[0] != origin or nodes[-1] != destination: return None
@@ -1314,7 +1576,8 @@ def path_from_arcs(new_arcs, origin, destination, path_id=-1, node_region=None):
         nodes=nodes, modes=[a.mode for a in new_arcs], arcs=new_arcs,
         base_cost_per_teu=sum(a.cost_per_teu_km * a.distance for a in new_arcs),
         base_emission_per_teu=sum(a.emission_per_teu_km * a.distance for a in new_arcs),
-        base_travel_time_h=sum(a.distance / max(a.speed_kmh, 1.0) for a in new_arcs),
+        base_travel_time_h=sum(
+            nominal_arc_travel_time(a, tt_dict or {}) for a in new_arcs),
     )
 
 
@@ -1334,7 +1597,7 @@ def rebuild_path_from_nodes_modes(origin, destination, nodes, modes,
                 arc = arc_lookup[(u, v, "road")]
             else: return None
         new_arcs.append(arc)
-    return path_from_arcs(new_arcs, origin, destination)
+    return path_from_arcs(new_arcs, origin, destination, tt_dict=tt_dict)
 
 
 def find_common_internal_nodes(p1, p2):
@@ -1484,7 +1747,8 @@ def mutate_mode(ind, batch, tt_dict, arc_lookup, max_trials=20):
         if new_mode != "road" and not tt_dict.get((u, v, new_mode), []): continue
         new_arcs       = list(p.arcs)
         new_arcs[arc_i] = arc_lookup[k_arc]
-        new_path        = path_from_arcs(new_arcs, p.origin, p.destination)
+        new_path        = path_from_arcs(
+            new_arcs, p.origin, p.destination, tt_dict=tt_dict)
         if new_path is None: continue
         allocs_new      = deepcopy(allocs)
         allocs_new[idx] = PathAllocation(path=new_path, share=old_alloc.share)
@@ -1561,6 +1825,20 @@ def unique_individuals_by_objectives(front, tol=1e-3):
         if not any(all(abs(obj[i]-o[i]) <= tol for i in range(NUM_OBJ)) for o in seen):
             seen.append(obj); uniq.append(ind)
     return uniq
+
+
+def format_violation_breakdown(ind) -> str:
+    keys = [
+        "miss_alloc", "miss_tt", "cap_excess", "border_cap_excess",
+        "late_teu_h", "max_late_excess_h", "chance_vio",
+        "min_on_time_prob",
+    ]
+    parts = []
+    bd = getattr(ind, "vio_breakdown", {}) or {}
+    for k in keys:
+        if k in bd:
+            parts.append(f"{k}={safe_float(bd.get(k), 0.0):.3g}")
+    return "  ".join(parts) if parts else "no breakdown"
 
 
 # ════════════════════════════════════════════════════════
@@ -1898,6 +2176,49 @@ def export_pareto_points_json(pareto, batches, out_json="pareto_points.json"):
     print(f"[EXPORT] pareto_points.json → {out_json}  ({len(out)} solutions)")
 
 
+def export_best_infeasible_json(population, batches, out_json="best_infeasible.json"):
+    if not population:
+        return
+    best = min(population, key=lambda ind: ind.penalty)
+    sol = {
+        "objectives": {
+            "cost":          float(best.objectives[0]),
+            "emission_gCO2": float(best.objectives[1]),
+            "time_h":        float(best.objectives[2]),
+            "penalty":       float(best.penalty),
+        },
+        "feasible": bool(best.feasible),
+        "vio_breakdown": {k: float(v) for k, v in (best.vio_breakdown or {}).items()},
+        "border_flow": {str(k): float(v) for k, v in getattr(best, "border_flow", {}).items()},
+        "border_util": {str(k): float(v) for k, v in getattr(best, "border_util", {}).items()},
+        "allocations": [],
+    }
+    for b in batches:
+        key = (b.origin, b.destination, b.batch_id)
+        blk = {
+            "batch_id": int(b.batch_id),
+            "origin": b.origin,
+            "destination": b.destination,
+            "quantity_teu": float(b.quantity),
+            "ET": float(b.ET),
+            "LT": float(b.LT),
+            "paths": [],
+        }
+        for a in best.od_allocations.get(key, []):
+            blk["paths"].append({
+                "share": float(a.share),
+                "nodes": list(a.path.nodes),
+                "modes": list(a.path.modes),
+                "base_cost_per_teu": float(a.path.base_cost_per_teu),
+                "base_emission_per_teu": float(a.path.base_emission_per_teu),
+                "base_travel_time_h": float(a.path.base_travel_time_h),
+            })
+        sol["allocations"].append(blk)
+    with open(out_json, "w", encoding="utf-8") as f:
+        _json.dump(sol, f, ensure_ascii=False, indent=2)
+    print(f"[EXPORT] best_infeasible.json → {out_json}")
+
+
 # ════════════════════════════════════════════════════════
 # Plotting
 # ════════════════════════════════════════════════════════
@@ -1992,8 +2313,10 @@ def run_nsga2(
     front_hist_objs:            List[List[Tuple]] = []
     feasible_ratio_hist:        List[float]       = []
     feasible_ratio_strict_hist: List[float]       = []
-    vio_mean_hist = {k: [] for k in ["miss_alloc","miss_tt","cap_excess",
-                                     "late_teu_h","wait_teu_h","chance_vio"]}
+    vio_mean_hist = {k: [] for k in [
+        "miss_alloc", "miss_tt", "cap_excess", "border_cap_excess",
+        "late_teu_h", "max_late_excess_h", "wait_teu_h", "chance_vio",
+    ]}
     boost_trigger_hist:  List[int] = []
     boost_new_feas_hist: List[int] = []
     pareto_size_hist:    List[int] = []
@@ -2070,7 +2393,8 @@ def run_nsga2(
         else:
             obj_str = "No feasible solutions yet"
 
-        best_pen = min(i.penalty for i in population) if population else float("inf")
+        best_pen_ind = min(population, key=lambda i: i.penalty) if population else None
+        best_pen = best_pen_ind.penalty if best_pen_ind is not None else float("inf")
         sep      = "=" * 72
         print(f"\n{sep}")
         print(f"  [NSGA-II] Gen {gen:03d}/{generations-1}  |  {elapsed:.1f}s elapsed")
@@ -2079,6 +2403,8 @@ def run_nsga2(
               f"  |  NonDom={len(display)}"
               f"  |  BestPenalty={best_pen:.2e}")
         print(f"  Best feasible: {obj_str}")
+        if best_pen_ind is not None and not best_pen_ind.feasible:
+            print(f"  Best violation: {format_violation_breakdown(best_pen_ind)}")
         print(sep)
 
         # ── Step 4: Feasibility boost ────────────────────
@@ -2118,6 +2444,10 @@ def run_nsga2(
     print(f"  [NSGA-II] Run complete: {generations} gens, {total_t:.1f}s, Pareto={len(pareto)}")
     print(f"  ⚡ Boost: {sum(boost_trigger_hist)} gens triggered, "
           f"{sum(boost_new_feas_hist)} new feasible")
+    if not pareto and population:
+        best_final = min(population, key=lambda i: i.penalty)
+        print(f"  Best infeasible penalty: {best_final.penalty:.2e}")
+        print(f"  Best infeasible violation: {format_violation_breakdown(best_final)}")
     print(f"{'='*72}")
 
     return (
@@ -2151,21 +2481,58 @@ if __name__ == "__main__":
     parser.add_argument("--no-stochastic", action="store_true",
                         help="Disable Monte Carlo chance-constraint evaluation.")
     parser.add_argument("--mc-scenarios", type=int, default=MC_SCENARIOS,
-                        help="Monte Carlo scenarios per batch and individual.")
+                        help="Number of frozen training scenarios shared by all individuals.")
     parser.add_argument("--mc-seed", type=int, default=MC_BASE_SEED,
                         help="Base seed for deterministic common random numbers.")
-    parser.add_argument("--alpha", type=float, default=CHANCE_ALPHA,
-                        help="On-time delivery chance-constraint confidence level.")
+    parser.add_argument("--cost-confidence", type=float, default=CONFIDENCE_COST,
+                        help="CCP confidence level for total cost.")
+    parser.add_argument("--emission-confidence", type=float, default=CONFIDENCE_EMISSION,
+                        help="CCP confidence level for total emissions.")
+    parser.add_argument("--time-confidence", type=float, default=CONFIDENCE_TIME,
+                        help="CCP confidence level for makespan.")
+    parser.add_argument("--alpha", "--ontime-confidence",
+                        dest="ontime_confidence", type=float,
+                        default=CONFIDENCE_ONTIME,
+                        help="Per-batch on-time confidence level; --alpha is retained for compatibility.")
     parser.add_argument("--road-cv", type=float, default=MODE_TIME_CV["road"],
                         help="Road travel-time lognormal multiplier CV.")
     parser.add_argument("--rail-cv", type=float, default=MODE_TIME_CV["rail"],
                         help="Rail travel-time lognormal multiplier CV.")
     parser.add_argument("--water-cv", type=float, default=MODE_TIME_CV["water"],
                         help="Water travel-time lognormal multiplier CV.")
-    parser.add_argument("--border-cv", type=float, default=BORDER_DELAY_CV,
-                        help="Border-delay bounded lognormal CV.")
+    parser.add_argument("--road-max-factor", type=float,
+                        default=MODE_TIME_MAX_FACTOR["road"])
+    parser.add_argument("--rail-max-factor", type=float,
+                        default=MODE_TIME_MAX_FACTOR["rail"])
+    parser.add_argument("--water-max-factor", type=float,
+                        default=MODE_TIME_MAX_FACTOR["water"])
+    parser.add_argument("--border-cv", type=float, default=None,
+                        help="Compatibility option: use one border-delay CV for every mode.")
+    parser.add_argument("--border-road-cv", type=float,
+                        default=BORDER_DELAY_CV["road"])
+    parser.add_argument("--border-rail-cv", type=float,
+                        default=BORDER_DELAY_CV["rail"])
+    parser.add_argument("--border-water-cv", type=float,
+                        default=BORDER_DELAY_CV["water"])
     parser.add_argument("--border-max-factor", type=float, default=BORDER_DELAY_MAX_FACTOR,
                         help="Upper bound for sampled border delay as factor of Node_Border delay.")
+    parser.add_argument("--max-late-ratio", type=float, default=MAX_LATE_RATIO,
+                        help="Fallback Lmax/(LT-ET) when a batch has no MaxLate_h value.")
+    parser.add_argument("--max-late-h", type=float, default=None,
+                        help="Optional fixed maximum lateness overriding batch values and ratio.")
+    parser.add_argument(
+        "--late-penalty-usd-per-teu-day", type=float,
+        default=DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY,
+        help="Sourced baseline late penalty, converted internally to USD/TEU/hour.")
+    parser.add_argument(
+        "--use-input-late-penalties", action="store_true",
+        help="Use per-batch hourly penalties from the workbook/CSV instead of the sourced baseline.")
+    parser.add_argument(
+        "--payload-tonnes-per-teu", type=float, default=PAYLOAD_TONNES_PER_TEU,
+        help="Payload assumption used to convert gCO2/t-km to gCO2/TEU-km.")
+    parser.add_argument(
+        "--wait-emission-g-per-teu-h", type=float, default=None,
+        help="Optional waiting/idling emission override; zero leaves emissions deterministic.")
     args = parser.parse_args()
 
     DATA_FILE    = args.data
@@ -2177,20 +2544,42 @@ if __name__ == "__main__":
     STOCHASTIC_EVAL = not args.no_stochastic
     MC_SCENARIOS = max(1, args.mc_scenarios)
     MC_BASE_SEED = int(args.mc_seed)
-    CHANCE_ALPHA = float(args.alpha)
-    BORDER_DELAY_CV = max(0.0, float(args.border_cv))
+    CONFIDENCE_COST = min(1.0, max(0.0, float(args.cost_confidence)))
+    CONFIDENCE_EMISSION = min(1.0, max(0.0, float(args.emission_confidence)))
+    CONFIDENCE_TIME = min(1.0, max(0.0, float(args.time_confidence)))
+    CONFIDENCE_ONTIME = min(1.0, max(0.0, float(args.ontime_confidence)))
     BORDER_DELAY_MAX_FACTOR = max(1.0, float(args.border_max_factor))
     MODE_TIME_CV = {
         "road": max(0.0, float(args.road_cv)),
         "rail": max(0.0, float(args.rail_cv)),
         "water": max(0.0, float(args.water_cv)),
     }
+    MODE_TIME_MAX_FACTOR = {
+        "road": max(1.0, float(args.road_max_factor)),
+        "rail": max(1.0, float(args.rail_max_factor)),
+        "water": max(1.0, float(args.water_max_factor)),
+    }
+    if args.border_cv is not None:
+        common_border_cv = max(0.0, float(args.border_cv))
+        BORDER_DELAY_CV = {m: common_border_cv for m in ("road", "rail", "water")}
+    else:
+        BORDER_DELAY_CV = {
+            "road": max(0.0, float(args.border_road_cv)),
+            "rail": max(0.0, float(args.border_rail_cv)),
+            "water": max(0.0, float(args.border_water_cv)),
+        }
+    MAX_LATE_RATIO = max(0.0, float(args.max_late_ratio))
+    MAX_LATE_H_OVERRIDE = (None if args.max_late_h is None
+                           else max(0.0, float(args.max_late_h)))
+    PAYLOAD_TONNES_PER_TEU = max(0.0, float(args.payload_tonnes_per_teu))
+    sourced_late_penalty_h = max(
+        0.0, float(args.late_penalty_usd_per_teu_day)) / 24.0
 
     FSPath(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
     print("=" * 72)
     print("  NSGA-II  STOCHASTIC EXTENSION  (3-objective)")
-    print("  ▶ Stepwise sampling + on-time chance constraint")
+    print("  ▶ Frozen scenarios + empirical CCP quantiles")
     print("=" * 72)
     print(f"  GA      : pop={POP_SIZE}  gen={GENERATIONS}  runs={RUNS}")
     print(f"            pc={CROSSOVER_RATE}  pm={MUTATION_RATE}")
@@ -2199,10 +2588,21 @@ if __name__ == "__main__":
     print(f"  HV      : MC samples={HV_SAMPLES}  ref={HV_REF_NORM}")
     print(f"  Data    : {DATA_FILE}")
     print(f"  Uncert. : enabled={STOCHASTIC_EVAL}  scenarios={MC_SCENARIOS}  "
-          f"alpha={CHANCE_ALPHA}")
-    print(f"            mode_cv={MODE_TIME_CV}  border_cv={BORDER_DELAY_CV}  "
-          f"border_max_factor={BORDER_DELAY_MAX_FACTOR}")
-    print(f"  Batches : expanded workbook batches  caps=Excel")
+          f"seed={MC_BASE_SEED}")
+    print(f"  CCP     : cost={CONFIDENCE_COST}  emission={CONFIDENCE_EMISSION}  "
+          f"time={CONFIDENCE_TIME}  ontime={CONFIDENCE_ONTIME}")
+    print(f"            mode_cv={MODE_TIME_CV}  mode_cap={MODE_TIME_MAX_FACTOR}")
+    print(f"            border_cv={BORDER_DELAY_CV}  "
+          f"border_cap={BORDER_DELAY_MAX_FACTOR}")
+    print(f"  Lateness: ratio={MAX_LATE_RATIO}  override_h={MAX_LATE_H_OVERRIDE}")
+    penalty_label = ("input hourly values" if args.use_input_late_penalties
+                     else f"{args.late_penalty_usd_per_teu_day:g} USD/TEU/day"
+                          f" = {sourced_late_penalty_h:.4g}/hour")
+    print(f"            penalty={penalty_label}")
+    print(f"  Emission: payload={PAYLOAD_TONNES_PER_TEU:g} t/TEU  "
+          f"wait_override={args.wait_emission_g_per_teu_h}")
+    batch_source = args.batches_csv if args.batches_csv else DATA_FILE
+    print(f"  Batches : {batch_source}  caps=input data")
     print("=" * 72)
 
     print("\n[INIT] Loading network data...")
@@ -2215,6 +2615,33 @@ if __name__ == "__main__":
 
     if args.batches_csv:
         raw_batches = load_batches_from_csv(args.batches_csv)
+
+    input_penalties = [float(batch.penalty_per_teu_h) for batch in raw_batches]
+    if args.use_input_late_penalties:
+        if input_penalties and max(input_penalties) > 10.0:
+            print("[WARN] Input late penalties exceed 10 USD/TEU/hour "
+                  f"(range={min(input_penalties):.4g}--{max(input_penalties):.4g}). "
+                  "Use only when supported by contract or source data.")
+        late_penalty_source = "input_per_batch_hourly"
+    else:
+        for batch in raw_batches:
+            batch.penalty_per_teu_h = sourced_late_penalty_h
+        late_penalty_source = "sourced_common_daily_rate_converted_to_hourly"
+        if input_penalties:
+            print("[INFO] Replaced input late-penalty range "
+                  f"{min(input_penalties):.4g}--{max(input_penalties):.4g} "
+                  f"USD/TEU/hour with {sourced_late_penalty_h:.4g} "
+                  "USD/TEU/hour. Use --use-input-late-penalties only with "
+                  "documented contract values.")
+
+    if args.wait_emission_g_per_teu_h is not None:
+        wait_emis_g_per_teu_h = max(
+            0.0, float(args.wait_emission_g_per_teu_h))
+        print("[INFO] Waiting emission overridden to "
+              f"{wait_emis_g_per_teu_h:g} gCO2/TEU/hour.")
+    elif wait_emis_g_per_teu_h <= 0.0:
+        print("[WARN] Waiting emission is zero: the emission CCP is "
+              "deterministic under the current system boundary.")
 
     if args.expected_batches:
         assert len(raw_batches) == args.expected_batches, \
@@ -2229,9 +2656,52 @@ if __name__ == "__main__":
         node_names, node_region, arcs, raw_batches, tt_dict, arc_lookup)
     sanity_check_path_lib(raw_batches, path_lib)
 
+    scenario_set = configure_scenario_set(
+        arcs=arcs,
+        border_delay_map=border_delay_map,
+        size=MC_SCENARIOS,
+        seed=MC_BASE_SEED,
+        stochastic=STOCHASTIC_EVAL,
+    )
+    print(f"[INIT] Frozen scenario set: S={scenario_set.size}, "
+          f"seed={scenario_set.seed}, stochastic={scenario_set.stochastic}")
+    scenario_manifest = {
+        "scenario_count": scenario_set.size,
+        "scenario_seed": scenario_set.seed,
+        "stochastic": scenario_set.stochastic,
+        "confidence": {
+            "cost": CONFIDENCE_COST,
+            "emission": CONFIDENCE_EMISSION,
+            "time": CONFIDENCE_TIME,
+            "on_time_per_batch": CONFIDENCE_ONTIME,
+        },
+        "mode_time_cv": MODE_TIME_CV,
+        "mode_time_cap_factor": MODE_TIME_MAX_FACTOR,
+        "border_delay_cv": BORDER_DELAY_CV,
+        "border_delay_cap_factor": BORDER_DELAY_MAX_FACTOR,
+        "max_late_ratio": MAX_LATE_RATIO,
+        "max_late_h_override": MAX_LATE_H_OVERRIDE,
+        "late_penalty": {
+            "source_mode": late_penalty_source,
+            "baseline_usd_per_teu_day": float(
+                args.late_penalty_usd_per_teu_day),
+            "applied_common_usd_per_teu_hour": (
+                None if args.use_input_late_penalties
+                else sourced_late_penalty_h),
+        },
+        "payload_tonnes_per_teu": PAYLOAD_TONNES_PER_TEU,
+        "wait_emission_g_per_teu_h": wait_emis_g_per_teu_h,
+        "fitness_evaluation": "frozen_scenarios_empirical_order_statistics",
+        "algorithmic_randomness": "controlled separately by --seed",
+    }
+    (FSPath(OUTPUT_DIR) / "scenario_manifest.json").write_text(
+        _json.dumps(scenario_manifest, ensure_ascii=False, indent=2),
+        encoding="utf-8")
+
     all_front_hist: List = []
     all_run_rows:   List = []
     all_paretos:    List = []
+    all_populations: List = []
 
     _hv_runs, _igd_runs, _sp_runs = [], [], []
     _fr_runs, _frs_runs            = [], []
@@ -2266,6 +2736,7 @@ if __name__ == "__main__":
 
         all_front_hist.append(front_hist_objs)
         all_paretos.append(pareto)
+        all_populations.append(population)
         _fr_runs.append(feasible_ratio_hist)
         _frs_runs.append(feasible_ratio_strict_hist)
         _psz_runs.append(pareto_size_hist)
@@ -2283,6 +2754,9 @@ if __name__ == "__main__":
         _me_runs.append(_bmin_run(1))
         _mt_runs.append(_bmin_run(2))
 
+        best_pen_ind = min(population, key=lambda ind: ind.penalty) if population else None
+        best_bd = (best_pen_ind.vio_breakdown or {}) if best_pen_ind is not None else {}
+
         all_run_rows.append({
             "run_id":                   run_id,
             "seed":                     seed,
@@ -2290,6 +2764,16 @@ if __name__ == "__main__":
             "final_pareto_size":        len(pareto),
             "final_FeasRatio_soft":     float(feasible_ratio_hist[-1]),
             "final_FeasRatio_strict":   float(feasible_ratio_strict_hist[-1]),
+            "best_penalty":             float(best_pen_ind.penalty) if best_pen_ind else float("inf"),
+            "best_miss_alloc":          float(best_bd.get("miss_alloc", 0.0)),
+            "best_miss_tt":             float(best_bd.get("miss_tt", 0.0)),
+            "best_cap_excess":          float(best_bd.get("cap_excess", 0.0)),
+            "best_border_cap_excess":   float(best_bd.get("border_cap_excess", 0.0)),
+            "best_late_teu_h":          float(best_bd.get("late_teu_h", 0.0)),
+            "best_max_late_excess_h":   float(best_bd.get("max_late_excess_h", 0.0)),
+            "best_max_observed_late_h": float(best_bd.get("max_observed_late_h", 0.0)),
+            "best_chance_vio":          float(best_bd.get("chance_vio", 0.0)),
+            "best_min_on_time_prob":    float(best_bd.get("min_on_time_prob", 0.0)),
             "boost_gens_triggered":     int(sum(boost_trigger_hist)),
             "boost_new_feasible_total": int(sum(boost_new_feas_hist)),
         })
@@ -2416,6 +2900,10 @@ if __name__ == "__main__":
     # ── Pareto outputs (best run) ─────────────────────────
     save_pareto_solutions(best_pareto, raw_batches, p("result.txt"))
     export_pareto_points_json(best_pareto, raw_batches, out_json=p("pareto_points.json"))
+    if not best_pareto and all_populations:
+        export_best_infeasible_json(
+            all_populations[best_run_idx], raw_batches,
+            out_json=p("best_infeasible.json"))
 
     # ── Front history JSON ────────────────────────────────
     _fh_export = []
