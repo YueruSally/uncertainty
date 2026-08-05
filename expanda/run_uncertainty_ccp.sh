@@ -19,5 +19,9 @@ exec "$PYTHON_EXECUTABLE" baseline_uncertainty.py \
   --gens "${GENERATIONS:-300}" \
   --runs "${RUNS:-1}" \
   --mc-scenarios "${MC_SCENARIOS:-200}" \
+  --alpha "${ONTIME_CONFIDENCE:-0.90}" \
+  --feasible-seed-fraction "${FEASIBLE_SEED_FRACTION:-0.30}" \
+  --feasibility-restarts "${FEASIBILITY_RESTARTS:-40}" \
+  --feasibility-iterations "${FEASIBILITY_ITERATIONS:-250}" \
   --out "${OUTPUT_DIR:-outputs/uncertainty_ccp}" \
   "$@"

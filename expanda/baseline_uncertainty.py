@@ -88,11 +88,12 @@ WAIT_EMISSION_gCO2_per_TEU_H_DEFAULT = 0.0
 CROSSOVER_RATE  = 0.90       # ← Stage 2 best (G7: pc=0.90, pm=0.15)
 MUTATION_RATE   = 0.15       # ← Stage 2 best
 
-W_ADD  = 0.25
-W_DEL  = 0.25
-W_MOD  = 0.25
-W_MODE = 0.25
-OPS    = ["add", "del", "mod", "mode"]
+W_ADD     = 0.10
+W_DEL     = 0.15
+W_MOD     = 0.10
+W_MODE    = 0.10
+W_REPLACE = 0.55
+OPS       = ["add", "del", "mod", "mode", "replace"]
 
 # ── Path library  [TUNED Stage 3] ────────────────────────
 PATHS_TOPK_PER_CRITERION = 15        # ← Stage 3 best
@@ -106,6 +107,14 @@ MIN_FEASIBLE_SOLUTIONS       = 10
 FEASIBLE_BOOST_ROUNDS        = 20
 FEASIBLE_BOOST_MUTATION_RATE = 0.60
 FEASIBLE_BOOST_TOPK_PARENTS  = 10
+
+# Feasibility-first search.  A fixed fraction of the initial population is
+# built from paths that already satisfy the per-batch chance and maximum-
+# lateness constraints.  A min-conflicts search then coordinates their arc and
+# border capacities.  This changes only the search strategy, not the model.
+FEASIBILITY_SEED_FRACTION = 0.30
+FEASIBILITY_SEARCH_RESTARTS = 40
+FEASIBILITY_SEARCH_ITERATIONS = 250
 
 # ── Metrics ──────────────────────────────────────────────
 HV_EVERY     = 5
@@ -423,7 +432,10 @@ class Individual:
     penalty:        float = 0.0
     feasible:       bool  = False
     feasible_hard:  bool  = False
+    normalized_violation: float = float("inf")
     vio_breakdown:  Dict[str, float] = field(default_factory=dict)
+    batch_on_time_prob: Dict[int, float] = field(default_factory=dict)
+    batch_max_lateness_h: Dict[int, float] = field(default_factory=dict)
     rank:               int   = 0           # [NSGA-II] non-dominated front index (0 = best)
     crowding_distance:  float = 0.0         # [NSGA-II] crowding distance
 
@@ -453,6 +465,15 @@ class PathScenarioResult:
     schedule_wait_h: Dict[str, np.ndarray]
     border_delay_h: Dict[str, np.ndarray]
     missing_timetable: bool = False
+
+
+@dataclass
+class ReliablePathOption:
+    """One single-path batch assignment that satisfies its time constraints."""
+    path: Path
+    on_time_probability: float
+    max_lateness_h: float
+    resources: Dict[Any, float]
 
 
 # ════════════════════════════════════════════════════════
@@ -1315,6 +1336,242 @@ def batch_max_lateness_h(batch: Batch) -> float:
     return max(0.0, MAX_LATE_RATIO * max(0.0, batch.LT - batch.ET))
 
 
+def build_reliable_path_options(
+    batches: List[Batch],
+    path_lib: Dict[Tuple[str, str], List[Path]],
+    tt_dict: Dict,
+    trans_map: Dict,
+    border_delay_map: Dict,
+    scenario_set: ScenarioSet,
+) -> Dict[Tuple[str, str, int], List[ReliablePathOption]]:
+    """Pre-screen paths under the frozen scenarios used by the optimiser.
+
+    A retained path independently satisfies both the per-batch on-time chance
+    constraint and the hard maximum-lateness constraint.  Its deterministic
+    capacity footprint is cached for the capacity-aware constructor below.
+    """
+    options: Dict[Tuple[str, str, int], List[ReliablePathOption]] = {}
+    counts: List[int] = []
+    missing: List[int] = []
+
+    for batch in batches:
+        key = (batch.origin, batch.destination, batch.batch_id)
+        batch_options: List[ReliablePathOption] = []
+        for path in path_lib.get((batch.origin, batch.destination), []):
+            result = simulate_path_over_scenarios(
+                path, batch, tt_dict, trans_map, border_delay_map,
+                scenario_set)
+            arrivals = result.arrival_h
+            on_time_probability = float(np.mean(arrivals <= batch.LT))
+            lateness = np.maximum(0.0, arrivals - batch.LT)
+            finite_lateness = lateness[np.isfinite(lateness)]
+            max_lateness = (float(np.max(finite_lateness))
+                            if finite_lateness.size == lateness.size
+                            else float("inf"))
+            if on_time_probability + 1e-12 < CONFIDENCE_ONTIME:
+                continue
+            if max_lateness > batch_max_lateness_h(batch) + 1e-12:
+                continue
+
+            arc_flow: Dict = {}
+            node_flow: Dict = {}
+            duration, _, miss_tt = simulate_path_time_capacity(
+                path, batch, batch.quantity, tt_dict, arc_flow,
+                trans_map=trans_map,
+                border_delay_map=border_delay_map,
+                node_flow_map=node_flow,
+                stochastic=False,
+                record_capacity=True,
+            )
+            if miss_tt > 0 or math.isinf(duration):
+                continue
+
+            resources: Dict[Any, float] = {}
+            for (arc_key, slot), flow in arc_flow.items():
+                resources[("arc", arc_key, slot)] = float(flow)
+            for (node, slot), flow in node_flow.items():
+                resources[("node", node, slot)] = float(flow)
+
+            batch_options.append(ReliablePathOption(
+                path=path,
+                on_time_probability=on_time_probability,
+                max_lateness_h=max_lateness,
+                resources=resources,
+            ))
+
+        batch_options.sort(key=lambda option: (
+            -option.on_time_probability,
+            option.max_lateness_h,
+            option.path.base_travel_time_h,
+            option.path.base_cost_per_teu,
+        ))
+        options[key] = batch_options
+        counts.append(len(batch_options))
+        if not batch_options:
+            missing.append(batch.batch_id)
+
+    if counts:
+        print("[FEAS-INIT] Reliable single-path options per batch: "
+              f"min={min(counts)}  median={float(np.median(counts)):.1f}  "
+              f"max={max(counts)}  alpha={CONFIDENCE_ONTIME:.3f}")
+    if missing:
+        print("[FEAS-INIT] WARNING: no independently reliable path for "
+              f"batch IDs {missing}. Capacity-aware seeding cannot guarantee "
+              "a feasible individual for those batches.")
+    return options
+
+
+def _resource_available_capacity(resource: Any,
+                                 arc_caps: Dict[Tuple[str, str, str], float]) -> float:
+    if resource[0] == "arc":
+        return max(0.0, float(arc_caps.get(resource[1], 1e9)))
+    node = resource[1]
+    capacity = float(BORDER_CAPACITY.get(node, 0.0))
+    if capacity <= 0.0:
+        return float("inf")
+    return max(0.0, capacity - float(BACKGROUND_FLOW.get(node, 0.0)))
+
+
+def _capacity_choice_score(
+    choice: List[int],
+    option_lists: List[List[ReliablePathOption]],
+    arc_caps: Dict[Tuple[str, str, str], float],
+) -> Tuple[float, Dict[Any, float], Dict[Any, List[int]]]:
+    loads: Dict[Any, float] = {}
+    contributors: Dict[Any, List[int]] = {}
+    for batch_index, option_index in enumerate(choice):
+        for resource, flow in option_lists[batch_index][option_index].resources.items():
+            loads[resource] = loads.get(resource, 0.0) + flow
+            contributors.setdefault(resource, []).append(batch_index)
+
+    violations: Dict[Any, float] = {}
+    for resource, load in loads.items():
+        excess = load - _resource_available_capacity(resource, arc_caps)
+        if excess > 1e-9:
+            violations[resource] = excess
+    return float(sum(violations.values())), violations, contributors
+
+
+def _preferred_reliable_choice(
+    individual: Optional[Individual],
+    batches: List[Batch],
+    option_lists: List[List[ReliablePathOption]],
+) -> List[Optional[int]]:
+    preferred: List[Optional[int]] = [None] * len(batches)
+    if individual is None:
+        return preferred
+    for batch_index, batch in enumerate(batches):
+        key = (batch.origin, batch.destination, batch.batch_id)
+        allocs = sorted(
+            individual.od_allocations.get(key, []),
+            key=lambda alloc: alloc.share,
+            reverse=True,
+        )
+        for alloc in allocs:
+            match = next((i for i, option in enumerate(option_lists[batch_index])
+                          if option.path == alloc.path), None)
+            if match is not None:
+                preferred[batch_index] = match
+                break
+    return preferred
+
+
+def find_capacity_aware_choice(
+    batches: List[Batch],
+    reliable_options: Dict[Tuple[str, str, int], List[ReliablePathOption]],
+    arc_caps: Dict[Tuple[str, str, str], float],
+    initial_individual: Optional[Individual] = None,
+    restarts: Optional[int] = None,
+    iterations: Optional[int] = None,
+) -> Tuple[Optional[List[int]], float]:
+    """Random-restart min-conflicts search over reliable single paths."""
+    if restarts is None:
+        restarts = FEASIBILITY_SEARCH_RESTARTS
+    if iterations is None:
+        iterations = FEASIBILITY_SEARCH_ITERATIONS
+    option_lists = [reliable_options.get(
+        (batch.origin, batch.destination, batch.batch_id), [])
+        for batch in batches]
+    if any(not batch_options for batch_options in option_lists):
+        return None, float("inf")
+
+    preferred = _preferred_reliable_choice(
+        initial_individual, batches, option_lists)
+    best_choice: Optional[List[int]] = None
+    best_score = float("inf")
+
+    for restart in range(max(1, int(restarts))):
+        if restart == 0 and any(index is not None for index in preferred):
+            choice = [
+                index if index is not None else random.randrange(len(option_lists[i]))
+                for i, index in enumerate(preferred)
+            ]
+        else:
+            choice = [random.randrange(len(batch_options))
+                      for batch_options in option_lists]
+
+        for _ in range(max(1, int(iterations))):
+            score, violations, contributors = _capacity_choice_score(
+                choice, option_lists, arc_caps)
+            if score < best_score - 1e-12:
+                best_score = score
+                best_choice = list(choice)
+            if score <= 1e-9:
+                return choice, 0.0
+
+            conflict_batches = sorted({
+                batch_index
+                for resource in violations
+                for batch_index in contributors.get(resource, [])
+            })
+            if not conflict_batches:
+                break
+            batch_index = random.choice(conflict_batches)
+            current_option = choice[batch_index]
+            candidates = []
+            for option_index in range(len(option_lists[batch_index])):
+                if option_index == current_option:
+                    continue
+                trial = list(choice)
+                trial[batch_index] = option_index
+                trial_score, _, _ = _capacity_choice_score(
+                    trial, option_lists, arc_caps)
+                candidates.append((trial_score, random.random(), option_index))
+            if not candidates:
+                break
+            candidates.sort()
+
+            # Prefer the best conflict-reducing move, while allowing a small
+            # random walk to escape capacity plateaus.
+            if candidates[0][0] <= score + 1e-12 or random.random() < 0.04:
+                choice[batch_index] = candidates[0][2]
+            else:
+                break
+
+    return best_choice, best_score
+
+
+def capacity_aware_initial_individual(
+    batches: List[Batch],
+    reliable_options: Dict[Tuple[str, str, int], List[ReliablePathOption]],
+    arc_caps: Dict[Tuple[str, str, str], float],
+    initial_individual: Optional[Individual] = None,
+) -> Tuple[Optional[Individual], float]:
+    choice, excess = find_capacity_aware_choice(
+        batches, reliable_options, arc_caps,
+        initial_individual=initial_individual)
+    if choice is None:
+        return None, excess
+
+    ind = Individual()
+    for batch, option_index in zip(batches, choice):
+        key = (batch.origin, batch.destination, batch.batch_id)
+        option = reliable_options[key][option_index]
+        ind.od_allocations[key] = [PathAllocation(
+            path=option.path, share=1.0)]
+    return ind, excess
+
+
 def evaluate_individual(
     ind, batches, arcs, tt_dict,
     waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
@@ -1355,6 +1612,8 @@ def evaluate_individual(
     chance_violation_total = max_late_excess_h = 0.0
     min_on_time_prob = 1.0
     max_observed_late_h = mean_arrival_sum = 0.0
+    batch_on_time_prob: Dict[int, float] = {}
+    batch_max_lateness: Dict[int, float] = {}
 
     for batch in batches:
         key = (batch.origin, batch.destination, batch.batch_id)
@@ -1443,6 +1702,7 @@ def evaluate_individual(
             trans_teu_h_total += transfer_flow * transfer_h
 
         on_time_probability = float(np.mean(batch_arrival_s <= batch.LT))
+        batch_on_time_prob[int(batch.batch_id)] = on_time_probability
         min_on_time_prob = min(min_on_time_prob, on_time_probability)
         chance_violation_total += max(
             0.0, CONFIDENCE_ONTIME - on_time_probability)
@@ -1456,8 +1716,12 @@ def evaluate_individual(
             max_late_excess_h = float("inf")
         finite_lateness = batch_lateness[np.isfinite(batch_lateness)]
         if finite_lateness.size:
+            batch_max_lateness[int(batch.batch_id)] = float(
+                np.max(finite_lateness))
             max_observed_late_h = max(
                 max_observed_late_h, float(np.max(finite_lateness)))
+        else:
+            batch_max_lateness[int(batch.batch_id)] = float("inf")
         finite_arrivals = batch_arrival_s[np.isfinite(batch_arrival_s)]
         if finite_arrivals.size:
             mean_arrival_sum += float(np.mean(finite_arrivals))
@@ -1501,6 +1765,24 @@ def evaluate_individual(
 
     ind.objectives = (f_cost, f_emission, f_time)
     ind.penalty = float(penalty)
+
+    # Dimensionless violation measure for Deb-style constraint handling.
+    # The legacy monetary penalty is retained for reporting, but no longer
+    # determines selection between heterogeneous constraint classes.
+    batch_count = max(1, len(batches))
+    total_teu = max(1.0, float(sum(batch.quantity for batch in batches)))
+    lateness_scale = max(1.0, float(sum(
+        max(1.0, batch_max_lateness_h(batch)) for batch in batches)))
+    normalized_components = {
+        "miss_alloc": float(miss_alloc) / batch_count,
+        "miss_tt": float(miss_tt) / batch_count,
+        "cap_excess": float(cap_excess) / total_teu,
+        "border_cap_excess": float(border_cap_excess) / total_teu,
+        "chance_vio": float(chance_violation_total) / batch_count,
+        "max_late_excess_h": float(max_late_excess_h) / lateness_scale,
+    }
+    normalized_violation = float(sum(normalized_components.values()))
+    ind.normalized_violation = normalized_violation
     hard_ok = (
         miss_alloc == 0 and miss_tt == 0
         and cap_excess <= 1e-9 and border_cap_excess <= 1e-9
@@ -1519,6 +1801,7 @@ def evaluate_individual(
         "max_late_excess_h": float(max_late_excess_h),
         "max_observed_late_h": float(max_observed_late_h),
         "chance_vio": float(chance_violation_total),
+        "normalized_violation": normalized_violation,
         "min_on_time_prob": float(min_on_time_prob),
         "mean_arrival_h_sum": float(mean_arrival_sum),
         "wait_teu_h": float(wait_teu_h_total),
@@ -1529,6 +1812,8 @@ def evaluate_individual(
         "scenario_emission_mean": float(np.mean(emission_s)),
         "scenario_time_mean": float(np.mean(makespan_s)),
     }
+    ind.batch_on_time_prob = batch_on_time_prob
+    ind.batch_max_lateness_h = batch_max_lateness
     ind.border_flow = border_node_flow
     ind.border_util = border_node_util
 
@@ -1542,23 +1827,24 @@ def clone_gene(alloc):
 
 
 def crossover_structural(ind1, ind2, batches):
+    """Uniform crossover at batch-gene level.
+
+    Copying complete allocation blocks avoids the old slice concatenation,
+    which could silently turn two single-path parents into a multi-path or
+    empty allocation and sharply reduce batch on-time probability.
+    """
     child1, child2 = Individual(), Individual()
     for b in batches:
         key = (b.origin, b.destination, b.batch_id)
         g1  = ind1.od_allocations.get(key, [])
         g2  = ind2.od_allocations.get(key, [])
         if not g1 and not g2: continue
-        if not g1:
-            child1.od_allocations[key] = [clone_gene(x) for x in g2]
-            child2.od_allocations[key] = [clone_gene(x) for x in g2]; continue
-        if not g2:
-            child1.od_allocations[key] = [clone_gene(x) for x in g1]
-            child2.od_allocations[key] = [clone_gene(x) for x in g1]; continue
-        cut1, cut2 = random.randint(0, len(g1)), random.randint(0, len(g2))
-        c1 = [clone_gene(x) for x in g1[:cut1]] + [clone_gene(x) for x in g2[cut2:]]
-        c2 = [clone_gene(x) for x in g2[:cut2]] + [clone_gene(x) for x in g1[cut1:]]
-        child1.od_allocations[key] = merge_and_normalize(c1)
-        child2.od_allocations[key] = merge_and_normalize(c2)
+        source1, source2 = ((g1, g2) if random.random() < 0.5
+                            else (g2, g1))
+        if not source1: source1 = source2
+        if not source2: source2 = source1
+        child1.od_allocations[key] = [clone_gene(x) for x in source1]
+        child2.od_allocations[key] = [clone_gene(x) for x in source2]
     return child1, child2
 
 
@@ -1629,14 +1915,19 @@ def crossover_common_node(ind1, ind2, batches, tt_dict, arc_lookup):
             child2.od_allocations[key] = [clone_gene(x) for x in g1]; continue
         c1_allocs = [clone_gene(x) for x in g1]
         c2_allocs = [clone_gene(x) for x in g2]
-        p1, p2    = random.choice(g1).path, random.choice(g2).path
+        idx1, idx2 = random.randrange(len(g1)), random.randrange(len(g2))
+        p1, p2    = g1[idx1].path, g2[idx2].path
         common    = find_common_internal_nodes(p1, p2)
         if common:
             join = random.choice(common)
             np1  = perform_single_point_crossover_paths(p1, p2, join, tt_dict, arc_lookup)
             np2  = perform_single_point_crossover_paths(p2, p1, join, tt_dict, arc_lookup)
-            if np1: c1_allocs.append(PathAllocation(path=np1, share=0.20))
-            if np2: c2_allocs.append(PathAllocation(path=np2, share=0.20))
+            if np1:
+                c1_allocs[idx1] = PathAllocation(
+                    path=np1, share=c1_allocs[idx1].share)
+            if np2:
+                c2_allocs[idx2] = PathAllocation(
+                    path=np2, share=c2_allocs[idx2].share)
         child1.od_allocations[key] = merge_and_normalize(c1_allocs)
         child2.od_allocations[key] = merge_and_normalize(c2_allocs)
     return child1, child2
@@ -1757,7 +2048,31 @@ def mutate_mode(ind, batch, tt_dict, arc_lookup, max_trials=20):
     return False
 
 
-_FIXED_OP_WEIGHTS = [W_ADD, W_DEL, W_MOD, W_MODE]
+def mutate_replace_reliable(
+    ind: Individual,
+    batch: Batch,
+    reliable_options: Optional[
+        Dict[Tuple[str, str, int], List[ReliablePathOption]]],
+) -> bool:
+    """Replace a batch's entire allocation by another reliable single path."""
+    if not reliable_options:
+        return False
+    key = (batch.origin, batch.destination, batch.batch_id)
+    options = reliable_options.get(key, [])
+    if not options:
+        return False
+    current_paths = {alloc.path for alloc in ind.od_allocations.get(key, [])}
+    candidates = [option for option in options
+                  if option.path not in current_paths]
+    if not candidates:
+        candidates = list(options)
+    chosen = random.choice(candidates)
+    ind.od_allocations[key] = [PathAllocation(
+        path=chosen.path, share=1.0)]
+    return True
+
+
+_FIXED_OP_WEIGHTS = [W_ADD, W_DEL, W_MOD, W_MODE, W_REPLACE]
 _FIXED_OP_TOTAL   = sum(_FIXED_OP_WEIGHTS)
 _FIXED_OP_PROBS   = [w / _FIXED_OP_TOTAL for w in _FIXED_OP_WEIGHTS]
 
@@ -1770,24 +2085,30 @@ def sample_operator() -> str:
     return OPS[-1]
 
 
-def apply_mutation_op(ind, op, batch, path_lib, tt_dict, arc_lookup):
+def apply_mutation_op(ind, op, batch, path_lib, tt_dict, arc_lookup,
+                      reliable_options=None):
     if op == "add":  return mutate_add(ind, batch, path_lib)
     if op == "del":  return mutate_del(ind, batch)
     if op == "mod":  return mutate_mod(ind, batch)
     if op == "mode": return mutate_mode(ind, batch, tt_dict, arc_lookup)
+    if op == "replace":
+        return mutate_replace_reliable(ind, batch, reliable_options)
     return False
 
 
 def mutate_fixed(
     ind, batches, path_lib, tt_dict, arc_lookup,
     arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
+    reliable_options=None,
     node_hold_cost=None, node_proc_cost=None,
     carbon_tax_map=None, trans_map=None, border_delay_map=None,
     theta_rm=None, node_trans_cost=None,
 ):
     batch = random.choice(batches)
     op    = sample_operator()
-    ok    = apply_mutation_op(ind, op, batch, path_lib, tt_dict, arc_lookup)
+    ok    = apply_mutation_op(
+        ind, op, batch, path_lib, tt_dict, arc_lookup,
+        reliable_options=reliable_options)
     if not ok:
         return op, False
     repair_missing_allocations(ind, batches, path_lib)
@@ -1812,10 +2133,21 @@ def dominates(a, b):
     if a.feasible and b.feasible:
         return (all(x <= y for x, y in zip(a.objectives, b.objectives)) and
                 any(x <  y for x, y in zip(a.objectives, b.objectives)))
-    if a.penalty < b.penalty - 1e-12: return True
-    if b.penalty < a.penalty - 1e-12: return False
+    # Deb-style constraint domination with a dimensionless aggregate.  The
+    # previous monetary penalty made 1 TEU of capacity excess compete directly
+    # with a probability shortfall, which distorted the route to feasibility.
+    if a.normalized_violation < b.normalized_violation - 1e-12: return True
+    if b.normalized_violation < a.normalized_violation - 1e-12: return False
     return (all(x <= y for x, y in zip(a.objectives, b.objectives)) and
             any(x <  y for x, y in zip(a.objectives, b.objectives)))
+
+
+def constraint_sort_key(ind: Individual) -> Tuple[float, float, float]:
+    return (
+        0.0 if ind.feasible else 1.0,
+        safe_float(ind.normalized_violation, float("inf")),
+        safe_float(ind.penalty, float("inf")),
+    )
 
 
 def unique_individuals_by_objectives(front, tol=1e-3):
@@ -1831,7 +2163,7 @@ def format_violation_breakdown(ind) -> str:
     keys = [
         "miss_alloc", "miss_tt", "cap_excess", "border_cap_excess",
         "late_teu_h", "max_late_excess_h", "chance_vio",
-        "min_on_time_prob",
+        "normalized_violation", "min_on_time_prob",
     ]
     parts = []
     bd = getattr(ind, "vio_breakdown", {}) or {}
@@ -1957,31 +2289,46 @@ def _select_boost_parents(pop, topk=FEASIBLE_BOOST_TOPK_PARENTS):
                         key=lambda x: (x.rank, -x.crowding_distance))
     if len(feasible) >= topk: return feasible[:topk]
     infeasible = sorted([i for i in pop if not i.feasible],
-                        key=lambda x: x.penalty)
+                        key=constraint_sort_key)
     return (feasible + infeasible)[:topk]
 
 
 def feasibility_boost(
     population, batches, path_lib, tt_dict, arc_lookup,
     arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h, eval_kwargs,
+    reliable_options, arc_caps,
     boost_rounds=FEASIBLE_BOOST_ROUNDS,
     boost_mutation_rate=FEASIBLE_BOOST_MUTATION_RATE,
     topk_parents=FEASIBLE_BOOST_TOPK_PARENTS,
 ):
     parents  = _select_boost_parents(population, topk=topk_parents)
     new_inds = []
+    capacity_seed_count = max(1, boost_rounds // 2)
+    for _ in range(capacity_seed_count):
+        initial = random.choice(parents) if parents else None
+        ind, _ = capacity_aware_initial_individual(
+            batches, reliable_options, arc_caps,
+            initial_individual=initial)
+        if ind is None:
+            break
+        evaluate_individual(
+            ind, batches, arcs, tt_dict,
+            waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
+        new_inds.append(ind)
+
+    remaining = max(0, boost_rounds - len(new_inds))
     if len(parents) < 2:
         greedy_funcs = [greedy_initial_min_cost,
                         greedy_initial_individual,
                         greedy_initial_min_emission]
-        for r in range(boost_rounds):
+        for r in range(remaining):
             ind = greedy_funcs[r % 3](batches, path_lib)
             repair_missing_allocations(ind, batches, path_lib)
             evaluate_individual(ind, batches, arcs, tt_dict,
                                 waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
             new_inds.append(ind)
     else:
-        for _ in range(boost_rounds):
+        for _ in range(remaining):
             p1, p2 = random.sample(parents, 2)
             c1, c2 = crossover_hybrid(p1, p2, batches, tt_dict, arc_lookup)
             for child in (c1, c2):
@@ -1989,7 +2336,8 @@ def feasibility_boost(
                 if random.random() < boost_mutation_rate:
                     mutate_fixed(
                         child, batches, path_lib, tt_dict, arc_lookup,
-                        arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
+                        arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
+                        reliable_options=reliable_options, **eval_kwargs)
                 # [V1 FIX] ALWAYS evaluate boost children. Previously, a child
                 # that wasn't mutated kept the dataclass default penalty=0.0 /
                 # feasible=False, polluting selection with fake "0-penalty"
@@ -2002,15 +2350,17 @@ def feasibility_boost(
 
     pop_id_idx     = {id(ind): idx for idx, ind in enumerate(population)}
     infeas_sorted  = sorted([i for i in population if not i.feasible],
-                            key=lambda x: x.penalty, reverse=True)
-    new_sorted     = sorted(new_inds, key=lambda x: (0 if x.feasible else 1, x.penalty))
+                            key=constraint_sort_key, reverse=True)
+    new_sorted     = sorted(new_inds, key=constraint_sort_key)
     num_new_feas   = 0
     replaced_ids: set = set()
 
     for new_ind in new_sorted:
         for target in infeas_sorted:
             if id(target) in replaced_ids: continue
-            if new_ind.feasible or new_ind.penalty < target.penalty:
+            if (new_ind.feasible or
+                    new_ind.normalized_violation
+                    < target.normalized_violation - 1e-12):
                 idx = pop_id_idx.get(id(target))
                 if idx is not None:
                     population[idx] = new_ind
@@ -2145,6 +2495,10 @@ def export_pareto_points_json(pareto, batches, out_json="pareto_points.json"):
             },
             "feasible":      bool(ind.feasible),
             "vio_breakdown": {k: float(v) for k, v in (ind.vio_breakdown or {}).items()},
+            "batch_on_time_probability": {
+                str(k): float(v) for k, v in ind.batch_on_time_prob.items()},
+            "batch_max_lateness_h": {
+                str(k): float(v) for k, v in ind.batch_max_lateness_h.items()},
             "border_flow":   {str(k): float(v) for k, v in getattr(ind, "border_flow", {}).items()},
             "border_util":   {str(k): float(v) for k, v in getattr(ind, "border_util", {}).items()},
             "allocations":   [],
@@ -2179,7 +2533,7 @@ def export_pareto_points_json(pareto, batches, out_json="pareto_points.json"):
 def export_best_infeasible_json(population, batches, out_json="best_infeasible.json"):
     if not population:
         return
-    best = min(population, key=lambda ind: ind.penalty)
+    best = min(population, key=constraint_sort_key)
     sol = {
         "objectives": {
             "cost":          float(best.objectives[0]),
@@ -2189,6 +2543,10 @@ def export_best_infeasible_json(population, batches, out_json="best_infeasible.j
         },
         "feasible": bool(best.feasible),
         "vio_breakdown": {k: float(v) for k, v in (best.vio_breakdown or {}).items()},
+        "batch_on_time_probability": {
+            str(k): float(v) for k, v in best.batch_on_time_prob.items()},
+        "batch_max_lateness_h": {
+            str(k): float(v) for k, v in best.batch_max_lateness_h.items()},
         "border_flow": {str(k): float(v) for k, v in getattr(best, "border_flow", {}).items()},
         "border_util": {str(k): float(v) for k, v in getattr(best, "border_util", {}).items()},
         "allocations": [],
@@ -2268,7 +2626,7 @@ def run_nsga2(
     arcs, timetables, batches,
     waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
     carbon_tax_map, emission_factor_map, mode_speeds_map,
-    trans_map, border_delay_map, theta_rm, path_lib,
+    trans_map, border_delay_map, theta_rm, path_lib, reliable_options,
     pop_size=250, generations=200,
     archive_size=None,
 ):
@@ -2277,6 +2635,8 @@ def run_nsga2(
 
     tt_dict    = build_timetable_dict(timetables)
     arc_lookup = build_arc_lookup(arcs)
+    arc_caps   = {(arc.from_node, arc.to_node, arc.mode): arc.capacity
+                  for arc in arcs}
 
     eval_kwargs = dict(
         node_hold_cost=node_hold_cost,
@@ -2288,15 +2648,28 @@ def run_nsga2(
         node_trans_cost=node_trans_cost,
     )
 
-    # ── Initialise population: 1/6 each greedy direction, 1/2 random ─────
-    n_each = max(1, pop_size // 6)
+    # ── Initialise population: capacity-aware feasible seeds + diversity ─
+    requested_seeds = int(round(pop_size * FEASIBILITY_SEED_FRACTION))
+    if FEASIBILITY_SEED_FRACTION > 0.0 and requested_seeds == 0:
+        requested_seeds = 1
+    n_feasibility_seeds = min(pop_size, max(0, requested_seeds))
+    non_seed_count = max(0, pop_size - n_feasibility_seeds)
+    n_each = max(1, non_seed_count // 6) if non_seed_count else 0
     population: List[Individual] = []
+    seed_zero_excess = 0
     for i in range(pop_size):
-        if i < n_each:
+        if i < n_feasibility_seeds:
+            ind, capacity_excess = capacity_aware_initial_individual(
+                batches, reliable_options, arc_caps)
+            if ind is None:
+                ind = random_initial_individual(batches, path_lib, max_paths=1)
+            elif capacity_excess <= 1e-9:
+                seed_zero_excess += 1
+        elif i < n_feasibility_seeds + n_each:
             ind = greedy_initial_min_cost(batches, path_lib)
-        elif i < 2 * n_each:
+        elif i < n_feasibility_seeds + 2 * n_each:
             ind = greedy_initial_individual(batches, path_lib)        # min-time
-        elif i < 3 * n_each:
+        elif i < n_feasibility_seeds + 3 * n_each:
             ind = greedy_initial_min_emission(batches, path_lib)
         else:
             ind = random_initial_individual(batches, path_lib)
@@ -2304,6 +2677,11 @@ def run_nsga2(
         evaluate_individual(ind, batches, arcs, tt_dict,
                         waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
         population.append(ind)
+
+    initial_feasible = sum(1 for ind in population if ind.feasible)
+    print(f"[FEAS-INIT] Capacity-aware seeds={n_feasibility_seeds}  "
+          f"zero-excess={seed_zero_excess}  "
+          f"fully-feasible-after-evaluation={initial_feasible}")
 
     # Initial sort + crowding so first tournament has valid keys
     fronts0 = fast_non_dominated_sort(population)
@@ -2316,6 +2694,7 @@ def run_nsga2(
     vio_mean_hist = {k: [] for k in [
         "miss_alloc", "miss_tt", "cap_excess", "border_cap_excess",
         "late_teu_h", "max_late_excess_h", "wait_teu_h", "chance_vio",
+        "normalized_violation",
     ]}
     boost_trigger_hist:  List[int] = []
     boost_new_feas_hist: List[int] = []
@@ -2337,8 +2716,7 @@ def run_nsga2(
             if random.random() < CROSSOVER_RATE:
                 c1, c2 = crossover_hybrid(p1, p2, batches, tt_dict, arc_lookup)
             else:
-                c1 = random_initial_individual(batches, path_lib)
-                c2 = random_initial_individual(batches, path_lib)
+                c1, c2 = deepcopy(p1), deepcopy(p2)
 
             for child in (c1, c2):
                 repair_missing_allocations(child, batches, path_lib)
@@ -2346,11 +2724,11 @@ def run_nsga2(
             if random.random() < MUTATION_RATE:
                 mutate_fixed(c1, batches, path_lib, tt_dict, arc_lookup,
                              arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
-                             **eval_kwargs)
+                             reliable_options=reliable_options, **eval_kwargs)
             if random.random() < MUTATION_RATE:
                 mutate_fixed(c2, batches, path_lib, tt_dict, arc_lookup,
                              arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
-                             **eval_kwargs)
+                             reliable_options=reliable_options, **eval_kwargs)
 
             repair_missing_allocations(c1, batches, path_lib)
             repair_missing_allocations(c2, batches, path_lib)
@@ -2393,7 +2771,7 @@ def run_nsga2(
         else:
             obj_str = "No feasible solutions yet"
 
-        best_pen_ind = min(population, key=lambda i: i.penalty) if population else None
+        best_pen_ind = min(population, key=constraint_sort_key) if population else None
         best_pen = best_pen_ind.penalty if best_pen_ind is not None else float("inf")
         sep      = "=" * 72
         print(f"\n{sep}")
@@ -2401,7 +2779,8 @@ def run_nsga2(
         print(f"  Pop feasible: {feas_total}/{pop_size} "
               f"({feasible_ratio_hist[-1]:.1%})"
               f"  |  NonDom={len(display)}"
-              f"  |  BestPenalty={best_pen:.2e}")
+              f"  |  BestPenalty={best_pen:.2e}"
+              f"  |  BestNormVio={best_pen_ind.normalized_violation:.3g}")
         print(f"  Best feasible: {obj_str}")
         if best_pen_ind is not None and not best_pen_ind.feasible:
             print(f"  Best violation: {format_violation_breakdown(best_pen_ind)}")
@@ -2413,7 +2792,8 @@ def run_nsga2(
             boost_triggered = 1
             population, boost_new_feas = feasibility_boost(
                 population, batches, path_lib, tt_dict, arc_lookup,
-                arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h, eval_kwargs)
+                arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h, eval_kwargs,
+                reliable_options, arc_caps)
             # Re-rank after boost so next tournament uses fresh keys
             fronts_after = fast_non_dominated_sort(population)
             for front in fronts_after:
@@ -2445,7 +2825,7 @@ def run_nsga2(
     print(f"  ⚡ Boost: {sum(boost_trigger_hist)} gens triggered, "
           f"{sum(boost_new_feas_hist)} new feasible")
     if not pareto and population:
-        best_final = min(population, key=lambda i: i.penalty)
+        best_final = min(population, key=constraint_sort_key)
         print(f"  Best infeasible penalty: {best_final.penalty:.2e}")
         print(f"  Best infeasible violation: {format_violation_breakdown(best_final)}")
     print(f"{'='*72}")
@@ -2521,6 +2901,18 @@ if __name__ == "__main__":
     parser.add_argument("--max-late-h", type=float, default=None,
                         help="Optional fixed maximum lateness overriding batch values and ratio.")
     parser.add_argument(
+        "--feasible-seed-fraction", type=float,
+        default=FEASIBILITY_SEED_FRACTION,
+        help="Initial-population fraction built by reliable-path capacity coordination.")
+    parser.add_argument(
+        "--feasibility-restarts", type=int,
+        default=FEASIBILITY_SEARCH_RESTARTS,
+        help="Random restarts for capacity-aware feasible construction.")
+    parser.add_argument(
+        "--feasibility-iterations", type=int,
+        default=FEASIBILITY_SEARCH_ITERATIONS,
+        help="Min-conflicts iterations per feasibility restart.")
+    parser.add_argument(
         "--late-penalty-usd-per-teu-day", type=float,
         default=DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY,
         help="Sourced baseline late penalty, converted internally to USD/TEU/hour.")
@@ -2571,6 +2963,11 @@ if __name__ == "__main__":
     MAX_LATE_RATIO = max(0.0, float(args.max_late_ratio))
     MAX_LATE_H_OVERRIDE = (None if args.max_late_h is None
                            else max(0.0, float(args.max_late_h)))
+    FEASIBILITY_SEED_FRACTION = min(
+        1.0, max(0.0, float(args.feasible_seed_fraction)))
+    FEASIBILITY_SEARCH_RESTARTS = max(1, int(args.feasibility_restarts))
+    FEASIBILITY_SEARCH_ITERATIONS = max(
+        1, int(args.feasibility_iterations))
     PAYLOAD_TONNES_PER_TEU = max(0.0, float(args.payload_tonnes_per_teu))
     sourced_late_penalty_h = max(
         0.0, float(args.late_penalty_usd_per_teu_day)) / 24.0
@@ -2595,6 +2992,9 @@ if __name__ == "__main__":
     print(f"            border_cv={BORDER_DELAY_CV}  "
           f"border_cap={BORDER_DELAY_MAX_FACTOR}")
     print(f"  Lateness: ratio={MAX_LATE_RATIO}  override_h={MAX_LATE_H_OVERRIDE}")
+    print(f"  FeasSeed: fraction={FEASIBILITY_SEED_FRACTION:.2f}  "
+          f"restarts={FEASIBILITY_SEARCH_RESTARTS}  "
+          f"iterations={FEASIBILITY_SEARCH_ITERATIONS}")
     penalty_label = ("input hourly values" if args.use_input_late_penalties
                      else f"{args.late_penalty_usd_per_teu_day:g} USD/TEU/day"
                           f" = {sourced_late_penalty_h:.4g}/hour")
@@ -2665,6 +3065,9 @@ if __name__ == "__main__":
     )
     print(f"[INIT] Frozen scenario set: S={scenario_set.size}, "
           f"seed={scenario_set.seed}, stochastic={scenario_set.stochastic}")
+    reliable_options = build_reliable_path_options(
+        raw_batches, path_lib, tt_dict, trans_map, border_delay_map,
+        scenario_set)
     scenario_manifest = {
         "scenario_count": scenario_set.size,
         "scenario_seed": scenario_set.seed,
@@ -2693,6 +3096,14 @@ if __name__ == "__main__":
         "wait_emission_g_per_teu_h": wait_emis_g_per_teu_h,
         "fitness_evaluation": "frozen_scenarios_empirical_order_statistics",
         "algorithmic_randomness": "controlled separately by --seed",
+        "feasibility_first_search": {
+            "seed_fraction": FEASIBILITY_SEED_FRACTION,
+            "restarts": FEASIBILITY_SEARCH_RESTARTS,
+            "iterations_per_restart": FEASIBILITY_SEARCH_ITERATIONS,
+            "single_path_reliability_screen": True,
+            "capacity_aware_min_conflicts": True,
+            "constraint_selection": "normalized_Deb_constraint_domination",
+        },
     }
     (FSPath(OUTPUT_DIR) / "scenario_manifest.json").write_text(
         _json.dumps(scenario_manifest, ensure_ascii=False, indent=2),
@@ -2731,6 +3142,7 @@ if __name__ == "__main__":
             waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
             carbon_tax_map, emission_factor_map, mode_speeds_map,
             trans_map, border_delay_map, theta_rm, path_lib,
+            reliable_options,
             pop_size=POP_SIZE, generations=GENERATIONS,
         )
 
@@ -2754,7 +3166,7 @@ if __name__ == "__main__":
         _me_runs.append(_bmin_run(1))
         _mt_runs.append(_bmin_run(2))
 
-        best_pen_ind = min(population, key=lambda ind: ind.penalty) if population else None
+        best_pen_ind = min(population, key=constraint_sort_key) if population else None
         best_bd = (best_pen_ind.vio_breakdown or {}) if best_pen_ind is not None else {}
 
         all_run_rows.append({
@@ -2765,6 +3177,7 @@ if __name__ == "__main__":
             "final_FeasRatio_soft":     float(feasible_ratio_hist[-1]),
             "final_FeasRatio_strict":   float(feasible_ratio_strict_hist[-1]),
             "best_penalty":             float(best_pen_ind.penalty) if best_pen_ind else float("inf"),
+            "best_normalized_violation": float(best_pen_ind.normalized_violation) if best_pen_ind else float("inf"),
             "best_miss_alloc":          float(best_bd.get("miss_alloc", 0.0)),
             "best_miss_tt":             float(best_bd.get("miss_tt", 0.0)),
             "best_cap_excess":          float(best_bd.get("cap_excess", 0.0)),

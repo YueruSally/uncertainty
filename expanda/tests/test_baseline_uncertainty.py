@@ -1,3 +1,4 @@
+import random
 import unittest
 
 import numpy as np
@@ -65,6 +66,101 @@ class FrozenScenarioTests(unittest.TestCase):
         self.assertTrue(first.feasible)
         self.assertEqual(first.objectives[0], 60.0)
         self.assertEqual(first.objectives[1], 120.0)
+
+
+class FeasibilityFirstSearchTests(unittest.TestCase):
+    @staticmethod
+    def _path(path_id, from_node, to_node):
+        arc = model.Arc(
+            from_node=from_node, to_node=to_node, mode="road",
+            distance=1.0, capacity=10.0,
+            cost_per_teu_km=1.0, emission_per_teu_km=1.0,
+            speed_kmh=1.0)
+        return model.Path(
+            path_id=path_id, origin="O", destination="D",
+            nodes=[from_node, to_node], modes=["road"], arcs=[arc],
+            base_cost_per_teu=1.0,
+            base_emission_per_teu=1.0,
+            base_travel_time_h=1.0)
+
+    def test_capacity_aware_choice_coordinates_batches(self):
+        batches = [
+            model.Batch(1, "O", "D", 4.0, 0.0, 10.0),
+            model.Batch(2, "O", "D", 4.0, 0.0, 10.0),
+        ]
+        shared_1 = self._path(1, "S", "T")
+        shared_2 = self._path(2, "S", "T")
+        alt_1 = self._path(3, "A", "B")
+        alt_2 = self._path(4, "C", "D")
+
+        def option(path, arc_key):
+            return model.ReliablePathOption(
+                path=path, on_time_probability=1.0, max_lateness_h=0.0,
+                resources={("arc", arc_key, 0): 4.0})
+
+        reliable = {
+            ("O", "D", 1): [
+                option(shared_1, ("S", "T", "road")),
+                option(alt_1, ("A", "B", "road")),
+            ],
+            ("O", "D", 2): [
+                option(shared_2, ("S", "T", "road")),
+                option(alt_2, ("C", "D", "road")),
+            ],
+        }
+        capacities = {
+            ("S", "T", "road"): 5.0,
+            ("A", "B", "road"): 10.0,
+            ("C", "D", "road"): 10.0,
+        }
+        random.seed(7)
+        choice, excess = model.find_capacity_aware_choice(
+            batches, reliable, capacities, restarts=5, iterations=20)
+
+        self.assertIsNotNone(choice)
+        self.assertEqual(excess, 0.0)
+        self.assertFalse(choice[0] == 0 and choice[1] == 0)
+
+    def test_node_without_positive_capacity_is_not_constrained(self):
+        previous = dict(model.BORDER_CAPACITY)
+        try:
+            model.BORDER_CAPACITY["UnconstrainedPort"] = 0.0
+            capacity = model._resource_available_capacity(
+                ("node", "UnconstrainedPort", 0), {})
+            self.assertEqual(capacity, float("inf"))
+        finally:
+            model.BORDER_CAPACITY.clear()
+            model.BORDER_CAPACITY.update(previous)
+
+    def test_structural_crossover_preserves_complete_single_path_genes(self):
+        batch = model.Batch(1, "O", "D", 1.0, 0.0, 10.0)
+        p1 = self._path(1, "A", "B")
+        p2 = self._path(2, "C", "D")
+        key = ("O", "D", 1)
+        parent_1 = model.Individual({
+            key: [model.PathAllocation(p1, 1.0)]})
+        parent_2 = model.Individual({
+            key: [model.PathAllocation(p2, 1.0)]})
+
+        random.seed(11)
+        for _ in range(20):
+            child_1, child_2 = model.crossover_structural(
+                parent_1, parent_2, [batch])
+            self.assertEqual(len(child_1.od_allocations[key]), 1)
+            self.assertEqual(len(child_2.od_allocations[key]), 1)
+            self.assertEqual(child_1.od_allocations[key][0].share, 1.0)
+            self.assertEqual(child_2.od_allocations[key][0].share, 1.0)
+
+    def test_infeasible_dominance_uses_normalized_violation(self):
+        lower_violation = model.Individual(
+            objectives=(10.0, 10.0, 10.0), penalty=1e12,
+            feasible=False, normalized_violation=0.01)
+        higher_violation = model.Individual(
+            objectives=(1.0, 1.0, 1.0), penalty=1.0,
+            feasible=False, normalized_violation=0.02)
+
+        self.assertTrue(model.dominates(lower_violation, higher_violation))
+        self.assertFalse(model.dominates(higher_violation, lower_violation))
 
 
 if __name__ == "__main__":

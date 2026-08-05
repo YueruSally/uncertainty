@@ -9,6 +9,10 @@
 - 每个方案分别得到 `S` 个成本、排放和最大完工时刻；
 - 以 `ceil(confidence × S)` 顺序统计量形成三个确定的 CCP 目标；
 - 迟到罚款进入场景成本，同时执行逐批次准时机会约束和最大迟到约束；
+- 在固定场景上预筛满足逐批次机会约束和最大迟到约束的可靠路径；
+- 默认用 30% 种群执行“可靠单路径 + 弧/口岸容量协调”的可行性优先初始化；
+- 不可行解采用归一化 Deb 约束支配，避免不同量纲的罚值扭曲搜索；
+- 增加可靠整路径替换，并避免交叉操作无故增加活动路径数量；
 - 自动补造 batch 的逻辑已取消，实验必须使用工作簿或有来源的 CSV 数据。
 
 固定场景后，同一个体的适应度评价完全可复现；NSGA-II 的初始化、交叉和变异仍由
@@ -44,6 +48,35 @@ bash run_uncertainty_ccp.sh \
 `--cost-confidence`、`--emission-confidence`、`--time-confidence` 和
 `--ontime-confidence`。运行 `--help` 可查看运输时间 CV、截断上界、边境 CV 和
 最大迟到参数。
+
+可行性优先搜索默认参数为：
+
+```text
+--feasible-seed-fraction 0.30
+--feasibility-restarts 40
+--feasibility-iterations 250
+```
+
+这些参数只改变 NSGA-II 如何寻找可行解，不放松机会约束、最大迟到约束或容量约束。
+启动日志中的 `Reliable single-path options per batch` 用于检查每个批次是否存在可靠路径，
+`fully-feasible-after-evaluation` 则表示初始种群中通过完整模型验证的可行解数量。
+
+20-batch、500 场景的远程预检可以先运行：
+
+```bash
+cd ~/uncertainty/expanda
+nohup python baseline_uncertainty.py \
+  --data data/data_expanded_b20.xlsx \
+  --batches-csv data/batches_20_remote_backup.csv \
+  --expected-batches 20 \
+  --mc-scenarios 500 --mc-seed 1000003 --alpha 0.90 \
+  --pop 100 --gens 20 --runs 2 --seed 1000 \
+  --feasible-seed-fraction 0.30 \
+  --out outputs/ccp_feasibility_check \
+  > feasibility_check.txt 2>&1 &
+```
+
+确认日志中出现可行解后，再扩大到 `--pop 300 --gens 500 --runs 10`。
 
 迟到罚款默认采用 50 USD/TEU/day，并在程序中换算为 2.0833 USD/TEU/hour；输入表中
 原有的 30--100 USD/TEU/hour 不再默认使用。只有这些数值有合同或其他直接证据时，才
