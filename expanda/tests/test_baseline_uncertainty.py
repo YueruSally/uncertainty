@@ -7,6 +7,12 @@ import baseline_uncertainty as model
 
 
 class FrozenScenarioTests(unittest.TestCase):
+    def test_documented_default_penalty_and_mode_speeds(self):
+        self.assertEqual(model.DEFAULT_PENALTY_PER_TEU_H, 6.25)
+        self.assertEqual(model.DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY, 150.0)
+        self.assertEqual(model.DEFAULT_MODE_SPEED_KMH, {
+            "road": 40.0, "rail": 50.0, "water": 28.0})
+
     def test_empirical_ccp_quantile_uses_order_statistic(self):
         values = np.arange(1.0, 11.0)
         self.assertEqual(model.empirical_ccp_quantile(values, 0.80), 8.0)
@@ -66,6 +72,64 @@ class FrozenScenarioTests(unittest.TestCase):
         self.assertTrue(first.feasible)
         self.assertEqual(first.objectives[0], 60.0)
         self.assertEqual(first.objectives[1], 120.0)
+
+    def test_border_delay_is_one_shared_directional_pair_event(self):
+        definitions = model.load_border_event_definitions(
+            model.DEFAULT_BORDER_EVENT_DATA_FILE)
+        exact = model.Arc(
+            from_node="Khorgos", to_node="Altynkol", mode="rail",
+            distance=10.0, capacity=1000.0,
+            cost_per_teu_km=1.0, emission_per_teu_km=1.0,
+            speed_kmh=50.0, from_region="CN", to_region="CA",
+            is_border_arc=True)
+        legacy_alias = model.Arc(
+            from_node="Khorgos", to_node="Almaty", mode="rail",
+            distance=10.0, capacity=1000.0,
+            cost_per_teu_km=1.0, emission_per_teu_km=1.0,
+            speed_kmh=50.0, from_region="CN", to_region="CA",
+            is_border_arc=True)
+
+        scenarios = model.build_scenario_set(
+            [exact, legacy_alias], border_delay_map={}, size=1, seed=7,
+            stochastic=False, border_event_definitions=definitions)
+        event_key = ("Khorgos", "Altynkol", "rail")
+        self.assertEqual(scenarios.border_event_for_arc(exact), event_key)
+        self.assertEqual(
+            scenarios.border_event_for_arc(legacy_alias), event_key)
+        self.assertEqual(scenarios.border_event_mean_h[event_key], 82.5)
+        self.assertEqual(float(scenarios.border_delay_h[event_key][0]), 82.5)
+        self.assertEqual(len(scenarios.border_delay_h), 1)
+
+    def test_general_road_bcp_uses_directional_arc_event(self):
+        definitions = model.load_border_event_definitions(
+            model.DEFAULT_BORDER_EVENT_DATA_FILE)
+        arc = model.Arc(
+            from_node="A", to_node="B", mode="road",
+            distance=10.0, capacity=1000.0,
+            cost_per_teu_km=1.0, emission_per_teu_km=1.0,
+            speed_kmh=40.0, from_region="CA", to_region="RU",
+            is_border_arc=True)
+        scenarios = model.build_scenario_set(
+            [arc], border_delay_map={}, size=1, seed=7,
+            stochastic=False, border_event_definitions=definitions)
+        event_key = ("A", "B", "road")
+        self.assertEqual(scenarios.border_event_for_arc(arc), event_key)
+        self.assertEqual(scenarios.border_event_mean_h[event_key], 9.9)
+
+    def test_timetable_controls_waiting_not_nominal_arc_speed(self):
+        arc = model.Arc(
+            from_node="A", to_node="B", mode="rail",
+            distance=100.0, capacity=1000.0,
+            cost_per_teu_km=1.0, emission_per_teu_km=1.0,
+            speed_kmh=50.0)
+        entry = model.TimetableEntry(
+            from_node="A", to_node="B", mode="rail",
+            frequency_per_week=7.0, first_departure_hour=8.0,
+            headway_hours=24.0, travel_time_h=999.0,
+            legacy_time_value=300.0)
+        timetable = {("A", "B", "rail"): [entry]}
+        self.assertEqual(model.nominal_arc_travel_time(arc, timetable), 2.0)
+        self.assertEqual(model.next_departure_time_programB(9.0, [entry]), 32.0)
 
 
 class FeasibilityFirstSearchTests(unittest.TestCase):

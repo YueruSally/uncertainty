@@ -128,9 +128,27 @@ PSTAR_MAX_TOTAL   = 50000
 HV_REF_NORM = (1.2, 1.2, 1.2)
 HV_MC_SEED  = 12345
 
-DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY = 50.0
-DEFAULT_PENALTY_PER_TEU_H = DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY / 24.0
+DEFAULT_LATE_PENALTY_USD_PER_TEU_H = 6.25
+DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY = (
+    DEFAULT_LATE_PENALTY_USD_PER_TEU_H * 24.0
+)
+DEFAULT_PENALTY_PER_TEU_H = DEFAULT_LATE_PENALTY_USD_PER_TEU_H
 PAYLOAD_TONNES_PER_TEU = 10.0
+
+# Documented operating speeds used by the stochastic model.  Timetables
+# determine departure waiting; line-haul running time remains distance/speed.
+DEFAULT_MODE_SPEED_KMH = {
+    "road": 40.0,
+    "rail": 50.0,
+    "water": 28.0,
+}
+MODEL_MODE_SPEED_KMH = dict(DEFAULT_MODE_SPEED_KMH)
+
+DEFAULT_BORDER_EVENT_DATA_FILE = str(
+    FSPath(__file__).resolve().parent / "data" / "border_crossing_events.csv"
+)
+# Filled from --border-event-data before scenarios are generated.
+BORDER_EVENT_DEFINITIONS: Dict[Tuple[str, str, str], "BorderEventDefinition"] = {}
 
 NUM_OBJ = 3  # Cost, Emission, Time
 
@@ -366,6 +384,7 @@ class Arc:
     speed_kmh: float
     from_region: str = ""
     to_region:   str = ""
+    is_border_arc: bool = False
 
 
 @dataclass
@@ -377,6 +396,20 @@ class TimetableEntry:
     first_departure_hour: float
     headway_hours: float
     travel_time_h: Optional[float] = None
+    legacy_time_value: Optional[float] = None
+
+
+@dataclass(frozen=True)
+class BorderEventDefinition:
+    """One directional border crossing event b=(exit, entry, mode)."""
+    exit_node: str
+    entry_node: str
+    mode: str
+    mean_delay_h: float
+    exit_mean_h: Optional[float] = None
+    entry_mean_h: Optional[float] = None
+    source: str = ""
+    source_year: Optional[int] = None
 
 
 @dataclass
@@ -446,7 +479,9 @@ class ScenarioSet:
     size: int
     seed: int
     travel_multiplier: Dict[Tuple[str, str, str], np.ndarray]
-    border_delay_h: Dict[Tuple[str, str], np.ndarray]
+    border_delay_h: Dict[Tuple[str, str, str], np.ndarray]
+    arc_border_event: Dict[Tuple[str, str, str], Tuple[str, str, str]]
+    border_event_mean_h: Dict[Tuple[str, str, str], float]
     stochastic: bool = True
 
     def travel(self, arc: Arc, scenario: int) -> float:
@@ -454,9 +489,22 @@ class ScenarioSet:
         values = self.travel_multiplier.get(key)
         return float(values[scenario]) if values is not None else 1.0
 
-    def border(self, node: str, mode: str, scenario: int, base_h: float) -> float:
-        values = self.border_delay_h.get((node, mode))
-        return float(values[scenario]) if values is not None else float(base_h)
+    def border_event_for_arc(
+        self, arc: Arc
+    ) -> Optional[Tuple[str, str, str]]:
+        return self.arc_border_event.get(
+            (arc.from_node, arc.to_node, arc.mode))
+
+    def border_for_arc(
+        self, arc: Arc, scenario: int
+    ) -> Tuple[Optional[Tuple[str, str, str]], float]:
+        event_key = self.border_event_for_arc(arc)
+        if event_key is None:
+            return None, 0.0
+        values = self.border_delay_h.get(event_key)
+        if values is not None:
+            return event_key, float(values[scenario])
+        return event_key, float(self.border_event_mean_h.get(event_key, 0.0))
 
 
 @dataclass
@@ -501,6 +549,141 @@ def merge_and_normalize(allocs: List[PathAllocation]) -> List[PathAllocation]:
     if abs(total2 - 1.0) > 1e-9:
         for a in filtered: a.share /= total2
     return filtered
+
+
+# The two extra pairs are retained only as workbook-derived fallbacks because
+# they occur in the network but are not listed in the paper's Table II.
+WORKBOOK_BORDER_PAIR_FALLBACKS = (
+    ("Manzhouli", "Zabaykalsk", "rail"),
+    ("Brest", "Malaszewicze", "rail"),
+)
+
+
+def load_border_event_definitions(
+    filename: str,
+) -> Dict[Tuple[str, str, str], BorderEventDefinition]:
+    """Load auditable directional border-event means from a CSV file."""
+    path = FSPath(filename)
+    if not path.is_file():
+        raise FileNotFoundError(f"Border-event data file not found: {path}")
+    df = pd.read_csv(path)
+    required = {"ExitNodeEN", "EntryNodeEN", "Mode"}
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(
+            f"Border-event data missing required columns: {sorted(missing)}")
+
+    definitions: Dict[Tuple[str, str, str], BorderEventDefinition] = {}
+    for _, row in df.iterrows():
+        exit_node = str(row.get("ExitNodeEN", "")).strip()
+        entry_node = str(row.get("EntryNodeEN", "")).strip()
+        mode = normalize_mode(row.get("Mode", ""))
+        if not exit_node or not entry_node or not mode:
+            continue
+        exit_mean = safe_float(row.get("ExitMean_h"), default=None)
+        entry_mean = safe_float(row.get("EntryMean_h"), default=None)
+        mean_h = safe_float(row.get("MeanDelay_h"), default=None)
+        if mean_h is None:
+            mean_h = max(0.0, safe_float(exit_mean, 0.0)) + max(
+                0.0, safe_float(entry_mean, 0.0))
+        if mean_h <= 0.0:
+            continue
+        source_year_raw = safe_float(row.get("SourceYear"), default=None)
+        source_year = (
+            int(source_year_raw) if source_year_raw is not None else None)
+        definition = BorderEventDefinition(
+            exit_node=exit_node,
+            entry_node=entry_node,
+            mode=mode,
+            mean_delay_h=float(mean_h),
+            exit_mean_h=(None if exit_mean is None else float(exit_mean)),
+            entry_mean_h=(None if entry_mean is None else float(entry_mean)),
+            source=str(row.get("Source", "")).strip(),
+            source_year=source_year,
+        )
+        definitions[(exit_node, entry_node, mode)] = definition
+    if not definitions:
+        raise ValueError(f"No usable border events found in {path}")
+    print(f"[INFO] Loaded directional border events: {len(definitions)} "
+          f"from {path}")
+    return definitions
+
+
+def _regions_differ(arc: Arc) -> bool:
+    return bool(
+        arc.from_region and arc.to_region
+        and arc.from_region != arc.to_region
+    )
+
+
+def resolve_border_event(
+    arc: Arc,
+    border_delay_map: Dict[Tuple[str, str], float],
+    definitions: Optional[
+        Dict[Tuple[str, str, str], BorderEventDefinition]
+    ] = None,
+) -> Optional[Tuple[Tuple[str, str, str], float]]:
+    """Map one network arc to one directional border event.
+
+    Exact BCP-pair data take precedence.  Legacy direct arcs that skip the
+    entry checkpoint (for example Khorgos->Almaty) are mapped to the same
+    Khorgos->Altynkol event, so all batches share one scenario shock and the
+    two checkpoint sides are not charged twice.
+    """
+    definitions = (BORDER_EVENT_DEFINITIONS
+                   if definitions is None else definitions)
+    crosses_region = _regions_differ(arc)
+
+    for event_key, definition in definitions.items():
+        exit_node, entry_node, mode = event_key
+        if mode != arc.mode:
+            continue
+        exact_forward = (
+            arc.from_node == exit_node and arc.to_node == entry_node)
+        exact_reverse = (
+            arc.from_node == entry_node and arc.to_node == exit_node)
+        alias_forward = crosses_region and (
+            arc.from_node == exit_node or arc.to_node == entry_node)
+        alias_reverse = crosses_region and (
+            arc.from_node == entry_node or arc.to_node == exit_node)
+        if exact_forward or alias_forward:
+            return event_key, definition.mean_delay_h
+        if exact_reverse or alias_reverse:
+            reverse_key = (entry_node, exit_node, mode)
+            return reverse_key, definition.mean_delay_h
+
+    # The current network also contains these two gauge-change pairs.  Until
+    # a directional source table is supplied, combine the two side-specific
+    # Node_Border means exactly as Dbar_b=Dbar_exit+Dbar_entry.
+    for exit_node, entry_node, mode in WORKBOOK_BORDER_PAIR_FALLBACKS:
+        if arc.mode != mode:
+            continue
+        exact_forward = (
+            arc.from_node == exit_node and arc.to_node == entry_node)
+        exact_reverse = (
+            arc.from_node == entry_node and arc.to_node == exit_node)
+        alias_forward = crosses_region and (
+            arc.from_node == exit_node or arc.to_node == entry_node)
+        alias_reverse = crosses_region and (
+            arc.from_node == entry_node or arc.to_node == exit_node)
+        mean_h = (
+            max(0.0, safe_float(border_delay_map.get((exit_node, mode)), 0.0))
+            + max(0.0, safe_float(
+                border_delay_map.get((entry_node, mode)), 0.0))
+        )
+        if mean_h <= 0.0:
+            continue
+        if exact_forward or alias_forward:
+            return (exit_node, entry_node, mode), mean_h
+        if exact_reverse or alias_reverse:
+            return (entry_node, exit_node, mode), mean_h
+
+    # The source table uses * -> * for the general road-BCP observation.
+    wildcard = definitions.get(("*", "*", arc.mode))
+    if wildcard is not None and arc.is_border_arc and crosses_region:
+        return ((arc.from_node, arc.to_node, arc.mode),
+                wildcard.mean_delay_h)
+    return None
 
 
 # ════════════════════════════════════════════════════════
@@ -725,7 +908,17 @@ def load_network_from_extended(filename: str):
 
     carbon_tax_map      = load_carbon_tax_map(xls)
     emission_factor_map = load_emission_factor_map(xls)
-    mode_speeds_map     = load_mode_speeds(xls)
+    input_mode_speeds_map = load_mode_speeds(xls)
+    mode_speeds_map = dict(MODEL_MODE_SPEED_KMH)
+    differing_speeds = {
+        mode: (input_mode_speeds_map.get(mode), speed)
+        for mode, speed in mode_speeds_map.items()
+        if input_mode_speeds_map.get(mode) is not None
+        and abs(input_mode_speeds_map[mode] - speed) > 1e-12
+    }
+    if differing_speeds:
+        print("[INFO] Replaced workbook Mode_Speeds with documented model "
+              f"speeds (input -> applied): {differing_speeds}")
     trans_map           = load_transshipment_map(xls)
     border_delay_map    = load_border_delay_map(xls)
     theta_rm = load_carbon_tax_applicability(xls)
@@ -840,11 +1033,18 @@ def load_network_from_extended(filename: str):
             from_node=origin, to_node=dest, mode=mode,
             distance=distance, capacity=capacity,
             cost_per_teu_km=cpkm, emission_per_teu_km=epkm,
-            speed_kmh=speed, from_region=from_region, to_region=to_region
+            speed_kmh=speed, from_region=from_region, to_region=to_region,
+            is_border_arc=bool(int(safe_float(
+                row.get("IsBorderArc"), default=0.0)))
         ))
 
     tdf = pd.read_excel(xls, "Timetable")
     timetables: List[TimetableEntry] = []
+    travel_time_col = next((
+        c for c in ["ScheduledTravelTime_h", "TravelTime_h", "Time_h"]
+        if c in tdf.columns
+    ), None)
+    legacy_time_col = "time" if "time" in tdf.columns else None
     for _, row in tdf.iterrows():
         origin    = str(row.get("OriginEN","")).strip()
         dest      = str(row.get("DestEN","")).strip()
@@ -866,11 +1066,27 @@ def load_network_from_extended(filename: str):
             from_node=origin, to_node=dest, mode=mode_norm,
             frequency_per_week=freq, first_departure_hour=fd, headway_hours=hd,
             travel_time_h=safe_float(
-                row.get(next((c for c in ["TravelTime_h", "Time_h"]
-                             if c in tdf.columns), "")),
+                row.get(travel_time_col) if travel_time_col else None,
+                default=0.0,
+            ) or None,
+            legacy_time_value=safe_float(
+                row.get(legacy_time_col) if legacy_time_col else None,
                 default=0.0,
             ) or None,
         ))
+    print("[INFO] Timetable loaded: "
+          f"{len(timetables)} scheduled services; using frequency, "
+          "first departure and headway for induced waiting.")
+    if legacy_time_col:
+        legacy_values = sorted({
+            float(entry.legacy_time_value)
+            for entry in timetables
+            if entry.legacy_time_value is not None
+        })
+        print("[WARN] Timetable.time is loaded only as legacy metadata: its "
+              f"unit is undocumented (observed values={legacy_values}); it is "
+              "not used as arc travel hours. Running time follows "
+              "distance / documented mode speed.")
 
     bdf     = pd.read_excel(xls, "Batches")
     batches: List[Batch] = []
@@ -923,12 +1139,7 @@ def build_arc_lookup(arcs):
 
 
 def nominal_arc_travel_time(arc: Arc, tt_dict: Dict) -> float:
-    """Use scheduled running time when available; otherwise distance/speed."""
-    entries = tt_dict.get((arc.from_node, arc.to_node, arc.mode), [])
-    scheduled = [safe_float(e.travel_time_h, 0.0) for e in entries
-                 if safe_float(e.travel_time_h, 0.0) > 0.0]
-    if arc.mode != "road" and scheduled:
-        return float(min(scheduled))
+    """Mean line-haul time; timetables control departures, not arc speed."""
     return float(arc.distance / max(arc.speed_kmh, 1.0))
 
 
@@ -938,6 +1149,9 @@ def build_scenario_set(
     size: int,
     seed: int,
     stochastic: bool = True,
+    border_event_definitions: Optional[
+        Dict[Tuple[str, str, str], BorderEventDefinition]
+    ] = None,
 ) -> ScenarioSet:
     """Generate the complete finite scenario set once, before optimisation."""
     size = max(1, int(size)) if stochastic else 1
@@ -956,10 +1170,31 @@ def build_scenario_set(
         else:
             travel_multiplier[(from_node, to_node, mode)] = np.ones(1, dtype=float)
 
-    border_delay_h: Dict[Tuple[str, str], np.ndarray] = {}
-    for key in sorted(border_delay_map):
-        node, mode = key
-        base_h = max(0.0, safe_float(border_delay_map[key], 0.0))
+    definitions = (BORDER_EVENT_DEFINITIONS
+                   if border_event_definitions is None
+                   else border_event_definitions)
+    arc_border_event: Dict[
+        Tuple[str, str, str], Tuple[str, str, str]
+    ] = {}
+    border_event_mean_h: Dict[Tuple[str, str, str], float] = {}
+    for arc in arcs:
+        resolved = resolve_border_event(
+            arc, border_delay_map, definitions=definitions)
+        if resolved is None:
+            continue
+        event_key, mean_h = resolved
+        arc_border_event[(arc.from_node, arc.to_node, arc.mode)] = event_key
+        previous = border_event_mean_h.get(event_key)
+        if previous is not None and abs(previous - mean_h) > 1e-9:
+            raise ValueError(
+                f"Conflicting means for border event {event_key}: "
+                f"{previous} vs {mean_h}")
+        border_event_mean_h[event_key] = float(mean_h)
+
+    border_delay_h: Dict[Tuple[str, str, str], np.ndarray] = {}
+    for key in sorted(border_event_mean_h):
+        mode = key[2]
+        base_h = max(0.0, safe_float(border_event_mean_h[key], 0.0))
         if base_h <= 0.0:
             border_delay_h[key] = np.zeros(size, dtype=float)
         elif stochastic:
@@ -978,6 +1213,8 @@ def build_scenario_set(
         seed=int(seed),
         travel_multiplier=travel_multiplier,
         border_delay_h=border_delay_h,
+        arc_border_event=arc_border_event,
+        border_event_mean_h=border_event_mean_h,
         stochastic=bool(stochastic),
     )
 
@@ -988,6 +1225,9 @@ def configure_scenario_set(
     size: int,
     seed: int,
     stochastic: bool = True,
+    border_event_definitions: Optional[
+        Dict[Tuple[str, str, str], BorderEventDefinition]
+    ] = None,
 ) -> ScenarioSet:
     global ACTIVE_SCENARIO_SET, _PATH_SCENARIO_CACHE
     ACTIVE_SCENARIO_SET = build_scenario_set(
@@ -996,6 +1236,7 @@ def configure_scenario_set(
         size=size,
         seed=seed,
         stochastic=stochastic,
+        border_event_definitions=border_event_definitions,
     )
     _PATH_SCENARIO_CACHE = {}
     return ACTIVE_SCENARIO_SET
@@ -1194,6 +1435,7 @@ def simulate_path_time_capacity(
     mode_time_cv     = mode_time_cv or MODE_TIME_CV
     prev_arc         = None
     node_wait_list: List[Tuple[str, float, float]] = []
+    incurred_border_events: set = set()
 
     for arc in path.arcs:
         cur_node       = arc.from_node
@@ -1205,16 +1447,30 @@ def simulate_path_time_capacity(
                 th = safe_float(rec.get("time_h"), default=0.0)
                 if th > 0: t += th; arc_trans_wait += th
 
-        # [V1 WIRING] fixed border delay now applies at ALL break-of-gauge
-        # nodes (incl. non-CN: Dostyk, Altynkol, Zabaykalsk, Brest,
-        # Malaszewicze), not just China. CHINA_BORDER_NODES is left for
-        # routing monotonicity only.
-        if cur_node in BREAK_OF_GAUGE_NODES:
-            base_bd = border_delay_map.get((cur_node, arc.mode), 0.0)
-            bd = (ACTIVE_SCENARIO_SET.border(
-                    cur_node, arc.mode, scenario_index, base_bd)
-                  if stochastic and ACTIVE_SCENARIO_SET is not None else base_bd)
-            if bd > 0: t += bd; arc_trans_wait += bd
+        # Border uncertainty is sampled per directional crossing event
+        # b=(exit checkpoint, entry checkpoint, mode), not independently at
+        # its two endpoint nodes.  Alias arcs that skip a checkpoint share the
+        # same event and the same scenario realisation.
+        event_key = None
+        bd = 0.0
+        if ACTIVE_SCENARIO_SET is not None:
+            event_key = ACTIVE_SCENARIO_SET.border_event_for_arc(arc)
+            if event_key is not None and event_key not in incurred_border_events:
+                if stochastic:
+                    _, bd = ACTIVE_SCENARIO_SET.border_for_arc(
+                        arc, scenario_index)
+                else:
+                    bd = ACTIVE_SCENARIO_SET.border_event_mean_h.get(
+                        event_key, 0.0)
+        else:
+            resolved = resolve_border_event(arc, border_delay_map)
+            if resolved is not None:
+                event_key, bd = resolved
+        if event_key is not None and event_key not in incurred_border_events:
+            incurred_border_events.add(event_key)
+            if bd > 0.0:
+                t += bd
+                arc_trans_wait += bd
 
         travel_arc = nominal_arc_travel_time(arc, tt_dict)
         if stochastic and ACTIVE_SCENARIO_SET is not None:
@@ -1283,16 +1539,16 @@ def simulate_path_over_scenarios(
         t = float(batch.ET)
         prev_arc = None
         valid = True
+        incurred_border_events: set = set()
         for arc in path.arcs:
             node = arc.from_node
             if prev_arc is not None and prev_arc.mode != arc.mode:
                 rec = trans_map.get((node, prev_arc.mode, arc.mode), {})
                 t += max(0.0, safe_float(rec.get("time_h"), 0.0))
 
-            if node in BREAK_OF_GAUGE_NODES:
-                base_bd = max(0.0, safe_float(
-                    border_delay_map.get((node, arc.mode), 0.0), 0.0))
-                bd = scenario_set.border(node, arc.mode, s, base_bd)
+            event_key, bd = scenario_set.border_for_arc(arc, s)
+            if event_key is not None and event_key not in incurred_border_events:
+                incurred_border_events.add(event_key)
                 if bd > 0.0:
                     t += bd
                     border_delay_h.setdefault(
@@ -2895,7 +3151,16 @@ if __name__ == "__main__":
     parser.add_argument("--border-water-cv", type=float,
                         default=BORDER_DELAY_CV["water"])
     parser.add_argument("--border-max-factor", type=float, default=BORDER_DELAY_MAX_FACTOR,
-                        help="Upper bound for sampled border delay as factor of Node_Border delay.")
+                        help="Upper bound for sampled border delay as factor of the BCP-pair mean.")
+    parser.add_argument(
+        "--border-event-data", default=DEFAULT_BORDER_EVENT_DATA_FILE,
+        help="CSV with directional b=(exit, entry, mode) border-event means.")
+    parser.add_argument("--road-speed-kmh", type=float,
+                        default=DEFAULT_MODE_SPEED_KMH["road"])
+    parser.add_argument("--rail-speed-kmh", type=float,
+                        default=DEFAULT_MODE_SPEED_KMH["rail"])
+    parser.add_argument("--water-speed-kmh", type=float,
+                        default=DEFAULT_MODE_SPEED_KMH["water"])
     parser.add_argument("--max-late-ratio", type=float, default=MAX_LATE_RATIO,
                         help="Fallback Lmax/(LT-ET) when a batch has no MaxLate_h value.")
     parser.add_argument("--max-late-h", type=float, default=None,
@@ -2913,9 +3178,13 @@ if __name__ == "__main__":
         default=FEASIBILITY_SEARCH_ITERATIONS,
         help="Min-conflicts iterations per feasibility restart.")
     parser.add_argument(
-        "--late-penalty-usd-per-teu-day", type=float,
-        default=DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY,
-        help="Sourced baseline late penalty, converted internally to USD/TEU/hour.")
+        "--late-penalty-usd-per-teu-h", type=float,
+        default=DEFAULT_LATE_PENALTY_USD_PER_TEU_H,
+        help="Baseline late-delivery penalty in USD/TEU/hour.")
+    parser.add_argument(
+        "--late-penalty-usd-per-teu-day", type=float, default=None,
+        help="Legacy daily-rate override; when set it is divided by 24 and "
+             "takes precedence over --late-penalty-usd-per-teu-h.")
     parser.add_argument(
         "--use-input-late-penalties", action="store_true",
         help="Use per-batch hourly penalties from the workbook/CSV instead of the sourced baseline.")
@@ -2951,6 +3220,13 @@ if __name__ == "__main__":
         "rail": max(1.0, float(args.rail_max_factor)),
         "water": max(1.0, float(args.water_max_factor)),
     }
+    MODEL_MODE_SPEED_KMH = {
+        "road": max(1e-9, float(args.road_speed_kmh)),
+        "rail": max(1e-9, float(args.rail_speed_kmh)),
+        "water": max(1e-9, float(args.water_speed_kmh)),
+    }
+    BORDER_EVENT_DEFINITIONS = load_border_event_definitions(
+        args.border_event_data)
     if args.border_cv is not None:
         common_border_cv = max(0.0, float(args.border_cv))
         BORDER_DELAY_CV = {m: common_border_cv for m in ("road", "rail", "water")}
@@ -2969,8 +3245,14 @@ if __name__ == "__main__":
     FEASIBILITY_SEARCH_ITERATIONS = max(
         1, int(args.feasibility_iterations))
     PAYLOAD_TONNES_PER_TEU = max(0.0, float(args.payload_tonnes_per_teu))
-    sourced_late_penalty_h = max(
-        0.0, float(args.late_penalty_usd_per_teu_day)) / 24.0
+    if args.late_penalty_usd_per_teu_day is not None:
+        sourced_late_penalty_h = max(
+            0.0, float(args.late_penalty_usd_per_teu_day)) / 24.0
+        late_penalty_input_basis = "legacy_daily_rate"
+    else:
+        sourced_late_penalty_h = max(
+            0.0, float(args.late_penalty_usd_per_teu_h))
+        late_penalty_input_basis = "hourly_rate"
 
     FSPath(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
@@ -2989,15 +3271,17 @@ if __name__ == "__main__":
     print(f"  CCP     : cost={CONFIDENCE_COST}  emission={CONFIDENCE_EMISSION}  "
           f"time={CONFIDENCE_TIME}  ontime={CONFIDENCE_ONTIME}")
     print(f"            mode_cv={MODE_TIME_CV}  mode_cap={MODE_TIME_MAX_FACTOR}")
+    print(f"            nominal_speed_kmh={MODEL_MODE_SPEED_KMH}")
     print(f"            border_cv={BORDER_DELAY_CV}  "
           f"border_cap={BORDER_DELAY_MAX_FACTOR}")
+    print(f"            border_events={args.border_event_data}")
     print(f"  Lateness: ratio={MAX_LATE_RATIO}  override_h={MAX_LATE_H_OVERRIDE}")
     print(f"  FeasSeed: fraction={FEASIBILITY_SEED_FRACTION:.2f}  "
           f"restarts={FEASIBILITY_SEARCH_RESTARTS}  "
           f"iterations={FEASIBILITY_SEARCH_ITERATIONS}")
     penalty_label = ("input hourly values" if args.use_input_late_penalties
-                     else f"{args.late_penalty_usd_per_teu_day:g} USD/TEU/day"
-                          f" = {sourced_late_penalty_h:.4g}/hour")
+                     else f"{sourced_late_penalty_h:g} USD/TEU/hour"
+                          f" = {sourced_late_penalty_h * 24.0:g}/day")
     print(f"            penalty={penalty_label}")
     print(f"  Emission: payload={PAYLOAD_TONNES_PER_TEU:g} t/TEU  "
           f"wait_override={args.wait_emission_g_per_teu_h}")
@@ -3062,9 +3346,13 @@ if __name__ == "__main__":
         size=MC_SCENARIOS,
         seed=MC_BASE_SEED,
         stochastic=STOCHASTIC_EVAL,
+        border_event_definitions=BORDER_EVENT_DEFINITIONS,
     )
     print(f"[INIT] Frozen scenario set: S={scenario_set.size}, "
           f"seed={scenario_set.seed}, stochastic={scenario_set.stochastic}")
+    print(f"[INIT] Border-event shocks: "
+          f"{len(scenario_set.border_event_mean_h)} events mapped to "
+          f"{len(scenario_set.arc_border_event)} network arcs")
     reliable_options = build_reliable_path_options(
         raw_batches, path_lib, tt_dict, trans_map, border_delay_map,
         scenario_set)
@@ -3080,14 +3368,39 @@ if __name__ == "__main__":
         },
         "mode_time_cv": MODE_TIME_CV,
         "mode_time_cap_factor": MODE_TIME_MAX_FACTOR,
+        "mode_speed_kmh": MODEL_MODE_SPEED_KMH,
+        "timetable_role": (
+            "frequency/first_departure/headway determine schedule waiting; "
+            "arc mean running time is distance/mode_speed"),
         "border_delay_cv": BORDER_DELAY_CV,
         "border_delay_cap_factor": BORDER_DELAY_MAX_FACTOR,
+        "border_event_data_file": str(FSPath(
+            args.border_event_data).resolve()),
+        "border_event_source_records": [
+            {
+                "event": "|".join(key),
+                "mean_delay_h": definition.mean_delay_h,
+                "exit_mean_h": definition.exit_mean_h,
+                "entry_mean_h": definition.entry_mean_h,
+                "source": definition.source,
+                "source_year": definition.source_year,
+            }
+            for key, definition in BORDER_EVENT_DEFINITIONS.items()
+        ],
+        "border_event_fallback": (
+            "Manzhouli-Zabaykalsk and Brest-Malaszewicze use the sum "
+            "of available Node_Border side means until directional "
+            "records are added to the source CSV"),
+        "border_event_means_h": {
+            "|".join(key): value
+            for key, value in scenario_set.border_event_mean_h.items()
+        },
         "max_late_ratio": MAX_LATE_RATIO,
         "max_late_h_override": MAX_LATE_H_OVERRIDE,
         "late_penalty": {
             "source_mode": late_penalty_source,
-            "baseline_usd_per_teu_day": float(
-                args.late_penalty_usd_per_teu_day),
+            "input_basis": late_penalty_input_basis,
+            "baseline_usd_per_teu_day": sourced_late_penalty_h * 24.0,
             "applied_common_usd_per_teu_hour": (
                 None if args.use_input_late_penalties
                 else sourced_late_penalty_h),

@@ -18,9 +18,20 @@
 固定场景后，同一个体的适应度评价完全可复现；NSGA-II 的初始化、交叉和变异仍由
 `--seed` 控制。完整中文模型说明见 `stochastic_methodology_cn.tex`。
 
-当前代码会在路径经过的每一个已列入口岸节点上加入该节点的方向性延误。因此双边
-口岸是否完整，取决于网络数据是否同时列出出境侧和入境侧节点；如果一个输入值已经
-代表完整的双边过境时间，就只应保留一次，以免重复计算。
+边境延误现在按方向性口岸事件 `b=(出境侧, 入境侧, 运输方式)` 建模，而不是对两个
+口岸节点分别抽样、分别累加。事件均值由 `data/border_crossing_events.csv` 读取；例如
+Khorgos→Altynkol 的 22.6+59.9=82.5 小时只在一次过境中加入一次。旧网络中跳过入境
+节点的直连弧（例如 Khorgos→Almaty）会映射到同一个口岸事件，因此不同批次、不同
+等价弧在同一场景中共享同一个延误冲击。Manzhouli→Zabaykalsk 与
+Brest→Malaszewicze 暂时按 `Node_Border` 两侧均值之和作为显式 fallback，并写入
+`scenario_manifest.json`；取得方向性来源后应补入 CSV。
+
+运输时间与时刻表分工如下：弧段均值严格使用 `距离/标称速度`，默认速度为公路 40、
+铁路 50、水运 28 km/h；铁路和水运的 `Frequency_per_week`、
+`FirstDepartureHour`、`Headway_Hours` 会被读取并用于计算“等待下一班”。旧列
+`Timetable.time` 的单位没有说明，而且 300/355/415/518 在不同长度弧上重复出现，
+因此程序只把它读作兼容元数据，不把它误当成小时。若以后取得有来源的弧段运行时刻，
+请另设 `ScheduledTravelTime_h`，并同步修改模型定义；当前论文定义仍是 `d/v`。
 
 快速运行：
 
@@ -47,7 +58,8 @@ bash run_uncertainty_ccp.sh \
 正式基线建议从 `--mc-scenarios 200` 开始，并分别设置
 `--cost-confidence`、`--emission-confidence`、`--time-confidence` 和
 `--ontime-confidence`。运行 `--help` 可查看运输时间 CV、截断上界、边境 CV 和
-最大迟到参数。
+最大迟到参数。速度可用 `--road-speed-kmh`、`--rail-speed-kmh`、
+`--water-speed-kmh` 覆盖；方向性口岸数据可用 `--border-event-data` 指定。
 
 可行性优先搜索默认参数为：
 
@@ -78,9 +90,11 @@ nohup python baseline_uncertainty.py \
 
 确认日志中出现可行解后，再扩大到 `--pop 300 --gens 500 --runs 10`。
 
-迟到罚款默认采用 50 USD/TEU/day，并在程序中换算为 2.0833 USD/TEU/hour；输入表中
+迟到罚款默认采用 6.25 USD/TEU/hour（即 150 USD/TEU/day）；输入表中
 原有的 30--100 USD/TEU/hour 不再默认使用。只有这些数值有合同或其他直接证据时，才
-添加 `--use-input-late-penalties`。`--payload-tonnes-per-teu` 将原来写死的 10 t/TEU
+添加 `--use-input-late-penalties`。如需敏感性分析，可用
+`--late-penalty-usd-per-teu-h` 直接覆盖；旧的 `--late-penalty-usd-per-teu-day` 仍保留
+兼容并会除以 24。`--payload-tonnes-per-teu` 将原来写死的 10 t/TEU
 变成显式排放换算假设；建议至少比较 10、14 和 15.5。若取得等待或怠速排放数据，可用
 `--wait-emission-g-per-teu-h` 加入，这时排放目标才会随时间场景变化。
 

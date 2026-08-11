@@ -21,12 +21,14 @@
 
 \subsection{随机运输时间}
 
-对弧 $a=(i,j,m)$，标称运输时间记为 $\bar T_a$。当存在来源明确且单位为小时的
-班次运行时间字段（例如 \texttt{TravelTime\_h}）时，优先使用班次运行时间；否则使用
+对弧 $a=(i,j,m)$，标称运输时间记为 $\bar T_a$，并统一使用
 \begin{equation}
   \bar T_a=\frac{d_a}{v_m}.
 \end{equation}
-含义或单位不明确的 \texttt{time} 字段不直接作为逐弧运行时间。
+基线速度为 $(v_{\mathrm{road}},v_{\mathrm{rail}},v_{\mathrm{water}})
+=(40,50,28)$ km/h。时刻表中的班次频率、首班出发时刻和发车间隔仅用于计算下一班
+等待时间，不替代 $d_a/v_m$。含义或单位不明确的 \texttt{time} 字段只作为兼容
+元数据读取，不直接作为逐弧运行小时数。
 
 场景 $s$ 中的弧段时间为
 \begin{equation}\label{eq:travel_random_cn}
@@ -64,16 +66,18 @@ $c_m$。这里的 $\mathrm{CV}_m$ 决定潜在未截断分布的 $\sigma_m$；�
 \subsection{随机边境延误}
 
 令 $b=(u,v,m)$ 表示一个双边过境事件，其中 $u$ 是出境侧口岸，$v$ 是入境侧口岸。
-CAREC CPMM 数据按国家、口岸、运输方式和方向报告年度平均处理时间，因此分别建模
-出境侧和入境侧：
+CAREC CPMM 数据按国家、口岸、运输方式和方向报告年度平均处理时间。先将两侧均值
+合并为一次过境事件的均值
 \begin{equation}\label{eq:border_two_sides_cn}
-  \tilde D_b^{(s)}=
-  \tilde D_{u,\mathrm{out}}^{m,(s)}+
-  \tilde D_{v,\mathrm{in}}^{m,(s)}.
+  \bar D_b=\bar D_{u,\mathrm{out}}^m+
+  \bar D_{v,\mathrm{in}}^m,
 \end{equation}
-若数据表中的某个参数已经表示完整双边过境过程，则只能增加一次，避免重复计时。
+再对完整事件只抽取一个随机延误 $\tilde D_b^{(s)}$，满足
+$\mathbb E[\tilde D_b]=\bar D_b$。因此两侧不会被独立抽样或重复计时；同一场景中经过
+同一方向性口岸事件的所有批次共享同一个实现值。旧网络中省略入境节点的直连弧映射
+到对应的完整口岸事件。
 
-每一侧的随机延误使用与式~\eqref{eq:travel_random_cn} 相同的截断并均值校正的
+完整事件的随机延误使用与式~\eqref{eq:travel_random_cn} 相同的截断并均值校正的
 对数正态乘数。基线 CV 设为
 \begin{equation}
  (\mathrm{CV}_{b}^{\mathrm{road}},\mathrm{CV}_{b}^{\mathrm{rail}},
@@ -93,10 +97,9 @@ CAREC CPMM 数据按国家、口岸、运输方式和方向报告年度平均处
 \begin{equation}
  \omega^{(s)}=
  \left\{\xi_a^{(s)}\ \forall a,\quad
- \tilde D_{u,\mathrm{out}}^{m,(s)},
- \tilde D_{v,\mathrm{in}}^{m,(s)}\ \forall b\right\}.
+ \tilde D_b^{(s)}\ \forall b\right\}.
 \end{equation}
-同一场景、同一弧或口岸的实现值由所有批次和所有候选方案共享。场景集生成后冻结，
+同一场景、同一弧或同一方向性口岸事件的实现值由所有批次和所有候选方案共享。场景集生成后冻结，
 适应度评价函数内部不再调用随机数生成器。
 
 对批次 $k$、实际使用的路径 $p$ 和场景 $s$，时钟从最早出发时刻开始：
@@ -150,9 +153,9 @@ $\operatorname{dep}_a(t)=t$。递推式为
 
 \subsection{迟到费率、载重和参数来源}
 
-基线迟到费率采用 Zhao 等使用的 50 USD/TEU/day，并统一换算为
-$50/24=2.0833$ USD/TEU/hour \citep{Zhao2018}。当前原始工作簿中的
-30--100 USD/TEU/hour 比该文献基准高约 14--48 倍，因此代码默认不使用这些值。只有在
+基线迟到费率采用 6.25 USD/TEU/hour，即 150 USD/TEU/day 除以 24；该值是按行业
+滞箱费区间选取的实验基准，不再归因于 Zhao 等。当前原始工作簿中的
+30--100 USD/TEU/hour 比该基准高约 4.8--16 倍，因此代码默认不使用这些值。只有在
 这些逐批次费率有合同、报价或访谈记录时，才通过
 \texttt{--use-input-late-penalties} 启用，并在论文中说明其来源。迟到费率只进入成本；
 即使支付罚款，式~\eqref{eq:max_late_cn} 的最大迟到上限仍不可违反。
