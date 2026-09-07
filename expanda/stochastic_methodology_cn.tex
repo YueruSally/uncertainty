@@ -81,12 +81,28 @@ $\mathbb E[\tilde D_b]=\bar D_b$。因此两侧不会被独立抽样或重复计
 对数正态乘数。基线 CV 设为
 \begin{equation}
  (\mathrm{CV}_{b}^{\mathrm{road}},\mathrm{CV}_{b}^{\mathrm{rail}},
- \mathrm{CV}_{b}^{\mathrm{water}})=(0.45,0.60,0.30),
+ \mathrm{CV}_{b}^{\mathrm{water}})=(0.45,0.60,0.40),
 \end{equation}
 截断因子为 $c_b=3.5$。上述 CV 和截断因子都是实验设定。CAREC 年度均值只能支持
 不同年份、口岸和方向存在明显差异，不能直接识别单次运输层面的 CV。CAREC 数据也
 不能直接支持海港延误 CV，海运参数应由港口或班轮数据校准。对 CV=0.60 的均值为一
 的对数正态变量，未校正截断前超过 3.5 倍均值的概率约为 0.56\%，而不是 0.3\%。
+
+需要特别区分两个都标记为“water”但含义不同的变差系数：式~\eqref{eq:travel_random_cn}
+上方给出的 $\mathrm{CV}_{\mathrm{water}}=0.20$ 是\emph{水运运输时间}不确定性（航段
+实现航速相对标称航速的波动），而这里的 $\mathrm{CV}_{b}^{\mathrm{water}}=0.40$ 是
+\emph{海运/港口边境延误}不确定性（港口查验、待泊等处理时间相对均值的波动）。二者是
+代码中两个独立的字典项（\texttt{MODE\_TIME\_CV["water"]} 与
+\texttt{BORDER\_DELAY\_CV["water"]}），分别作用于不同的抽样环节，不应混淆。
+
+进一步地，仓库中当前没有任何来源支持的海运边境延误\emph{均值}：工作簿
+\texttt{Node\_Border} 表的 \texttt{BorderDelay\_water\_h} 列在所有行（含各海港）均为
+0，方向性口岸事件表 \texttt{border\_crossing\_events.csv} 也没有 water 行。因此
+$\mathrm{CV}_{b}^{\mathrm{water}}=0.40$ 目前没有均值可乘，场景生成器在均值为零时天然
+产生零方差的海运边境延误（详见代码中 \texttt{build\_scenario\_set} 的说明），实现效果
+等同于“暂时关闭”，且不通过额外的运行时开关实现——一旦提供有来源的海运边境延误均值，
+只需在 \texttt{border\_crossing\_events.csv} 中新增一行即可自动启用随机抽样，模型代码
+不需要改动。
 
 \subsection{固定场景集与不确定性传播}
 
@@ -240,6 +256,34 @@ NSGA-II 直接使用这三个数进行非支配排序，不需要在个体评价
 在固定 $\Omega_S$ 的条件下，同一个体无论评价多少次都得到完全相同的目标和约束值，
 因此适应度评价中没有残余蒙特卡洛噪声。但是 NSGA-II 的初始化、交叉和变异仍具有算法
 随机性；代码通过固定随机种子保证单次运行可复现，并通过多个独立算法种子评价搜索稳定性。
+
+\subsection{三种可选评价模式：确定性、期望值与机会约束}
+\label{sec:risk-metric-modes}
+
+前两节描述的机会约束（CCP）归约只是把同一批场景级目标数组
+$\{C^{(s)},E^{(s)},T^{(s)}\}_{s=1}^S$ 化为三个确定适应度值的\emph{一种}方式。
+场景生成（式~\eqref{eq:frozen_scenarios_cn}）与逐场景正向模拟对三种模式完全共享、
+不重复实现；三种模式仅在最后一步归约上不同：
+\begin{itemize}
+  \item \textbf{确定性（deterministic）}：场景集被强制为单一名义场景（$S=1$，
+    式~\eqref{eq:frozen_scenarios_cn} 中所有随机乘数取 1），直接返回该场景的
+    $\{C^{(1)},E^{(1)},T^{(1)}\}$。这与 \texttt{baseline3.py} 的确定性适应度函数
+    在名义速度对齐后应给出一致结果。
+  \item \textbf{期望值（EV）}：返回场景均值
+    $\hat f_Y^{\mathrm{EV}}(x)=\tfrac1S\sum_{s=1}^S Y^{(s)}(x)$，$Y\in\{C,E,T\}$。
+    因为逐批次经济迟到罚金 $b_k L_k^{(s)}$（见上文）已经按场景计入 $C^{(s)}$，
+    EV 的期望成本自动包含期望迟到成本，不再额外引入迟到风险项。
+  \item \textbf{机会约束（CCP）}：即式~\eqref{eq:empirical_quantile_cn} 的经验分位数
+    归约，默认模式，行为与之前完全一致。
+\end{itemize}
+式~\eqref{eq:ontime_marginal_cn}（逐批次准时机会约束）与式~\eqref{eq:max_late_cn}
+（最大迟到约束）对应的惩罚项、其对归一化违反度 $\mathrm{nv}(x)$ 的贡献、以及对
+硬可行性判定 $\mathrm{feasible}(x)$/$\mathrm{feasible\_hard}(x)$ 的影响，\emph{只在
+CCP 模式下生效}；确定性与 EV 模式下这两个约束不参与可行性判定，但准时率
+$\Pr_\omega\{a_k\le\mathrm{LT}_k\}$ 与逐场景迟到量仍照常计算并记录，供诊断参考。
+同理，可靠路径预筛选（\texttt{build\_reliable\_path\_options}）与其下游的可行性
+强化搜索（\texttt{feasibility\_boost}）在 CCP 模式下保留概率与最大迟到筛选；确定性
+与 EV 模式下只保留时刻表有效性与容量等硬约束筛选，避免搜索被隐式限制在 CCP 可行子集内。
 
 \subsection{样本外验证与敏感性分析}
 

@@ -1,0 +1,16 @@
+{
+  "run_id": 1,
+  "methods": [
+    "EV",
+    "CCP30"
+  ],
+  "scenario_count": 50,
+  "validation_seed": 930001,
+  "scenario_digest": "53320e5fb14f375a81880a5e6a0ec1ff7316e26b7ac2379fbf2cc3c489815484",
+  "one_common_scenario_set_for_all_solutions": true,
+  "common_scenario_set_object_count": 1,
+  "scenario_level_results_written": false,
+  "solution_count": 4,
+  "fingerprints_unchanged_before_after": 4,
+  "q90_zero_based_index": 44
+}

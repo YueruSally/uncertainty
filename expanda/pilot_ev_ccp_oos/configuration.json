@@ -1,0 +1,58 @@
+{
+  "label": "implementation pilot; not a formal replication",
+  "data_file": "/home/lunet/cokt2/uncertainty/expanda/data/data_expanded.xlsx",
+  "expected_batches": 40,
+  "population": 20,
+  "generations": 5,
+  "alpha": 0.9,
+  "training_sizes": [
+    30,
+    50
+  ],
+  "validation_size": 5000,
+  "candidate_pool_limit": null,
+  "seeds": {
+    "training_master_S50": 310050,
+    "validation": 950005,
+    "EV_optimisation": 410001,
+    "CCP30_optimisation": 410030,
+    "CCP50_optimisation": 410050,
+    "path_library": 0
+  },
+  "operators": {
+    "crossover_rate": 0.9,
+    "mutation_rate": 0.15
+  },
+  "uncertainty_parameters_unchanged": {
+    "mode_time_cv": {
+      "road": 0.15,
+      "rail": 0.1,
+      "water": 0.2
+    },
+    "mode_time_max_factor": {
+      "road": 2.0,
+      "rail": 1.8,
+      "water": 2.5
+    },
+    "border_delay_cv": {
+      "road": 0.45,
+      "rail": 0.6,
+      "water": 0.5
+    },
+    "border_delay_max_factor": 3.5,
+    "wait_emission_g_per_teu_h": 0.0
+  },
+  "ev_definition": "S=1 direct model expectations: travel multipliers=1.0 and border delays=model means; no sampling",
+  "ccp_definition": "all training scenarios evaluated during optimisation; empirical ceil(alpha*S)-th objective order statistics",
+  "scenario_digests": {
+    "training_S30_prefix": "8345714b5e978c76b028262e75d5a41e94ca9e96779a145872300f14c94260f0",
+    "training_S50_master": "eb1b78323fc75887083a1e7247a5918aca69d758a563d7f564a3e1a745e44af5",
+    "validation": "5ff165d133a252e0720a9c03d8ed44a338294c036d93f13bd37fe8ede200f65d"
+  },
+  "independence_evidence": {
+    "different_seeds": true,
+    "separate_generation_calls": true,
+    "validation_digest_differs_from_training": true,
+    "S30_is_exact_S50_prefix": true
+  }
+}

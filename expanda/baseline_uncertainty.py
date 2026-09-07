@@ -82,7 +82,42 @@ PEN_MISS_ALLOC         = 1e9
 PEN_CAP_EXCESS_PER_TEU = 5e7
 
 WAITING_COST_PER_TEU_HOUR_DEFAULT    = 0.8
-WAIT_EMISSION_gCO2_per_TEU_H_DEFAULT = 0.0
+WAIT_EMISSION_gCO2_per_TEU_H_DEFAULT = 320.50
+
+WAITING_EMISSION_SCOPE = "timetable-induced schedule waiting"
+WAITING_EMISSION_PARAMETERISATION = "common across road/rail/water"
+WAITING_EMISSION_SOURCE_NOTE = (
+    "literature-informed common modelling assumption based on "
+    "Lomotko et al. (2023)")
+WAITING_CARBON_REGION_BASIS = "waiting-node region"
+WAITING_CARBON_MODE_BASIS = "outgoing scheduled mode"
+
+
+def waiting_emission_configuration(
+    wait_emission_g_per_teu_h: float =
+        WAIT_EMISSION_gCO2_per_TEU_H_DEFAULT,
+) -> Dict[str, Any]:
+    """Shared formal Work-2 waiting-emission configuration."""
+    return {
+        "waiting_emission_gCO2_per_TEU_h":
+            float(wait_emission_g_per_teu_h),
+        "waiting_emission_scope": WAITING_EMISSION_SCOPE,
+        "waiting_emission_parameterisation":
+            WAITING_EMISSION_PARAMETERISATION,
+        "waiting_emission_source_note": WAITING_EMISSION_SOURCE_NOTE,
+        "carbon_cost_waiting_emission": True,
+        "waiting_carbon_region_basis": WAITING_CARBON_REGION_BASIS,
+        "waiting_carbon_mode_basis": WAITING_CARBON_MODE_BASIS,
+    }
+
+
+def print_waiting_emission_configuration(
+    wait_emission_g_per_teu_h: float =
+        WAIT_EMISSION_gCO2_per_TEU_H_DEFAULT,
+) -> None:
+    print("[CONFIG] Waiting emission = "
+          f"{wait_emission_g_per_teu_h:.2f} gCO2/TEU/hour")
+    print("[CONFIG] Waiting emissions included in regional carbon cost = True")
 
 # ── GA hyper-parameters  [TUNED Stage 2 → G7] ────────────
 CROSSOVER_RATE  = 0.90       # ← Stage 2 best (G7: pc=0.90, pm=0.15)
@@ -108,10 +143,10 @@ FEASIBLE_BOOST_ROUNDS        = 20
 FEASIBLE_BOOST_MUTATION_RATE = 0.60
 FEASIBLE_BOOST_TOPK_PARENTS  = 10
 
-# Feasibility-first search.  A fixed fraction of the initial population is
-# built from paths that already satisfy the per-batch chance and maximum-
-# lateness constraints.  A min-conflicts search then coordinates their arc and
-# border capacities.  This changes only the search strategy, not the model.
+# Feasibility-first search. A fixed fraction of the initial population is
+# built from structurally valid paths; on-time probability and maximum
+# lateness are ordering diagnostics only. A min-conflicts search then
+# coordinates arc and border capacities. This changes only search strategy.
 FEASIBILITY_SEED_FRACTION = 0.30
 FEASIBILITY_SEARCH_RESTARTS = 40
 FEASIBILITY_SEARCH_ITERATIONS = 250
@@ -135,14 +170,30 @@ DEFAULT_LATE_PENALTY_USD_PER_TEU_DAY = (
 DEFAULT_PENALTY_PER_TEU_H = DEFAULT_LATE_PENALTY_USD_PER_TEU_H
 PAYLOAD_TONNES_PER_TEU = 10.0
 
-# Documented operating speeds used by the stochastic model.  Timetables
-# determine departure waiting; line-haul running time remains distance/speed.
+# Hardcoded operating speeds. These are a LAST-RESORT FALLBACK only, used
+# solely when a mode is missing a positive value from both an explicit CLI
+# override and the workbook's Mode_Speeds sheet. See
+# resolve_effective_speed_map() and load_network_from_extended() for the
+# full CLI-override > workbook > fallback precedence. Do not read this dict
+# directly anywhere else -- use the returned/EFFECTIVE_MODE_SPEED_KMH map.
 DEFAULT_MODE_SPEED_KMH = {
     "road": 40.0,
     "rail": 50.0,
     "water": 28.0,
 }
-MODEL_MODE_SPEED_KMH = dict(DEFAULT_MODE_SPEED_KMH)
+# Populated from --road-speed-kmh/--rail-speed-kmh/--water-speed-kmh; a
+# value stays None unless the user explicitly passed that flag, so the
+# precedence resolver can tell "explicitly requested" apart from "unset".
+CLI_MODE_SPEED_OVERRIDE_KMH: Dict[str, Optional[float]] = {
+    "road": None, "rail": None, "water": None,
+}
+# Set once by load_network_from_extended(); the single source of truth for
+# the nominal speed actually applied to every Arc this run. Read this (or
+# the function's return value), never DEFAULT_MODE_SPEED_KMH, downstream.
+EFFECTIVE_MODE_SPEED_KMH: Dict[str, float] = dict(DEFAULT_MODE_SPEED_KMH)
+EFFECTIVE_MODE_SPEED_SOURCE: Dict[str, str] = {
+    m: "hardcoded_fallback" for m in DEFAULT_MODE_SPEED_KMH
+}
 
 DEFAULT_BORDER_EVENT_DATA_FILE = str(
     FSPath(__file__).resolve().parent / "data" / "border_crossing_events.csv"
@@ -159,11 +210,28 @@ MC_BASE_SEED = 1000003
 CONFIDENCE_COST = 0.90
 CONFIDENCE_EMISSION = 0.90
 CONFIDENCE_TIME = 0.90
-CONFIDENCE_ONTIME = 0.90
-PEN_CHANCE_VIOLATION = 1.0e9
-PEN_MAX_LATE_EXCESS_PER_H = 1.0e9
-MAX_LATE_RATIO = 0.50
-MAX_LATE_H_OVERRIDE: Optional[float] = None
+
+# ── Evaluation mode: which risk metric reduces the per-scenario objective
+# arrays to the three fitness values NSGA-II optimises. One of
+# "deterministic" / "ev" / "ccp". See aggregate_scenario_objectives().
+RISK_METRIC = "ccp"
+
+# Human-readable, mode-specific description for scenario_manifest.json's
+# "fitness_evaluation" field -- must never describe EV or deterministic
+# runs as CCP/empirical-order-statistics evaluation.
+FITNESS_EVALUATION_DESCRIPTION = {
+    "deterministic": (
+        "single_nominal_scenario (S=1, all stochastic multipliers=1.0; "
+        "no Monte Carlo sampling)"),
+    "ev": (
+        "direct_expected_inputs (uncertain travel multipliers fixed at "
+        "their model expectation 1.0 and border disturbances fixed at "
+        "their model mean; S=1, no Monte Carlo sample mean)"),
+    "ccp": (
+        "frozen_scenarios_empirical_order_statistics (separate quantile "
+        "objectives for per-scenario cost/emission/time arrays; no "
+        "punctuality chance constraint in the current implementation)"),
+}
 
 MODE_TIME_CV = {
     "road": 0.15,
@@ -180,7 +248,15 @@ MODE_TIME_MAX_FACTOR = {
 BORDER_DELAY_CV = {
     "road": 0.45,
     "rail": 0.60,
-    "water": 0.30,
+    # Maritime/port border-delay CV. No empirical maritime border-delay
+    # MEAN exists anywhere in the repository (Node_Border.BorderDelay_water_h
+    # is 0 in every row of every workbook; border_crossing_events.csv has no
+    # water row) -- this CV is a prototype assumption with nothing to
+    # multiply against yet. build_scenario_set() already produces zero
+    # variance for any zero-mean border event, so stochastic maritime
+    # border delay stays at zero until a sourced mean is added; see the
+    # [WARN] in build_scenario_set() that fires if that ever changes.
+    "water": 0.40,
 }
 BORDER_DELAY_MAX_FACTOR = 3.5
 
@@ -311,6 +387,55 @@ def empirical_ccp_quantile(values: np.ndarray, confidence: float) -> float:
     ordered = np.sort(arr)
     index = max(0, min(arr.size - 1, math.ceil(confidence * arr.size) - 1))
     return float(ordered[index])
+
+
+def aggregate_scenario_objectives(
+    cost_s: np.ndarray,
+    emission_s: np.ndarray,
+    makespan_s: np.ndarray,
+    scenario_cost_mean: float,
+    scenario_emission_mean: float,
+    scenario_time_mean: float,
+    mode: str,
+    confidence_cost: float,
+    confidence_emission: float,
+    confidence_time: float,
+) -> Tuple[float, float, float]:
+    """Reduce the shared per-scenario objective arrays to fitness values.
+
+    This is the ONLY point where deterministic / ev / ccp modes diverge.
+    Scenario generation (build_scenario_set) and scenario-specific
+    simulation (simulate_path_over_scenarios) are identical and shared
+    across all three modes -- nothing about them is duplicated here.
+
+    - "deterministic": scenario_set is expected to have been forced to a
+      single nominal scenario (stochastic=False, size=1) upstream, so the
+      arrays hold exactly one element each; that element is returned
+      directly rather than relying on it being numerically equal to a
+      mean-of-one (explicit, not an implicit coincidence).
+    - "ev": returns the already-computed scenario_cost_mean /
+      scenario_emission_mean / scenario_time_mean diagnostics unchanged --
+      np.mean(cost_s) etc. are NOT recomputed here. Because the economic
+      lateness penalty is already added into cost_s per scenario (see
+      evaluate_individual), the EV cost mean automatically includes
+      expected lateness cost; no separate lateness-risk term is added.
+    - "ccp": calls the existing, unmodified empirical_ccp_quantile per
+      array -- current behaviour, byte-for-byte unchanged.
+    """
+    if mode == "deterministic":
+        return float(cost_s[0]), float(emission_s[0]), float(makespan_s[0])
+    if mode == "ev":
+        return (float(scenario_cost_mean), float(scenario_emission_mean),
+                float(scenario_time_mean))
+    if mode == "ccp":
+        return (
+            empirical_ccp_quantile(cost_s, confidence_cost),
+            empirical_ccp_quantile(emission_s, confidence_emission),
+            empirical_ccp_quantile(makespan_s, confidence_time),
+        )
+    raise ValueError(
+        f"Unknown risk_metric mode {mode!r}; expected one of "
+        "'deterministic', 'ev', 'ccp'.")
 
 
 def parse_distance_km(x) -> float:
@@ -469,6 +594,16 @@ class Individual:
     vio_breakdown:  Dict[str, float] = field(default_factory=dict)
     batch_on_time_prob: Dict[int, float] = field(default_factory=dict)
     batch_max_lateness_h: Dict[int, float] = field(default_factory=dict)
+    cost_s: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
+    emission_s: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
+    makespan_s: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
+    linehaul_carbon_cost_s: np.ndarray = field(
+        default_factory=lambda: np.empty(0, dtype=float))
+    waiting_carbon_cost_s: np.ndarray = field(
+        default_factory=lambda: np.empty(0, dtype=float))
+    carbon_cost_s: np.ndarray = field(
+        default_factory=lambda: np.empty(0, dtype=float))
+    ev_objectives: Tuple[float, float, float] = (float("inf"), float("inf"), float("inf"))
     rank:               int   = 0           # [NSGA-II] non-dominated front index (0 = best)
     crowding_distance:  float = 0.0         # [NSGA-II] crowding distance
 
@@ -517,7 +652,11 @@ class PathScenarioResult:
 
 @dataclass
 class ReliablePathOption:
-    """One single-path batch assignment that satisfies its time constraints."""
+    """One structurally feasible single-path batch assignment.
+
+    The historical name is retained for API compatibility; reliability KPIs
+    are diagnostic only and never screen this option.
+    """
     path: Path
     on_time_probability: float
     max_lateness_h: float
@@ -851,6 +990,223 @@ def load_mode_speeds(xls):
     return out
 
 
+def resolve_effective_speed_map(
+    cli_overrides: Dict[str, Optional[float]],
+    workbook_speeds: Dict[str, float],
+    fallback: Dict[str, float],
+) -> Tuple[Dict[str, float], Dict[str, str]]:
+    """Resolve one nominal mode-speed map: CLI override > workbook > fallback.
+
+    ``cli_overrides[mode]`` is None unless the user explicitly passed the
+    corresponding --{mode}-speed-kmh flag. ``workbook_speeds`` is whatever
+    load_mode_speeds(xls) returned for this workbook (may omit a mode, or
+    hold a non-positive placeholder). ``fallback`` (DEFAULT_MODE_SPEED_KMH)
+    is used only when neither higher-priority source supplies a positive
+    value for that mode. Returns (effective_speed_map, source_map) where
+    source_map[mode] is one of "cli_override" / "workbook_mode_speeds" /
+    "hardcoded_fallback", for logging/manifest provenance.
+    """
+    effective: Dict[str, float] = {}
+    source: Dict[str, str] = {}
+    for mode, fallback_speed in fallback.items():
+        cli_value = cli_overrides.get(mode) if cli_overrides else None
+        workbook_value = workbook_speeds.get(mode) if workbook_speeds else None
+        if cli_value is not None and cli_value > 0:
+            effective[mode] = float(cli_value)
+            source[mode] = "cli_override"
+        elif workbook_value is not None and workbook_value > 0:
+            effective[mode] = float(workbook_value)
+            source[mode] = "workbook_mode_speeds"
+        else:
+            effective[mode] = float(fallback_speed)
+            source[mode] = "hardcoded_fallback"
+    return effective, source
+
+
+def positive_speed_kmh_arg(value: str) -> float:
+    """argparse ``type=`` for --{mode}-speed-kmh: an explicitly supplied CLI
+    speed override must be numeric, finite, and strictly positive. This is
+    enforced HERE, at the CLI boundary, so an invalid explicit override is
+    a clear, immediate error rather than being silently treated as "no
+    override" and falling through to the workbook value -- the user asked
+    for the speed they typed, not for it to be second-guessed.
+
+    ``float()`` alone accepts "nan"/"inf"/"-inf" as valid floats, and NaN
+    comparisons are always False (`nan <= 0.0` is False), so a bare
+    `parsed <= 0.0` check would let NaN and +Infinity silently through --
+    NaN would then fail resolve_effective_speed_map()'s own `> 0` check and
+    fall through to the workbook (exactly the silent-fallback behaviour
+    this validator exists to prevent), while +Infinity would be accepted
+    outright as the effective speed. math.isfinite() rejects NaN and both
+    infinities explicitly, in addition to the existing <= 0 rejection of
+    zero and negative values.
+
+    This is deliberately stricter than resolve_effective_speed_map()'s own
+    `cli_value > 0` check, which stays lenient/defensive for callers that
+    build the cli_overrides dict programmatically (e.g. tests) rather than
+    through argparse; the hard rejection belongs at the user-facing CLI
+    layer, not inside the pure resolver.
+
+    Only invoked by argparse when the flag is actually supplied -- an
+    omitted flag keeps its ``default=None`` without this function running.
+    """
+    try:
+        parsed = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"{value!r} is not a valid number (km/h).")
+    if not math.isfinite(parsed) or parsed <= 0.0:
+        raise argparse.ArgumentTypeError(
+            f"must be a finite positive speed in km/h, got {value!r} "
+            "(NaN, +/-Infinity, zero, and negative values are all "
+            "rejected). Omit this flag entirely to let the workbook "
+            "Mode_Speeds value (or the hardcoded fallback) apply instead "
+            "of an explicit override.")
+    return parsed
+
+
+def resolve_stochastic_eval_and_scenarios(
+    risk_metric: str, no_stochastic: bool, mc_scenarios_arg: int,
+) -> Tuple[bool, int]:
+    """Resolve (STOCHASTIC_EVAL, MC_SCENARIOS) from CLI inputs.
+
+    Pulled out of the `if __name__ == "__main__":` block, unchanged, so
+    tests can verify --risk-metric deterministic genuinely forces a single
+    nominal scenario (stochastic_eval=False, i.e. S=1 once passed to
+    configure_scenario_set) via the REAL configuration path, rather than a
+    re-implementation of the rule. Behaviour (including the printed
+    [INFO]/[WARN] messages) is identical to the code this replaced.
+    """
+    stochastic_eval = not no_stochastic
+    if risk_metric == "deterministic":
+        if stochastic_eval:
+            print("[INFO] --risk-metric deterministic forces a single "
+                  "nominal scenario (S=1); --mc-scenarios is ignored.")
+        stochastic_eval = False
+    elif risk_metric == "ev":
+        if stochastic_eval:
+            print("[INFO] --risk-metric ev uses one direct expected-input "
+                  "environment (S=1); --mc-scenarios is ignored.")
+        stochastic_eval = False
+    elif not stochastic_eval:
+        print(f"[WARN] --risk-metric {risk_metric} was requested together "
+              "with --no-stochastic (S=1). This is a degenerate, "
+              "zero-variance run and is equivalent to deterministic mode "
+              "for this risk metric.")
+    mc_scenarios = max(1, mc_scenarios_arg)
+    if risk_metric in ("ev", "ccp") and stochastic_eval and mc_scenarios <= 1:
+        print(f"[WARN] --risk-metric {risk_metric} with --mc-scenarios "
+              f"{mc_scenarios} produces no sampling variance; consider a "
+              "larger scenario count for a meaningful EV/CCP estimate.")
+    return stochastic_eval, mc_scenarios
+
+
+def build_scenario_manifest(
+    *,
+    risk_metric: str,
+    scenario_set: "ScenarioSet",
+    confidence_cost: float,
+    confidence_emission: float,
+    confidence_time: float,
+    mode_time_cv: Dict[str, float],
+    mode_time_cap_factor: Dict[str, float],
+    mode_speed_kmh: Dict[str, float],
+    mode_speed_source: Dict[str, str],
+    mode_speed_requested_cli_override_kmh: Dict[str, Optional[float]],
+    border_delay_cv: Dict[str, float],
+    border_delay_cap_factor: float,
+    border_event_data_file: str,
+    border_event_definitions: Dict[Tuple[str, str, str], "BorderEventDefinition"],
+    late_penalty_source: str,
+    late_penalty_input_basis: str,
+    late_penalty_baseline_usd_per_teu_h: float,
+    use_input_late_penalties: bool,
+    payload_tonnes_per_teu: float,
+    wait_emission_g_per_teu_h: float,
+    feasibility_seed_fraction: float,
+    feasibility_search_restarts: int,
+    feasibility_search_iterations: int,
+) -> Dict[str, Any]:
+    """Build the scenario_manifest.json payload.
+
+    Pulled out of the `if __name__ == "__main__":` block, unchanged field
+    for field, so tests can construct/inspect the REAL manifest logic per
+    mode (e.g. confirm "fitness_evaluation" and "mode_speed_kmh" are
+    mode-correct, confirm "risk_metric"/"scenario_count"/"scenario_seed"
+    are recorded correctly) without running the full script. Every key and
+    value below is identical to the inline dict this replaced.
+    """
+    return {
+        "risk_metric": risk_metric,
+        "scenario_count": scenario_set.size,
+        "scenario_seed": scenario_set.seed,
+        "stochastic": scenario_set.stochastic,
+        "confidence": {
+            "cost": confidence_cost,
+            "emission": confidence_emission,
+            "time": confidence_time,
+        },
+        "mode_time_cv": mode_time_cv,
+        "mode_time_cap_factor": mode_time_cap_factor,
+        # Effective mode speed actually applied to every Arc this run
+        # (CLI override > workbook Mode_Speeds > hardcoded fallback), NOT
+        # the raw fallback/default constants -- see mode_speed_source for
+        # per-mode provenance.
+        "mode_speed_kmh": mode_speed_kmh,
+        "mode_speed_source": mode_speed_source,
+        "mode_speed_requested_cli_override_kmh":
+            mode_speed_requested_cli_override_kmh,
+        "timetable_role": (
+            "frequency/first_departure/headway determine schedule waiting; "
+            "arc mean running time is distance/mode_speed"),
+        "border_delay_cv": border_delay_cv,
+        "border_delay_cap_factor": border_delay_cap_factor,
+        "border_event_data_file": border_event_data_file,
+        "border_event_source_records": [
+            {
+                "event": "|".join(key),
+                "mean_delay_h": definition.mean_delay_h,
+                "exit_mean_h": definition.exit_mean_h,
+                "entry_mean_h": definition.entry_mean_h,
+                "source": definition.source,
+                "source_year": definition.source_year,
+            }
+            for key, definition in border_event_definitions.items()
+        ],
+        "border_event_fallback": (
+            "Manzhouli-Zabaykalsk and Brest-Malaszewicze use the sum "
+            "of available Node_Border side means until directional "
+            "records are added to the source CSV"),
+        "border_event_means_h": {
+            "|".join(key): value
+            for key, value in scenario_set.border_event_mean_h.items()
+        },
+        "late_penalty": {
+            "source_mode": late_penalty_source,
+            "input_basis": late_penalty_input_basis,
+            "baseline_usd_per_teu_day":
+                late_penalty_baseline_usd_per_teu_h * 24.0,
+            "applied_common_usd_per_teu_hour": (
+                None if use_input_late_penalties
+                else late_penalty_baseline_usd_per_teu_h),
+        },
+        "payload_tonnes_per_teu": payload_tonnes_per_teu,
+        "wait_emission_g_per_teu_h": wait_emission_g_per_teu_h,
+        **waiting_emission_configuration(wait_emission_g_per_teu_h),
+        "fitness_evaluation": FITNESS_EVALUATION_DESCRIPTION.get(
+            risk_metric, f"unknown_risk_metric:{risk_metric}"),
+        "algorithmic_randomness": "controlled separately by --seed",
+        "feasibility_first_search": {
+            "seed_fraction": feasibility_seed_fraction,
+            "restarts": feasibility_search_restarts,
+            "iterations_per_restart": feasibility_search_iterations,
+            "single_path_reliability_screen": True,
+            "capacity_aware_min_conflicts": True,
+            "constraint_selection": "normalized_Deb_constraint_domination",
+        },
+    }
+
+
 def load_transshipment_map(xls):
     out = {}
     if "Transshipment" not in xls.sheet_names: return out
@@ -902,23 +1258,25 @@ def load_waiting_params(xls):
     return wc, we
 
 
-def load_network_from_extended(filename: str):
+def load_network_from_extended(
+    filename: str,
+    cli_speed_override: Optional[Dict[str, Optional[float]]] = None,
+):
     global CHINA_BORDER_NODES, NODE_GROUP, BORDER_CAPACITY, BACKGROUND_FLOW
+    global EFFECTIVE_MODE_SPEED_KMH, EFFECTIVE_MODE_SPEED_SOURCE
     xls = pd.ExcelFile(filename)
 
     carbon_tax_map      = load_carbon_tax_map(xls)
     emission_factor_map = load_emission_factor_map(xls)
     input_mode_speeds_map = load_mode_speeds(xls)
-    mode_speeds_map = dict(MODEL_MODE_SPEED_KMH)
-    differing_speeds = {
-        mode: (input_mode_speeds_map.get(mode), speed)
-        for mode, speed in mode_speeds_map.items()
-        if input_mode_speeds_map.get(mode) is not None
-        and abs(input_mode_speeds_map[mode] - speed) > 1e-12
-    }
-    if differing_speeds:
-        print("[INFO] Replaced workbook Mode_Speeds with documented model "
-              f"speeds (input -> applied): {differing_speeds}")
+    if cli_speed_override is None:
+        cli_speed_override = CLI_MODE_SPEED_OVERRIDE_KMH
+    mode_speeds_map, mode_speed_source = resolve_effective_speed_map(
+        cli_speed_override, input_mode_speeds_map, DEFAULT_MODE_SPEED_KMH)
+    EFFECTIVE_MODE_SPEED_KMH   = dict(mode_speeds_map)
+    EFFECTIVE_MODE_SPEED_SOURCE = dict(mode_speed_source)
+    print("[INFO] Effective mode speeds (CLI override > workbook Mode_Speeds "
+          f"> hardcoded fallback): { {m: (mode_speeds_map[m], mode_speed_source[m]) for m in sorted(mode_speeds_map)} }")
     trans_map           = load_transshipment_map(xls)
     border_delay_map    = load_border_delay_map(xls)
     theta_rm = load_carbon_tax_applicability(xls)
@@ -1112,7 +1470,7 @@ def load_network_from_extended(filename: str):
         arcs, timetables, batches,
         waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
         carbon_tax_map, emission_factor_map, mode_speeds_map,
-        trans_map, border_delay_map, theta_rm
+        trans_map, border_delay_map, theta_rm, mode_speed_source
     )
 
 
@@ -1195,6 +1553,20 @@ def build_scenario_set(
     for key in sorted(border_event_mean_h):
         mode = key[2]
         base_h = max(0.0, safe_float(border_event_mean_h[key], 0.0))
+        if mode == "water" and base_h > 0.0 and stochastic:
+            # No empirical maritime/port border-delay MEAN exists anywhere
+            # in this repository as of this framework's design (see
+            # BORDER_DELAY_CV comment above). A nonzero water event mean
+            # means new data was supplied since then -- surface that
+            # explicitly rather than silently starting to sample it. Only
+            # relevant when stochastic sampling is actually enabled: under
+            # stochastic=False the mean is applied as a constant, not
+            # sampled, so no "sampling is now active" claim would be true.
+            print(f"[WARN] Nonzero maritime border-delay mean detected for "
+                  f"event {key} (mean_h={base_h:g}). Stochastic maritime "
+                  f"border-delay sampling (CV={BORDER_DELAY_CV.get(mode, 0.50):g}) "
+                  "will now be ACTIVE for this event. Confirm this mean is "
+                  "evidence-based before trusting results that depend on it.")
         if base_h <= 0.0:
             border_delay_h[key] = np.zeros(size, dtype=float)
         elif stochastic:
@@ -1216,6 +1588,44 @@ def build_scenario_set(
         arc_border_event=arc_border_event,
         border_event_mean_h=border_event_mean_h,
         stochastic=bool(stochastic),
+    )
+
+
+def build_expected_value_scenario_set(
+    arcs: List[Arc],
+    border_delay_map: Dict[Tuple[str, str], float],
+    seed: int = 0,
+    border_event_definitions: Optional[
+        Dict[Tuple[str, str, str], BorderEventDefinition]
+    ] = None,
+) -> ScenarioSet:
+    """Build the direct expected-input environment used by EV optimisation.
+
+    This deliberately contains one constructed environment, not a Monte Carlo
+    draw and not the mean of a CCP training sample.  The current uncertainty
+    model has mean-one line-haul multipliers and mean border-event delays, so
+    those expectations are inserted directly.  ``seed`` is provenance only;
+    no random generator is consulted.
+
+    The values may coincide numerically with the nominal deterministic case,
+    but callers must retain the distinct ``ev`` method label.
+    """
+    expected = build_scenario_set(
+        arcs=arcs,
+        border_delay_map=border_delay_map,
+        size=1,
+        seed=int(seed),
+        stochastic=False,
+        border_event_definitions=border_event_definitions,
+    )
+    return ScenarioSet(
+        size=expected.size,
+        seed=int(seed),
+        travel_multiplier=expected.travel_multiplier,
+        border_delay_h=expected.border_delay_h,
+        arc_border_event=expected.arc_border_event,
+        border_event_mean_h=expected.border_event_mean_h,
+        stochastic=False,
     )
 
 
@@ -1584,14 +1994,6 @@ def simulate_path_over_scenarios(
     return result
 
 
-def batch_max_lateness_h(batch: Batch) -> float:
-    if MAX_LATE_H_OVERRIDE is not None:
-        return max(0.0, float(MAX_LATE_H_OVERRIDE))
-    if batch.max_late_h is not None:
-        return max(0.0, float(batch.max_late_h))
-    return max(0.0, MAX_LATE_RATIO * max(0.0, batch.LT - batch.ET))
-
-
 def build_reliable_path_options(
     batches: List[Batch],
     path_lib: Dict[Tuple[str, str], List[Path]],
@@ -1599,13 +2001,15 @@ def build_reliable_path_options(
     trans_map: Dict,
     border_delay_map: Dict,
     scenario_set: ScenarioSet,
+    mode: Optional[str] = None,
 ) -> Dict[Tuple[str, str, int], List[ReliablePathOption]]:
-    """Pre-screen paths under the frozen scenarios used by the optimiser.
+    """Pre-screen only timetable-valid, structurally usable paths.
 
-    A retained path independently satisfies both the per-batch on-time chance
-    constraint and the hard maximum-lateness constraint.  Its deterministic
-    capacity footprint is cached for the capacity-aware constructor below.
+    On-time probability and observed maximum lateness are retained solely as
+    diagnostics and do not affect eligibility or feasibility-first seeding.
+    ``mode`` is retained for call compatibility and has no screening effect.
     """
+
     options: Dict[Tuple[str, str, int], List[ReliablePathOption]] = {}
     counts: List[int] = []
     missing: List[int] = []
@@ -1624,11 +2028,6 @@ def build_reliable_path_options(
             max_lateness = (float(np.max(finite_lateness))
                             if finite_lateness.size == lateness.size
                             else float("inf"))
-            if on_time_probability + 1e-12 < CONFIDENCE_ONTIME:
-                continue
-            if max_lateness > batch_max_lateness_h(batch) + 1e-12:
-                continue
-
             arc_flow: Dict = {}
             node_flow: Dict = {}
             duration, _, miss_tt = simulate_path_time_capacity(
@@ -1667,11 +2066,11 @@ def build_reliable_path_options(
             missing.append(batch.batch_id)
 
     if counts:
-        print("[FEAS-INIT] Reliable single-path options per batch: "
+        print("[FEAS-INIT] Structurally feasible single-path options per batch: "
               f"min={min(counts)}  median={float(np.median(counts)):.1f}  "
-              f"max={max(counts)}  alpha={CONFIDENCE_ONTIME:.3f}")
+              f"max={max(counts)}")
     if missing:
-        print("[FEAS-INIT] WARNING: no independently reliable path for "
+        print("[FEAS-INIT] WARNING: no structurally feasible path for "
               f"batch IDs {missing}. Capacity-aware seeding cannot guarantee "
               "a feasible individual for those batches.")
     return options
@@ -1740,7 +2139,7 @@ def find_capacity_aware_choice(
     restarts: Optional[int] = None,
     iterations: Optional[int] = None,
 ) -> Tuple[Optional[List[int]], float]:
-    """Random-restart min-conflicts search over reliable single paths."""
+    """Random-restart min-conflicts search over structurally valid paths."""
     if restarts is None:
         restarts = FEASIBILITY_SEARCH_RESTARTS
     if iterations is None:
@@ -1865,7 +2264,8 @@ def evaluate_individual(
     miss_alloc = miss_tt = 0
     cap_excess = wait_teu_h_total = late_teu_h_total = 0.0
     trans_teu_h_total = trans_cost_total = carbon_cost_total = 0.0
-    chance_violation_total = max_late_excess_h = 0.0
+    linehaul_carbon_cost_s = np.zeros(size, dtype=float)
+    waiting_carbon_cost_s = np.zeros(size, dtype=float)
     min_on_time_prob = 1.0
     max_observed_late_h = mean_arrival_sum = 0.0
     batch_on_time_prob: Dict[int, float] = {}
@@ -1922,12 +2322,34 @@ def evaluate_individual(
                 carbon_cost += emission_tons * tax_rate
             cost_s += carbon_cost
             carbon_cost_total += carbon_cost
+            linehaul_carbon_cost_s += carbon_cost
 
             for node, wait_values in path_result.schedule_wait_h.items():
                 hold_rate = node_hold_cost.get(
                     node, waiting_cost_per_teu_h)
                 cost_s += hold_rate * flow * wait_values
-                emission_s += wait_emis_g_per_teu_h * flow * wait_values
+                wait_emission_g_s = (
+                    wait_emis_g_per_teu_h * flow * wait_values)
+                emission_s += wait_emission_g_s
+
+                # The wait is for the path arc departing this node. Its
+                # from-region and mode provide Scheme B's tax basis. Road
+                # remains wait-free because the simulator records no road
+                # schedule waiting.
+                outgoing_arc = next(
+                    (arc for arc in path.arcs if arc.from_node == node), None)
+                if outgoing_arc is None:
+                    raise RuntimeError(
+                        f"schedule-wait node {node!r} has no outgoing path arc")
+                wait_region = getattr(outgoing_arc, "from_region", "")
+                wait_mode = outgoing_arc.mode
+                wait_tax_rate = float(carbon_tax_map.get(wait_region, 0.0))
+                wait_theta = theta_rm.get((wait_region, wait_mode), 1)
+                wait_carbon_cost = (
+                    wait_emission_g_s / 1e6 * wait_tax_rate * wait_theta)
+                cost_s += wait_carbon_cost
+                waiting_carbon_cost_s += wait_carbon_cost
+                carbon_cost_total += float(np.mean(wait_carbon_cost))
                 wait_teu_h_total += flow * float(np.mean(wait_values))
 
             for node, delay_values in path_result.border_delay_h.items():
@@ -1960,16 +2382,7 @@ def evaluate_individual(
         on_time_probability = float(np.mean(batch_arrival_s <= batch.LT))
         batch_on_time_prob[int(batch.batch_id)] = on_time_probability
         min_on_time_prob = min(min_on_time_prob, on_time_probability)
-        chance_violation_total += max(
-            0.0, CONFIDENCE_ONTIME - on_time_probability)
-
         batch_lateness = np.maximum(0.0, batch_arrival_s - batch.LT)
-        late_limit = batch_max_lateness_h(batch)
-        batch_excess = np.maximum(0.0, batch_lateness - late_limit)
-        if np.any(np.isfinite(batch_excess)):
-            max_late_excess_h += float(np.max(batch_excess))
-        else:
-            max_late_excess_h = float("inf")
         finite_lateness = batch_lateness[np.isfinite(batch_lateness)]
         if finite_lateness.size:
             batch_max_lateness[int(batch.batch_id)] = float(
@@ -2005,18 +2418,32 @@ def evaluate_individual(
         if load > capacity:
             border_cap_excess += load - capacity
 
-    f_cost = empirical_ccp_quantile(cost_s, CONFIDENCE_COST)
-    f_emission = empirical_ccp_quantile(
-        emission_s, CONFIDENCE_EMISSION)
-    f_time = empirical_ccp_quantile(makespan_s, CONFIDENCE_TIME)
+    # Diagnostic scenario means -- computed once here and reused both for
+    # the EV objective branch below and for reporting, never recomputed.
+    scenario_cost_mean     = float(np.mean(cost_s))
+    scenario_emission_mean = float(np.mean(emission_s))
+    scenario_time_mean     = float(np.mean(makespan_s))
+    ind.cost_s = cost_s.copy()
+    ind.emission_s = emission_s.copy()
+    ind.makespan_s = makespan_s.copy()
+    ind.linehaul_carbon_cost_s = linehaul_carbon_cost_s.copy()
+    ind.waiting_carbon_cost_s = waiting_carbon_cost_s.copy()
+    ind.carbon_cost_s = (
+        linehaul_carbon_cost_s + waiting_carbon_cost_s).copy()
+    ind.ev_objectives = (
+        scenario_cost_mean, scenario_emission_mean, scenario_time_mean)
+
+    f_cost, f_emission, f_time = aggregate_scenario_objectives(
+        cost_s, emission_s, makespan_s,
+        scenario_cost_mean, scenario_emission_mean, scenario_time_mean,
+        RISK_METRIC, CONFIDENCE_COST, CONFIDENCE_EMISSION, CONFIDENCE_TIME,
+    )
 
     penalty = (
         PEN_MISS_ALLOC * float(miss_alloc)
         + PEN_MISS_TT * float(miss_tt)
         + PEN_CAP_EXCESS_PER_TEU * float(cap_excess)
         + PEN_BORDER_CAP_EXCESS_PER_TEU * float(border_cap_excess)
-        + PEN_CHANCE_VIOLATION * float(chance_violation_total)
-        + PEN_MAX_LATE_EXCESS_PER_H * float(max_late_excess_h)
     )
 
     ind.objectives = (f_cost, f_emission, f_time)
@@ -2027,23 +2454,17 @@ def evaluate_individual(
     # determines selection between heterogeneous constraint classes.
     batch_count = max(1, len(batches))
     total_teu = max(1.0, float(sum(batch.quantity for batch in batches)))
-    lateness_scale = max(1.0, float(sum(
-        max(1.0, batch_max_lateness_h(batch)) for batch in batches)))
     normalized_components = {
         "miss_alloc": float(miss_alloc) / batch_count,
         "miss_tt": float(miss_tt) / batch_count,
         "cap_excess": float(cap_excess) / total_teu,
         "border_cap_excess": float(border_cap_excess) / total_teu,
-        "chance_vio": float(chance_violation_total) / batch_count,
-        "max_late_excess_h": float(max_late_excess_h) / lateness_scale,
     }
     normalized_violation = float(sum(normalized_components.values()))
     ind.normalized_violation = normalized_violation
     hard_ok = (
         miss_alloc == 0 and miss_tt == 0
         and cap_excess <= 1e-9 and border_cap_excess <= 1e-9
-        and chance_violation_total <= 1e-12
-        and max_late_excess_h <= 1e-12
     )
     ind.feasible_hard = bool(hard_ok)
     ind.feasible = bool(hard_ok)
@@ -2054,9 +2475,7 @@ def evaluate_individual(
         "border_cap_excess": float(border_cap_excess),
         "max_border_util": float(max_border_util),
         "late_teu_h": float(late_teu_h_total),
-        "max_late_excess_h": float(max_late_excess_h),
         "max_observed_late_h": float(max_observed_late_h),
-        "chance_vio": float(chance_violation_total),
         "normalized_violation": normalized_violation,
         "min_on_time_prob": float(min_on_time_prob),
         "mean_arrival_h_sum": float(mean_arrival_sum),
@@ -2064,9 +2483,10 @@ def evaluate_individual(
         "trans_teu_h": float(trans_teu_h_total),
         "trans_cost": float(trans_cost_total),
         "carbon_cost": float(carbon_cost_total),
-        "scenario_cost_mean": float(np.mean(cost_s)),
-        "scenario_emission_mean": float(np.mean(emission_s)),
-        "scenario_time_mean": float(np.mean(makespan_s)),
+        "scenario_cost_mean": scenario_cost_mean,
+        "scenario_emission_mean": scenario_emission_mean,
+        "scenario_time_mean": scenario_time_mean,
+        "risk_metric": RISK_METRIC,
     }
     ind.batch_on_time_prob = batch_on_time_prob
     ind.batch_max_lateness_h = batch_max_lateness
@@ -2310,7 +2730,7 @@ def mutate_replace_reliable(
     reliable_options: Optional[
         Dict[Tuple[str, str, int], List[ReliablePathOption]]],
 ) -> bool:
-    """Replace a batch's entire allocation by another reliable single path."""
+    """Replace a batch's allocation by another structurally valid path."""
     if not reliable_options:
         return False
     key = (batch.origin, batch.destination, batch.batch_id)
@@ -2418,7 +2838,7 @@ def unique_individuals_by_objectives(front, tol=1e-3):
 def format_violation_breakdown(ind) -> str:
     keys = [
         "miss_alloc", "miss_tt", "cap_excess", "border_cap_excess",
-        "late_teu_h", "max_late_excess_h", "chance_vio",
+        "late_teu_h",
         "normalized_violation", "min_on_time_prob",
     ]
     parts = []
@@ -2724,8 +3144,12 @@ def save_pareto_solutions(pareto, batches, filename="result.txt"):
             f.write("NO FEASIBLE SOLUTION FOUND.\n"); return
         for i, ind in enumerate(pareto):
             c, e, t = ind.objectives
+            ev_c, ev_e, ev_t = ind.ev_objectives
             f.write(f"===== Pareto Sol {i} =====\n")
-            f.write(f"Cost={c:.6f}  Emission_gCO2={e:.6f}  Time={t:.6f}\n")
+            f.write(f"CCP90_Cost={c:.6f}  CCP90_Emission={e:.6f}  "
+                    f"CCP90_Time={t:.6f}\n")
+            f.write(f"EV_Cost={ev_c:.6f}  EV_Emission={ev_e:.6f}  "
+                    f"EV_Time={ev_t:.6f}\n")
             f.write(f"Penalty={ind.penalty:.6f}  Feasible={ind.feasible}\n")
             f.write(f"Breakdown={ind.vio_breakdown}\n\n")
             for b in batches:
@@ -2739,18 +3163,67 @@ def save_pareto_solutions(pareto, batches, filename="result.txt"):
     print(f"[EXPORT] {len(pareto)} Pareto solutions → {filename}")
 
 
+def _json_scalar(value, *, context: str = ""):
+    """Type-aware JSON-scalar coercion for heterogeneous diagnostic dicts
+    (currently: Individual.vio_breakdown, which legitimately mixes numeric
+    diagnostics with a "risk_metric" string field -- see evaluate_individual).
+
+    - bool is preserved as bool (checked BEFORE int/float: in Python
+      `isinstance(True, int)` is True, so bool must be special-cased first
+      or it would silently fall through the int/float branch instead).
+    - NumPy integer/floating scalars are converted to native Python
+      int/float, checked BEFORE the plain int/float branch: numpy.float64
+      is (on common platforms) a *subclass* of Python's built-in float
+      (`isinstance(np.float64(1.5), float)` is True), so checking
+      plain (int, float) first would silently let a numpy scalar through
+      un-coerced -- it would happen to round-trip correctly through
+      json.dump/json.load, but the returned Python object itself would
+      still be a numpy type, not the "native Python numeric value" this
+      function is specified to produce. numpy.integer has no such
+      subclass relationship with int, but numpy.floating is checked first
+      for both, for one consistent, order-independent rule.
+    - Python int/float (genuinely native, not numpy) are returned unchanged.
+    - str is preserved as str.
+    - None is preserved as None (JSON null).
+    - Anything else is an explicit, loud failure -- NOT silently
+      stringified or dropped, so an unexpected diagnostic value type is
+      caught immediately rather than masked in the exported file.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        return value
+    if value is None:
+        return None
+    raise TypeError(
+        f"Unsupported diagnostic value type for JSON export"
+        f"{f' ({context})' if context else ''}: "
+        f"{type(value).__name__!r} = {value!r}. Add explicit handling in "
+        f"_json_scalar() rather than coercing it implicitly.")
+
+
 def export_pareto_points_json(pareto, batches, out_json="pareto_points.json"):
     out = []
     for ind in pareto:
         sol = {
             "objectives": {
-                "cost":          float(ind.objectives[0]),
-                "emission_gCO2": float(ind.objectives[1]),
-                "time_h":        float(ind.objectives[2]),
+                "CCP90_Cost":     float(ind.objectives[0]),
+                "CCP90_Emission": float(ind.objectives[1]),
+                "CCP90_Time":     float(ind.objectives[2]),
+                "EV_Cost":        float(ind.ev_objectives[0]),
+                "EV_Emission":    float(ind.ev_objectives[1]),
+                "EV_Time":        float(ind.ev_objectives[2]),
                 "penalty":       float(ind.penalty),
             },
             "feasible":      bool(ind.feasible),
-            "vio_breakdown": {k: float(v) for k, v in (ind.vio_breakdown or {}).items()},
+            "vio_breakdown": {k: _json_scalar(v, context=f"vio_breakdown[{k!r}]")
+                               for k, v in (ind.vio_breakdown or {}).items()},
             "batch_on_time_probability": {
                 str(k): float(v) for k, v in ind.batch_on_time_prob.items()},
             "batch_max_lateness_h": {
@@ -2792,13 +3265,17 @@ def export_best_infeasible_json(population, batches, out_json="best_infeasible.j
     best = min(population, key=constraint_sort_key)
     sol = {
         "objectives": {
-            "cost":          float(best.objectives[0]),
-            "emission_gCO2": float(best.objectives[1]),
-            "time_h":        float(best.objectives[2]),
+            "CCP90_Cost":     float(best.objectives[0]),
+            "CCP90_Emission": float(best.objectives[1]),
+            "CCP90_Time":     float(best.objectives[2]),
+            "EV_Cost":        float(best.ev_objectives[0]),
+            "EV_Emission":    float(best.ev_objectives[1]),
+            "EV_Time":        float(best.ev_objectives[2]),
             "penalty":       float(best.penalty),
         },
         "feasible": bool(best.feasible),
-        "vio_breakdown": {k: float(v) for k, v in (best.vio_breakdown or {}).items()},
+        "vio_breakdown": {k: _json_scalar(v, context=f"vio_breakdown[{k!r}]")
+                           for k, v in (best.vio_breakdown or {}).items()},
         "batch_on_time_probability": {
             str(k): float(v) for k, v in best.batch_on_time_prob.items()},
         "batch_max_lateness_h": {
@@ -2949,7 +3426,7 @@ def run_nsga2(
     feasible_ratio_strict_hist: List[float]       = []
     vio_mean_hist = {k: [] for k in [
         "miss_alloc", "miss_tt", "cap_excess", "border_cap_excess",
-        "late_teu_h", "max_late_excess_h", "wait_teu_h", "chance_vio",
+        "late_teu_h", "wait_teu_h",
         "normalized_violation",
     ]}
     boost_trigger_hist:  List[int] = []
@@ -3101,9 +3578,20 @@ def run_nsga2(
 # Main  ── NSGA-II Tuned Baseline 30 runs
 # ════════════════════════════════════════════════════════
 
-if __name__ == "__main__":
+def build_arg_parser() -> argparse.ArgumentParser:
+    """Construct the production CLI parser.
 
-    parser = argparse.ArgumentParser(description="Run NSGA-II with stochastic travel time, border delay, and chance constraints.")
+    Pulled out of the `if __name__ == "__main__":` block so tests can
+    exercise the REAL production parser (e.g. `--risk-metric`,
+    `--road-speed-kmh`) directly, rather than a hand-reconstructed
+    approximation of it. Pure construction only -- no argument values are
+    read or applied here; that still happens in `__main__` via
+    `parser.parse_args()`. No behaviour change: every `add_argument` call
+    below is unchanged from before this refactor.
+    """
+    parser = argparse.ArgumentParser(description=(
+        "Run NSGA-II with stochastic travel time, border delay, and "
+        "quantile-based objective optimisation."))
     parser.add_argument("--data", default="data_expanded.xlsx", help="Input workbook path.")
     parser.add_argument("--pop", type=int, default=250, help="Population size.")
     parser.add_argument("--gens", type=int, default=200, help="Number of generations.")
@@ -3115,7 +3603,7 @@ if __name__ == "__main__":
     parser.add_argument("--expected-batches", type=int, default=0,
                         help="Optional exact batch count check; 0 disables the check.")
     parser.add_argument("--no-stochastic", action="store_true",
-                        help="Disable Monte Carlo chance-constraint evaluation.")
+                        help="Disable Monte Carlo scenario evaluation.")
     parser.add_argument("--mc-scenarios", type=int, default=MC_SCENARIOS,
                         help="Number of frozen training scenarios shared by all individuals.")
     parser.add_argument("--mc-seed", type=int, default=MC_BASE_SEED,
@@ -3126,10 +3614,6 @@ if __name__ == "__main__":
                         help="CCP confidence level for total emissions.")
     parser.add_argument("--time-confidence", type=float, default=CONFIDENCE_TIME,
                         help="CCP confidence level for makespan.")
-    parser.add_argument("--alpha", "--ontime-confidence",
-                        dest="ontime_confidence", type=float,
-                        default=CONFIDENCE_ONTIME,
-                        help="Per-batch on-time confidence level; --alpha is retained for compatibility.")
     parser.add_argument("--road-cv", type=float, default=MODE_TIME_CV["road"],
                         help="Road travel-time lognormal multiplier CV.")
     parser.add_argument("--rail-cv", type=float, default=MODE_TIME_CV["rail"],
@@ -3155,20 +3639,37 @@ if __name__ == "__main__":
     parser.add_argument(
         "--border-event-data", default=DEFAULT_BORDER_EVENT_DATA_FILE,
         help="CSV with directional b=(exit, entry, mode) border-event means.")
-    parser.add_argument("--road-speed-kmh", type=float,
-                        default=DEFAULT_MODE_SPEED_KMH["road"])
-    parser.add_argument("--rail-speed-kmh", type=float,
-                        default=DEFAULT_MODE_SPEED_KMH["rail"])
-    parser.add_argument("--water-speed-kmh", type=float,
-                        default=DEFAULT_MODE_SPEED_KMH["water"])
-    parser.add_argument("--max-late-ratio", type=float, default=MAX_LATE_RATIO,
-                        help="Fallback Lmax/(LT-ET) when a batch has no MaxLate_h value.")
-    parser.add_argument("--max-late-h", type=float, default=None,
-                        help="Optional fixed maximum lateness overriding batch values and ratio.")
+    parser.add_argument(
+        "--road-speed-kmh", type=positive_speed_kmh_arg, default=None,
+        help="Explicit road speed override (km/h); must be > 0 -- zero or "
+             "negative values are rejected with a CLI error, not silently "
+             "ignored. Takes precedence over the workbook's Mode_Speeds "
+             "sheet; omit to let the workbook decide (fallback if neither "
+             f"is available: {DEFAULT_MODE_SPEED_KMH['road']:g} km/h).")
+    parser.add_argument(
+        "--rail-speed-kmh", type=positive_speed_kmh_arg, default=None,
+        help="Explicit rail speed override (km/h); must be > 0 -- zero or "
+             "negative values are rejected with a CLI error, not silently "
+             "ignored. Takes precedence over the workbook's Mode_Speeds "
+             "sheet; omit to let the workbook decide (fallback if neither "
+             f"is available: {DEFAULT_MODE_SPEED_KMH['rail']:g} km/h).")
+    parser.add_argument(
+        "--water-speed-kmh", type=positive_speed_kmh_arg, default=None,
+        help="Explicit water speed override (km/h); must be > 0 -- zero or "
+             "negative values are rejected with a CLI error, not silently "
+             "ignored. Takes precedence over the workbook's Mode_Speeds "
+             "sheet; omit to let the workbook decide (fallback if neither "
+             f"is available: {DEFAULT_MODE_SPEED_KMH['water']:g} km/h).")
+    parser.add_argument(
+        "--risk-metric", choices=["deterministic", "ev", "ccp"], default="ccp",
+        help="Evaluation mode reducing per-scenario objective arrays to "
+             "fitness values: deterministic (single nominal scenario, "
+             "S=1), ev (direct expected inputs), or ccp (separate empirical "
+             "objective quantiles; no punctuality chance constraint).")
     parser.add_argument(
         "--feasible-seed-fraction", type=float,
         default=FEASIBILITY_SEED_FRACTION,
-        help="Initial-population fraction built by reliable-path capacity coordination.")
+        help="Initial-population fraction built by capacity-aware structural coordination.")
     parser.add_argument(
         "--feasibility-restarts", type=int,
         default=FEASIBILITY_SEARCH_RESTARTS,
@@ -3194,6 +3695,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--wait-emission-g-per-teu-h", type=float, default=None,
         help="Optional waiting/idling emission override; zero leaves emissions deterministic.")
+    return parser
+
+
+if __name__ == "__main__":
+
+    parser = build_arg_parser()
     args = parser.parse_args()
 
     DATA_FILE    = args.data
@@ -3202,13 +3709,13 @@ if __name__ == "__main__":
     RUNS         = args.runs
     BASE_SEED    = args.seed
     OUTPUT_DIR   = args.out
-    STOCHASTIC_EVAL = not args.no_stochastic
-    MC_SCENARIOS = max(1, args.mc_scenarios)
+    RISK_METRIC = args.risk_metric
+    STOCHASTIC_EVAL, MC_SCENARIOS = resolve_stochastic_eval_and_scenarios(
+        RISK_METRIC, args.no_stochastic, args.mc_scenarios)
     MC_BASE_SEED = int(args.mc_seed)
     CONFIDENCE_COST = min(1.0, max(0.0, float(args.cost_confidence)))
     CONFIDENCE_EMISSION = min(1.0, max(0.0, float(args.emission_confidence)))
     CONFIDENCE_TIME = min(1.0, max(0.0, float(args.time_confidence)))
-    CONFIDENCE_ONTIME = min(1.0, max(0.0, float(args.ontime_confidence)))
     BORDER_DELAY_MAX_FACTOR = max(1.0, float(args.border_max_factor))
     MODE_TIME_CV = {
         "road": max(0.0, float(args.road_cv)),
@@ -3220,10 +3727,13 @@ if __name__ == "__main__":
         "rail": max(1.0, float(args.rail_max_factor)),
         "water": max(1.0, float(args.water_max_factor)),
     }
-    MODEL_MODE_SPEED_KMH = {
-        "road": max(1e-9, float(args.road_speed_kmh)),
-        "rail": max(1e-9, float(args.rail_speed_kmh)),
-        "water": max(1e-9, float(args.water_speed_kmh)),
+    # None unless the user explicitly passed --{mode}-speed-kmh; resolved
+    # against the workbook and the hardcoded fallback inside
+    # load_network_from_extended() via resolve_effective_speed_map().
+    CLI_MODE_SPEED_OVERRIDE_KMH = {
+        "road": args.road_speed_kmh,
+        "rail": args.rail_speed_kmh,
+        "water": args.water_speed_kmh,
     }
     BORDER_EVENT_DEFINITIONS = load_border_event_definitions(
         args.border_event_data)
@@ -3236,9 +3746,6 @@ if __name__ == "__main__":
             "rail": max(0.0, float(args.border_rail_cv)),
             "water": max(0.0, float(args.border_water_cv)),
         }
-    MAX_LATE_RATIO = max(0.0, float(args.max_late_ratio))
-    MAX_LATE_H_OVERRIDE = (None if args.max_late_h is None
-                           else max(0.0, float(args.max_late_h)))
     FEASIBILITY_SEED_FRACTION = min(
         1.0, max(0.0, float(args.feasible_seed_fraction)))
     FEASIBILITY_SEARCH_RESTARTS = max(1, int(args.feasibility_restarts))
@@ -3266,16 +3773,18 @@ if __name__ == "__main__":
           f"LibCap={PATH_LIB_CAP_TOTAL}")
     print(f"  HV      : MC samples={HV_SAMPLES}  ref={HV_REF_NORM}")
     print(f"  Data    : {DATA_FILE}")
+    print(f"  Mode    : risk_metric={RISK_METRIC}")
     print(f"  Uncert. : enabled={STOCHASTIC_EVAL}  scenarios={MC_SCENARIOS}  "
           f"seed={MC_BASE_SEED}")
     print(f"  CCP     : cost={CONFIDENCE_COST}  emission={CONFIDENCE_EMISSION}  "
-          f"time={CONFIDENCE_TIME}  ontime={CONFIDENCE_ONTIME}")
+          f"time={CONFIDENCE_TIME} (independent empirical quantiles)")
     print(f"            mode_cv={MODE_TIME_CV}  mode_cap={MODE_TIME_MAX_FACTOR}")
-    print(f"            nominal_speed_kmh={MODEL_MODE_SPEED_KMH}")
+    print(f"            requested_speed_override_kmh={CLI_MODE_SPEED_OVERRIDE_KMH}  "
+          "(resolved against workbook Mode_Speeds once loaded, see [INIT] below)")
     print(f"            border_cv={BORDER_DELAY_CV}  "
           f"border_cap={BORDER_DELAY_MAX_FACTOR}")
     print(f"            border_events={args.border_event_data}")
-    print(f"  Lateness: ratio={MAX_LATE_RATIO}  override_h={MAX_LATE_H_OVERRIDE}")
+    print("  Lateness: economic scenario cost only (not a feasibility constraint)")
     print(f"  FeasSeed: fraction={FEASIBILITY_SEED_FRACTION:.2f}  "
           f"restarts={FEASIBILITY_SEARCH_RESTARTS}  "
           f"iterations={FEASIBILITY_SEARCH_ITERATIONS}")
@@ -3295,7 +3804,9 @@ if __name__ == "__main__":
      arcs, timetables, raw_batches,
      waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
      carbon_tax_map, emission_factor_map, mode_speeds_map,
-     trans_map, border_delay_map, theta_rm) = load_network_from_extended(DATA_FILE)
+     trans_map, border_delay_map, theta_rm,
+     mode_speed_source) = load_network_from_extended(
+        DATA_FILE, cli_speed_override=CLI_MODE_SPEED_OVERRIDE_KMH)
 
     if args.batches_csv:
         raw_batches = load_batches_from_csv(args.batches_csv)
@@ -3326,6 +3837,7 @@ if __name__ == "__main__":
     elif wait_emis_g_per_teu_h <= 0.0:
         print("[WARN] Waiting emission is zero: the emission CCP is "
               "deterministic under the current system boundary.")
+    print_waiting_emission_configuration(wait_emis_g_per_teu_h)
 
     if args.expected_batches:
         assert len(raw_batches) == args.expected_batches, \
@@ -3340,14 +3852,24 @@ if __name__ == "__main__":
         node_names, node_region, arcs, raw_batches, tt_dict, arc_lookup)
     sanity_check_path_lib(raw_batches, path_lib)
 
-    scenario_set = configure_scenario_set(
-        arcs=arcs,
-        border_delay_map=border_delay_map,
-        size=MC_SCENARIOS,
-        seed=MC_BASE_SEED,
-        stochastic=STOCHASTIC_EVAL,
-        border_event_definitions=BORDER_EVENT_DEFINITIONS,
-    )
+    if RISK_METRIC == "ev":
+        scenario_set = build_expected_value_scenario_set(
+            arcs=arcs,
+            border_delay_map=border_delay_map,
+            seed=MC_BASE_SEED,
+            border_event_definitions=BORDER_EVENT_DEFINITIONS,
+        )
+        ACTIVE_SCENARIO_SET = scenario_set
+        _PATH_SCENARIO_CACHE = {}
+    else:
+        scenario_set = configure_scenario_set(
+            arcs=arcs,
+            border_delay_map=border_delay_map,
+            size=MC_SCENARIOS,
+            seed=MC_BASE_SEED,
+            stochastic=STOCHASTIC_EVAL,
+            border_event_definitions=BORDER_EVENT_DEFINITIONS,
+        )
     print(f"[INIT] Frozen scenario set: S={scenario_set.size}, "
           f"seed={scenario_set.seed}, stochastic={scenario_set.stochastic}")
     print(f"[INIT] Border-event shocks: "
@@ -3355,69 +3877,32 @@ if __name__ == "__main__":
           f"{len(scenario_set.arc_border_event)} network arcs")
     reliable_options = build_reliable_path_options(
         raw_batches, path_lib, tt_dict, trans_map, border_delay_map,
-        scenario_set)
-    scenario_manifest = {
-        "scenario_count": scenario_set.size,
-        "scenario_seed": scenario_set.seed,
-        "stochastic": scenario_set.stochastic,
-        "confidence": {
-            "cost": CONFIDENCE_COST,
-            "emission": CONFIDENCE_EMISSION,
-            "time": CONFIDENCE_TIME,
-            "on_time_per_batch": CONFIDENCE_ONTIME,
-        },
-        "mode_time_cv": MODE_TIME_CV,
-        "mode_time_cap_factor": MODE_TIME_MAX_FACTOR,
-        "mode_speed_kmh": MODEL_MODE_SPEED_KMH,
-        "timetable_role": (
-            "frequency/first_departure/headway determine schedule waiting; "
-            "arc mean running time is distance/mode_speed"),
-        "border_delay_cv": BORDER_DELAY_CV,
-        "border_delay_cap_factor": BORDER_DELAY_MAX_FACTOR,
-        "border_event_data_file": str(FSPath(
-            args.border_event_data).resolve()),
-        "border_event_source_records": [
-            {
-                "event": "|".join(key),
-                "mean_delay_h": definition.mean_delay_h,
-                "exit_mean_h": definition.exit_mean_h,
-                "entry_mean_h": definition.entry_mean_h,
-                "source": definition.source,
-                "source_year": definition.source_year,
-            }
-            for key, definition in BORDER_EVENT_DEFINITIONS.items()
-        ],
-        "border_event_fallback": (
-            "Manzhouli-Zabaykalsk and Brest-Malaszewicze use the sum "
-            "of available Node_Border side means until directional "
-            "records are added to the source CSV"),
-        "border_event_means_h": {
-            "|".join(key): value
-            for key, value in scenario_set.border_event_mean_h.items()
-        },
-        "max_late_ratio": MAX_LATE_RATIO,
-        "max_late_h_override": MAX_LATE_H_OVERRIDE,
-        "late_penalty": {
-            "source_mode": late_penalty_source,
-            "input_basis": late_penalty_input_basis,
-            "baseline_usd_per_teu_day": sourced_late_penalty_h * 24.0,
-            "applied_common_usd_per_teu_hour": (
-                None if args.use_input_late_penalties
-                else sourced_late_penalty_h),
-        },
-        "payload_tonnes_per_teu": PAYLOAD_TONNES_PER_TEU,
-        "wait_emission_g_per_teu_h": wait_emis_g_per_teu_h,
-        "fitness_evaluation": "frozen_scenarios_empirical_order_statistics",
-        "algorithmic_randomness": "controlled separately by --seed",
-        "feasibility_first_search": {
-            "seed_fraction": FEASIBILITY_SEED_FRACTION,
-            "restarts": FEASIBILITY_SEARCH_RESTARTS,
-            "iterations_per_restart": FEASIBILITY_SEARCH_ITERATIONS,
-            "single_path_reliability_screen": True,
-            "capacity_aware_min_conflicts": True,
-            "constraint_selection": "normalized_Deb_constraint_domination",
-        },
-    }
+        scenario_set, mode=RISK_METRIC)
+    scenario_manifest = build_scenario_manifest(
+        risk_metric=RISK_METRIC,
+        scenario_set=scenario_set,
+        confidence_cost=CONFIDENCE_COST,
+        confidence_emission=CONFIDENCE_EMISSION,
+        confidence_time=CONFIDENCE_TIME,
+        mode_time_cv=MODE_TIME_CV,
+        mode_time_cap_factor=MODE_TIME_MAX_FACTOR,
+        mode_speed_kmh=mode_speeds_map,
+        mode_speed_source=mode_speed_source,
+        mode_speed_requested_cli_override_kmh=CLI_MODE_SPEED_OVERRIDE_KMH,
+        border_delay_cv=BORDER_DELAY_CV,
+        border_delay_cap_factor=BORDER_DELAY_MAX_FACTOR,
+        border_event_data_file=str(FSPath(args.border_event_data).resolve()),
+        border_event_definitions=BORDER_EVENT_DEFINITIONS,
+        late_penalty_source=late_penalty_source,
+        late_penalty_input_basis=late_penalty_input_basis,
+        late_penalty_baseline_usd_per_teu_h=sourced_late_penalty_h,
+        use_input_late_penalties=args.use_input_late_penalties,
+        payload_tonnes_per_teu=PAYLOAD_TONNES_PER_TEU,
+        wait_emission_g_per_teu_h=wait_emis_g_per_teu_h,
+        feasibility_seed_fraction=FEASIBILITY_SEED_FRACTION,
+        feasibility_search_restarts=FEASIBILITY_SEARCH_RESTARTS,
+        feasibility_search_iterations=FEASIBILITY_SEARCH_ITERATIONS,
+    )
     (FSPath(OUTPUT_DIR) / "scenario_manifest.json").write_text(
         _json.dumps(scenario_manifest, ensure_ascii=False, indent=2),
         encoding="utf-8")
@@ -3496,9 +3981,7 @@ if __name__ == "__main__":
             "best_cap_excess":          float(best_bd.get("cap_excess", 0.0)),
             "best_border_cap_excess":   float(best_bd.get("border_cap_excess", 0.0)),
             "best_late_teu_h":          float(best_bd.get("late_teu_h", 0.0)),
-            "best_max_late_excess_h":   float(best_bd.get("max_late_excess_h", 0.0)),
             "best_max_observed_late_h": float(best_bd.get("max_observed_late_h", 0.0)),
-            "best_chance_vio":          float(best_bd.get("chance_vio", 0.0)),
             "best_min_on_time_prob":    float(best_bd.get("min_on_time_prob", 0.0)),
             "boost_gens_triggered":     int(sum(boost_trigger_hist)),
             "boost_new_feasible_total": int(sum(boost_new_feas_hist)),

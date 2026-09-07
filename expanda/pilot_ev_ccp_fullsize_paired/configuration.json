@@ -1,0 +1,66 @@
+{
+  "label": "one paired pilot; not a formal replication series",
+  "data_file": "/home/lunet/cokt2/uncertainty/expanda/data/data_expanded.xlsx",
+  "expected_batches": 40,
+  "population": 300,
+  "generations": 500,
+  "alpha": 0.9,
+  "training_sizes": [
+    30,
+    50
+  ],
+  "validation_size": 5000,
+  "candidate_pool_limit": null,
+  "seeds": {
+    "training_master_S50": 862050,
+    "validation": 869999,
+    "algorithm_shared_EV_CCP30_CCP50": 861337,
+    "EV_optimisation": 861337,
+    "CCP30_optimisation": 861337,
+    "CCP50_optimisation": 861337,
+    "path_library": 0
+  },
+  "operators": {
+    "crossover_rate": 0.9,
+    "mutation_rate": 0.15
+  },
+  "uncertainty_parameters_unchanged": {
+    "mode_time_cv": {
+      "road": 0.15,
+      "rail": 0.1,
+      "water": 0.2
+    },
+    "mode_time_max_factor": {
+      "road": 2.0,
+      "rail": 1.8,
+      "water": 2.5
+    },
+    "border_delay_cv": {
+      "road": 0.45,
+      "rail": 0.6,
+      "water": 0.4
+    },
+    "border_delay_max_factor": 3.5,
+    "wait_emission_g_per_teu_h": 0.0
+  },
+  "ev_definition": "S=1 direct model expectations: travel multipliers=1.0 and border delays=model means; no sampling",
+  "ccp_definition": "all training scenarios evaluated during optimisation; empirical ceil(alpha*S)-th objective order statistics",
+  "punctuality_semantics": "diagnostic only; not CCP feasibility",
+  "paired_design": "same algorithm seed, path library, and reliable-option ordering for all methods",
+  "scenario_digests": {
+    "training_S30_prefix": "5faaa617276a769cd12a4f844986338f19e2f9bbda246d2549c57a52b30c7d3d",
+    "training_S50_master": "a8d548d5e44c7767252c145670ef02e2f3c36ca0d975d57969cf23e8981e4eab",
+    "validation": "cea8510c7a7f85132f06a46454aeccca5ed50605b799a1ed9f6f187fc16eb131"
+  },
+  "independence_evidence": {
+    "different_seeds": true,
+    "separate_generation_calls": true,
+    "validation_digest_differs_from_training": true,
+    "S30_is_exact_S50_prefix": true
+  },
+  "paired_seed_evidence": {
+    "all_method_algorithm_seeds_equal": true,
+    "shared_path_library": true,
+    "shared_reliable_option_ordering": true
+  }
+}

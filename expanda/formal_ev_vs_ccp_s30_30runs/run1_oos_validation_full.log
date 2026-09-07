@@ -1,0 +1,29 @@
+nohup: ignoring input
+[INFO] Loaded directional border events: 4 from /home/lunet/cokt2/uncertainty/expanda/data/border_crossing_events.csv
+[INFO] Loaded carbon tax for 5 regions.
+[INFO] Loaded emission factors for 15 (mode, region) pairs.
+[INFO] Loaded mode speeds: {'road': 60.0, 'rail': 120.0, 'water': 35.0}
+[INFO] Effective mode speeds (CLI override > workbook Mode_Speeds > hardcoded fallback): {'rail': (120.0, 'workbook_mode_speeds'), 'road': (60.0, 'workbook_mode_speeds'), 'water': (35.0, 'workbook_mode_speeds')}
+[INFO] Loaded transshipment entries: 140
+[INFO] Loaded border delay map (per-mode +customs): 93 entries.
+[INFO] Loaded carbon tax applicability: 8 entries.
+[INFO] Loaded border capacity: 31 nodes | background flow: 8 nodes.
+[INFO] Active break-of-gauge capacities: {'Altynkol': 700.0, 'Dostyk': 800.0, 'Malaszewicze': 500.0, 'Erenhot': 900.0, 'Brest': 600.0, 'Manzhouli': 900.0, 'Zabaykalsk': 700.0, 'Khorgos': 900.0, 'Alashankou': 900.0}
+[INFO] Active break-of-gauge background flow: {'Altynkol': 350.0, 'Dostyk': 450.0, 'Erenhot': 450.0, 'Brest': 350.0, 'Manzhouli': 450.0, 'Zabaykalsk': 350.0, 'Khorgos': 500.0, 'Alashankou': 500.0}
+[INFO] Loaded China border nodes (7): ['Alashankou', 'Chongqing', 'Erenhot', 'Khorgos', 'Lianyungang', 'Manzhouli', 'Yiwu']
+[INFO] Loaded waiting params: cost=0.8, emission=320.5
+[INFO] Timetable loaded: 168 scheduled services; using frequency, first departure and headway for induced waiting.
+[WARN] Timetable.time is loaded only as legacy metadata: its unit is undocumented (observed values=[300.0, 355.0, 415.0, 518.0]); it is not used as arc travel hours. Running time follows distance / documented mode speed.
+[INFO] Batches loaded: 40
+[CONFIG] Waiting emission = 320.50 gCO2/TEU/hour
+[CONFIG] Waiting emissions included in regional carbon cost = True
+[INFO] All paths pass border monotonicity. ✅
+[SANITY] ✅ All batches have paths.
+EV solutions loaded: 259
+CCP30 solutions loaded: 263
+Total solutions: 522
+OOS scenarios: 5000
+Validation seed: 930001
+Highest EV Pareto appearance: 1882/5000 (0.376400)
+Highest CCP30 Pareto appearance: 5000/5000 (1.000000)
+Validated 522 fixed Run-1 solutions; saved Pareto appearance frequencies to /home/lunet/cokt2/uncertainty/expanda/formal_ev_vs_ccp_s30_30runs/run1_oos_validation

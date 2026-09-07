@@ -1,0 +1,25 @@
+{
+  "cost": {
+    "mean_relative_error_pct": 1.087340456314874,
+    "median_relative_error_pct": 1.1006204740647605,
+    "maximum_relative_error_pct": 1.402570081501723
+  },
+  "emission": {
+    "mean_relative_error_pct": 0.03481697920823159,
+    "median_relative_error_pct": 0.03467757627769093,
+    "maximum_relative_error_pct": 0.06231263561426926
+  },
+  "makespan": {
+    "mean_relative_error_pct": 3.1980260035365418,
+    "median_relative_error_pct": 3.2346853985189834,
+    "maximum_relative_error_pct": 6.928406963712466
+  },
+  "solution_count": 263,
+  "training_scenarios": 30,
+  "training_seed": 920001,
+  "oos_scenarios": 5000,
+  "oos_seed": 930001,
+  "alpha": 0.9,
+  "waiting_emission_gCO2_per_TEU_h": 320.5,
+  "carbon_cost_waiting_emission": true
+}

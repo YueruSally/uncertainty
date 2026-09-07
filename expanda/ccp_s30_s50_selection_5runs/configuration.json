@@ -1,0 +1,93 @@
+{
+  "label": "five-pair CCP scenario-size selection study; not formal experiment",
+  "population": 300,
+  "generations": 500,
+  "alpha": 0.9,
+  "training_sizes": [
+    30,
+    50
+  ],
+  "validation_size": 5000,
+  "replicate_seeds": [
+    {
+      "replicate": 1,
+      "algorithm": 871001,
+      "training_S50_master": 872001
+    },
+    {
+      "replicate": 2,
+      "algorithm": 871002,
+      "training_S50_master": 872002
+    },
+    {
+      "replicate": 3,
+      "algorithm": 871003,
+      "training_S50_master": 872003
+    },
+    {
+      "replicate": 4,
+      "algorithm": 871004,
+      "training_S50_master": 872004
+    },
+    {
+      "replicate": 5,
+      "algorithm": 871005,
+      "training_S50_master": 872005
+    }
+  ],
+  "selection_validation_seed": 879999,
+  "path_library_seed": 0,
+  "candidate_pool_limit": null,
+  "selection_validation_reuse_prohibition": "must not be presented as final independent validation for formal study",
+  "quality_metric_definition": {
+    "objectives": [
+      "q90 cost",
+      "q90 emission",
+      "q90 makespan"
+    ],
+    "pooled_reference_front": "nondominated union of both methods' validated candidates within each replicate",
+    "normalisation": "objective-wise pooled-reference-front ideal and nadir; a zero range maps to zero",
+    "hypervolume_reference_point": [
+      1.2,
+      1.2,
+      1.2
+    ],
+    "hypervolume_algorithm": "exact three-dimensional dominated volume",
+    "IGD_plus_reference": "normalised pooled validated reference front"
+  },
+  "validation_scenario_digest": "10c9a4c87e69a772317cc1884fe301d9101f5d19a7237dfa86acc6c85b0542a2",
+  "waiting_emission_g_per_teu_h": 0.0,
+  "preflight": {
+    "paired_algorithm_seeds": true,
+    "validation_seed_distinct_from_all_training": true,
+    "shared_path_library_and_option_ordering": true,
+    "all_S30_exact_prefix_checks": true
+  },
+  "training_scenario_digests": [
+    {
+      "replicate": 1,
+      "S30": "12d9d741ac07a71d5e8faef25838b169a6d60bc41e923ac00476e2186a87cc59",
+      "S50": "e54f3ac36d6b2b86bb9b7fbc56882052d0a52243e866f624df9990e96c26f17e"
+    },
+    {
+      "replicate": 2,
+      "S30": "37af964bce7b04d5f19e62aed0c9439951d427d9952ec37d0db27cfd6c15fac4",
+      "S50": "7b3333a6fe4808c5e362fc10d03d1619a31ec6b040290898985d8917c2faeacb"
+    },
+    {
+      "replicate": 3,
+      "S30": "ca821e1b8b00ec96313755d2871f9a53e5c2866d5cede6eb527b3a3c07d3f1f4",
+      "S50": "ac3411bcffdc6f26ee3ab5b948db997831cab23f95431e3d1c31833371f94d5d"
+    },
+    {
+      "replicate": 4,
+      "S30": "bfc1ffc2224a089ba368223b73b524a7c332f0d9669add64f3582d2b6b7206cf",
+      "S50": "50c5fb5693bd1b2b288d65e2de69890c58bea26fcc1fefd28871421defff7efb"
+    },
+    {
+      "replicate": 5,
+      "S30": "1590276168fbe905ff4a82749a27d4a6cbc0a782b36e2a2ac3865362f7954b09",
+      "S50": "be270cb79dc0c8c81cc83f7857da9855ccdd1c18c6fba0ceb2cceb3d38cb336e"
+    }
+  ]
+}

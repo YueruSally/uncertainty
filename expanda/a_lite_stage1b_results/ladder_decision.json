@@ -1,0 +1,7 @@
+{
+  "selected_S": 200,
+  "stage2_may_proceed": true,
+  "s500_gate_consulted": false,
+  "rationale": "S200 vs S1000 passed G1 AND G2dagger AND G3. Per the frozen ladder S500 is NOT evaluated as a replacement gate decision; all its results remain part of the fixed study and are reported.",
+  "diagnostic_only_pair": "S200_vs_S500"
+}

@@ -14,14 +14,11 @@ else
   PYTHON_EXECUTABLE="python3"
 fi
 
-exec "$PYTHON_EXECUTABLE" baseline_uncertainty.py \
+exec "$PYTHON_EXECUTABLE" run_ccp_candidate_pool.py \
   --pop "${POP_SIZE:-200}" \
   --gens "${GENERATIONS:-300}" \
-  --runs "${RUNS:-1}" \
-  --mc-scenarios "${MC_SCENARIOS:-200}" \
-  --alpha "${ONTIME_CONFIDENCE:-0.90}" \
-  --feasible-seed-fraction "${FEASIBLE_SEED_FRACTION:-0.30}" \
-  --feasibility-restarts "${FEASIBILITY_RESTARTS:-40}" \
-  --feasibility-iterations "${FEASIBILITY_ITERATIONS:-250}" \
-  --out "${OUTPUT_DIR:-outputs/uncertainty_ccp}" \
+  --scenarios "${MC_SCENARIOS:-200}" \
+  --mc-seed "${MC_SEED:-1000003}" \
+  --seed "${BASE_SEED:-1000}" \
+  --out "${OUTPUT_DIR:-outputs/ccp_candidate_pool}" \
   "$@"

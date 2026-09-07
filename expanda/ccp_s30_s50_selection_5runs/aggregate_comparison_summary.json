@@ -1,0 +1,26 @@
+{
+  "HV_wins": {
+    "CCP30": 3,
+    "CCP50": 2,
+    "ties": 0
+  },
+  "IGD_plus_wins": {
+    "CCP30": 4,
+    "CCP50": 1,
+    "ties": 0
+  },
+  "lower_median_cost_q90_error": {
+    "CCP30": 2,
+    "CCP50": 3
+  },
+  "lower_median_makespan_q90_error": {
+    "CCP30": 2,
+    "CCP50": 3
+  },
+  "median_absolute_paired_runtime_difference_percent": 0.8858748856608647,
+  "runtime_effectively_similar_by_predeclared_rule": true,
+  "all_stage_c_fingerprints_unchanged": true,
+  "all_fixed_candidate_emissions_scenario_invariant": true,
+  "total_candidate_scenario_evaluations": 13535000,
+  "punctuality_is_diagnostic_only": true
+}

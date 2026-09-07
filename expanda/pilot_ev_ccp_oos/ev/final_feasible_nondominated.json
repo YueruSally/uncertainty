@@ -1,0 +1,8015 @@
+[
+  {
+    "method": "EV",
+    "source_run": "pilot-EV-run-1",
+    "source_solution_id": "pilot-EV-run-1-solution-0000",
+    "decision_fingerprint": "52659aeb2ef8f491af0c6a9995944bb9b8f81af1670896154cda666d54ec43b1",
+    "decision": [
+      {
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "batch_id": 5,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 833,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "batch_id": 27,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4931,
+            "nodes": [
+              "Chengdu",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Rotterdam",
+              "Antwerp",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "batch_id": 17,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3237,
+            "nodes": [
+              "Chengdu",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "batch_id": 3,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 403,
+            "nodes": [
+              "Chongqing",
+              "Changsha",
+              "Hefei",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "batch_id": 4,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 746,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "batch_id": 12,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2379,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "batch_id": 38,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 7031,
+            "nodes": [
+              "Chongqing",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Bratislava",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 14,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2663,
+            "nodes": [
+              "Chongqing",
+              "Xi'an",
+              "Shanghai",
+              "Hamburg",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 25,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2722,
+            "nodes": [
+              "Chongqing",
+              "Xiangyang",
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "batch_id": 18,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3511,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Omsk",
+              "Yekaterinburg",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 10,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1956,
+            "nodes": [
+              "Hefei",
+              "Shanghai",
+              "Rotterdam",
+              "Prague",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 20,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1823,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "batch_id": 19,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3734,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "batch_id": 36,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6693,
+            "nodes": [
+              "Lianyungang",
+              "Shenyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Malaszewicze",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "batch_id": 21,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3927,
+            "nodes": [
+              "Lianyungang",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Berlin",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "batch_id": 30,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5434,
+            "nodes": [
+              "Lianyungang",
+              "Dalian",
+              "Tianjin",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 22,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4093,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Berlin",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 40,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4139,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "batch_id": 26,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4675,
+            "nodes": [
+              "Nanjing",
+              "Dalian",
+              "Tianjin",
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "batch_id": 34,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6223,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "batch_id": 13,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2537,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Nuremberg",
+              "Munich",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "batch_id": 11,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2003,
+            "nodes": [
+              "Qingdao",
+              "Shanghai",
+              "Hamburg"
+            ],
+            "modes": [
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "batch_id": 31,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5605,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam",
+              "Antwerp",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "batch_id": 29,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5227,
+            "nodes": [
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "batch_id": 16,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3049,
+            "nodes": [
+              "Shanghai",
+              "Qingdao",
+              "Shenyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Duisburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "batch_id": 9,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1644,
+            "nodes": [
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "batch_id": 23,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4268,
+            "nodes": [
+              "Tianjin",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg",
+              "Munich",
+              "Vienna",
+              "Bratislava",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "batch_id": 35,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6444,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Berlin",
+              "Prague",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "batch_id": 7,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1352,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "batch_id": 1,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 171,
+            "nodes": [
+              "Xi'an",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "batch_id": 2,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 215,
+            "nodes": [
+              "Xi'an",
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Prague",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "batch_id": 28,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5003,
+            "nodes": [
+              "Xi'an",
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "batch_id": 24,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4570,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "St.Petersburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 33,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6032,
+            "nodes": [
+              "Yiwu",
+              "Xiangyang",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Moscow",
+              "Lodz",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 39,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5998,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "batch_id": 8,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1435,
+            "nodes": [
+              "Yiwu",
+              "Erenhot",
+              "Moscow",
+              "Duisburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "batch_id": 37,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6918,
+            "nodes": [
+              "Zhengzhou",
+              "Suzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "batch_id": 15,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2960,
+            "nodes": [
+              "Zhengzhou",
+              "Tianjin",
+              "Lianyungang",
+              "Rotterdam",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "batch_id": 32,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5836,
+            "nodes": [
+              "Zhengzhou",
+              "Suzhou",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "batch_id": 6,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1164,
+            "nodes": [
+              "Zhengzhou",
+              "Tianjin",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      }
+    ],
+    "optimisation_objectives": {
+      "cost": 14803739.154791549,
+      "emission": 16195716293.720001,
+      "makespan": 555.2516666666667
+    },
+    "training_feasible": true,
+    "training_min_on_time_probability": 0.0,
+    "training_batch_on_time_probability": {
+      "1": 1.0,
+      "2": 1.0,
+      "3": 0.0,
+      "4": 0.0,
+      "5": 1.0,
+      "6": 1.0,
+      "7": 1.0,
+      "8": 1.0,
+      "9": 1.0,
+      "10": 1.0,
+      "11": 1.0,
+      "12": 1.0,
+      "13": 1.0,
+      "14": 1.0,
+      "15": 1.0,
+      "16": 1.0,
+      "17": 1.0,
+      "18": 1.0,
+      "19": 1.0,
+      "20": 0.0,
+      "21": 1.0,
+      "22": 1.0,
+      "23": 0.0,
+      "24": 1.0,
+      "25": 0.0,
+      "26": 1.0,
+      "27": 0.0,
+      "28": 1.0,
+      "29": 1.0,
+      "30": 1.0,
+      "31": 0.0,
+      "32": 1.0,
+      "33": 1.0,
+      "34": 1.0,
+      "35": 0.0,
+      "36": 1.0,
+      "37": 0.0,
+      "38": 1.0,
+      "39": 1.0,
+      "40": 1.0
+    },
+    "training_violation": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.9971428571428571,
+      "late_teu_h": 65198.31357142857,
+      "max_observed_late_h": 136.48523809523817,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 13391.688333333334,
+      "wait_teu_h": 468864.8203571429,
+      "trans_teu_h": 67131.0,
+      "trans_cost": 2044050.0,
+      "carbon_cost": 156799.25368441,
+      "scenario_cost_mean": 14803739.154791549,
+      "scenario_emission_mean": 16195716293.720001,
+      "scenario_time_mean": 555.2516666666667,
+      "risk_metric": "ev"
+    },
+    "random_seeds": {
+      "training_master_S50": 310050,
+      "validation": 950005,
+      "EV_optimisation": 410001,
+      "CCP30_optimisation": 410030,
+      "CCP50_optimisation": 410050,
+      "path_library": 0
+    },
+    "configuration": {
+      "population": 20,
+      "generations": 5,
+      "alpha": 0.9
+    }
+  },
+  {
+    "method": "EV",
+    "source_run": "pilot-EV-run-1",
+    "source_solution_id": "pilot-EV-run-1-solution-0001",
+    "decision_fingerprint": "5df4d3623819d385d6ddb9ed90e422ca4dc629979b7c46020b13631b72d77de4",
+    "decision": [
+      {
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "batch_id": 5,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 809,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "batch_id": 27,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4795,
+            "nodes": [
+              "Chengdu",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "batch_id": 17,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3257,
+            "nodes": [
+              "Chengdu",
+              "Suzhou",
+              "Ningbo",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "batch_id": 3,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 531,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Budapest",
+              "Bratislava",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "batch_id": 4,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 631,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "batch_id": 12,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2373,
+            "nodes": [
+              "Chongqing",
+              "Guangzhou",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "batch_id": 38,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 7096,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Bratislava",
+              "Vienna",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 14,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2617,
+            "nodes": [
+              "Chongqing",
+              "Hefei",
+              "Nanjing",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 25,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2671,
+            "nodes": [
+              "Chongqing",
+              "Nanjing",
+              "Shanghai",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "batch_id": 18,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3426,
+            "nodes": [
+              "Chongqing",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 10,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1956,
+            "nodes": [
+              "Hefei",
+              "Shanghai",
+              "Rotterdam",
+              "Prague",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 20,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1981,
+            "nodes": [
+              "Hefei",
+              "Nanjing",
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Antwerp",
+              "Rotterdam",
+              "Duisburg",
+              "Berlin",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "water",
+              "water",
+              "road",
+              "water",
+              "rail",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "batch_id": 19,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3656,
+            "nodes": [
+              "Hefei",
+              "Nanjing",
+              "Dalian",
+              "Shenyang",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "batch_id": 36,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6725,
+            "nodes": [
+              "Lianyungang",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Malaszewicze",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "batch_id": 21,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3790,
+            "nodes": [
+              "Lianyungang",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "batch_id": 30,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5493,
+            "nodes": [
+              "Lianyungang",
+              "Xiangyang",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 22,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3996,
+            "nodes": [
+              "Nanjing",
+              "Shanghai",
+              "Rotterdam",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 40,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4118,
+            "nodes": [
+              "Nanjing",
+              "Shanghai",
+              "Hamburg",
+              "Nuremberg",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "batch_id": 26,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4654,
+            "nodes": [
+              "Nanjing",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "batch_id": 34,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6326,
+            "nodes": [
+              "Ningbo",
+              "Xi'an",
+              "Zhengzhou",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Hamburg",
+              "Duisburg",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "water",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "batch_id": 13,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2411,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "batch_id": 11,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2183,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "batch_id": 31,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5616,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Prague"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "water",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "batch_id": 29,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5355,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "batch_id": 16,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3070,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "batch_id": 9,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1777,
+            "nodes": [
+              "Suzhou",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Kazan",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "batch_id": 23,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4341,
+            "nodes": [
+              "Tianjin",
+              "Qingdao",
+              "Shanghai",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "batch_id": 35,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6465,
+            "nodes": [
+              "Wuhan",
+              "Xi'an",
+              "Zhengzhou",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Moscow",
+              "Prague",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "batch_id": 7,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1352,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "batch_id": 1,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 38,
+            "nodes": [
+              "Xi'an",
+              "Shanghai",
+              "Hamburg",
+              "Rotterdam",
+              "Prague",
+              "Berlin"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "water",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "batch_id": 2,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 315,
+            "nodes": [
+              "Xi'an",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "batch_id": 28,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5142,
+            "nodes": [
+              "Xi'an",
+              "Xiangyang",
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "batch_id": 24,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4416,
+            "nodes": [
+              "Xi'an",
+              "Ningbo",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 33,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6116,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 39,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5991,
+            "nodes": [
+              "Yiwu",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "batch_id": 8,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1523,
+            "nodes": [
+              "Yiwu",
+              "Zhengzhou",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "batch_id": 37,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6917,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "batch_id": 15,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2986,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Berlin",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "batch_id": 32,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5930,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "batch_id": 6,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1048,
+            "nodes": [
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Malaszewicze",
+              "Budapest",
+              "Vienna",
+              "Bratislava",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      }
+    ],
+    "optimisation_objectives": {
+      "cost": 14774413.052023048,
+      "emission": 15573266831.149998,
+      "makespan": 627.6933333333334
+    },
+    "training_feasible": true,
+    "training_min_on_time_probability": 0.0,
+    "training_batch_on_time_probability": {
+      "1": 0.0,
+      "2": 0.0,
+      "3": 1.0,
+      "4": 1.0,
+      "5": 1.0,
+      "6": 1.0,
+      "7": 1.0,
+      "8": 1.0,
+      "9": 1.0,
+      "10": 1.0,
+      "11": 1.0,
+      "12": 1.0,
+      "13": 1.0,
+      "14": 1.0,
+      "15": 1.0,
+      "16": 1.0,
+      "17": 0.0,
+      "18": 1.0,
+      "19": 1.0,
+      "20": 0.0,
+      "21": 1.0,
+      "22": 1.0,
+      "23": 0.0,
+      "24": 1.0,
+      "25": 1.0,
+      "26": 1.0,
+      "27": 1.0,
+      "28": 1.0,
+      "29": 1.0,
+      "30": 1.0,
+      "31": 0.0,
+      "32": 1.0,
+      "33": 1.0,
+      "34": 1.0,
+      "35": 1.0,
+      "36": 1.0,
+      "37": 0.0,
+      "38": 0.0,
+      "39": 0.0,
+      "40": 1.0
+    },
+    "training_violation": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.976,
+      "late_teu_h": 86505.58880952382,
+      "max_observed_late_h": 211.69333333333338,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 13572.295952380959,
+      "wait_teu_h": 467921.49976190476,
+      "trans_teu_h": 64080.0,
+      "trans_cost": 1912500.0,
+      "carbon_cost": 161768.39715399995,
+      "scenario_cost_mean": 14774413.052023048,
+      "scenario_emission_mean": 15573266831.149998,
+      "scenario_time_mean": 627.6933333333334,
+      "risk_metric": "ev"
+    },
+    "random_seeds": {
+      "training_master_S50": 310050,
+      "validation": 950005,
+      "EV_optimisation": 410001,
+      "CCP30_optimisation": 410030,
+      "CCP50_optimisation": 410050,
+      "path_library": 0
+    },
+    "configuration": {
+      "population": 20,
+      "generations": 5,
+      "alpha": 0.9
+    }
+  },
+  {
+    "method": "EV",
+    "source_run": "pilot-EV-run-1",
+    "source_solution_id": "pilot-EV-run-1-solution-0002",
+    "decision_fingerprint": "4468c4f4b5ba9a9437ebff335f1f23853dbe941b850fc4bba9d19ba3eb002472",
+    "decision": [
+      {
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "batch_id": 5,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 893,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "St.Petersburg",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "batch_id": 27,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4862,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Dostyk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Bratislava",
+              "Vienna",
+              "Prague",
+              "Munich"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "batch_id": 17,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3206,
+            "nodes": [
+              "Chengdu",
+              "Lianyungang",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "batch_id": 3,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 523,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Hamburg",
+              "Berlin",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "batch_id": 4,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 796,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "batch_id": 12,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2259,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "batch_id": 38,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 7096,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Bratislava",
+              "Vienna",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 14,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2700,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Hamburg",
+              "Berlin",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "rail",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 25,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2611,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "batch_id": 18,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3553,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Dostyk",
+              "Altynkol",
+              "Almaty",
+              "Astana",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 10,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1922,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam",
+              "Duisburg",
+              "Nuremberg",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "water",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 20,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1891,
+            "nodes": [
+              "Hefei",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "batch_id": 19,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3734,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "batch_id": 36,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6693,
+            "nodes": [
+              "Lianyungang",
+              "Shenyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Malaszewicze",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "batch_id": 21,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3898,
+            "nodes": [
+              "Lianyungang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Kazan",
+              "Duisburg",
+              "Berlin",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "batch_id": 30,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5540,
+            "nodes": [
+              "Lianyungang",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 22,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4139,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 40,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4136,
+            "nodes": [
+              "Nanjing",
+              "Hefei",
+              "Shanghai",
+              "Hamburg",
+              "Rotterdam",
+              "Duisburg",
+              "Munich",
+              "Vienna",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "batch_id": 26,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4654,
+            "nodes": [
+              "Nanjing",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "batch_id": 34,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6184,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "batch_id": 13,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2411,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "batch_id": 11,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2030,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Hamburg"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "batch_id": 31,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5682,
+            "nodes": [
+              "Qingdao",
+              "Dalian",
+              "Tianjin",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "batch_id": 29,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5204,
+            "nodes": [
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "batch_id": 16,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3170,
+            "nodes": [
+              "Shanghai",
+              "Hefei",
+              "Zhengzhou",
+              "Dalian",
+              "Shenyang",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Berlin",
+              "Duisburg",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "batch_id": 9,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1644,
+            "nodes": [
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "batch_id": 23,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4326,
+            "nodes": [
+              "Tianjin",
+              "Shenyang",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "batch_id": 35,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6526,
+            "nodes": [
+              "Wuhan",
+              "Zhengzhou",
+              "Xiangyang",
+              "Erenhot",
+              "Moscow",
+              "Budapest",
+              "Vienna",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "batch_id": 7,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1283,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "batch_id": 1,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 51,
+            "nodes": [
+              "Xi'an",
+              "Suzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "batch_id": 2,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 210,
+            "nodes": [
+              "Xi'an",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "batch_id": 28,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5062,
+            "nodes": [
+              "Xi'an",
+              "Urumqi",
+              "Altynkol",
+              "Bishkek",
+              "Malaszewicze",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "batch_id": 24,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4564,
+            "nodes": [
+              "Xi'an",
+              "Shanghai",
+              "Hamburg",
+              "Berlin",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 33,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5977,
+            "nodes": [
+              "Yiwu",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 39,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6035,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "batch_id": 8,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1534,
+            "nodes": [
+              "Yiwu",
+              "Hefei",
+              "Shanghai",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "batch_id": 37,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6782,
+            "nodes": [
+              "Zhengzhou",
+              "Tianjin",
+              "Dalian",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "water",
+              "road",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "batch_id": 15,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2813,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "batch_id": 32,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5769,
+            "nodes": [
+              "Zhengzhou",
+              "Qingdao",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "batch_id": 6,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1154,
+            "nodes": [
+              "Zhengzhou",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      }
+    ],
+    "optimisation_objectives": {
+      "cost": 15017351.350677084,
+      "emission": 15578316821.850002,
+      "makespan": 571.6933333333334
+    },
+    "training_feasible": true,
+    "training_min_on_time_probability": 0.0,
+    "training_batch_on_time_probability": {
+      "1": 0.0,
+      "2": 0.0,
+      "3": 0.0,
+      "4": 0.0,
+      "5": 1.0,
+      "6": 1.0,
+      "7": 1.0,
+      "8": 1.0,
+      "9": 1.0,
+      "10": 0.0,
+      "11": 1.0,
+      "12": 1.0,
+      "13": 1.0,
+      "14": 0.0,
+      "15": 1.0,
+      "16": 1.0,
+      "17": 0.0,
+      "18": 1.0,
+      "19": 1.0,
+      "20": 1.0,
+      "21": 1.0,
+      "22": 0.0,
+      "23": 1.0,
+      "24": 0.0,
+      "25": 0.0,
+      "26": 1.0,
+      "27": 1.0,
+      "28": 1.0,
+      "29": 1.0,
+      "30": 1.0,
+      "31": 1.0,
+      "32": 1.0,
+      "33": 0.0,
+      "34": 1.0,
+      "35": 1.0,
+      "36": 1.0,
+      "37": 0.0,
+      "38": 0.0,
+      "39": 1.0,
+      "40": 0.0
+    },
+    "training_violation": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.966,
+      "late_teu_h": 94911.04404761904,
+      "max_observed_late_h": 165.1258333333334,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 13402.44047619048,
+      "wait_teu_h": 469482.29119047616,
+      "trans_teu_h": 68856.0,
+      "trans_cost": 2140450.0,
+      "carbon_cost": 137718.18742708,
+      "scenario_cost_mean": 15017351.350677084,
+      "scenario_emission_mean": 15578316821.850002,
+      "scenario_time_mean": 571.6933333333334,
+      "risk_metric": "ev"
+    },
+    "random_seeds": {
+      "training_master_S50": 310050,
+      "validation": 950005,
+      "EV_optimisation": 410001,
+      "CCP30_optimisation": 410030,
+      "CCP50_optimisation": 410050,
+      "path_library": 0
+    },
+    "configuration": {
+      "population": 20,
+      "generations": 5,
+      "alpha": 0.9
+    }
+  },
+  {
+    "method": "EV",
+    "source_run": "pilot-EV-run-1",
+    "source_solution_id": "pilot-EV-run-1-solution-0004",
+    "decision_fingerprint": "f7c01d814a3f137da83086d2b38459feceb157d49141835f0cbd7db3d507cc1f",
+    "decision": [
+      {
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "batch_id": 5,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Brest",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "batch_id": 27,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chengdu",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "batch_id": 17,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chengdu",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "batch_id": 3,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Wuhan",
+              "Xiangyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Kazan",
+              "Malaszewicze",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "batch_id": 4,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "batch_id": 12,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "batch_id": 38,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 14,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Bratislava",
+              "Budapest",
+              "Vienna",
+              "Nuremberg",
+              "Munich",
+              "Duisburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 25,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "St.Petersburg",
+              "Malaszewicze",
+              "Duisburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "batch_id": 18,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 10,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 20,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Shanghai",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "batch_id": 19,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "batch_id": 36,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Malaszewicze",
+              "Warsaw",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "batch_id": 21,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "batch_id": 30,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Suzhou",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 22,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 40,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Nuremberg",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "batch_id": 26,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Dalian",
+              "Tianjin",
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "batch_id": 34,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "batch_id": 13,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Ningbo",
+              "Rotterdam",
+              "Antwerp",
+              "Nuremberg",
+              "Munich",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "batch_id": 11,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Qingdao",
+              "Shanghai",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "batch_id": 31,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Duisburg",
+              "Nuremberg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "batch_id": 29,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Dalian",
+              "Shenyang",
+              "Erenhot",
+              "Moscow",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "water",
+              "water",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "batch_id": 16,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Shanghai",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "batch_id": 9,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Suzhou",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "batch_id": 23,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Tianjin",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Nuremberg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "batch_id": 35,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Wuhan",
+              "Zhengzhou",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Moscow",
+              "Berlin",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "batch_id": 7,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Wuhan",
+              "Nanjing",
+              "Erenhot",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "batch_id": 1,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Ningbo",
+              "Rotterdam",
+              "Antwerp",
+              "Berlin"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "batch_id": 2,
+        "allocations": [
+          {
+            "share": 0.8333333333333334,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Antwerp",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "water",
+              "road",
+              "road"
+            ]
+          },
+          {
+            "share": 0.16666666666666669,
+            "path_id": 230,
+            "nodes": [
+              "Xi'an",
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "batch_id": 28,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Urumqi",
+              "Altynkol",
+              "Bishkek",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "batch_id": 24,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Moscow",
+              "Warsaw",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 33,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 39,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Yiwu",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "batch_id": 8,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Yiwu",
+              "Ningbo",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "batch_id": 37,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "water",
+              "water",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "batch_id": 15,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Qingdao",
+              "Lianyungang",
+              "Rotterdam",
+              "Hamburg",
+              "Nuremberg",
+              "Munich",
+              "Vienna",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "batch_id": 32,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Berlin",
+              "Munich",
+              "Vienna",
+              "Nuremberg",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "batch_id": 6,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ]
+          }
+        ]
+      }
+    ],
+    "optimisation_objectives": {
+      "cost": 14919890.618203484,
+      "emission": 15226399397.88,
+      "makespan": 599.9208333333333
+    },
+    "training_feasible": true,
+    "training_min_on_time_probability": 0.0,
+    "training_batch_on_time_probability": {
+      "1": 0.0,
+      "2": 0.0,
+      "3": 1.0,
+      "4": 0.0,
+      "5": 1.0,
+      "6": 1.0,
+      "7": 1.0,
+      "8": 1.0,
+      "9": 1.0,
+      "10": 0.0,
+      "11": 1.0,
+      "12": 1.0,
+      "13": 1.0,
+      "14": 1.0,
+      "15": 0.0,
+      "16": 0.0,
+      "17": 0.0,
+      "18": 1.0,
+      "19": 1.0,
+      "20": 0.0,
+      "21": 1.0,
+      "22": 1.0,
+      "23": 0.0,
+      "24": 1.0,
+      "25": 1.0,
+      "26": 1.0,
+      "27": 1.0,
+      "28": 1.0,
+      "29": 1.0,
+      "30": 1.0,
+      "31": 1.0,
+      "32": 1.0,
+      "33": 1.0,
+      "34": 1.0,
+      "35": 1.0,
+      "36": 1.0,
+      "37": 0.0,
+      "38": 0.0,
+      "39": 1.0,
+      "40": 1.0
+    },
+    "training_violation": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.9855555555555555,
+      "late_teu_h": 83843.58031746029,
+      "max_observed_late_h": 208.92083333333335,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 13684.075357142861,
+      "wait_teu_h": 489544.3275,
+      "trans_teu_h": 63360.0,
+      "trans_cost": 2006700.0,
+      "carbon_cost": 164643.72088602497,
+      "scenario_cost_mean": 14919890.618203484,
+      "scenario_emission_mean": 15226399397.88,
+      "scenario_time_mean": 599.9208333333333,
+      "risk_metric": "ev"
+    },
+    "random_seeds": {
+      "training_master_S50": 310050,
+      "validation": 950005,
+      "EV_optimisation": 410001,
+      "CCP30_optimisation": 410030,
+      "CCP50_optimisation": 410050,
+      "path_library": 0
+    },
+    "configuration": {
+      "population": 20,
+      "generations": 5,
+      "alpha": 0.9
+    }
+  },
+  {
+    "method": "EV",
+    "source_run": "pilot-EV-run-1",
+    "source_solution_id": "pilot-EV-run-1-solution-0008",
+    "decision_fingerprint": "d44dce0dbe6599235a37c884772d02069a3a6623b540c1c298f59790c06a3290",
+    "decision": [
+      {
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "batch_id": 5,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "batch_id": 27,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chengdu",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "batch_id": 17,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3237,
+            "nodes": [
+              "Chengdu",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "batch_id": 3,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 403,
+            "nodes": [
+              "Chongqing",
+              "Changsha",
+              "Hefei",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "batch_id": 4,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 746,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "batch_id": 12,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "batch_id": 38,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Bratislava",
+              "Vienna",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 14,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2663,
+            "nodes": [
+              "Chongqing",
+              "Xi'an",
+              "Shanghai",
+              "Hamburg",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 25,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2722,
+            "nodes": [
+              "Chongqing",
+              "Xiangyang",
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "batch_id": 18,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Omsk",
+              "Yekaterinburg",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 10,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Shanghai",
+              "Rotterdam",
+              "Prague",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 20,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Berlin",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "rail",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "batch_id": 19,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "batch_id": 36,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Shenyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Malaszewicze",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "batch_id": 21,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3927,
+            "nodes": [
+              "Lianyungang",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Berlin",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "batch_id": 30,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Dalian",
+              "Tianjin",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 22,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4093,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Berlin",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 40,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "batch_id": 26,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Dalian",
+              "Tianjin",
+              "Zhengzhou",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "batch_id": 34,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Duisburg",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "water",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "batch_id": 13,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "batch_id": 11,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2003,
+            "nodes": [
+              "Qingdao",
+              "Shanghai",
+              "Hamburg"
+            ],
+            "modes": [
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "batch_id": 31,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "batch_id": 29,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "batch_id": 16,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3049,
+            "nodes": [
+              "Shanghai",
+              "Qingdao",
+              "Shenyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Duisburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "batch_id": 9,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "batch_id": 23,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Tianjin",
+              "Lianyungang",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "batch_id": 35,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Berlin",
+              "Prague",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "batch_id": 7,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "batch_id": 1,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 171,
+            "nodes": [
+              "Xi'an",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "batch_id": 2,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Prague",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "batch_id": 28,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "batch_id": 24,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4570,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "St.Petersburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 33,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6032,
+            "nodes": [
+              "Yiwu",
+              "Xiangyang",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Moscow",
+              "Lodz",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 39,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Hamburg",
+              "Rotterdam",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "batch_id": 8,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1435,
+            "nodes": [
+              "Yiwu",
+              "Erenhot",
+              "Moscow",
+              "Duisburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "batch_id": 37,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Suzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "batch_id": 15,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Tianjin",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Berlin",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "batch_id": 32,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Suzhou",
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "batch_id": 6,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1164,
+            "nodes": [
+              "Zhengzhou",
+              "Tianjin",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      }
+    ],
+    "optimisation_objectives": {
+      "cost": 14636267.156372923,
+      "emission": 16306922158.95,
+      "makespan": 627.6933333333334
+    },
+    "training_feasible": true,
+    "training_min_on_time_probability": 0.0,
+    "training_batch_on_time_probability": {
+      "1": 1.0,
+      "2": 1.0,
+      "3": 0.0,
+      "4": 0.0,
+      "5": 1.0,
+      "6": 1.0,
+      "7": 1.0,
+      "8": 1.0,
+      "9": 1.0,
+      "10": 1.0,
+      "11": 1.0,
+      "12": 1.0,
+      "13": 1.0,
+      "14": 1.0,
+      "15": 1.0,
+      "16": 1.0,
+      "17": 1.0,
+      "18": 1.0,
+      "19": 1.0,
+      "20": 0.0,
+      "21": 1.0,
+      "22": 1.0,
+      "23": 0.0,
+      "24": 1.0,
+      "25": 0.0,
+      "26": 1.0,
+      "27": 1.0,
+      "28": 1.0,
+      "29": 1.0,
+      "30": 1.0,
+      "31": 0.0,
+      "32": 1.0,
+      "33": 1.0,
+      "34": 1.0,
+      "35": 0.0,
+      "36": 1.0,
+      "37": 0.0,
+      "38": 1.0,
+      "39": 1.0,
+      "40": 1.0
+    },
+    "training_violation": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 1.0,
+      "late_teu_h": 60297.61357142859,
+      "max_observed_late_h": 211.69333333333338,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 13471.843809523813,
+      "wait_teu_h": 472283.84619047603,
+      "trans_teu_h": 62529.0,
+      "trans_cost": 1900750.0,
+      "carbon_cost": 148916.974599125,
+      "scenario_cost_mean": 14636267.156372923,
+      "scenario_emission_mean": 16306922158.95,
+      "scenario_time_mean": 627.6933333333334,
+      "risk_metric": "ev"
+    },
+    "random_seeds": {
+      "training_master_S50": 310050,
+      "validation": 950005,
+      "EV_optimisation": 410001,
+      "CCP30_optimisation": 410030,
+      "CCP50_optimisation": 410050,
+      "path_library": 0
+    },
+    "configuration": {
+      "population": 20,
+      "generations": 5,
+      "alpha": 0.9
+    }
+  },
+  {
+    "method": "EV",
+    "source_run": "pilot-EV-run-1",
+    "source_solution_id": "pilot-EV-run-1-solution-0013",
+    "decision_fingerprint": "1f002065240d35f7b6e3868aac6fe999f1d80e1bd0b778377eb9b53019b3b2d5",
+    "decision": [
+      {
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "batch_id": 5,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "batch_id": 27,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chengdu",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Rotterdam",
+              "Antwerp",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "batch_id": 17,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3257,
+            "nodes": [
+              "Chengdu",
+              "Suzhou",
+              "Ningbo",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "batch_id": 3,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 531,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Budapest",
+              "Bratislava",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "batch_id": 4,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 631,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "batch_id": 12,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Guangzhou",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "batch_id": 38,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Bratislava",
+              "Vienna",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 14,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2617,
+            "nodes": [
+              "Chongqing",
+              "Hefei",
+              "Nanjing",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 25,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2671,
+            "nodes": [
+              "Chongqing",
+              "Nanjing",
+              "Shanghai",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "batch_id": 18,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3426,
+            "nodes": [
+              "Chongqing",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 10,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Shanghai",
+              "Rotterdam",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 20,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Nanjing",
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Antwerp",
+              "Rotterdam",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "water",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "batch_id": 19,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Nanjing",
+              "Dalian",
+              "Shenyang",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "batch_id": 36,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Malaszewicze",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "batch_id": 21,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Berlin",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "batch_id": 30,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Xiangyang",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 22,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3996,
+            "nodes": [
+              "Nanjing",
+              "Shanghai",
+              "Rotterdam",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 40,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Shanghai",
+              "Hamburg",
+              "Rotterdam",
+              "Duisburg",
+              "Munich",
+              "Vienna",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "batch_id": 26,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "batch_id": 34,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Ningbo",
+              "Xi'an",
+              "Zhengzhou",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "batch_id": 13,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "batch_id": 11,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2183,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "batch_id": 31,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam",
+              "Antwerp",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "water",
+              "water",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "batch_id": 29,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "batch_id": 16,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3070,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "batch_id": 9,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Suzhou",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Kazan",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "batch_id": 23,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Tianjin",
+              "Qingdao",
+              "Shanghai",
+              "Hamburg",
+              "Nuremberg",
+              "Munich",
+              "Vienna",
+              "Bratislava",
+              "Prague"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "batch_id": 35,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Wuhan",
+              "Xi'an",
+              "Zhengzhou",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Moscow",
+              "Prague",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "batch_id": 7,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Minsk",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "batch_id": 1,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 38,
+            "nodes": [
+              "Xi'an",
+              "Shanghai",
+              "Hamburg",
+              "Rotterdam",
+              "Prague",
+              "Berlin"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "water",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "batch_id": 2,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "batch_id": 28,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Xiangyang",
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "batch_id": 24,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4416,
+            "nodes": [
+              "Xi'an",
+              "Ningbo",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 33,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 6116,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 39,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Yiwu",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "batch_id": 8,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1523,
+            "nodes": [
+              "Yiwu",
+              "Zhengzhou",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "batch_id": 37,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "batch_id": 15,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "batch_id": 32,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "batch_id": 6,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1048,
+            "nodes": [
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Malaszewicze",
+              "Budapest",
+              "Vienna",
+              "Bratislava",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      }
+    ],
+    "optimisation_objectives": {
+      "cost": 15108572.143281851,
+      "emission": 15666665646.76,
+      "makespan": 556.1258333333334
+    },
+    "training_feasible": true,
+    "training_min_on_time_probability": 0.0,
+    "training_batch_on_time_probability": {
+      "1": 0.0,
+      "2": 0.0,
+      "3": 1.0,
+      "4": 1.0,
+      "5": 1.0,
+      "6": 1.0,
+      "7": 1.0,
+      "8": 1.0,
+      "9": 1.0,
+      "10": 0.0,
+      "11": 1.0,
+      "12": 1.0,
+      "13": 1.0,
+      "14": 1.0,
+      "15": 1.0,
+      "16": 1.0,
+      "17": 0.0,
+      "18": 1.0,
+      "19": 1.0,
+      "20": 0.0,
+      "21": 0.0,
+      "22": 1.0,
+      "23": 0.0,
+      "24": 1.0,
+      "25": 1.0,
+      "26": 1.0,
+      "27": 0.0,
+      "28": 1.0,
+      "29": 1.0,
+      "30": 1.0,
+      "31": 0.0,
+      "32": 1.0,
+      "33": 1.0,
+      "34": 1.0,
+      "35": 1.0,
+      "36": 1.0,
+      "37": 0.0,
+      "38": 0.0,
+      "39": 1.0,
+      "40": 1.0
+    },
+    "training_violation": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.9688888888888889,
+      "late_teu_h": 102253.79952380955,
+      "max_observed_late_h": 165.1258333333334,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 13866.3955952381,
+      "wait_teu_h": 491482.38261904754,
+      "trans_teu_h": 65433.0,
+      "trans_cost": 2049450.0,
+      "carbon_cost": 170700.53516279996,
+      "scenario_cost_mean": 15108572.143281851,
+      "scenario_emission_mean": 15666665646.76,
+      "scenario_time_mean": 556.1258333333334,
+      "risk_metric": "ev"
+    },
+    "random_seeds": {
+      "training_master_S50": 310050,
+      "validation": 950005,
+      "EV_optimisation": 410001,
+      "CCP30_optimisation": 410030,
+      "CCP50_optimisation": 410050,
+      "path_library": 0
+    },
+    "configuration": {
+      "population": 20,
+      "generations": 5,
+      "alpha": 0.9
+    }
+  },
+  {
+    "method": "EV",
+    "source_run": "pilot-EV-run-1",
+    "source_solution_id": "pilot-EV-run-1-solution-0014",
+    "decision_fingerprint": "9acbbef3fc732cae210728fa13b1f7c597d3a9cedbe3fd68eab65bdbb6c26a48",
+    "decision": [
+      {
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "batch_id": 5,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "batch_id": 27,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4862,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Dostyk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Bratislava",
+              "Vienna",
+              "Prague",
+              "Munich"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "batch_id": 17,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 3206,
+            "nodes": [
+              "Chengdu",
+              "Lianyungang",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "batch_id": 3,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Hamburg",
+              "Berlin",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "batch_id": 4,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "batch_id": 12,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "batch_id": 38,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Bratislava",
+              "Vienna",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 14,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Shanghai",
+              "Hamburg",
+              "Antwerp",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "batch_id": 25,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "batch_id": 18,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Dostyk",
+              "Altynkol",
+              "Almaty",
+              "Astana",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 10,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "batch_id": 20,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1891,
+            "nodes": [
+              "Hefei",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "batch_id": 19,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "batch_id": 36,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Shenyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Malaszewicze",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "batch_id": 21,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Kazan",
+              "Duisburg",
+              "Berlin",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "batch_id": 30,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Lianyungang",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 22,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4139,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "batch_id": 40,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Hefei",
+              "Shanghai",
+              "Hamburg",
+              "Rotterdam",
+              "Duisburg",
+              "Munich",
+              "Vienna",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "batch_id": 26,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Nanjing",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "batch_id": 34,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "batch_id": 13,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "batch_id": 11,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 2030,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Hamburg"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "batch_id": 31,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5682,
+            "nodes": [
+              "Qingdao",
+              "Dalian",
+              "Tianjin",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "batch_id": 29,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "batch_id": 16,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Shanghai",
+              "Hefei",
+              "Zhengzhou",
+              "Dalian",
+              "Shenyang",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Berlin",
+              "Duisburg",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "batch_id": 9,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "batch_id": 23,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4326,
+            "nodes": [
+              "Tianjin",
+              "Shenyang",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "batch_id": 35,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Wuhan",
+              "Zhengzhou",
+              "Xiangyang",
+              "Erenhot",
+              "Moscow",
+              "Budapest",
+              "Vienna",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "batch_id": 7,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "batch_id": 1,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 51,
+            "nodes": [
+              "Xi'an",
+              "Suzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "batch_id": 2,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Xi'an",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "batch_id": 28,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5062,
+            "nodes": [
+              "Xi'an",
+              "Urumqi",
+              "Altynkol",
+              "Bishkek",
+              "Malaszewicze",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "batch_id": 24,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 4564,
+            "nodes": [
+              "Xi'an",
+              "Shanghai",
+              "Hamburg",
+              "Berlin",
+              "Rotterdam"
+            ],
+            "modes": [
+              "rail",
+              "water",
+              "rail",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 33,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 5977,
+            "nodes": [
+              "Yiwu",
+              "Lianyungang",
+              "Hamburg",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "batch_id": 39,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "batch_id": 8,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1534,
+            "nodes": [
+              "Yiwu",
+              "Hefei",
+              "Shanghai",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "batch_id": 37,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Tianjin",
+              "Dalian",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "water",
+              "road",
+              "water",
+              "rail"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "batch_id": 15,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "batch_id": 32,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": -1,
+            "nodes": [
+              "Zhengzhou",
+              "Qingdao",
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "road"
+            ]
+          }
+        ]
+      },
+      {
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "batch_id": 6,
+        "allocations": [
+          {
+            "share": 1.0,
+            "path_id": 1154,
+            "nodes": [
+              "Zhengzhou",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ]
+          }
+        ]
+      }
+    ],
+    "optimisation_objectives": {
+      "cost": 14867776.547234552,
+      "emission": 15585933989.400002,
+      "makespan": 569.3483333333334
+    },
+    "training_feasible": true,
+    "training_min_on_time_probability": 0.0,
+    "training_batch_on_time_probability": {
+      "1": 0.0,
+      "2": 0.0,
+      "3": 0.0,
+      "4": 0.0,
+      "5": 1.0,
+      "6": 1.0,
+      "7": 1.0,
+      "8": 1.0,
+      "9": 1.0,
+      "10": 0.0,
+      "11": 1.0,
+      "12": 1.0,
+      "13": 1.0,
+      "14": 0.0,
+      "15": 1.0,
+      "16": 1.0,
+      "17": 0.0,
+      "18": 1.0,
+      "19": 1.0,
+      "20": 1.0,
+      "21": 1.0,
+      "22": 0.0,
+      "23": 1.0,
+      "24": 0.0,
+      "25": 0.0,
+      "26": 1.0,
+      "27": 1.0,
+      "28": 1.0,
+      "29": 1.0,
+      "30": 1.0,
+      "31": 1.0,
+      "32": 1.0,
+      "33": 0.0,
+      "34": 1.0,
+      "35": 1.0,
+      "36": 1.0,
+      "37": 0.0,
+      "38": 0.0,
+      "39": 1.0,
+      "40": 0.0
+    },
+    "training_violation": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.9557142857142857,
+      "late_teu_h": 80606.81285714285,
+      "max_observed_late_h": 165.1258333333334,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 13297.990952380958,
+      "wait_teu_h": 458397.433452381,
+      "trans_teu_h": 68409.0,
+      "trans_cost": 2116350.0,
+      "carbon_cost": 136585.220115505,
+      "scenario_cost_mean": 14867776.547234552,
+      "scenario_emission_mean": 15585933989.400002,
+      "scenario_time_mean": 569.3483333333334,
+      "risk_metric": "ev"
+    },
+    "random_seeds": {
+      "training_master_S50": 310050,
+      "validation": 950005,
+      "EV_optimisation": 410001,
+      "CCP30_optimisation": 410030,
+      "CCP50_optimisation": 410050,
+      "path_library": 0
+    },
+    "configuration": {
+      "population": 20,
+      "generations": 5,
+      "alpha": 0.9
+    }
+  }
+]

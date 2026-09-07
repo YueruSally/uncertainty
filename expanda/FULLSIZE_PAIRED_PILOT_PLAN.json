@@ -1,0 +1,34 @@
+{
+  "status": "predeclared before execution",
+  "formal_replications": false,
+  "optimisation_replicates_per_method": 1,
+  "active_formulation": {
+    "EV": "direct expected uncertain inputs; no Monte Carlo training sample",
+    "CCP": "separate empirical alpha=0.90 quantile objectives for cost, emission, and makespan",
+    "quantile_bound_interpretation": "smallest z_i such that P(F_i(x,omega) <= z_i) >= alpha",
+    "empirical_implementation": "sort(F_i^1,...,F_i^S)[ceil(alpha*S)-1]",
+    "punctuality": "diagnostic only; not a hard constraint",
+    "historical_032d23e": "historical alternative only; untouched and not restored"
+  },
+  "configuration": {
+    "population": 300,
+    "generations": 500,
+    "alpha": 0.90,
+    "CCP30_training_scenarios": 30,
+    "CCP50_training_scenarios": 50,
+    "validation_scenarios": 5000,
+    "output_directory": "pilot_ev_ccp_fullsize_paired"
+  },
+  "predeclared_seeds": {
+    "shared_NSGAII_EV_CCP30_CCP50": 861337,
+    "S50_master_training": 862050,
+    "validation": 869999,
+    "path_library": 0
+  },
+  "pairing": {
+    "same_algorithm_seed_all_methods": true,
+    "same_path_library_all_methods": true,
+    "same_structurally_ordered_reliable_options_all_methods": true,
+    "S30_exact_prefix_of_S50": true
+  }
+}

@@ -3,3 +3,15 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Large reproducible scenario-level OOS records
+expanda/ccp_s30_s50_selection_5runs/validation/scenario_level_results.csv.gz
+expanda/formal_ev_vs_ccp_s30_30runs/stage_c_quarantine_20260823T111033Z/validation/scenario_level_results.csv.gz
+expanda/formal_ev_vs_ccp_s30_30runs/validation/scenario_level_results.csv.gz
+
+# Local caches and running-process markers
+__pycache__/
+.pytest_cache/
+.cache/
+*.pid
+expanda/outputs/.matplotlib/

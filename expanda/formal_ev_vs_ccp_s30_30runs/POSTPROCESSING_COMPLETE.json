@@ -1,0 +1,24 @@
+{
+  "candidate_count": 15664,
+  "checkpoint_definition": "SHA-256 of sorted relative-path, NUL, file-SHA256, newline entries; excludes this marker",
+  "input_summary_sha256": "4d4e28e984d572200ce10fe1ee2cf378279eea34f8df76b4980f92097b632adb",
+  "output_checkpoint_sha256": "4ae7cb3d5ca275c13c7205f74bc0dbbc1e155632204e7ffcdfd298cc32126824",
+  "outputs": [
+    "FINAL_FORMAL_REPORT.md",
+    "INPUT_AUDIT.json",
+    "metrics/generalisation_summary.csv",
+    "metrics/global_oos_mean_reference_front.json",
+    "metrics/global_oos_q90_reference_front.json",
+    "metrics/normalisation.json",
+    "metrics/paired_ev_ccp_metrics.csv",
+    "metrics/run_level_metrics.csv",
+    "statistics/STATISTICAL_SUMMARY.md",
+    "statistics/descriptive_statistics.csv",
+    "statistics/paired_comparison.csv",
+    "statistics/statistical_tests.json"
+  ],
+  "scenario_level_file_read": false,
+  "status": "complete",
+  "validation_digest": "9219266ad001420fffdcb93b3d135774ab893c9c8357fcdfbcf11520e29788cb",
+  "validation_seed": 930001
+}

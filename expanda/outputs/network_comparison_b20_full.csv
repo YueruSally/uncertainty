@@ -1,0 +1,3 @@
+scenario,n_runs,runtime_s_mean,runtime_s_std,pareto_size_mean,feas_soft_mean,feas_strict_mean,hv_mean,hv_std,igd_plus_mean,spacing_mean,summary_file,delta_hv_vs_original,delta_pareto_size_vs_original,runtime_ratio_vs_original
+original_20batch,30,82.47366666666667,2.6043868605758678,166.16666666666666,1.0,1.0,0.4437619999999999,0.06013250801355287,0.14632356157278148,0.02127496576709618,outputs/original_full/run_summary.xlsx,,,
+expanded_20batch,30,95.42133333333338,4.282751881461373,85.8,1.0,1.0,0.17214666666666664,0.04818397396569151,0.25869123383692316,0.009629019110929336,outputs/expanded_b20_full/run_summary.xlsx,-0.2716153333333332,-80.36666666666666,1.1569915245674383

@@ -1,0 +1,27 @@
+{
+  "run_id": 1,
+  "methods": [
+    "EV",
+    "CCP30"
+  ],
+  "scenario_count": 5000,
+  "validation_seed": 930001,
+  "scenario_digest": "9219266ad001420fffdcb93b3d135774ab893c9c8357fcdfbcf11520e29788cb",
+  "one_common_scenario_set_for_all_solutions": true,
+  "common_scenario_set_object_count": 1,
+  "scenario_level_results_written": false,
+  "solution_count": 522,
+  "fingerprints_unchanged_before_after": 522,
+  "post_validation_pareto_filtering": false,
+  "analysis": [
+    "all_original_fixed_solutions_oos_statistics",
+    "all_original_fixed_solutions_oos_mean_plots"
+  ],
+  "waiting_emission_gCO2_per_TEU_h": 320.5,
+  "waiting_emission_scope": "timetable-induced schedule waiting",
+  "waiting_emission_parameterisation": "common across road/rail/water",
+  "waiting_emission_source_note": "literature-informed common modelling assumption based on Lomotko et al. (2023)",
+  "carbon_cost_waiting_emission": true,
+  "waiting_carbon_region_basis": "waiting-node region",
+  "waiting_carbon_mode_basis": "outgoing scheduled mode"
+}

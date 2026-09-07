@@ -1,0 +1,756 @@
+===== NSGA-II Tuned Baseline Pareto Solutions (3-Objective) =====
+
+===== Pareto Sol 0 =====
+Cost=11551793.583849  Emission_gCO2=14505991064.652796  Time=460.777143
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9364814814814814, 'late_teu_h': 0.0, 'chance_vio': 0.0, 'min_on_time_prob': 1.0, 'mean_arrival_h_sum': 0.0, 'wait_teu_h': 320498.70092377637, 'trans_teu_h': 96229.96847609617, 'trans_cost': 0.0, 'carbon_cost': 157108.80144739582}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Berlin], Share: 21.12% }
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg--(rail)-->Berlin], Share: 51.39% }
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Hamburg--(rail)-->Berlin], Share: 27.49% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Duisburg], Share: 88.43% }
+
+    { Structure: [Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Duisburg], Share: 11.57% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Warsaw--(road)-->Hamburg--(water)-->Duisburg], Share: 41.18% }
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Budapest--(rail)-->Bratislava--(road)-->Munich--(road)-->Duisburg], Share: 58.82% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Altynkol--(road)-->Dostyk--(road)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Lodz], Share: 24.65% }
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 10.08% }
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Altynkol--(road)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 19.65% }
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Malaszewicze--(road)-->Lodz], Share: 45.62% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 48.30% }
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(road)-->Warsaw], Share: 51.70% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Hefei--(road)-->Shanghai--(water)-->Rotterdam], Share: 44.57% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam], Share: 47.39% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Hamburg--(water)-->Rotterdam], Share: 8.04% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Rotterdam--(water)-->Duisburg--(road)-->Budapest], Share: 22.71% }
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg--(road)-->Budapest], Share: 18.04% }
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Bratislava--(road)-->Vienna--(road)-->Budapest], Share: 20.11% }
+
+    { Structure: [Hefei--(road)-->Nanjing--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Bratislava--(road)-->Vienna--(road)-->Budapest], Share: 11.58% }
+
+    { Structure: [Hefei--(road)-->Nanjing--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg--(road)-->Budapest], Share: 10.90% }
+
+    { Structure: [Hefei--(road)-->Nanjing--(road)-->Lianyungang--(water)-->Rotterdam--(water)-->Duisburg--(road)-->Budapest], Share: 16.67% }
+
+Batch 11: Qingdao -> Hamburg, Q=81.0
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg], Share: 69.56% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Antwerp--(road)-->Hamburg], Share: 30.44% }
+
+Batch 12: Chongqing -> Lodz, Q=125.0
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(road)-->Khorgos--(rail)-->Altynkol--(road)-->Dostyk--(road)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz], Share: 25.86% }
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Bishkek--(road)-->Warsaw--(rail)-->Lodz], Share: 57.48% }
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Hefei--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 16.67% }
+
+Batch 13: Ningbo -> Vienna, Q=131.0
+
+    { Structure: [Ningbo--(water)-->Hamburg--(rail)-->Berlin--(rail)-->Duisburg--(road)-->Nuremberg--(road)-->Vienna], Share: 55.90% }
+
+    { Structure: [Ningbo--(water)-->Hamburg--(road)-->Nuremberg--(road)-->Vienna], Share: 11.03% }
+
+    { Structure: [Ningbo--(water)-->Hamburg--(rail)-->Berlin--(rail)-->Duisburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Vienna], Share: 33.07% }
+
+Batch 14: Chongqing -> Rotterdam, Q=91.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 15: Zhengzhou -> Budapest, Q=122.0
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Prague--(road)-->Budapest], Share: 31.13% }
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(road)-->Bratislava--(road)-->Budapest], Share: 5.30% }
+
+    { Structure: [Zhengzhou--(rail)-->Xiangyang--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(road)-->Bratislava--(road)-->Budapest], Share: 7.80% }
+
+    { Structure: [Zhengzhou--(rail)-->Xiangyang--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Bratislava--(road)-->Budapest], Share: 30.31% }
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 11.57% }
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Bratislava--(road)-->Budapest], Share: 13.89% }
+
+Batch 16: Shanghai -> Nuremberg, Q=126.0
+
+    { Structure: [Shanghai--(water)-->Rotterdam--(water)-->Duisburg--(road)-->Prague--(rail)-->Berlin--(road)-->Nuremberg], Share: 38.77% }
+
+    { Structure: [Shanghai--(water)-->Rotterdam--(water)-->Duisburg--(road)-->Prague--(rail)-->Berlin--(road)-->Munich--(road)-->Nuremberg], Share: 35.59% }
+
+    { Structure: [Shanghai--(water)-->Rotterdam--(road)-->Antwerp--(road)-->Nuremberg], Share: 25.64% }
+
+Batch 17: Chengdu -> Rotterdam, Q=90.0
+
+    { Structure: [Chengdu--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(road)-->Malaszewicze--(rail)-->Warsaw--(road)-->Rotterdam], Share: 86.11% }
+
+    { Structure: [Chengdu--(road)-->Erenhot--(rail)-->Moscow--(road)-->Duisburg--(water)-->Rotterdam], Share: 13.89% }
+
+Batch 18: Chongqing -> Warsaw, Q=99.0
+
+    { Structure: [Chongqing--(road)-->Khorgos--(road)-->Dostyk--(road)-->Altynkol--(rail)-->Almaty--(rail)-->Astana--(rail)-->Minsk--(rail)-->Warsaw], Share: 69.60% }
+
+    { Structure: [Chongqing--(road)-->Khorgos--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->Kazan--(road)-->Malaszewicze--(rail)-->Warsaw], Share: 30.40% }
+
+Batch 19: Hefei -> Warsaw, Q=150.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 71.76% }
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz--(road)-->Warsaw], Share: 28.24% }
+
+Batch 20: Hefei -> Budapest, Q=103.0
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 21: Lianyungang -> Hamburg, Q=146.0
+
+    { Structure: [Lianyungang--(water)-->Hamburg], Share: 100.00% }
+
+Batch 22: Nanjing -> Budapest, Q=94.0
+
+    { Structure: [Nanjing--(road)-->Shanghai--(water)-->Hamburg--(road)-->Budapest], Share: 69.58% }
+
+    { Structure: [Nanjing--(road)-->Shanghai--(water)-->Hamburg--(road)-->Berlin--(road)-->Bratislava--(road)-->Budapest], Share: 30.42% }
+
+Batch 23: Tianjin -> Prague, Q=122.0
+
+    { Structure: [Tianjin--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Prague], Share: 100.00% }
+
+Batch 24: Xi'an -> Rotterdam, Q=108.0
+
+    { Structure: [Xi'an--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 25: Chongqing -> Rotterdam, Q=87.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 26: Nanjing -> Warsaw, Q=113.0
+
+    { Structure: [Nanjing--(road)-->Qingdao--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 38.85% }
+
+    { Structure: [Nanjing--(road)-->Qingdao--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 11.24% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 6.76% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Kazan--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 21.93% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Warsaw], Share: 9.65% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 11.57% }
+
+Batch 27: Chengdu -> Munich, Q=149.0
+
+    { Structure: [Chengdu--(road)-->Xiangyang--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Hamburg--(road)-->Nuremberg--(rail)-->Munich], Share: 36.89% }
+
+    { Structure: [Chengdu--(road)-->Xiangyang--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Hamburg--(road)-->Berlin--(road)-->Munich], Share: 47.98% }
+
+    { Structure: [Chengdu--(road)-->Xiangyang--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Bratislava--(road)-->Vienna--(road)-->Prague--(road)-->Munich], Share: 15.13% }
+
+Batch 28: Xi'an -> Lodz, Q=105.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 71.76% }
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Lodz], Share: 28.24% }
+
+Batch 29: Qingdao -> Warsaw, Q=82.0
+
+    { Structure: [Qingdao--(road)-->Nanjing--(road)-->Erenhot--(rail)-->Moscow--(road)-->Warsaw], Share: 37.87% }
+
+    { Structure: [Qingdao--(water)-->Tianjin--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(road)-->Warsaw], Share: 28.57% }
+
+    { Structure: [Qingdao--(road)-->Nanjing--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(road)-->Warsaw], Share: 21.99% }
+
+    { Structure: [Qingdao--(water)-->Tianjin--(road)-->Erenhot--(rail)-->Moscow--(road)-->Warsaw], Share: 11.57% }
+
+Batch 30: Lianyungang -> Lodz, Q=136.0
+
+    { Structure: [Lianyungang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Lodz], Share: 57.87% }
+
+    { Structure: [Lianyungang--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 42.13% }
+
+Batch 31: Qingdao -> Prague, Q=133.0
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(rail)-->Prague], Share: 34.12% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(rail)-->Prague], Share: 34.71% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(road)-->Prague], Share: 31.17% }
+
+Batch 32: Zhengzhou -> Duisburg, Q=92.0
+
+    { Structure: [Zhengzhou--(rail)-->Xiangyang--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg], Share: 53.16% }
+
+    { Structure: [Zhengzhou--(rail)-->Xiangyang--(road)-->Lianyungang--(water)-->Rotterdam--(water)-->Duisburg], Share: 32.37% }
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(rail)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 5.89% }
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Bratislava--(rail)-->Budapest--(road)-->Prague--(rail)-->Berlin--(road)-->Hamburg--(road)-->Duisburg], Share: 8.58% }
+
+Batch 33: Yiwu -> Berlin, Q=98.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Hamburg--(road)-->Antwerp--(road)-->Munich--(road)-->Prague--(road)-->Berlin], Share: 49.93% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Berlin], Share: 21.02% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Hamburg--(water)-->Duisburg--(rail)-->Berlin], Share: 17.48% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Hamburg--(rail)-->Berlin], Share: 11.57% }
+
+Batch 34: Ningbo -> Rotterdam, Q=106.0
+
+    { Structure: [Ningbo--(water)-->Hamburg--(water)-->Rotterdam], Share: 74.54% }
+
+    { Structure: [Ningbo--(water)-->Hamburg--(road)-->Rotterdam], Share: 25.46% }
+
+Batch 35: Wuhan -> Nuremberg, Q=116.0
+
+    { Structure: [Wuhan--(road)-->Lianyungang--(water)-->Hamburg--(water)-->Antwerp--(road)-->Duisburg--(road)-->Munich--(road)-->Nuremberg], Share: 86.11% }
+
+    { Structure: [Wuhan--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Nuremberg], Share: 13.89% }
+
+Batch 36: Lianyungang -> Budapest, Q=101.0
+
+    { Structure: [Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 37: Zhengzhou -> Berlin, Q=82.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Antwerp--(road)-->Hamburg--(road)-->Berlin], Share: 83.33% }
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Antwerp--(road)-->Hamburg--(rail)-->Berlin], Share: 16.67% }
+
+Batch 38: Chongqing -> Munich, Q=84.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Munich], Share: 52.42% }
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(rail)-->Khorgos--(rail)-->Altynkol--(rail)-->Almaty--(rail)-->Astana--(road)-->Hamburg--(road)-->Berlin--(road)-->Munich], Share: 28.54% }
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(rail)-->Khorgos--(rail)-->Altynkol--(rail)-->Almaty--(rail)-->Astana--(road)-->Hamburg--(road)-->Berlin--(road)-->Nuremberg--(road)-->Munich], Share: 5.15% }
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Nuremberg--(road)-->Munich], Share: 13.89% }
+
+Batch 39: Yiwu -> Berlin, Q=140.0
+
+    { Structure: [Yiwu--(road)-->Hefei--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin], Share: 100.00% }
+
+Batch 40: Nanjing -> Budapest, Q=113.0
+
+    { Structure: [Nanjing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Prague--(road)-->Vienna--(rail)-->Munich--(road)-->Bratislava--(rail)-->Budapest], Share: 62.48% }
+
+    { Structure: [Nanjing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 37.52% }
+
+
+===== Pareto Sol 1 =====
+Cost=11116517.714381  Emission_gCO2=13638969999.737989  Time=467.831429
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.942579081293661, 'late_teu_h': 0.0, 'chance_vio': 0.0, 'min_on_time_prob': 1.0, 'mean_arrival_h_sum': 0.0, 'wait_teu_h': 303892.51440417056, 'trans_teu_h': 89053.21492751478, 'trans_cost': 0.0, 'carbon_cost': 126740.46953503041}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Duisburg], Share: 60.60% }
+
+    { Structure: [Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Duisburg], Share: 39.40% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Warsaw--(road)-->Hamburg--(water)-->Duisburg], Share: 58.15% }
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Budapest--(rail)-->Bratislava--(road)-->Munich--(road)-->Duisburg], Share: 31.28% }
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Warsaw--(road)-->Hamburg--(road)-->Duisburg], Share: 10.57% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 73.62% }
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(road)-->Warsaw], Share: 26.38% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg--(road)-->Budapest], Share: 74.65% }
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Bratislava--(road)-->Vienna--(road)-->Budapest], Share: 25.35% }
+
+Batch 11: Qingdao -> Hamburg, Q=81.0
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Antwerp--(road)-->Hamburg], Share: 61.58% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg], Share: 38.42% }
+
+Batch 12: Chongqing -> Lodz, Q=125.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Dostyk--(road)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz], Share: 24.24% }
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Bishkek--(road)-->Warsaw--(rail)-->Lodz], Share: 11.41% }
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Dostyk--(road)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz], Share: 50.26% }
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Dostyk--(road)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 14.09% }
+
+Batch 13: Ningbo -> Vienna, Q=131.0
+
+    { Structure: [Ningbo--(water)-->Hamburg--(rail)-->Berlin--(road)-->Bratislava--(road)-->Vienna], Share: 83.33% }
+
+    { Structure: [Ningbo--(water)-->Hamburg--(road)-->Nuremberg--(road)-->Vienna], Share: 16.67% }
+
+Batch 14: Chongqing -> Rotterdam, Q=91.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 15: Zhengzhou -> Budapest, Q=122.0
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Prague--(road)-->Budapest], Share: 31.45% }
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(road)-->Bratislava--(road)-->Budapest], Share: 57.96% }
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Bratislava--(road)-->Budapest], Share: 10.59% }
+
+Batch 16: Shanghai -> Nuremberg, Q=126.0
+
+    { Structure: [Shanghai--(water)-->Rotterdam--(road)-->Antwerp--(road)-->Nuremberg], Share: 89.33% }
+
+    { Structure: [Shanghai--(water)-->Rotterdam--(water)-->Duisburg--(road)-->Prague--(rail)-->Berlin--(road)-->Munich--(road)-->Nuremberg], Share: 10.67% }
+
+Batch 17: Chengdu -> Rotterdam, Q=90.0
+
+    { Structure: [Chengdu--(road)-->Erenhot--(rail)-->Moscow--(road)-->Duisburg--(water)-->Rotterdam], Share: 87.82% }
+
+    { Structure: [Chengdu--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(road)-->Malaszewicze--(rail)-->Warsaw--(road)-->Rotterdam], Share: 12.18% }
+
+Batch 18: Chongqing -> Warsaw, Q=99.0
+
+    { Structure: [Chongqing--(road)-->Khorgos--(road)-->Dostyk--(road)-->Altynkol--(rail)-->Almaty--(rail)-->Astana--(rail)-->Minsk--(rail)-->Warsaw], Share: 86.08% }
+
+    { Structure: [Chongqing--(road)-->Khorgos--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->Kazan--(road)-->Malaszewicze--(rail)-->Warsaw], Share: 13.92% }
+
+Batch 19: Hefei -> Warsaw, Q=150.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 100.00% }
+
+Batch 20: Hefei -> Budapest, Q=103.0
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 21: Lianyungang -> Hamburg, Q=146.0
+
+    { Structure: [Lianyungang--(water)-->Hamburg], Share: 100.00% }
+
+Batch 22: Nanjing -> Budapest, Q=94.0
+
+    { Structure: [Nanjing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 23: Tianjin -> Prague, Q=122.0
+
+    { Structure: [Tianjin--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Prague], Share: 100.00% }
+
+Batch 24: Xi'an -> Rotterdam, Q=108.0
+
+    { Structure: [Xi'an--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 25: Chongqing -> Rotterdam, Q=87.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 26: Nanjing -> Warsaw, Q=113.0
+
+    { Structure: [Nanjing--(road)-->Qingdao--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 15.53% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 12.72% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Kazan--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 6.11% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 20.47% }
+
+    { Structure: [Nanjing--(road)-->Qingdao--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 9.48% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 16.22% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 19.47% }
+
+Batch 27: Chengdu -> Munich, Q=149.0
+
+    { Structure: [Chengdu--(road)-->Xiangyang--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Bratislava--(road)-->Vienna--(road)-->Prague--(road)-->Munich], Share: 100.00% }
+
+Batch 28: Xi'an -> Lodz, Q=105.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 84.14% }
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Lodz], Share: 15.86% }
+
+Batch 29: Qingdao -> Warsaw, Q=82.0
+
+    { Structure: [Qingdao--(water)-->Tianjin--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(road)-->Warsaw], Share: 75.48% }
+
+    { Structure: [Qingdao--(road)-->Nanjing--(road)-->Erenhot--(rail)-->Moscow--(road)-->Malaszewicze--(rail)-->Warsaw], Share: 7.85% }
+
+    { Structure: [Qingdao--(water)-->Tianjin--(road)-->Erenhot--(rail)-->Moscow--(road)-->Malaszewicze--(rail)-->Warsaw], Share: 16.67% }
+
+Batch 30: Lianyungang -> Lodz, Q=136.0
+
+    { Structure: [Lianyungang--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 31: Qingdao -> Prague, Q=133.0
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(rail)-->Prague], Share: 31.81% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(rail)-->Prague], Share: 36.94% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(road)-->Prague], Share: 19.67% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Prague], Share: 11.59% }
+
+Batch 32: Zhengzhou -> Duisburg, Q=92.0
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Rotterdam--(water)-->Duisburg], Share: 100.00% }
+
+Batch 33: Yiwu -> Berlin, Q=98.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Berlin], Share: 43.99% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Hamburg--(rail)-->Berlin], Share: 37.63% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Hamburg--(water)-->Duisburg--(rail)-->Berlin], Share: 18.38% }
+
+Batch 34: Ningbo -> Rotterdam, Q=106.0
+
+    { Structure: [Ningbo--(water)-->Hamburg--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 35: Wuhan -> Nuremberg, Q=116.0
+
+    { Structure: [Wuhan--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Nuremberg], Share: 50.40% }
+
+    { Structure: [Wuhan--(road)-->Lianyungang--(water)-->Hamburg--(water)-->Antwerp--(road)-->Nuremberg], Share: 34.10% }
+
+    { Structure: [Wuhan--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Antwerp--(road)-->Nuremberg], Share: 15.49% }
+
+Batch 36: Lianyungang -> Budapest, Q=101.0
+
+    { Structure: [Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 37: Zhengzhou -> Berlin, Q=82.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Antwerp--(road)-->Hamburg--(rail)-->Berlin], Share: 53.61% }
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(road)-->Berlin], Share: 46.39% }
+
+Batch 38: Chongqing -> Munich, Q=84.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Munich], Share: 68.25% }
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Nuremberg--(road)-->Munich], Share: 31.75% }
+
+Batch 39: Yiwu -> Berlin, Q=140.0
+
+    { Structure: [Yiwu--(road)-->Ningbo--(water)-->Hamburg--(rail)-->Berlin], Share: 100.00% }
+
+Batch 40: Nanjing -> Budapest, Q=113.0
+
+    { Structure: [Nanjing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+
+===== Pareto Sol 2 =====
+Cost=11127649.981144  Emission_gCO2=13620530126.041658  Time=467.831429
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9618159010780507, 'late_teu_h': 0.0, 'chance_vio': 0.0, 'min_on_time_prob': 1.0, 'mean_arrival_h_sum': 0.0, 'wait_teu_h': 306831.9996423645, 'trans_teu_h': 89546.14577292897, 'trans_cost': 0.0, 'carbon_cost': 129701.80949473033}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Duisburg], Share: 50.50% }
+
+    { Structure: [Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Duisburg], Share: 49.50% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Warsaw--(road)-->Hamburg--(water)-->Duisburg], Share: 65.12% }
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Budapest--(rail)-->Bratislava--(road)-->Munich--(road)-->Duisburg], Share: 26.07% }
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Warsaw--(road)-->Hamburg--(road)-->Duisburg], Share: 8.81% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 61.35% }
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(road)-->Warsaw], Share: 38.65% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam], Share: 83.33% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Hamburg--(water)-->Rotterdam], Share: 16.67% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg--(road)-->Budapest], Share: 78.88% }
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Duisburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Bratislava--(road)-->Vienna--(road)-->Budapest], Share: 21.12% }
+
+Batch 11: Qingdao -> Hamburg, Q=81.0
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Rotterdam--(road)-->Antwerp--(road)-->Hamburg], Share: 67.98% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg], Share: 32.02% }
+
+Batch 12: Chongqing -> Lodz, Q=125.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Dostyk--(road)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz], Share: 20.20% }
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Bishkek--(road)-->Warsaw--(rail)-->Lodz], Share: 9.51% }
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Dostyk--(road)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz], Share: 41.88% }
+
+    { Structure: [Chongqing--(rail)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Dostyk--(road)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 11.74% }
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Khorgos--(road)-->Altynkol--(road)-->Bishkek--(road)-->Warsaw--(rail)-->Lodz], Share: 16.67% }
+
+Batch 13: Ningbo -> Vienna, Q=131.0
+
+    { Structure: [Ningbo--(water)-->Hamburg--(rail)-->Berlin--(road)-->Bratislava--(road)-->Vienna], Share: 86.11% }
+
+    { Structure: [Ningbo--(water)-->Hamburg--(road)-->Nuremberg--(road)-->Vienna], Share: 13.89% }
+
+Batch 14: Chongqing -> Rotterdam, Q=91.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 15: Zhengzhou -> Budapest, Q=122.0
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Prague--(road)-->Budapest], Share: 26.21% }
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(road)-->Bratislava--(road)-->Budapest], Share: 48.30% }
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Nuremberg--(rail)-->Munich--(road)-->Bratislava--(road)-->Budapest], Share: 25.49% }
+
+Batch 16: Shanghai -> Nuremberg, Q=126.0
+
+    { Structure: [Shanghai--(water)-->Rotterdam--(road)-->Antwerp--(road)-->Nuremberg], Share: 74.44% }
+
+    { Structure: [Shanghai--(water)-->Rotterdam--(water)-->Duisburg--(road)-->Prague--(rail)-->Berlin--(road)-->Munich--(road)-->Nuremberg], Share: 25.56% }
+
+Batch 17: Chengdu -> Rotterdam, Q=90.0
+
+    { Structure: [Chengdu--(road)-->Erenhot--(rail)-->Moscow--(road)-->Duisburg--(water)-->Rotterdam], Share: 73.18% }
+
+    { Structure: [Chengdu--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(road)-->Malaszewicze--(rail)-->Warsaw--(road)-->Rotterdam], Share: 26.82% }
+
+Batch 18: Chongqing -> Warsaw, Q=99.0
+
+    { Structure: [Chongqing--(road)-->Khorgos--(road)-->Dostyk--(road)-->Altynkol--(rail)-->Almaty--(rail)-->Astana--(rail)-->Minsk--(rail)-->Warsaw], Share: 88.40% }
+
+    { Structure: [Chongqing--(road)-->Khorgos--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->Kazan--(road)-->Malaszewicze--(rail)-->Warsaw], Share: 11.60% }
+
+Batch 19: Hefei -> Warsaw, Q=150.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 83.33% }
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz--(road)-->Warsaw], Share: 16.67% }
+
+Batch 20: Hefei -> Budapest, Q=103.0
+
+    { Structure: [Hefei--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 21: Lianyungang -> Hamburg, Q=146.0
+
+    { Structure: [Lianyungang--(water)-->Hamburg], Share: 100.00% }
+
+Batch 22: Nanjing -> Budapest, Q=94.0
+
+    { Structure: [Nanjing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 83.33% }
+
+    { Structure: [Nanjing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Bratislava--(road)-->Budapest], Share: 16.67% }
+
+Batch 23: Tianjin -> Prague, Q=122.0
+
+    { Structure: [Tianjin--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Prague], Share: 100.00% }
+
+Batch 24: Xi'an -> Rotterdam, Q=108.0
+
+    { Structure: [Xi'an--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 25: Chongqing -> Rotterdam, Q=87.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 26: Nanjing -> Warsaw, Q=113.0
+
+    { Structure: [Nanjing--(road)-->Qingdao--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 12.94% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 10.60% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Kazan--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 5.09% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Warsaw], Share: 17.06% }
+
+    { Structure: [Nanjing--(road)-->Qingdao--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 24.57% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 13.52% }
+
+    { Structure: [Nanjing--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 16.22% }
+
+Batch 27: Chengdu -> Munich, Q=149.0
+
+    { Structure: [Chengdu--(road)-->Xiangyang--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Bratislava--(road)-->Vienna--(road)-->Prague--(road)-->Munich], Share: 100.00% }
+
+Batch 28: Xi'an -> Lodz, Q=105.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 86.78% }
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Lodz], Share: 13.22% }
+
+Batch 29: Qingdao -> Warsaw, Q=82.0
+
+    { Structure: [Qingdao--(water)-->Tianjin--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(road)-->Warsaw], Share: 62.90% }
+
+    { Structure: [Qingdao--(road)-->Nanjing--(road)-->Erenhot--(rail)-->Moscow--(road)-->Malaszewicze--(rail)-->Warsaw], Share: 6.54% }
+
+    { Structure: [Qingdao--(water)-->Tianjin--(road)-->Erenhot--(rail)-->Moscow--(road)-->Malaszewicze--(rail)-->Warsaw], Share: 30.56% }
+
+Batch 30: Lianyungang -> Lodz, Q=136.0
+
+    { Structure: [Lianyungang--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 31: Qingdao -> Prague, Q=133.0
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(rail)-->Prague], Share: 26.50% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(rail)-->Prague], Share: 47.45% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(rail)-->Berlin--(road)-->Prague], Share: 16.39% }
+
+    { Structure: [Qingdao--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Prague], Share: 9.65% }
+
+Batch 32: Zhengzhou -> Duisburg, Q=92.0
+
+    { Structure: [Zhengzhou--(road)-->Lianyungang--(water)-->Rotterdam--(water)-->Duisburg], Share: 100.00% }
+
+Batch 33: Yiwu -> Berlin, Q=98.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Berlin], Share: 53.32% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Hamburg--(rail)-->Berlin], Share: 31.36% }
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Rotterdam--(road)-->Hamburg--(water)-->Duisburg--(rail)-->Berlin], Share: 15.32% }
+
+Batch 34: Ningbo -> Rotterdam, Q=106.0
+
+    { Structure: [Ningbo--(water)-->Hamburg--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 35: Wuhan -> Nuremberg, Q=116.0
+
+    { Structure: [Wuhan--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Nuremberg], Share: 58.67% }
+
+    { Structure: [Wuhan--(road)-->Lianyungang--(water)-->Hamburg--(water)-->Antwerp--(road)-->Nuremberg], Share: 28.42% }
+
+    { Structure: [Wuhan--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Antwerp--(road)-->Nuremberg], Share: 12.91% }
+
+Batch 36: Lianyungang -> Budapest, Q=101.0
+
+    { Structure: [Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 37: Zhengzhou -> Berlin, Q=82.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Antwerp--(road)-->Hamburg--(rail)-->Berlin], Share: 61.34% }
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(road)-->Berlin], Share: 38.66% }
+
+Batch 38: Chongqing -> Munich, Q=84.0
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Munich], Share: 73.55% }
+
+    { Structure: [Chongqing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Berlin--(road)-->Nuremberg--(road)-->Munich], Share: 26.45% }
+
+Batch 39: Yiwu -> Berlin, Q=140.0
+
+    { Structure: [Yiwu--(road)-->Ningbo--(water)-->Hamburg--(rail)-->Berlin], Share: 100.00% }
+
+Batch 40: Nanjing -> Budapest, Q=113.0
+
+    { Structure: [Nanjing--(road)-->Lianyungang--(water)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+

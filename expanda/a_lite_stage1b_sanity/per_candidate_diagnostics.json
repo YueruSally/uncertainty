@@ -1,0 +1,179 @@
+{
+  "S200_vs_S1000": {
+    "full_table": {
+      "S1-01": {
+        "stratum": "KNIFE",
+        "D_c": -0.014,
+        "D_c_exact": "-7/500",
+        "A_c": 0.014,
+        "A_c_exact": "7/500",
+        "Dmax_c": -0.014,
+        "Dmin_c": -0.014,
+        "nflip_c": 0,
+        "netflip_c": 0,
+        "nboundary_c_at_S": 1,
+        "nboundary_c_at_ref": 0,
+        "n_seeds": 1
+      },
+      "S1-04": {
+        "stratum": "OFF",
+        "D_c": 0.002,
+        "D_c_exact": "1/500",
+        "A_c": 0.002,
+        "A_c_exact": "1/500",
+        "Dmax_c": 0.002,
+        "Dmin_c": 0.002,
+        "nflip_c": 0,
+        "netflip_c": 0,
+        "nboundary_c_at_S": 0,
+        "nboundary_c_at_ref": 0,
+        "n_seeds": 1
+      }
+    },
+    "per_seed_breakdown": {
+      "810001": {
+        "mean_signed": -0.006,
+        "mean_abs": 0.008,
+        "max_abs": 0.014,
+        "gross_flip_count": 0,
+        "false_feasible_count": 0,
+        "false_infeasible_count": 0,
+        "signed_net_classification_imbalance": 0,
+        "n_candidates": 2
+      }
+    },
+    "per_candidate_signed_D_c": {
+      "S1-01": -0.014,
+      "S1-04": 0.002
+    },
+    "per_candidate_mean_abs_A_c": {
+      "S1-01": 0.014,
+      "S1-04": 0.002
+    },
+    "max_c_D_c": 0.002,
+    "argmax_candidate": "S1-04",
+    "argmax_stratum": "OFF",
+    "strata": {
+      "S1-01": "KNIFE",
+      "S1-04": "OFF"
+    }
+  },
+  "S500_vs_S1000": {
+    "full_table": {
+      "S1-01": {
+        "stratum": "KNIFE",
+        "D_c": 0.012,
+        "D_c_exact": "3/250",
+        "A_c": 0.012,
+        "A_c_exact": "3/250",
+        "Dmax_c": 0.012,
+        "Dmin_c": 0.012,
+        "nflip_c": 0,
+        "netflip_c": 0,
+        "nboundary_c_at_S": 0,
+        "nboundary_c_at_ref": 0,
+        "n_seeds": 1
+      },
+      "S1-04": {
+        "stratum": "OFF",
+        "D_c": 0.014,
+        "D_c_exact": "7/500",
+        "A_c": 0.014,
+        "A_c_exact": "7/500",
+        "Dmax_c": 0.014,
+        "Dmin_c": 0.014,
+        "nflip_c": 0,
+        "netflip_c": 0,
+        "nboundary_c_at_S": 0,
+        "nboundary_c_at_ref": 0,
+        "n_seeds": 1
+      }
+    },
+    "per_seed_breakdown": {
+      "810001": {
+        "mean_signed": 0.013,
+        "mean_abs": 0.013,
+        "max_abs": 0.014,
+        "gross_flip_count": 0,
+        "false_feasible_count": 0,
+        "false_infeasible_count": 0,
+        "signed_net_classification_imbalance": 0,
+        "n_candidates": 2
+      }
+    },
+    "per_candidate_signed_D_c": {
+      "S1-01": 0.012,
+      "S1-04": 0.014
+    },
+    "per_candidate_mean_abs_A_c": {
+      "S1-01": 0.012,
+      "S1-04": 0.014
+    },
+    "max_c_D_c": 0.014,
+    "argmax_candidate": "S1-04",
+    "argmax_stratum": "OFF",
+    "strata": {
+      "S1-01": "KNIFE",
+      "S1-04": "OFF"
+    }
+  },
+  "S200_vs_S500": {
+    "full_table": {
+      "S1-01": {
+        "stratum": "KNIFE",
+        "D_c": -0.026,
+        "D_c_exact": "-13/500",
+        "A_c": 0.026,
+        "A_c_exact": "13/500",
+        "Dmax_c": -0.026,
+        "Dmin_c": -0.026,
+        "nflip_c": 0,
+        "netflip_c": 0,
+        "nboundary_c_at_S": 1,
+        "nboundary_c_at_ref": 0,
+        "n_seeds": 1
+      },
+      "S1-04": {
+        "stratum": "OFF",
+        "D_c": -0.012,
+        "D_c_exact": "-3/250",
+        "A_c": 0.012,
+        "A_c_exact": "3/250",
+        "Dmax_c": -0.012,
+        "Dmin_c": -0.012,
+        "nflip_c": 0,
+        "netflip_c": 0,
+        "nboundary_c_at_S": 0,
+        "nboundary_c_at_ref": 0,
+        "n_seeds": 1
+      }
+    },
+    "per_seed_breakdown": {
+      "810001": {
+        "mean_signed": -0.019,
+        "mean_abs": 0.019,
+        "max_abs": 0.026,
+        "gross_flip_count": 0,
+        "false_feasible_count": 0,
+        "false_infeasible_count": 0,
+        "signed_net_classification_imbalance": 0,
+        "n_candidates": 2
+      }
+    },
+    "per_candidate_signed_D_c": {
+      "S1-01": -0.026,
+      "S1-04": -0.012
+    },
+    "per_candidate_mean_abs_A_c": {
+      "S1-01": 0.026,
+      "S1-04": 0.012
+    },
+    "max_c_D_c": -0.012,
+    "argmax_candidate": "S1-04",
+    "argmax_stratum": "OFF",
+    "strata": {
+      "S1-01": "KNIFE",
+      "S1-04": "OFF"
+    }
+  }
+}

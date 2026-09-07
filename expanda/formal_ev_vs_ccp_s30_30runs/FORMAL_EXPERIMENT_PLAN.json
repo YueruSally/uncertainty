@@ -1,0 +1,15 @@
+{
+  "status": "frozen formal design",
+  "methods": ["EV", "CCP30"],
+  "replicates": 30,
+  "population": 300,
+  "generations": 500,
+  "alpha": 0.9,
+  "EV": "direct expected uncertain inputs; no Monte Carlo training sample",
+  "CCP30": "separate empirical ceil(alpha*S)-th order-statistic objectives with S=30",
+  "punctuality": "diagnostic only; no punctuality chance constraint",
+  "final_validation_scenarios": 5000,
+  "pairing": "EV_r and CCP30_r share algorithm_seed_r",
+  "resume": "validate completion marker metadata and file hashes; resume first incomplete method",
+  "excluded": ["all pilots", "S200", "S30/S50 selection study", "CCP50"]
+}

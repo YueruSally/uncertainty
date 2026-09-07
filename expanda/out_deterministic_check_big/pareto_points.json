@@ -1,0 +1,6573 @@
+[
+  {
+    "objectives": {
+      "cost": 11551793.58384884,
+      "emission_gCO2": 14505991064.652796,
+      "time_h": 460.77714285714285,
+      "penalty": 0.0
+    },
+    "feasible": true,
+    "vio_breakdown": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.9364814814814814,
+      "late_teu_h": 0.0,
+      "chance_vio": 0.0,
+      "min_on_time_prob": 1.0,
+      "mean_arrival_h_sum": 0.0,
+      "wait_teu_h": 320498.70092377637,
+      "trans_teu_h": 96229.96847609617,
+      "trans_cost": 0.0,
+      "carbon_cost": 157108.80144739582
+    },
+    "border_flow": {
+      "Manzhouli": 338.7108279200906,
+      "Hamburg": 2029.1487529491703,
+      "Erenhot": 1197.8333333333333,
+      "Zabaykalsk": 336.31531333655926,
+      "Khorgos": 361.4685534591195,
+      "Altynkol": 258.95240555147257,
+      "Dostyk": 133.26325483231278,
+      "Malaszewicze": 245.6098617398597,
+      "Shanghai": 533.0,
+      "Rotterdam": 549.3410565496432,
+      "Qingdao": 352.6044854164686,
+      "Antwerp": 287.7853053450421,
+      "Ningbo": 236.99999999999997,
+      "Tianjin": 154.91584953555866
+    },
+    "border_util": {
+      "Manzhouli": 0.7988888888888889,
+      "Hamburg": 0.9292239504145039,
+      "Erenhot": 0.9364814814814814,
+      "Zabaykalsk": 0.8298491466850452,
+      "Khorgos": 0.7453836452778986,
+      "Altynkol": 0.6026361153572981,
+      "Dostyk": 0.6486290369088655,
+      "Malaszewicze": 0.2760261825339044,
+      "Rotterdam": 0.4796874617252213
+    },
+    "allocations": [
+      {
+        "batch_id": 1,
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "quantity_teu": 120.0,
+        "ET": 0.0,
+        "LT": 360.0,
+        "paths": [
+          {
+            "share": 0.2111610977676436,
+            "nodes": [
+              "Xi'an",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3335.24,
+            "base_emission_per_teu": 5945673.5600000005,
+            "base_travel_time_h": 123.28333333333333
+          },
+          {
+            "share": 0.5139135700230056,
+            "nodes": [
+              "Xi'an",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 3658.83,
+            "base_emission_per_teu": 6439894.010000001,
+            "base_travel_time_h": 134.8058333333333
+          },
+          {
+            "share": 0.27492533220935084,
+            "nodes": [
+              "Xi'an",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 3471.53,
+            "base_emission_per_teu": 6135320.550000001,
+            "base_travel_time_h": 127.89916666666667
+          }
+        ]
+      },
+      {
+        "batch_id": 2,
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "quantity_teu": 110.0,
+        "ET": 0.0,
+        "LT": 372.0,
+        "paths": [
+          {
+            "share": 0.8842592592592593,
+            "nodes": [
+              "Xi'an",
+              "Xiangyang",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3683.8999999999996,
+            "base_emission_per_teu": 6647707.5,
+            "base_travel_time_h": 141.01666666666668
+          },
+          {
+            "share": 0.11574074074074076,
+            "nodes": [
+              "Xi'an",
+              "Xiangyang",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3650.02,
+            "base_emission_per_teu": 6842945.5,
+            "base_travel_time_h": 139.60500000000002
+          }
+        ]
+      },
+      {
+        "batch_id": 3,
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "quantity_teu": 100.0,
+        "ET": 0.0,
+        "LT": 384.0,
+        "paths": [
+          {
+            "share": 0.4117598799170927,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz",
+              "Warsaw",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 3672.0849999999996,
+            "base_emission_per_teu": 6417997.84,
+            "base_travel_time_h": 143.82880952380953
+          },
+          {
+            "share": 0.5882401200829073,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Budapest",
+              "Bratislava",
+              "Munich",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3820.0099999999998,
+            "base_emission_per_teu": 6716517.51,
+            "base_travel_time_h": 142.62583333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 4,
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "quantity_teu": 95.0,
+        "ET": 0.0,
+        "LT": 396.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Erenhot",
+              "Moscow",
+              "St.Petersburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3210.4,
+            "base_emission_per_teu": 5116614.32,
+            "base_travel_time_h": 111.86333333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 5,
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "quantity_teu": 130.0,
+        "ET": 0.0,
+        "LT": 408.0,
+        "paths": [
+          {
+            "share": 0.2464510722204796,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Dostyk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2791.7,
+            "base_emission_per_teu": 4055146.7800000003,
+            "base_travel_time_h": 99.72833333333332
+          },
+          {
+            "share": 0.10084607593454606,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Almaty",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2162.5799999999995,
+            "base_emission_per_teu": 1876591.04,
+            "base_travel_time_h": 60.071666666666665
+          },
+          {
+            "share": 0.19647679366613996,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Almaty",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2194.0499999999997,
+            "base_emission_per_teu": 1979871.21,
+            "base_travel_time_h": 62.5775
+          },
+          {
+            "share": 0.4562260581788344,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Almaty",
+              "Malaszewicze",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2979.31,
+            "base_emission_per_teu": 4072096.37,
+            "base_travel_time_h": 112.17416666666668
+          }
+        ]
+      },
+      {
+        "batch_id": 6,
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "quantity_teu": 115.0,
+        "ET": 0.0,
+        "LT": 420.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1828.22,
+            "base_emission_per_teu": 1804992.0799999998,
+            "base_travel_time_h": 240.40595238095239
+          }
+        ]
+      },
+      {
+        "batch_id": 7,
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "quantity_teu": 105.0,
+        "ET": 0.0,
+        "LT": 432.0,
+        "paths": [
+          {
+            "share": 0.4829878003579302,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2361.57,
+            "base_emission_per_teu": 2152122.9499999997,
+            "base_travel_time_h": 65.59916666666666
+          },
+          {
+            "share": 0.5170121996420697,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2477.71,
+            "base_emission_per_teu": 2770715.4899999998,
+            "base_travel_time_h": 75.2375
+          }
+        ]
+      },
+      {
+        "batch_id": 8,
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "quantity_teu": 90.0,
+        "ET": 0.0,
+        "LT": 444.0,
+        "paths": [
+          {
+            "share": 0.4457181757161095,
+            "nodes": [
+              "Yiwu",
+              "Hefei",
+              "Shanghai",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 2108.4400000000005,
+            "base_emission_per_teu": 2221894.24,
+            "base_travel_time_h": 268.9259523809524
+          },
+          {
+            "share": 0.4739063098805984,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1890.3600000000004,
+            "base_emission_per_teu": 1676694.24,
+            "base_travel_time_h": 259.8392857142857
+          },
+          {
+            "share": 0.0803755144032922,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 1871.295,
+            "base_emission_per_teu": 1677999.6799999997,
+            "base_travel_time_h": 260.0735714285714
+          }
+        ]
+      },
+      {
+        "batch_id": 9,
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "quantity_teu": 125.0,
+        "ET": 0.0,
+        "LT": 456.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 1938.02,
+            "base_emission_per_teu": 1746758.9599999997,
+            "base_travel_time_h": 253.61047619047616
+          }
+        ]
+      },
+      {
+        "batch_id": 10,
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "quantity_teu": 140.0,
+        "ET": 0.0,
+        "LT": 468.0,
+        "paths": [
+          {
+            "share": 0.2270570469929841,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2269.1,
+            "base_emission_per_teu": 2356674.0,
+            "base_travel_time_h": 270.71261904761906
+          },
+          {
+            "share": 0.18038847235624555,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2310.9,
+            "base_emission_per_teu": 2433719.76,
+            "base_travel_time_h": 268.72214285714284
+          },
+          {
+            "share": 0.20109309170411016,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2382.5199999999995,
+            "base_emission_per_teu": 2516177.7399999998,
+            "base_travel_time_h": 271.08047619047613
+          },
+          {
+            "share": 0.11578273728816607,
+            "nodes": [
+              "Hefei",
+              "Nanjing",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2412.5999999999995,
+            "base_emission_per_teu": 2591377.7399999998,
+            "base_travel_time_h": 272.33380952380946
+          },
+          {
+            "share": 0.1090119849918275,
+            "nodes": [
+              "Hefei",
+              "Nanjing",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2340.98,
+            "base_emission_per_teu": 2508919.76,
+            "base_travel_time_h": 269.9754761904762
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Hefei",
+              "Nanjing",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2299.18,
+            "base_emission_per_teu": 2431874.0,
+            "base_travel_time_h": 271.9659523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 11,
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "quantity_teu": 81.0,
+        "ET": 0.0,
+        "LT": 454.0,
+        "paths": [
+          {
+            "share": 0.69560037177528,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1700.74,
+            "base_emission_per_teu": 1486292.0799999998,
+            "base_travel_time_h": 235.09428571428572
+          },
+          {
+            "share": 0.3043996282247201,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 1996.7,
+            "base_emission_per_teu": 1883895.7599999998,
+            "base_travel_time_h": 255.6304761904762
+          }
+        ]
+      },
+      {
+        "batch_id": 12,
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "quantity_teu": 125.0,
+        "ET": 0.0,
+        "LT": 401.0,
+        "paths": [
+          {
+            "share": 0.25857108733246364,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Dostyk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3077.1100000000006,
+            "base_emission_per_teu": 5683366.49,
+            "base_travel_time_h": 118.58750000000002
+          },
+          {
+            "share": 0.5747622460008698,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2995.81,
+            "base_emission_per_teu": 5703636.67,
+            "base_travel_time_h": 124.3325
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Hefei",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 3125.48,
+            "base_emission_per_teu": 4711297.0,
+            "base_travel_time_h": 103.02
+          }
+        ]
+      },
+      {
+        "batch_id": 13,
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "quantity_teu": 131.0,
+        "ET": 0.0,
+        "LT": 368.0,
+        "paths": [
+          {
+            "share": 0.558996565718654,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Duisburg",
+              "Nuremberg",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2266.6600000000003,
+            "base_emission_per_teu": 2068025.8399999999,
+            "base_travel_time_h": 266.875
+          },
+          {
+            "share": 0.11034022535669162,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Nuremberg",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2083.1000000000004,
+            "base_emission_per_teu": 1921444.4,
+            "base_travel_time_h": 262.25
+          },
+          {
+            "share": 0.3306632089246543,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Duisburg",
+              "Nuremberg",
+              "Munich",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2289.44,
+            "base_emission_per_teu": 2074781.8199999998,
+            "base_travel_time_h": 267.1983333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 14,
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "quantity_teu": 91.0,
+        "ET": 0.0,
+        "LT": 514.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2316.06,
+            "base_emission_per_teu": 2867234.08,
+            "base_travel_time_h": 260.73261904761904
+          }
+        ]
+      },
+      {
+        "batch_id": 15,
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "quantity_teu": 122.0,
+        "ET": 0.0,
+        "LT": 475.0,
+        "paths": [
+          {
+            "share": 0.3112541016667705,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2202.78,
+            "base_emission_per_teu": 2385560.08,
+            "base_travel_time_h": 256.01261904761907
+          },
+          {
+            "share": 0.053015392833371394,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2190.6299999999997,
+            "base_emission_per_teu": 2318233.07,
+            "base_travel_time_h": 254.44345238095238
+          },
+          {
+            "share": 0.07804865179776307,
+            "nodes": [
+              "Zhengzhou",
+              "Xiangyang",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2373.8799999999997,
+            "base_emission_per_teu": 2617532.1399999997,
+            "base_travel_time_h": 260.68595238095236
+          },
+          {
+            "share": 0.3030522240724655,
+            "nodes": [
+              "Zhengzhou",
+              "Xiangyang",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2470.1699999999996,
+            "base_emission_per_teu": 2786723.13,
+            "base_travel_time_h": 265.135119047619
+          },
+          {
+            "share": 0.11574074074074077,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2199.66,
+            "base_emission_per_teu": 2380724.08,
+            "base_travel_time_h": 255.88261904761904
+          },
+          {
+            "share": 0.13888888888888892,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2286.9199999999996,
+            "base_emission_per_teu": 2487424.06,
+            "base_travel_time_h": 258.892619047619
+          }
+        ]
+      },
+      {
+        "batch_id": 16,
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "quantity_teu": 126.0,
+        "ET": 0.0,
+        "LT": 418.0,
+        "paths": [
+          {
+            "share": 0.3876902219413001,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Prague",
+              "Berlin",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2274.91,
+            "base_emission_per_teu": 2111141.85,
+            "base_travel_time_h": 278.42226190476197
+          },
+          {
+            "share": 0.35589167576695846,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Prague",
+              "Berlin",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2385.31,
+            "base_emission_per_teu": 2282261.85,
+            "base_travel_time_h": 283.02226190476193
+          },
+          {
+            "share": 0.2564181022917414,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2025.8800000000003,
+            "base_emission_per_teu": 1790876.24,
+            "base_travel_time_h": 265.4859523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 17,
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "quantity_teu": 90.0,
+        "ET": 0.0,
+        "LT": 377.0,
+        "paths": [
+          {
+            "share": 0.861111111111111,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Lodz",
+              "Malaszewicze",
+              "Warsaw",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3222.16,
+            "base_emission_per_teu": 4333009.96,
+            "base_travel_time_h": 106.33833333333332
+          },
+          {
+            "share": 0.1388888888888889,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Duisburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 3078.7599999999998,
+            "base_emission_per_teu": 4747312.5600000005,
+            "base_travel_time_h": 110.11047619047618
+          }
+        ]
+      },
+      {
+        "batch_id": 18,
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "quantity_teu": 99.0,
+        "ET": 0.0,
+        "LT": 458.0,
+        "paths": [
+          {
+            "share": 0.6959922174453786,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Dostyk",
+              "Altynkol",
+              "Almaty",
+              "Astana",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2700.6400000000003,
+            "base_emission_per_teu": 4327144.0,
+            "base_travel_time_h": 92.99166666666667
+          },
+          {
+            "share": 0.30400778255462135,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 3002.7200000000003,
+            "base_emission_per_teu": 6774462.96,
+            "base_travel_time_h": 124.40333333333334
+          }
+        ]
+      },
+      {
+        "batch_id": 19,
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "quantity_teu": 150.0,
+        "ET": 0.0,
+        "LT": 403.0,
+        "paths": [
+          {
+            "share": 0.7175925925925926,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2592.75,
+            "base_emission_per_teu": 3757092.5699999994,
+            "base_travel_time_h": 86.15916666666666
+          },
+          {
+            "share": 0.28240740740740744,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2560.6299999999997,
+            "base_emission_per_teu": 3257515.2499999995,
+            "base_travel_time_h": 79.51583333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 20,
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "quantity_teu": 103.0,
+        "ET": 0.0,
+        "LT": 416.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2138.3,
+            "base_emission_per_teu": 2227324.08,
+            "base_travel_time_h": 253.32595238095237
+          }
+        ]
+      },
+      {
+        "batch_id": 21,
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "quantity_teu": 146.0,
+        "ET": 0.0,
+        "LT": 497.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "water"
+            ],
+            "base_cost_per_teu": 1622.98,
+            "base_emission_per_teu": 1291892.0799999998,
+            "base_travel_time_h": 231.8542857142857
+          }
+        ]
+      },
+      {
+        "batch_id": 22,
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "quantity_teu": 94.0,
+        "ET": 0.0,
+        "LT": 399.0,
+        "paths": [
+          {
+            "share": 0.6957671957671957,
+            "nodes": [
+              "Nanjing",
+              "Shanghai",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2187.34,
+            "base_emission_per_teu": 2204606.96,
+            "base_travel_time_h": 263.99880952380954
+          },
+          {
+            "share": 0.3042328042328043,
+            "nodes": [
+              "Nanjing",
+              "Shanghai",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2204.18,
+            "base_emission_per_teu": 2230708.96,
+            "base_travel_time_h": 264.7004761904762
+          }
+        ]
+      },
+      {
+        "batch_id": 23,
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "quantity_teu": 122.0,
+        "ET": 0.0,
+        "LT": 416.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Tianjin",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2744.66,
+            "base_emission_per_teu": 4635271.14,
+            "base_travel_time_h": 101.69999999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 24,
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "quantity_teu": 108.0,
+        "ET": 0.0,
+        "LT": 464.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Xi'an",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2200.22,
+            "base_emission_per_teu": 2577634.08,
+            "base_travel_time_h": 255.90595238095239
+          }
+        ]
+      },
+      {
+        "batch_id": 25,
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "quantity_teu": 87.0,
+        "ET": 0.0,
+        "LT": 465.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2316.06,
+            "base_emission_per_teu": 2867234.08,
+            "base_travel_time_h": 260.73261904761904
+          }
+        ]
+      },
+      {
+        "batch_id": 26,
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "quantity_teu": 113.0,
+        "ET": 0.0,
+        "LT": 443.0,
+        "paths": [
+          {
+            "share": 0.3885266175983477,
+            "nodes": [
+              "Nanjing",
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2798.12,
+            "base_emission_per_teu": 4173890.8,
+            "base_travel_time_h": 93.38666666666666
+          },
+          {
+            "share": 0.11239803210491439,
+            "nodes": [
+              "Nanjing",
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2914.26,
+            "base_emission_per_teu": 4792483.34,
+            "base_travel_time_h": 103.02499999999999
+          },
+          {
+            "share": 0.06761958897986553,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2898.1399999999994,
+            "base_emission_per_teu": 4752183.34,
+            "base_travel_time_h": 102.35333333333332
+          },
+          {
+            "share": 0.2192644032921811,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2859.62,
+            "base_emission_per_teu": 4516855.94,
+            "base_travel_time_h": 98.87166666666666
+          },
+          {
+            "share": 0.09645061728395066,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3040.22,
+            "base_emission_per_teu": 5498505.5,
+            "base_travel_time_h": 114.19666666666666
+          },
+          {
+            "share": 0.11574074074074077,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2806.87,
+            "base_emission_per_teu": 4313106.93,
+            "base_travel_time_h": 95.26249999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 27,
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "quantity_teu": 149.0,
+        "ET": 0.0,
+        "LT": 437.0,
+        "paths": [
+          {
+            "share": 0.36887546318049,
+            "nodes": [
+              "Chengdu",
+              "Xiangyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Hamburg",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 3741.3800000000006,
+            "base_emission_per_teu": 6684185.540000001,
+            "base_travel_time_h": 139.57999999999998
+          },
+          {
+            "share": 0.479775412221025,
+            "nodes": [
+              "Chengdu",
+              "Xiangyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3815.4000000000005,
+            "base_emission_per_teu": 6827469.5600000005,
+            "base_travel_time_h": 143.29000000000002
+          },
+          {
+            "share": 0.151349124598485,
+            "nodes": [
+              "Chengdu",
+              "Xiangyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Bratislava",
+              "Vienna",
+              "Prague",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3705.7600000000007,
+            "base_emission_per_teu": 6635891.5600000005,
+            "base_travel_time_h": 138.72166666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 28,
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "quantity_teu": 105.0,
+        "ET": 0.0,
+        "LT": 413.0,
+        "paths": [
+          {
+            "share": 0.7175925925925926,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2497.0,
+            "base_emission_per_teu": 3140097.0,
+            "base_travel_time_h": 76.83333333333333
+          },
+          {
+            "share": 0.28240740740740744,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2624.32,
+            "base_emission_per_teu": 3808654.32,
+            "base_travel_time_h": 87.44333333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 29,
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "quantity_teu": 82.0,
+        "ET": 0.0,
+        "LT": 460.0,
+        "paths": [
+          {
+            "share": 0.37867892502498757,
+            "nodes": [
+              "Qingdao",
+              "Nanjing",
+              "Erenhot",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2793.2799999999997,
+            "base_emission_per_teu": 4254854.32,
+            "base_travel_time_h": 94.48333333333333
+          },
+          {
+            "share": 0.2856720584733894,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Moscow",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2361.5,
+            "base_emission_per_teu": 2607367.8000000003,
+            "base_travel_time_h": 80.02142857142857
+          },
+          {
+            "share": 0.2199082757608823,
+            "nodes": [
+              "Qingdao",
+              "Nanjing",
+              "Erenhot",
+              "Moscow",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2761.16,
+            "base_emission_per_teu": 3755277.0,
+            "base_travel_time_h": 87.84
+          },
+          {
+            "share": 0.11574074074074076,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2393.62,
+            "base_emission_per_teu": 3106945.12,
+            "base_travel_time_h": 86.6647619047619
+          }
+        ]
+      },
+      {
+        "batch_id": 30,
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "quantity_teu": 136.0,
+        "ET": 0.0,
+        "LT": 336.0,
+        "paths": [
+          {
+            "share": 0.5787037037037037,
+            "nodes": [
+              "Lianyungang",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Malaszewicze",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2707.15,
+            "base_emission_per_teu": 4354730.7299999995,
+            "base_travel_time_h": 96.84916666666666
+          },
+          {
+            "share": 0.4212962962962963,
+            "nodes": [
+              "Lianyungang",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2430.95,
+            "base_emission_per_teu": 2964582.4499999997,
+            "base_travel_time_h": 74.09416666666667
+          }
+        ]
+      },
+      {
+        "batch_id": 31,
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "quantity_teu": 133.0,
+        "ET": 0.0,
+        "LT": 396.0,
+        "paths": [
+          {
+            "share": 0.34119372581570473,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 1887.5300000000002,
+            "base_emission_per_teu": 1722341.4499999997,
+            "base_travel_time_h": 241.70511904761906
+          },
+          {
+            "share": 0.34713288431723754,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 1861.66,
+            "base_emission_per_teu": 1633748.44,
+            "base_travel_time_h": 239.56428571428572
+          },
+          {
+            "share": 0.31167338986705767,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 1889.79,
+            "base_emission_per_teu": 1730825.0699999998,
+            "base_travel_time_h": 241.90845238095238
+          }
+        ]
+      },
+      {
+        "batch_id": 32,
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "quantity_teu": 92.0,
+        "ET": 0.0,
+        "LT": 503.0,
+        "paths": [
+          {
+            "share": 0.5315517543392514,
+            "nodes": [
+              "Zhengzhou",
+              "Xiangyang",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2159.4300000000003,
+            "base_emission_per_teu": 2272494.8299999996,
+            "base_travel_time_h": 261.0179761904762
+          },
+          {
+            "share": 0.32371657895901795,
+            "nodes": [
+              "Zhengzhou",
+              "Xiangyang",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 2117.63,
+            "base_emission_per_teu": 2195449.07,
+            "base_travel_time_h": 263.00845238095235
+          },
+          {
+            "share": 0.05892294192421302,
+            "nodes": [
+              "Zhengzhou",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3031.5699999999997,
+            "base_emission_per_teu": 4284615.43,
+            "base_travel_time_h": 103.52083333333333
+          },
+          {
+            "share": 0.08580872477751755,
+            "nodes": [
+              "Zhengzhou",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Bratislava",
+              "Budapest",
+              "Prague",
+              "Berlin",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3402.9400000000005,
+            "base_emission_per_teu": 4703496.38,
+            "base_travel_time_h": 117.17999999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 33,
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "quantity_teu": 98.0,
+        "ET": 0.0,
+        "LT": 402.0,
+        "paths": [
+          {
+            "share": 0.4992996498080762,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Antwerp",
+              "Munich",
+              "Prague",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2719.8400000000006,
+            "base_emission_per_teu": 2962388.24,
+            "base_travel_time_h": 294.40095238095233
+          },
+          {
+            "share": 0.21015769712565868,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2135.6800000000003,
+            "base_emission_per_teu": 2056940.24,
+            "base_travel_time_h": 270.0609523809524
+          },
+          {
+            "share": 0.17480191232552442,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "water",
+              "rail"
+            ],
+            "base_cost_per_teu": 2245.4350000000004,
+            "base_emission_per_teu": 2114023.17,
+            "base_travel_time_h": 279.8589285714286
+          },
+          {
+            "share": 0.11574074074074076,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2132.5300000000007,
+            "base_emission_per_teu": 2003563.23,
+            "base_travel_time_h": 268.8667857142857
+          }
+        ]
+      },
+      {
+        "batch_id": 34,
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "quantity_teu": 106.0,
+        "ET": 0.0,
+        "LT": 440.0,
+        "paths": [
+          {
+            "share": 0.7453703703703703,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 1796.015,
+            "base_emission_per_teu": 1446109.1199999999,
+            "base_travel_time_h": 259.53142857142853
+          },
+          {
+            "share": 0.2546296296296296,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 1899.5400000000002,
+            "base_emission_per_teu": 1636926.4,
+            "base_travel_time_h": 254.60166666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 35,
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "quantity_teu": 116.0,
+        "ET": 0.0,
+        "LT": 513.0,
+        "paths": [
+          {
+            "share": 0.861111111111111,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Antwerp",
+              "Duisburg",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2298.58,
+            "base_emission_per_teu": 2513100.7199999997,
+            "base_travel_time_h": 269.29761904761904
+          },
+          {
+            "share": 0.1388888888888889,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2063.9,
+            "base_emission_per_teu": 2218594.08,
+            "base_travel_time_h": 250.22595238095235
+          }
+        ]
+      },
+      {
+        "batch_id": 36,
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "quantity_teu": 101.0,
+        "ET": 0.0,
+        "LT": 365.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 1994.42,
+            "base_emission_per_teu": 1867624.0799999998,
+            "base_travel_time_h": 247.33095238095237
+          }
+        ]
+      },
+      {
+        "batch_id": 37,
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "quantity_teu": 82.0,
+        "ET": 0.0,
+        "LT": 391.0,
+        "paths": [
+          {
+            "share": 0.8333333333333334,
+            "nodes": [
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2953.7899999999995,
+            "base_emission_per_teu": 3540095.7699999996,
+            "base_travel_time_h": 92.0025
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2927.9199999999996,
+            "base_emission_per_teu": 3451502.76,
+            "base_travel_time_h": 89.86166666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 38,
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "quantity_teu": 84.0,
+        "ET": 0.0,
+        "LT": 426.0,
+        "paths": [
+          {
+            "share": 0.5241838873914345,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2454.34,
+            "base_emission_per_teu": 3081568.08,
+            "base_travel_time_h": 266.4942857142857
+          },
+          {
+            "share": 0.2854328829455937,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Almaty",
+              "Astana",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3164.1099999999997,
+            "base_emission_per_teu": 4090865.0999999996,
+            "base_travel_time_h": 114.69749999999999
+          },
+          {
+            "share": 0.05149434077408274,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Almaty",
+              "Astana",
+              "Hamburg",
+              "Berlin",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3173.8699999999994,
+            "base_emission_per_teu": 4105993.0999999996,
+            "base_travel_time_h": 115.10416666666666
+          },
+          {
+            "share": 0.13888888888888887,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2464.1,
+            "base_emission_per_teu": 3096696.08,
+            "base_travel_time_h": 266.9009523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 39,
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "quantity_teu": 140.0,
+        "ET": 0.0,
+        "LT": 447.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Yiwu",
+              "Hefei",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "water",
+              "rail"
+            ],
+            "base_cost_per_teu": 1999.51,
+            "base_emission_per_teu": 2112019.07,
+            "base_travel_time_h": 246.48011904761904
+          }
+        ]
+      },
+      {
+        "batch_id": 40,
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "quantity_teu": 113.0,
+        "ET": 0.0,
+        "LT": 440.0,
+        "paths": [
+          {
+            "share": 0.6248218590836636,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Prague",
+              "Vienna",
+              "Munich",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2353.44,
+            "base_emission_per_teu": 2433781.38,
+            "base_travel_time_h": 260.1359523809524
+          },
+          {
+            "share": 0.37517814091633633,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2108.0600000000004,
+            "base_emission_per_teu": 2151724.08,
+            "base_travel_time_h": 252.06595238095238
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "objectives": {
+      "cost": 11116517.714380534,
+      "emission_gCO2": 13638969999.73799,
+      "time_h": 467.83142857142855,
+      "penalty": 0.0
+    },
+    "feasible": true,
+    "vio_breakdown": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.942579081293661,
+      "late_teu_h": 0.0,
+      "chance_vio": 0.0,
+      "min_on_time_prob": 1.0,
+      "mean_arrival_h_sum": 0.0,
+      "wait_teu_h": 303892.51440417056,
+      "trans_teu_h": 89053.21492751478,
+      "trans_cost": 0.0,
+      "carbon_cost": 126740.46953503041
+    },
+    "border_flow": {
+      "Manzhouli": 353.73513414286856,
+      "Erenhot": 1177.0,
+      "Zabaykalsk": 323.0,
+      "Hamburg": 1821.571273624942,
+      "Khorgos": 354.0,
+      "Shanghai": 439.0,
+      "Rotterdam": 549.8358206420982,
+      "Qingdao": 324.26486585713144,
+      "Antwerp": 263.9207204812243,
+      "Altynkol": 210.2217543138866,
+      "Dostyk": 195.9550490864412,
+      "Ningbo": 377.0,
+      "Malaszewicze": 44.844579479106805,
+      "Tianjin": 197.56252858261186
+    },
+    "border_util": {
+      "Manzhouli": 0.7988888888888889,
+      "Erenhot": 0.9133333333333333,
+      "Zabaykalsk": 0.8185714285714286,
+      "Hamburg": 0.942579081293661,
+      "Khorgos": 0.8044444444444444,
+      "Rotterdam": 0.8008635391854778,
+      "Altynkol": 0.6785714285714286,
+      "Dostyk": 0.7009166184656932,
+      "Malaszewicze": 0.062132667585986824
+    },
+    "allocations": [
+      {
+        "batch_id": 1,
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "quantity_teu": 120.0,
+        "ET": 0.0,
+        "LT": 360.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Xi'an",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Moscow",
+              "St.Petersburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3339.24,
+            "base_emission_per_teu": 5491511.399999999,
+            "base_travel_time_h": 117.52666666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 2,
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "quantity_teu": 110.0,
+        "ET": 0.0,
+        "LT": 372.0,
+        "paths": [
+          {
+            "share": 0.606036367514531,
+            "nodes": [
+              "Xi'an",
+              "Xiangyang",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3650.02,
+            "base_emission_per_teu": 6842945.5,
+            "base_travel_time_h": 139.60500000000002
+          },
+          {
+            "share": 0.393963632485469,
+            "nodes": [
+              "Xi'an",
+              "Xiangyang",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3683.8999999999996,
+            "base_emission_per_teu": 6647707.5,
+            "base_travel_time_h": 141.01666666666668
+          }
+        ]
+      },
+      {
+        "batch_id": 3,
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "quantity_teu": 100.0,
+        "ET": 0.0,
+        "LT": 384.0,
+        "paths": [
+          {
+            "share": 0.5814781298905417,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz",
+              "Warsaw",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 3672.0849999999996,
+            "base_emission_per_teu": 6417997.84,
+            "base_travel_time_h": 143.82880952380953
+          },
+          {
+            "share": 0.31278954851090596,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Budapest",
+              "Bratislava",
+              "Munich",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3820.0099999999998,
+            "base_emission_per_teu": 6716517.51,
+            "base_travel_time_h": 142.62583333333333
+          },
+          {
+            "share": 0.10573232159855231,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz",
+              "Warsaw",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3752.5599999999995,
+            "base_emission_per_teu": 6566329.359999999,
+            "base_travel_time_h": 139.99666666666667
+          }
+        ]
+      },
+      {
+        "batch_id": 4,
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "quantity_teu": 95.0,
+        "ET": 0.0,
+        "LT": 396.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Erenhot",
+              "Moscow",
+              "St.Petersburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3210.4,
+            "base_emission_per_teu": 5116614.32,
+            "base_travel_time_h": 111.86333333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 5,
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "quantity_teu": 130.0,
+        "ET": 0.0,
+        "LT": 408.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Almaty",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2162.5799999999995,
+            "base_emission_per_teu": 1876591.04,
+            "base_travel_time_h": 60.071666666666665
+          }
+        ]
+      },
+      {
+        "batch_id": 6,
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "quantity_teu": 115.0,
+        "ET": 0.0,
+        "LT": 420.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1828.22,
+            "base_emission_per_teu": 1804992.0799999998,
+            "base_travel_time_h": 240.40595238095239
+          }
+        ]
+      },
+      {
+        "batch_id": 7,
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "quantity_teu": 105.0,
+        "ET": 0.0,
+        "LT": 432.0,
+        "paths": [
+          {
+            "share": 0.7362132921543755,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2361.57,
+            "base_emission_per_teu": 2152122.9499999997,
+            "base_travel_time_h": 65.59916666666666
+          },
+          {
+            "share": 0.2637867078456244,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2477.71,
+            "base_emission_per_teu": 2770715.4899999998,
+            "base_travel_time_h": 75.2375
+          }
+        ]
+      },
+      {
+        "batch_id": 8,
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "quantity_teu": 90.0,
+        "ET": 0.0,
+        "LT": 444.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1890.3600000000004,
+            "base_emission_per_teu": 1676694.24,
+            "base_travel_time_h": 259.8392857142857
+          }
+        ]
+      },
+      {
+        "batch_id": 9,
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "quantity_teu": 125.0,
+        "ET": 0.0,
+        "LT": 456.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 1938.02,
+            "base_emission_per_teu": 1746758.9599999997,
+            "base_travel_time_h": 253.61047619047616
+          }
+        ]
+      },
+      {
+        "batch_id": 10,
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "quantity_teu": 140.0,
+        "ET": 0.0,
+        "LT": 468.0,
+        "paths": [
+          {
+            "share": 0.7465376939198297,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2310.9,
+            "base_emission_per_teu": 2433719.76,
+            "base_travel_time_h": 268.72214285714284
+          },
+          {
+            "share": 0.2534623060801703,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2382.5199999999995,
+            "base_emission_per_teu": 2516177.7399999998,
+            "base_travel_time_h": 271.08047619047613
+          }
+        ]
+      },
+      {
+        "batch_id": 11,
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "quantity_teu": 81.0,
+        "ET": 0.0,
+        "LT": 454.0,
+        "paths": [
+          {
+            "share": 0.6157922985807052,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 1996.7,
+            "base_emission_per_teu": 1883895.7599999998,
+            "base_travel_time_h": 255.6304761904762
+          },
+          {
+            "share": 0.38420770141929483,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1700.74,
+            "base_emission_per_teu": 1486292.0799999998,
+            "base_travel_time_h": 235.09428571428572
+          }
+        ]
+      },
+      {
+        "batch_id": 12,
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "quantity_teu": 125.0,
+        "ET": 0.0,
+        "LT": 401.0,
+        "paths": [
+          {
+            "share": 0.24236510310483522,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Dostyk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3105.1100000000006,
+            "base_emission_per_teu": 5886394.49,
+            "base_travel_time_h": 120.92083333333335
+          },
+          {
+            "share": 0.1141336418195631,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2969.37,
+            "base_emission_per_teu": 5511920.23,
+            "base_travel_time_h": 122.12916666666666
+          },
+          {
+            "share": 0.5025758827914037,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Dostyk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3078.67,
+            "base_emission_per_teu": 5694678.05,
+            "base_travel_time_h": 118.71750000000002
+          },
+          {
+            "share": 0.14092537228419794,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Dostyk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2951.35,
+            "base_emission_per_teu": 5026120.7299999995,
+            "base_travel_time_h": 108.10750000000002
+          }
+        ]
+      },
+      {
+        "batch_id": 13,
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "quantity_teu": 131.0,
+        "ET": 0.0,
+        "LT": 368.0,
+        "paths": [
+          {
+            "share": 0.8333333333333334,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2053.71,
+            "base_emission_per_teu": 1827395.39,
+            "base_travel_time_h": 259.9625
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Nuremberg",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2083.1000000000004,
+            "base_emission_per_teu": 1921444.4,
+            "base_travel_time_h": 262.25
+          }
+        ]
+      },
+      {
+        "batch_id": 14,
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "quantity_teu": 91.0,
+        "ET": 0.0,
+        "LT": 514.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 2212.535,
+            "base_emission_per_teu": 2676416.8000000003,
+            "base_travel_time_h": 265.66238095238094
+          }
+        ]
+      },
+      {
+        "batch_id": 15,
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "quantity_teu": 122.0,
+        "ET": 0.0,
+        "LT": 475.0,
+        "paths": [
+          {
+            "share": 0.31453096279696335,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2202.78,
+            "base_emission_per_teu": 2385560.08,
+            "base_travel_time_h": 256.01261904761907
+          },
+          {
+            "share": 0.5795729034026045,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2190.6299999999997,
+            "base_emission_per_teu": 2318233.07,
+            "base_travel_time_h": 254.44345238095238
+          },
+          {
+            "share": 0.10589613380043218,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2286.9199999999996,
+            "base_emission_per_teu": 2487424.06,
+            "base_travel_time_h": 258.892619047619
+          }
+        ]
+      },
+      {
+        "batch_id": 16,
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "quantity_teu": 126.0,
+        "ET": 0.0,
+        "LT": 418.0,
+        "paths": [
+          {
+            "share": 0.8932745508547761,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2025.8800000000003,
+            "base_emission_per_teu": 1790876.24,
+            "base_travel_time_h": 265.4859523809524
+          },
+          {
+            "share": 0.10672544914522393,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Prague",
+              "Berlin",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2385.31,
+            "base_emission_per_teu": 2282261.85,
+            "base_travel_time_h": 283.02226190476193
+          }
+        ]
+      },
+      {
+        "batch_id": 17,
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "quantity_teu": 90.0,
+        "ET": 0.0,
+        "LT": 377.0,
+        "paths": [
+          {
+            "share": 0.8781978254562375,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Duisburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 3078.7599999999998,
+            "base_emission_per_teu": 4747312.5600000005,
+            "base_travel_time_h": 110.11047619047618
+          },
+          {
+            "share": 0.12180217454376246,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Lodz",
+              "Malaszewicze",
+              "Warsaw",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3222.16,
+            "base_emission_per_teu": 4333009.96,
+            "base_travel_time_h": 106.33833333333332
+          }
+        ]
+      },
+      {
+        "batch_id": 18,
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "quantity_teu": 99.0,
+        "ET": 0.0,
+        "LT": 458.0,
+        "paths": [
+          {
+            "share": 0.8608258011503697,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Dostyk",
+              "Altynkol",
+              "Almaty",
+              "Astana",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2700.6400000000003,
+            "base_emission_per_teu": 4327144.0,
+            "base_travel_time_h": 92.99166666666667
+          },
+          {
+            "share": 0.13917419884963025,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 3002.7200000000003,
+            "base_emission_per_teu": 6774462.96,
+            "base_travel_time_h": 124.40333333333334
+          }
+        ]
+      },
+      {
+        "batch_id": 19,
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "quantity_teu": 150.0,
+        "ET": 0.0,
+        "LT": 403.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2592.75,
+            "base_emission_per_teu": 3757092.5699999994,
+            "base_travel_time_h": 86.15916666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 20,
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "quantity_teu": 103.0,
+        "ET": 0.0,
+        "LT": 416.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2138.3,
+            "base_emission_per_teu": 2227324.08,
+            "base_travel_time_h": 253.32595238095237
+          }
+        ]
+      },
+      {
+        "batch_id": 21,
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "quantity_teu": 146.0,
+        "ET": 0.0,
+        "LT": 497.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "water"
+            ],
+            "base_cost_per_teu": 1622.98,
+            "base_emission_per_teu": 1291892.0799999998,
+            "base_travel_time_h": 231.8542857142857
+          }
+        ]
+      },
+      {
+        "batch_id": 22,
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "quantity_teu": 94.0,
+        "ET": 0.0,
+        "LT": 399.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2108.0600000000004,
+            "base_emission_per_teu": 2151724.08,
+            "base_travel_time_h": 252.06595238095238
+          }
+        ]
+      },
+      {
+        "batch_id": 23,
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "quantity_teu": 122.0,
+        "ET": 0.0,
+        "LT": 416.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Tianjin",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2744.66,
+            "base_emission_per_teu": 4635271.14,
+            "base_travel_time_h": 101.69999999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 24,
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "quantity_teu": 108.0,
+        "ET": 0.0,
+        "LT": 464.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Xi'an",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2200.22,
+            "base_emission_per_teu": 2577634.08,
+            "base_travel_time_h": 255.90595238095239
+          }
+        ]
+      },
+      {
+        "batch_id": 25,
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "quantity_teu": 87.0,
+        "ET": 0.0,
+        "LT": 465.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2316.06,
+            "base_emission_per_teu": 2867234.08,
+            "base_travel_time_h": 260.73261904761904
+          }
+        ]
+      },
+      {
+        "batch_id": 26,
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "quantity_teu": 113.0,
+        "ET": 0.0,
+        "LT": 443.0,
+        "paths": [
+          {
+            "share": 0.15530023460234368,
+            "nodes": [
+              "Nanjing",
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2798.12,
+            "base_emission_per_teu": 4173890.8,
+            "base_travel_time_h": 93.38666666666666
+          },
+          {
+            "share": 0.12716674499239614,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2898.1399999999994,
+            "base_emission_per_teu": 4752183.34,
+            "base_travel_time_h": 102.35333333333332
+          },
+          {
+            "share": 0.061125962531105305,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2859.62,
+            "base_emission_per_teu": 4516855.94,
+            "base_travel_time_h": 98.87166666666666
+          },
+          {
+            "share": 0.2046987704573355,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2806.87,
+            "base_emission_per_teu": 4313106.93,
+            "base_travel_time_h": 95.26249999999999
+          },
+          {
+            "share": 0.09483132165545674,
+            "nodes": [
+              "Nanjing",
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2706.85,
+            "base_emission_per_teu": 3734814.3899999997,
+            "base_travel_time_h": 86.29583333333332
+          },
+          {
+            "share": 0.16221680261880123,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2690.7299999999996,
+            "base_emission_per_teu": 3694514.3899999997,
+            "base_travel_time_h": 85.62416666666665
+          },
+          {
+            "share": 0.19466016314256143,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2781.9999999999995,
+            "base_emission_per_teu": 4133590.8,
+            "base_travel_time_h": 92.71499999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 27,
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "quantity_teu": 149.0,
+        "ET": 0.0,
+        "LT": 437.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chengdu",
+              "Xiangyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Bratislava",
+              "Vienna",
+              "Prague",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3705.7600000000007,
+            "base_emission_per_teu": 6635891.5600000005,
+            "base_travel_time_h": 138.72166666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 28,
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "quantity_teu": 105.0,
+        "ET": 0.0,
+        "LT": 413.0,
+        "paths": [
+          {
+            "share": 0.8414096916299559,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2497.0,
+            "base_emission_per_teu": 3140097.0,
+            "base_travel_time_h": 76.83333333333333
+          },
+          {
+            "share": 0.15859030837004406,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2624.32,
+            "base_emission_per_teu": 3808654.32,
+            "base_travel_time_h": 87.44333333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 29,
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "quantity_teu": 82.0,
+        "ET": 0.0,
+        "LT": 460.0,
+        "paths": [
+          {
+            "share": 0.7548275843407952,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Moscow",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2361.5,
+            "base_emission_per_teu": 2607367.8000000003,
+            "base_travel_time_h": 80.02142857142857
+          },
+          {
+            "share": 0.07850574899253808,
+            "nodes": [
+              "Qingdao",
+              "Nanjing",
+              "Erenhot",
+              "Moscow",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2785.92,
+            "base_emission_per_teu": 4184737.28,
+            "base_travel_time_h": 93.46666666666667
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Moscow",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2386.26,
+            "base_emission_per_teu": 3036828.08,
+            "base_travel_time_h": 85.64809523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 30,
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "quantity_teu": 136.0,
+        "ET": 0.0,
+        "LT": 336.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Lianyungang",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2430.95,
+            "base_emission_per_teu": 2964582.4499999997,
+            "base_travel_time_h": 74.09416666666667
+          }
+        ]
+      },
+      {
+        "batch_id": 31,
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "quantity_teu": 133.0,
+        "ET": 0.0,
+        "LT": 396.0,
+        "paths": [
+          {
+            "share": 0.31805835873934385,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 1887.5300000000002,
+            "base_emission_per_teu": 1722341.4499999997,
+            "base_travel_time_h": 241.70511904761906
+          },
+          {
+            "share": 0.3693716260439419,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 1861.66,
+            "base_emission_per_teu": 1633748.44,
+            "base_travel_time_h": 239.56428571428572
+          },
+          {
+            "share": 0.19671514573673815,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 1889.79,
+            "base_emission_per_teu": 1730825.0699999998,
+            "base_travel_time_h": 241.90845238095238
+          },
+          {
+            "share": 0.1158548694799762,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 1915.66,
+            "base_emission_per_teu": 1819418.0799999998,
+            "base_travel_time_h": 244.04928571428573
+          }
+        ]
+      },
+      {
+        "batch_id": 32,
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "quantity_teu": 92.0,
+        "ET": 0.0,
+        "LT": 503.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 1934.3799999999999,
+            "base_emission_per_teu": 1896149.9999999998,
+            "base_travel_time_h": 256.7659523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 33,
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "quantity_teu": 98.0,
+        "ET": 0.0,
+        "LT": 402.0,
+        "paths": [
+          {
+            "share": 0.4398613875615144,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2135.6800000000003,
+            "base_emission_per_teu": 2056940.24,
+            "base_travel_time_h": 270.0609523809524
+          },
+          {
+            "share": 0.37634615611177286,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2132.5300000000007,
+            "base_emission_per_teu": 2003563.23,
+            "base_travel_time_h": 268.8667857142857
+          },
+          {
+            "share": 0.18379245632671265,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "water",
+              "rail"
+            ],
+            "base_cost_per_teu": 2245.4350000000004,
+            "base_emission_per_teu": 2114023.17,
+            "base_travel_time_h": 279.8589285714286
+          }
+        ]
+      },
+      {
+        "batch_id": 34,
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "quantity_teu": 106.0,
+        "ET": 0.0,
+        "LT": 440.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 1796.015,
+            "base_emission_per_teu": 1446109.1199999999,
+            "base_travel_time_h": 259.53142857142853
+          }
+        ]
+      },
+      {
+        "batch_id": 35,
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "quantity_teu": 116.0,
+        "ET": 0.0,
+        "LT": 513.0,
+        "paths": [
+          {
+            "share": 0.5040318411084109,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2063.9,
+            "base_emission_per_teu": 2218594.08,
+            "base_travel_time_h": 250.22595238095235
+          },
+          {
+            "share": 0.3410329420395958,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2176.14,
+            "base_emission_per_teu": 2323318.7199999997,
+            "base_travel_time_h": 264.19595238095235
+          },
+          {
+            "share": 0.15493521685199338,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2267.9799999999996,
+            "base_emission_per_teu": 2534918.08,
+            "base_travel_time_h": 258.7292857142857
+          }
+        ]
+      },
+      {
+        "batch_id": 36,
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "quantity_teu": 101.0,
+        "ET": 0.0,
+        "LT": 365.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 1994.42,
+            "base_emission_per_teu": 1867624.0799999998,
+            "base_travel_time_h": 247.33095238095237
+          }
+        ]
+      },
+      {
+        "batch_id": 37,
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "quantity_teu": 82.0,
+        "ET": 0.0,
+        "LT": 391.0,
+        "paths": [
+          {
+            "share": 0.5360566397202565,
+            "nodes": [
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2927.9199999999996,
+            "base_emission_per_teu": 3451502.76,
+            "base_travel_time_h": 89.86166666666666
+          },
+          {
+            "share": 0.46394336027974353,
+            "nodes": [
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Bratislava",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2851.64,
+            "base_emission_per_teu": 4094432.32,
+            "base_travel_time_h": 96.91499999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 38,
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "quantity_teu": 84.0,
+        "ET": 0.0,
+        "LT": 426.0,
+        "paths": [
+          {
+            "share": 0.682541275758109,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2454.34,
+            "base_emission_per_teu": 3081568.08,
+            "base_travel_time_h": 266.4942857142857
+          },
+          {
+            "share": 0.31745872424189103,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2464.1,
+            "base_emission_per_teu": 3096696.08,
+            "base_travel_time_h": 266.9009523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 39,
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "quantity_teu": 140.0,
+        "ET": 0.0,
+        "LT": 447.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Yiwu",
+              "Ningbo",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail"
+            ],
+            "base_cost_per_teu": 1872.55,
+            "base_emission_per_teu": 1605611.39,
+            "base_travel_time_h": 252.41416666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 40,
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "quantity_teu": 113.0,
+        "ET": 0.0,
+        "LT": 440.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2108.0600000000004,
+            "base_emission_per_teu": 2151724.08,
+            "base_travel_time_h": 252.06595238095238
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "objectives": {
+      "cost": 11127649.981143754,
+      "emission_gCO2": 13620530126.041658,
+      "time_h": 467.83142857142855,
+      "penalty": 0.0
+    },
+    "feasible": true,
+    "vio_breakdown": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.9618159010780507,
+      "late_teu_h": 0.0,
+      "chance_vio": 0.0,
+      "min_on_time_prob": 1.0,
+      "mean_arrival_h_sum": 0.0,
+      "wait_teu_h": 306831.9996423645,
+      "trans_teu_h": 89546.14577292897,
+      "trans_cost": 0.0,
+      "carbon_cost": 129701.80949473033
+    },
+    "border_flow": {
+      "Manzhouli": 339.6126117857238,
+      "Erenhot": 1177.0,
+      "Zabaykalsk": 323.0,
+      "Hamburg": 1838.9760613541184,
+      "Khorgos": 354.0,
+      "Shanghai": 439.0,
+      "Rotterdam": 561.3631838684151,
+      "Qingdao": 338.38738821427626,
+      "Antwerp": 247.1006004010202,
+      "Altynkol": 212.5181285949055,
+      "Dostyk": 179.795874238701,
+      "Ningbo": 377.0,
+      "Malaszewicze": 66.03714956592235,
+      "Tianjin": 198.6354404855099
+    },
+    "border_util": {
+      "Manzhouli": 0.7988888888888889,
+      "Erenhot": 0.9133333333333333,
+      "Zabaykalsk": 0.8185714285714286,
+      "Hamburg": 0.9618159010780507,
+      "Khorgos": 0.8044444444444444,
+      "Rotterdam": 0.7737196159878981,
+      "Altynkol": 0.6785714285714286,
+      "Dostyk": 0.6778471820547444,
+      "Malaszewicze": 0.10911055632165571
+    },
+    "allocations": [
+      {
+        "batch_id": 1,
+        "origin": "Xi'an",
+        "destination": "Berlin",
+        "quantity_teu": 120.0,
+        "ET": 0.0,
+        "LT": 360.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Xi'an",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Moscow",
+              "St.Petersburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3339.24,
+            "base_emission_per_teu": 5491511.399999999,
+            "base_travel_time_h": 117.52666666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 2,
+        "origin": "Xi'an",
+        "destination": "Duisburg",
+        "quantity_teu": 110.0,
+        "ET": 0.0,
+        "LT": 372.0,
+        "paths": [
+          {
+            "share": 0.5050303062621091,
+            "nodes": [
+              "Xi'an",
+              "Xiangyang",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3650.02,
+            "base_emission_per_teu": 6842945.5,
+            "base_travel_time_h": 139.60500000000002
+          },
+          {
+            "share": 0.4949696937378908,
+            "nodes": [
+              "Xi'an",
+              "Xiangyang",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3683.8999999999996,
+            "base_emission_per_teu": 6647707.5,
+            "base_travel_time_h": 141.01666666666668
+          }
+        ]
+      },
+      {
+        "batch_id": 3,
+        "origin": "Chongqing",
+        "destination": "Duisburg",
+        "quantity_teu": 100.0,
+        "ET": 0.0,
+        "LT": 384.0,
+        "paths": [
+          {
+            "share": 0.6512317749087847,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz",
+              "Warsaw",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 3672.0849999999996,
+            "base_emission_per_teu": 6417997.84,
+            "base_travel_time_h": 143.82880952380953
+          },
+          {
+            "share": 0.26065795709242157,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Budapest",
+              "Bratislava",
+              "Munich",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3820.0099999999998,
+            "base_emission_per_teu": 6716517.51,
+            "base_travel_time_h": 142.62583333333333
+          },
+          {
+            "share": 0.08811026799879358,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Erenhot",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz",
+              "Warsaw",
+              "Hamburg",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3752.5599999999995,
+            "base_emission_per_teu": 6566329.359999999,
+            "base_travel_time_h": 139.99666666666667
+          }
+        ]
+      },
+      {
+        "batch_id": 4,
+        "origin": "Chongqing",
+        "destination": "Hamburg",
+        "quantity_teu": 95.0,
+        "ET": 0.0,
+        "LT": 396.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Erenhot",
+              "Moscow",
+              "St.Petersburg",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3210.4,
+            "base_emission_per_teu": 5116614.32,
+            "base_travel_time_h": 111.86333333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 5,
+        "origin": "Chengdu",
+        "destination": "Lodz",
+        "quantity_teu": 130.0,
+        "ET": 0.0,
+        "LT": 408.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chengdu",
+              "Khorgos",
+              "Almaty",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2162.5799999999995,
+            "base_emission_per_teu": 1876591.04,
+            "base_travel_time_h": 60.071666666666665
+          }
+        ]
+      },
+      {
+        "batch_id": 6,
+        "origin": "Zhengzhou",
+        "destination": "Hamburg",
+        "quantity_teu": 115.0,
+        "ET": 0.0,
+        "LT": 420.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1828.22,
+            "base_emission_per_teu": 1804992.0799999998,
+            "base_travel_time_h": 240.40595238095239
+          }
+        ]
+      },
+      {
+        "batch_id": 7,
+        "origin": "Wuhan",
+        "destination": "Warsaw",
+        "quantity_teu": 105.0,
+        "ET": 0.0,
+        "LT": 432.0,
+        "paths": [
+          {
+            "share": 0.6135110767953129,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2361.57,
+            "base_emission_per_teu": 2152122.9499999997,
+            "base_travel_time_h": 65.59916666666666
+          },
+          {
+            "share": 0.38648892320468703,
+            "nodes": [
+              "Wuhan",
+              "Erenhot",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2477.71,
+            "base_emission_per_teu": 2770715.4899999998,
+            "base_travel_time_h": 75.2375
+          }
+        ]
+      },
+      {
+        "batch_id": 8,
+        "origin": "Yiwu",
+        "destination": "Rotterdam",
+        "quantity_teu": 90.0,
+        "ET": 0.0,
+        "LT": 444.0,
+        "paths": [
+          {
+            "share": 0.8333333333333334,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1890.3600000000004,
+            "base_emission_per_teu": 1676694.24,
+            "base_travel_time_h": 259.8392857142857
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 1871.295,
+            "base_emission_per_teu": 1677999.6799999997,
+            "base_travel_time_h": 260.0735714285714
+          }
+        ]
+      },
+      {
+        "batch_id": 9,
+        "origin": "Suzhou",
+        "destination": "Prague",
+        "quantity_teu": 125.0,
+        "ET": 0.0,
+        "LT": 456.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Suzhou",
+              "Shanghai",
+              "Hamburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 1938.02,
+            "base_emission_per_teu": 1746758.9599999997,
+            "base_travel_time_h": 253.61047619047616
+          }
+        ]
+      },
+      {
+        "batch_id": 10,
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "quantity_teu": 140.0,
+        "ET": 0.0,
+        "LT": 468.0,
+        "paths": [
+          {
+            "share": 0.788781411599858,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2310.9,
+            "base_emission_per_teu": 2433719.76,
+            "base_travel_time_h": 268.72214285714284
+          },
+          {
+            "share": 0.21121858840014188,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Vienna",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2382.5199999999995,
+            "base_emission_per_teu": 2516177.7399999998,
+            "base_travel_time_h": 271.08047619047613
+          }
+        ]
+      },
+      {
+        "batch_id": 11,
+        "origin": "Qingdao",
+        "destination": "Hamburg",
+        "quantity_teu": 81.0,
+        "ET": 0.0,
+        "LT": 454.0,
+        "paths": [
+          {
+            "share": 0.6798269154839209,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 1996.7,
+            "base_emission_per_teu": 1883895.7599999998,
+            "base_travel_time_h": 255.6304761904762
+          },
+          {
+            "share": 0.32017308451607907,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 1700.74,
+            "base_emission_per_teu": 1486292.0799999998,
+            "base_travel_time_h": 235.09428571428572
+          }
+        ]
+      },
+      {
+        "batch_id": 12,
+        "origin": "Chongqing",
+        "destination": "Lodz",
+        "quantity_teu": 125.0,
+        "ET": 0.0,
+        "LT": 401.0,
+        "paths": [
+          {
+            "share": 0.20197091925402935,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Dostyk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3105.1100000000006,
+            "base_emission_per_teu": 5886394.49,
+            "base_travel_time_h": 120.92083333333335
+          },
+          {
+            "share": 0.09511136818296925,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2969.37,
+            "base_emission_per_teu": 5511920.23,
+            "base_travel_time_h": 122.12916666666666
+          },
+          {
+            "share": 0.4188132356595031,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Dostyk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3078.67,
+            "base_emission_per_teu": 5694678.05,
+            "base_travel_time_h": 118.71750000000002
+          },
+          {
+            "share": 0.11743781023683161,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Dostyk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2951.35,
+            "base_emission_per_teu": 5026120.7299999995,
+            "base_travel_time_h": 108.10750000000002
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Chongqing",
+              "Chengdu",
+              "Khorgos",
+              "Altynkol",
+              "Bishkek",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2995.81,
+            "base_emission_per_teu": 5703636.67,
+            "base_travel_time_h": 124.3325
+          }
+        ]
+      },
+      {
+        "batch_id": 13,
+        "origin": "Ningbo",
+        "destination": "Vienna",
+        "quantity_teu": 131.0,
+        "ET": 0.0,
+        "LT": 368.0,
+        "paths": [
+          {
+            "share": 0.861111111111111,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2053.71,
+            "base_emission_per_teu": 1827395.39,
+            "base_travel_time_h": 259.9625
+          },
+          {
+            "share": 0.1388888888888889,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Nuremberg",
+              "Vienna"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2083.1000000000004,
+            "base_emission_per_teu": 1921444.4,
+            "base_travel_time_h": 262.25
+          }
+        ]
+      },
+      {
+        "batch_id": 14,
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "quantity_teu": 91.0,
+        "ET": 0.0,
+        "LT": 514.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 2212.535,
+            "base_emission_per_teu": 2676416.8000000003,
+            "base_travel_time_h": 265.66238095238094
+          }
+        ]
+      },
+      {
+        "batch_id": 15,
+        "origin": "Zhengzhou",
+        "destination": "Budapest",
+        "quantity_teu": 122.0,
+        "ET": 0.0,
+        "LT": 475.0,
+        "paths": [
+          {
+            "share": 0.26210913566413613,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Prague",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2202.78,
+            "base_emission_per_teu": 2385560.08,
+            "base_travel_time_h": 256.01261904761907
+          },
+          {
+            "share": 0.48297741950217044,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2190.6299999999997,
+            "base_emission_per_teu": 2318233.07,
+            "base_travel_time_h": 254.44345238095238
+          },
+          {
+            "share": 0.2549134448336935,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg",
+              "Munich",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2286.9199999999996,
+            "base_emission_per_teu": 2487424.06,
+            "base_travel_time_h": 258.892619047619
+          }
+        ]
+      },
+      {
+        "batch_id": 16,
+        "origin": "Shanghai",
+        "destination": "Nuremberg",
+        "quantity_teu": 126.0,
+        "ET": 0.0,
+        "LT": 418.0,
+        "paths": [
+          {
+            "share": 0.7443954590456466,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2025.8800000000003,
+            "base_emission_per_teu": 1790876.24,
+            "base_travel_time_h": 265.4859523809524
+          },
+          {
+            "share": 0.25560454095435325,
+            "nodes": [
+              "Shanghai",
+              "Rotterdam",
+              "Duisburg",
+              "Prague",
+              "Berlin",
+              "Munich",
+              "Nuremberg"
+            ],
+            "modes": [
+              "water",
+              "water",
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2385.31,
+            "base_emission_per_teu": 2282261.85,
+            "base_travel_time_h": 283.02226190476193
+          }
+        ]
+      },
+      {
+        "batch_id": 17,
+        "origin": "Chengdu",
+        "destination": "Rotterdam",
+        "quantity_teu": 90.0,
+        "ET": 0.0,
+        "LT": 377.0,
+        "paths": [
+          {
+            "share": 0.7318315212135312,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Duisburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "water"
+            ],
+            "base_cost_per_teu": 3078.7599999999998,
+            "base_emission_per_teu": 4747312.5600000005,
+            "base_travel_time_h": 110.11047619047618
+          },
+          {
+            "share": 0.26816847878646877,
+            "nodes": [
+              "Chengdu",
+              "Erenhot",
+              "Moscow",
+              "Lodz",
+              "Malaszewicze",
+              "Warsaw",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 3222.16,
+            "base_emission_per_teu": 4333009.96,
+            "base_travel_time_h": 106.33833333333332
+          }
+        ]
+      },
+      {
+        "batch_id": 18,
+        "origin": "Chongqing",
+        "destination": "Warsaw",
+        "quantity_teu": 99.0,
+        "ET": 0.0,
+        "LT": 458.0,
+        "paths": [
+          {
+            "share": 0.8840215009586415,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Dostyk",
+              "Altynkol",
+              "Almaty",
+              "Astana",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2700.6400000000003,
+            "base_emission_per_teu": 4327144.0,
+            "base_travel_time_h": 92.99166666666667
+          },
+          {
+            "share": 0.11597849904135855,
+            "nodes": [
+              "Chongqing",
+              "Khorgos",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "road",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 3002.7200000000003,
+            "base_emission_per_teu": 6774462.96,
+            "base_travel_time_h": 124.40333333333334
+          }
+        ]
+      },
+      {
+        "batch_id": 19,
+        "origin": "Hefei",
+        "destination": "Warsaw",
+        "quantity_teu": 150.0,
+        "ET": 0.0,
+        "LT": 403.0,
+        "paths": [
+          {
+            "share": 0.8333333333333334,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2592.75,
+            "base_emission_per_teu": 3757092.5699999994,
+            "base_travel_time_h": 86.15916666666666
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Hefei",
+              "Erenhot",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2560.6299999999997,
+            "base_emission_per_teu": 3257515.2499999995,
+            "base_travel_time_h": 79.51583333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 20,
+        "origin": "Hefei",
+        "destination": "Budapest",
+        "quantity_teu": 103.0,
+        "ET": 0.0,
+        "LT": 416.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Hefei",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2138.3,
+            "base_emission_per_teu": 2227324.08,
+            "base_travel_time_h": 253.32595238095237
+          }
+        ]
+      },
+      {
+        "batch_id": 21,
+        "origin": "Lianyungang",
+        "destination": "Hamburg",
+        "quantity_teu": 146.0,
+        "ET": 0.0,
+        "LT": 497.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Lianyungang",
+              "Hamburg"
+            ],
+            "modes": [
+              "water"
+            ],
+            "base_cost_per_teu": 1622.98,
+            "base_emission_per_teu": 1291892.0799999998,
+            "base_travel_time_h": 231.8542857142857
+          }
+        ]
+      },
+      {
+        "batch_id": 22,
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "quantity_teu": 94.0,
+        "ET": 0.0,
+        "LT": 399.0,
+        "paths": [
+          {
+            "share": 0.8333333333333334,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2108.0600000000004,
+            "base_emission_per_teu": 2151724.08,
+            "base_travel_time_h": 252.06595238095238
+          },
+          {
+            "share": 0.16666666666666669,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Bratislava",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2124.9,
+            "base_emission_per_teu": 2177826.08,
+            "base_travel_time_h": 252.76761904761906
+          }
+        ]
+      },
+      {
+        "batch_id": 23,
+        "origin": "Tianjin",
+        "destination": "Prague",
+        "quantity_teu": 122.0,
+        "ET": 0.0,
+        "LT": 416.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Tianjin",
+              "Erenhot",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2744.66,
+            "base_emission_per_teu": 4635271.14,
+            "base_travel_time_h": 101.69999999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 24,
+        "origin": "Xi'an",
+        "destination": "Rotterdam",
+        "quantity_teu": 108.0,
+        "ET": 0.0,
+        "LT": 464.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Xi'an",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2200.22,
+            "base_emission_per_teu": 2577634.08,
+            "base_travel_time_h": 255.90595238095239
+          }
+        ]
+      },
+      {
+        "batch_id": 25,
+        "origin": "Chongqing",
+        "destination": "Rotterdam",
+        "quantity_teu": 87.0,
+        "ET": 0.0,
+        "LT": 465.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2316.06,
+            "base_emission_per_teu": 2867234.08,
+            "base_travel_time_h": 260.73261904761904
+          }
+        ]
+      },
+      {
+        "batch_id": 26,
+        "origin": "Nanjing",
+        "destination": "Warsaw",
+        "quantity_teu": 113.0,
+        "ET": 0.0,
+        "LT": 443.0,
+        "paths": [
+          {
+            "share": 0.12941686216861972,
+            "nodes": [
+              "Nanjing",
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2798.12,
+            "base_emission_per_teu": 4173890.8,
+            "base_travel_time_h": 93.38666666666666
+          },
+          {
+            "share": 0.10597228749366343,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2898.1399999999994,
+            "base_emission_per_teu": 4752183.34,
+            "base_travel_time_h": 102.35333333333332
+          },
+          {
+            "share": 0.050938302109254416,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Kazan",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2859.62,
+            "base_emission_per_teu": 4516855.94,
+            "base_travel_time_h": 98.87166666666666
+          },
+          {
+            "share": 0.17058230871444624,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2806.87,
+            "base_emission_per_teu": 4313106.93,
+            "base_travel_time_h": 95.26249999999999
+          },
+          {
+            "share": 0.24569276804621396,
+            "nodes": [
+              "Nanjing",
+              "Qingdao",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2706.85,
+            "base_emission_per_teu": 3734814.3899999997,
+            "base_travel_time_h": 86.29583333333332
+          },
+          {
+            "share": 0.135180668849001,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2690.7299999999996,
+            "base_emission_per_teu": 3694514.3899999997,
+            "base_travel_time_h": 85.62416666666665
+          },
+          {
+            "share": 0.16221680261880117,
+            "nodes": [
+              "Nanjing",
+              "Manzhouli",
+              "Zabaykalsk",
+              "Novosibirsk",
+              "Omsk",
+              "Yekaterinburg",
+              "Moscow",
+              "Minsk",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2781.9999999999995,
+            "base_emission_per_teu": 4133590.8,
+            "base_travel_time_h": 92.71499999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 27,
+        "origin": "Chengdu",
+        "destination": "Munich",
+        "quantity_teu": 149.0,
+        "ET": 0.0,
+        "LT": 437.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Chengdu",
+              "Xiangyang",
+              "Manzhouli",
+              "Yekaterinburg",
+              "Bratislava",
+              "Vienna",
+              "Prague",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 3705.7600000000007,
+            "base_emission_per_teu": 6635891.5600000005,
+            "base_travel_time_h": 138.72166666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 28,
+        "origin": "Xi'an",
+        "destination": "Lodz",
+        "quantity_teu": 105.0,
+        "ET": 0.0,
+        "LT": 413.0,
+        "paths": [
+          {
+            "share": 0.8678414096916299,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2497.0,
+            "base_emission_per_teu": 3140097.0,
+            "base_travel_time_h": 76.83333333333333
+          },
+          {
+            "share": 0.13215859030837004,
+            "nodes": [
+              "Xi'an",
+              "Erenhot",
+              "Moscow",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2624.32,
+            "base_emission_per_teu": 3808654.32,
+            "base_travel_time_h": 87.44333333333333
+          }
+        ]
+      },
+      {
+        "batch_id": 29,
+        "origin": "Qingdao",
+        "destination": "Warsaw",
+        "quantity_teu": 82.0,
+        "ET": 0.0,
+        "LT": 460.0,
+        "paths": [
+          {
+            "share": 0.6290229869506627,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Moscow",
+              "Lodz",
+              "Warsaw"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "rail",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 2361.5,
+            "base_emission_per_teu": 2607367.8000000003,
+            "base_travel_time_h": 80.02142857142857
+          },
+          {
+            "share": 0.06542145749378174,
+            "nodes": [
+              "Qingdao",
+              "Nanjing",
+              "Erenhot",
+              "Moscow",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "road",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2785.92,
+            "base_emission_per_teu": 4184737.28,
+            "base_travel_time_h": 93.46666666666667
+          },
+          {
+            "share": 0.3055555555555556,
+            "nodes": [
+              "Qingdao",
+              "Tianjin",
+              "Erenhot",
+              "Moscow",
+              "Malaszewicze",
+              "Warsaw"
+            ],
+            "modes": [
+              "water",
+              "road",
+              "rail",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2386.26,
+            "base_emission_per_teu": 3036828.08,
+            "base_travel_time_h": 85.64809523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 30,
+        "origin": "Lianyungang",
+        "destination": "Lodz",
+        "quantity_teu": 136.0,
+        "ET": 0.0,
+        "LT": 336.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Lianyungang",
+              "Erenhot",
+              "Moscow",
+              "Minsk",
+              "Warsaw",
+              "Lodz"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 2430.95,
+            "base_emission_per_teu": 2964582.4499999997,
+            "base_travel_time_h": 74.09416666666667
+          }
+        ]
+      },
+      {
+        "batch_id": 31,
+        "origin": "Qingdao",
+        "destination": "Prague",
+        "quantity_teu": 133.0,
+        "ET": 0.0,
+        "LT": 396.0,
+        "paths": [
+          {
+            "share": 0.2650486322827866,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 1887.5300000000002,
+            "base_emission_per_teu": 1722341.4499999997,
+            "base_travel_time_h": 241.70511904761906
+          },
+          {
+            "share": 0.4744763550366182,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "rail"
+            ],
+            "base_cost_per_teu": 1861.66,
+            "base_emission_per_teu": 1633748.44,
+            "base_travel_time_h": 239.56428571428572
+          },
+          {
+            "share": 0.16392928811394847,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail",
+              "road"
+            ],
+            "base_cost_per_teu": 1889.79,
+            "base_emission_per_teu": 1730825.0699999998,
+            "base_travel_time_h": 241.90845238095238
+          },
+          {
+            "share": 0.09654572456664684,
+            "nodes": [
+              "Qingdao",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Prague"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 1915.66,
+            "base_emission_per_teu": 1819418.0799999998,
+            "base_travel_time_h": 244.04928571428573
+          }
+        ]
+      },
+      {
+        "batch_id": 32,
+        "origin": "Zhengzhou",
+        "destination": "Duisburg",
+        "quantity_teu": 92.0,
+        "ET": 0.0,
+        "LT": 503.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Zhengzhou",
+              "Lianyungang",
+              "Rotterdam",
+              "Duisburg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 1934.3799999999999,
+            "base_emission_per_teu": 1896149.9999999998,
+            "base_travel_time_h": 256.7659523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 33,
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "quantity_teu": 98.0,
+        "ET": 0.0,
+        "LT": 402.0,
+        "paths": [
+          {
+            "share": 0.5332178229679287,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2135.6800000000003,
+            "base_emission_per_teu": 2056940.24,
+            "base_travel_time_h": 270.0609523809524
+          },
+          {
+            "share": 0.3136217967598107,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2132.5300000000007,
+            "base_emission_per_teu": 2003563.23,
+            "base_travel_time_h": 268.8667857142857
+          },
+          {
+            "share": 0.15316038027226056,
+            "nodes": [
+              "Yiwu",
+              "Shanghai",
+              "Rotterdam",
+              "Hamburg",
+              "Duisburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "water",
+              "rail"
+            ],
+            "base_cost_per_teu": 2245.4350000000004,
+            "base_emission_per_teu": 2114023.17,
+            "base_travel_time_h": 279.8589285714286
+          }
+        ]
+      },
+      {
+        "batch_id": 34,
+        "origin": "Ningbo",
+        "destination": "Rotterdam",
+        "quantity_teu": 106.0,
+        "ET": 0.0,
+        "LT": 440.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Ningbo",
+              "Hamburg",
+              "Rotterdam"
+            ],
+            "modes": [
+              "water",
+              "water"
+            ],
+            "base_cost_per_teu": 1796.015,
+            "base_emission_per_teu": 1446109.1199999999,
+            "base_travel_time_h": 259.53142857142853
+          }
+        ]
+      },
+      {
+        "batch_id": 35,
+        "origin": "Wuhan",
+        "destination": "Nuremberg",
+        "quantity_teu": 116.0,
+        "ET": 0.0,
+        "LT": 513.0,
+        "paths": [
+          {
+            "share": 0.5866932009236757,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2063.9,
+            "base_emission_per_teu": 2218594.08,
+            "base_travel_time_h": 250.22595238095235
+          },
+          {
+            "share": 0.2841941183663298,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2176.14,
+            "base_emission_per_teu": 2323318.7199999997,
+            "base_travel_time_h": 264.19595238095235
+          },
+          {
+            "share": 0.12911268070999446,
+            "nodes": [
+              "Wuhan",
+              "Lianyungang",
+              "Hamburg",
+              "Antwerp",
+              "Nuremberg"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2267.9799999999996,
+            "base_emission_per_teu": 2534918.08,
+            "base_travel_time_h": 258.7292857142857
+          }
+        ]
+      },
+      {
+        "batch_id": 36,
+        "origin": "Lianyungang",
+        "destination": "Budapest",
+        "quantity_teu": 101.0,
+        "ET": 0.0,
+        "LT": 365.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 1994.42,
+            "base_emission_per_teu": 1867624.0799999998,
+            "base_travel_time_h": 247.33095238095237
+          }
+        ]
+      },
+      {
+        "batch_id": 37,
+        "origin": "Zhengzhou",
+        "destination": "Berlin",
+        "quantity_teu": 82.0,
+        "ET": 0.0,
+        "LT": 391.0,
+        "paths": [
+          {
+            "share": 0.6133805331002138,
+            "nodes": [
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Rotterdam",
+              "Antwerp",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "rail",
+              "road",
+              "road",
+              "rail"
+            ],
+            "base_cost_per_teu": 2927.9199999999996,
+            "base_emission_per_teu": 3451502.76,
+            "base_travel_time_h": 89.86166666666666
+          },
+          {
+            "share": 0.3866194668997862,
+            "nodes": [
+              "Zhengzhou",
+              "Erenhot",
+              "Moscow",
+              "Bratislava",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "rail",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2851.64,
+            "base_emission_per_teu": 4094432.32,
+            "base_travel_time_h": 96.91499999999999
+          }
+        ]
+      },
+      {
+        "batch_id": 38,
+        "origin": "Chongqing",
+        "destination": "Munich",
+        "quantity_teu": 84.0,
+        "ET": 0.0,
+        "LT": 426.0,
+        "paths": [
+          {
+            "share": 0.7354510631317575,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2454.34,
+            "base_emission_per_teu": 3081568.08,
+            "base_travel_time_h": 266.4942857142857
+          },
+          {
+            "share": 0.2645489368682425,
+            "nodes": [
+              "Chongqing",
+              "Lianyungang",
+              "Hamburg",
+              "Berlin",
+              "Nuremberg",
+              "Munich"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road",
+              "road",
+              "road"
+            ],
+            "base_cost_per_teu": 2464.1,
+            "base_emission_per_teu": 3096696.08,
+            "base_travel_time_h": 266.9009523809524
+          }
+        ]
+      },
+      {
+        "batch_id": 39,
+        "origin": "Yiwu",
+        "destination": "Berlin",
+        "quantity_teu": 140.0,
+        "ET": 0.0,
+        "LT": 447.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Yiwu",
+              "Ningbo",
+              "Hamburg",
+              "Berlin"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "rail"
+            ],
+            "base_cost_per_teu": 1872.55,
+            "base_emission_per_teu": 1605611.39,
+            "base_travel_time_h": 252.41416666666666
+          }
+        ]
+      },
+      {
+        "batch_id": 40,
+        "origin": "Nanjing",
+        "destination": "Budapest",
+        "quantity_teu": 113.0,
+        "ET": 0.0,
+        "LT": 440.0,
+        "paths": [
+          {
+            "share": 1.0,
+            "nodes": [
+              "Nanjing",
+              "Lianyungang",
+              "Hamburg",
+              "Budapest"
+            ],
+            "modes": [
+              "road",
+              "water",
+              "road"
+            ],
+            "base_cost_per_teu": 2108.0600000000004,
+            "base_emission_per_teu": 2151724.08,
+            "base_travel_time_h": 252.06595238095238
+          }
+        ]
+      }
+    ]
+  }
+]

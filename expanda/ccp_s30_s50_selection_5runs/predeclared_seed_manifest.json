@@ -1,0 +1,31 @@
+{
+  "replicates": [
+    {
+      "replicate": 1,
+      "algorithm": 871001,
+      "training_S50_master": 872001
+    },
+    {
+      "replicate": 2,
+      "algorithm": 871002,
+      "training_S50_master": 872002
+    },
+    {
+      "replicate": 3,
+      "algorithm": 871003,
+      "training_S50_master": 872003
+    },
+    {
+      "replicate": 4,
+      "algorithm": 871004,
+      "training_S50_master": 872004
+    },
+    {
+      "replicate": 5,
+      "algorithm": 871005,
+      "training_S50_master": 872005
+    }
+  ],
+  "selection_validation": 879999,
+  "path_library": 0
+}

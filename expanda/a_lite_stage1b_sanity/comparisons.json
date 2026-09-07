@@ -1,0 +1,779 @@
+[
+  {
+    "comparison": "S200_vs_S1000",
+    "S": 200,
+    "S_ref": 1000,
+    "is_gating_comparison": true,
+    "gate_verdict": "PASS",
+    "gates": {
+      "G1": {
+        "name": "G1",
+        "gating": true,
+        "statistic": "mean_abs_paired_probability_difference",
+        "value": 0.008,
+        "value_exact": "1/125",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 2,
+        "passed": true
+      },
+      "G2dagger": {
+        "name": "G2dagger",
+        "gating": true,
+        "statistic": "max_over_candidates_of_signed_mean_seed_difference",
+        "value": 0.002,
+        "value_exact": "1/500",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "argmax_candidate": "S1-04",
+        "argmax_stratum": "OFF",
+        "min_D_c": -0.014,
+        "argmin_candidate": "S1-01",
+        "seed_denominator": 1,
+        "per_candidate_D_c": {
+          "S1-01": -0.014,
+          "S1-04": 0.002
+        },
+        "per_candidate_D_c_exact": {
+          "S1-01": "-7/500",
+          "S1-04": "1/500"
+        },
+        "passed": true
+      },
+      "G3": {
+        "name": "G3",
+        "gating": true,
+        "statistic": "OFF_stratum_gross_classification_flip_rate",
+        "value": 0.0,
+        "value_exact": "0",
+        "threshold": 0.1,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 1,
+        "flip_count": 0,
+        "stratum_membership": [
+          "S1-04"
+        ],
+        "passed": true
+      }
+    },
+    "gate_rule": "PASS iff G1 AND G2dagger AND G3 all pass (all STRICT <)",
+    "indeterminate_category_exists": false,
+    "non_gating": {
+      "optimism_tripwire": {
+        "name": "optimism_tripwire_0.01",
+        "gating": false,
+        "role": "NON_GATING_investigation_and_reporting_only",
+        "statistic": "global_mean_signed_probability_difference",
+        "value": -0.006,
+        "value_exact": "-3/500",
+        "threshold": 0.01,
+        "comparison": "inclusive_absolute_at_or_above",
+        "denominator": 2,
+        "tripped": false,
+        "tripped_optimism": false,
+        "tripped_pessimism": false,
+        "direction": "not_tripped",
+        "consequence": "Report only. Must never make G1/G2dagger/G3 pass or fail, never creates INDETERMINATE, never blocks Stage 2 independently. If tripped, a decomposition by candidate, seed and stratum is mandatory; if tripped while the gate PASSES this must be prominent in the summary and carried as an explicit Stage-2 limitation."
+      },
+      "tripwire_decomposition": null,
+      "diagnostics": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "mean_abs_probability_difference": 0.008,
+        "median_abs_probability_difference": 0.008,
+        "max_abs_probability_difference": 0.014,
+        "mean_signed_probability_difference": -0.006,
+        "per_candidate_signed_D_c": {
+          "S1-01": -0.014,
+          "S1-04": 0.002
+        },
+        "per_candidate_mean_abs_A_c": {
+          "S1-01": 0.014,
+          "S1-04": 0.002
+        },
+        "per_candidate_full_table": {
+          "S1-01": {
+            "stratum": "KNIFE",
+            "D_c": -0.014,
+            "D_c_exact": "-7/500",
+            "A_c": 0.014,
+            "A_c_exact": "7/500",
+            "Dmax_c": -0.014,
+            "Dmin_c": -0.014,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 1,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 1
+          },
+          "S1-04": {
+            "stratum": "OFF",
+            "D_c": 0.002,
+            "D_c_exact": "1/500",
+            "A_c": 0.002,
+            "A_c_exact": "1/500",
+            "Dmax_c": 0.002,
+            "Dmin_c": 0.002,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 1
+          }
+        },
+        "per_seed_breakdown": {
+          "810001": {
+            "mean_signed": -0.006,
+            "mean_abs": 0.008,
+            "max_abs": 0.014,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 2
+          }
+        },
+        "all_pair_flips": {
+          "n_cells": 2,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "KNIFE_flips": {
+          "n_cells": 1,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "OFF_flips": {
+          "n_cells": 1,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "exact_boundary_mass_at_alpha": {
+          "at_S": 1,
+          "at_ref": 0,
+          "per_candidate": {
+            "S1-01": {
+              "at_S": 1,
+              "at_ref": 0
+            },
+            "S1-04": {
+              "at_S": 0,
+              "at_ref": 0
+            }
+          }
+        },
+        "binding_batch_set_changes": 1,
+        "max_lateness_changes": 1,
+        "nonccp_hard_pass_changes": 0
+      },
+      "sqrt_rate_check": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "observed_mean_abs_dp": 0.008,
+        "sqrt_scale_sqrt_1overS_minus_1overSref": 0.06324555320336758,
+        "implied_constant": 0.1264911064067352,
+        "note": "The implied constant should be comparable across comparisons if the estimator is converging at the Monte-Carlo rate. Descriptive only; never gates."
+      },
+      "ratio_matched_scale_invariance": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "this_comparison": {
+          "S": 200,
+          "S_ref": 1000,
+          "ratio": 0.2,
+          "mean_abs_dp": 0.008
+        },
+        "is_ratio_matched_to_stage1": false,
+        "note": "S500-vs-S1000 (ratio 0.5) is ratio-matched to Stage-1's S100-vs-S200 (ratio 0.5); comparing them tests scale invariance. Descriptive only; never gates."
+      },
+      "loco": {
+        "name": "leave_one_candidate_out",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "per_omitted_candidate": {
+          "S1-01": {
+            "G1_value": 0.002,
+            "G2dagger_value": 0.002,
+            "OFF_flip_rate": 0.0,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-04": {
+            "G1_value": 0.014,
+            "G2dagger_value": -0.014,
+            "OFF_flip_rate": null,
+            "omitted_stratum": "OFF"
+          }
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      },
+      "bootstrap": {
+        "name": "seed_cluster_bootstrap",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "resamples": 2000,
+        "ci_level": 0.8,
+        "rng_seed": 20260817,
+        "G1_interval": {
+          "lo": 0.008,
+          "hi": 0.008,
+          "median": 0.008
+        },
+        "G2dagger_interval": {
+          "lo": 0.002,
+          "hi": 0.002,
+          "median": 0.002
+        },
+        "OFF_flip_rate_interval": {
+          "lo": 0.0,
+          "hi": 0.0,
+          "median": 0.0
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      }
+    },
+    "tripwire_tripped_while_gate_passed": false
+  },
+  {
+    "comparison": "S500_vs_S1000",
+    "S": 500,
+    "S_ref": 1000,
+    "is_gating_comparison": true,
+    "gate_verdict": "PASS",
+    "gates": {
+      "G1": {
+        "name": "G1",
+        "gating": true,
+        "statistic": "mean_abs_paired_probability_difference",
+        "value": 0.013,
+        "value_exact": "13/1000",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 2,
+        "passed": true
+      },
+      "G2dagger": {
+        "name": "G2dagger",
+        "gating": true,
+        "statistic": "max_over_candidates_of_signed_mean_seed_difference",
+        "value": 0.014,
+        "value_exact": "7/500",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "argmax_candidate": "S1-04",
+        "argmax_stratum": "OFF",
+        "min_D_c": 0.012,
+        "argmin_candidate": "S1-01",
+        "seed_denominator": 1,
+        "per_candidate_D_c": {
+          "S1-01": 0.012,
+          "S1-04": 0.014
+        },
+        "per_candidate_D_c_exact": {
+          "S1-01": "3/250",
+          "S1-04": "7/500"
+        },
+        "passed": true
+      },
+      "G3": {
+        "name": "G3",
+        "gating": true,
+        "statistic": "OFF_stratum_gross_classification_flip_rate",
+        "value": 0.0,
+        "value_exact": "0",
+        "threshold": 0.1,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 1,
+        "flip_count": 0,
+        "stratum_membership": [
+          "S1-04"
+        ],
+        "passed": true
+      }
+    },
+    "gate_rule": "PASS iff G1 AND G2dagger AND G3 all pass (all STRICT <)",
+    "indeterminate_category_exists": false,
+    "non_gating": {
+      "optimism_tripwire": {
+        "name": "optimism_tripwire_0.01",
+        "gating": false,
+        "role": "NON_GATING_investigation_and_reporting_only",
+        "statistic": "global_mean_signed_probability_difference",
+        "value": 0.013,
+        "value_exact": "13/1000",
+        "threshold": 0.01,
+        "comparison": "inclusive_absolute_at_or_above",
+        "denominator": 2,
+        "tripped": true,
+        "tripped_optimism": true,
+        "tripped_pessimism": false,
+        "direction": "optimism",
+        "consequence": "Report only. Must never make G1/G2dagger/G3 pass or fail, never creates INDETERMINATE, never blocks Stage 2 independently. If tripped, a decomposition by candidate, seed and stratum is mandatory; if tripped while the gate PASSES this must be prominent in the summary and carried as an explicit Stage-2 limitation."
+      },
+      "tripwire_decomposition": {
+        "gating": false,
+        "role": "NON_GATING_reporting_only",
+        "mean_signed_by_candidate": {
+          "S1-01": 0.012,
+          "S1-04": 0.014
+        },
+        "mean_signed_by_seed": {
+          "810001": 0.013
+        },
+        "mean_signed_by_stratum": {
+          "KNIFE": 0.012,
+          "OFF": 0.014
+        }
+      },
+      "diagnostics": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "mean_abs_probability_difference": 0.013,
+        "median_abs_probability_difference": 0.013000000000000001,
+        "max_abs_probability_difference": 0.014,
+        "mean_signed_probability_difference": 0.013,
+        "per_candidate_signed_D_c": {
+          "S1-01": 0.012,
+          "S1-04": 0.014
+        },
+        "per_candidate_mean_abs_A_c": {
+          "S1-01": 0.012,
+          "S1-04": 0.014
+        },
+        "per_candidate_full_table": {
+          "S1-01": {
+            "stratum": "KNIFE",
+            "D_c": 0.012,
+            "D_c_exact": "3/250",
+            "A_c": 0.012,
+            "A_c_exact": "3/250",
+            "Dmax_c": 0.012,
+            "Dmin_c": 0.012,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 1
+          },
+          "S1-04": {
+            "stratum": "OFF",
+            "D_c": 0.014,
+            "D_c_exact": "7/500",
+            "A_c": 0.014,
+            "A_c_exact": "7/500",
+            "Dmax_c": 0.014,
+            "Dmin_c": 0.014,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 1
+          }
+        },
+        "per_seed_breakdown": {
+          "810001": {
+            "mean_signed": 0.013,
+            "mean_abs": 0.013,
+            "max_abs": 0.014,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 2
+          }
+        },
+        "all_pair_flips": {
+          "n_cells": 2,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "KNIFE_flips": {
+          "n_cells": 1,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "OFF_flips": {
+          "n_cells": 1,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "exact_boundary_mass_at_alpha": {
+          "at_S": 0,
+          "at_ref": 0,
+          "per_candidate": {
+            "S1-01": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-04": {
+              "at_S": 0,
+              "at_ref": 0
+            }
+          }
+        },
+        "binding_batch_set_changes": 1,
+        "max_lateness_changes": 1,
+        "nonccp_hard_pass_changes": 0
+      },
+      "sqrt_rate_check": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "observed_mean_abs_dp": 0.013,
+        "sqrt_scale_sqrt_1overS_minus_1overSref": 0.03162277660168379,
+        "implied_constant": 0.41109609582188933,
+        "note": "The implied constant should be comparable across comparisons if the estimator is converging at the Monte-Carlo rate. Descriptive only; never gates."
+      },
+      "ratio_matched_scale_invariance": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "this_comparison": {
+          "S": 500,
+          "S_ref": 1000,
+          "ratio": 0.5,
+          "mean_abs_dp": 0.013
+        },
+        "is_ratio_matched_to_stage1": true,
+        "note": "S500-vs-S1000 (ratio 0.5) is ratio-matched to Stage-1's S100-vs-S200 (ratio 0.5); comparing them tests scale invariance. Descriptive only; never gates.",
+        "stage1_reference": {
+          "available": true,
+          "source": "/home/lunet/cokt2/uncertainty/expanda/a_lite_stage1_results/raw_rows.csv",
+          "stage1_reference": {
+            "S100_vs_S200": {
+              "ratio": 0.5,
+              "n_cells": 100,
+              "mean_abs_dp": 0.0155
+            }
+          }
+        }
+      },
+      "loco": {
+        "name": "leave_one_candidate_out",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "per_omitted_candidate": {
+          "S1-01": {
+            "G1_value": 0.014,
+            "G2dagger_value": 0.014,
+            "OFF_flip_rate": 0.0,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-04": {
+            "G1_value": 0.012,
+            "G2dagger_value": 0.012,
+            "OFF_flip_rate": null,
+            "omitted_stratum": "OFF"
+          }
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      },
+      "bootstrap": {
+        "name": "seed_cluster_bootstrap",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "resamples": 2000,
+        "ci_level": 0.8,
+        "rng_seed": 20260817,
+        "G1_interval": {
+          "lo": 0.013,
+          "hi": 0.013,
+          "median": 0.013
+        },
+        "G2dagger_interval": {
+          "lo": 0.014,
+          "hi": 0.014,
+          "median": 0.014
+        },
+        "OFF_flip_rate_interval": {
+          "lo": 0.0,
+          "hi": 0.0,
+          "median": 0.0
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      }
+    },
+    "tripwire_tripped_while_gate_passed": true,
+    "SANITY_TRIPWIRE_NOTE": "The 0.01 optimism tripwire fired (T=0.013000, optimism) in a NON-SCIENTIFIC run. This confirms only that the tripwire and its reporting path work. There is NO accepted operating point, NO valid ladder decision and NO scientific verdict in such a run, so this value MUST NOT be quoted and MUST NOT be carried forward as a Stage-2 limitation. Only a full run can create that obligation."
+  },
+  {
+    "comparison": "S200_vs_S500",
+    "S": 200,
+    "S_ref": 500,
+    "is_gating_comparison": false,
+    "gate_verdict": "NOT_A_GATE",
+    "gates": {
+      "G1": {
+        "name": "G1",
+        "gating": true,
+        "statistic": "mean_abs_paired_probability_difference",
+        "value": 0.019,
+        "value_exact": "19/1000",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 2,
+        "passed": true
+      },
+      "G2dagger": {
+        "name": "G2dagger",
+        "gating": true,
+        "statistic": "max_over_candidates_of_signed_mean_seed_difference",
+        "value": -0.012,
+        "value_exact": "-3/250",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "argmax_candidate": "S1-04",
+        "argmax_stratum": "OFF",
+        "min_D_c": -0.026,
+        "argmin_candidate": "S1-01",
+        "seed_denominator": 1,
+        "per_candidate_D_c": {
+          "S1-01": -0.026,
+          "S1-04": -0.012
+        },
+        "per_candidate_D_c_exact": {
+          "S1-01": "-13/500",
+          "S1-04": "-3/250"
+        },
+        "passed": true
+      },
+      "G3": {
+        "name": "G3",
+        "gating": true,
+        "statistic": "OFF_stratum_gross_classification_flip_rate",
+        "value": 0.0,
+        "value_exact": "0",
+        "threshold": 0.1,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 1,
+        "flip_count": 0,
+        "stratum_membership": [
+          "S1-04"
+        ],
+        "passed": true
+      }
+    },
+    "gate_rule": "PASS iff G1 AND G2dagger AND G3 all pass (all STRICT <)",
+    "indeterminate_category_exists": false,
+    "non_gating": {
+      "optimism_tripwire": {
+        "name": "optimism_tripwire_0.01",
+        "gating": false,
+        "role": "NON_GATING_investigation_and_reporting_only",
+        "statistic": "global_mean_signed_probability_difference",
+        "value": -0.019,
+        "value_exact": "-19/1000",
+        "threshold": 0.01,
+        "comparison": "inclusive_absolute_at_or_above",
+        "denominator": 2,
+        "tripped": true,
+        "tripped_optimism": false,
+        "tripped_pessimism": true,
+        "direction": "pessimism",
+        "consequence": "Report only. Must never make G1/G2dagger/G3 pass or fail, never creates INDETERMINATE, never blocks Stage 2 independently. If tripped, a decomposition by candidate, seed and stratum is mandatory; if tripped while the gate PASSES this must be prominent in the summary and carried as an explicit Stage-2 limitation."
+      },
+      "tripwire_decomposition": {
+        "gating": false,
+        "role": "NON_GATING_reporting_only",
+        "mean_signed_by_candidate": {
+          "S1-01": -0.026,
+          "S1-04": -0.012
+        },
+        "mean_signed_by_seed": {
+          "810001": -0.019
+        },
+        "mean_signed_by_stratum": {
+          "KNIFE": -0.026,
+          "OFF": -0.012
+        }
+      },
+      "diagnostics": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "mean_abs_probability_difference": 0.019,
+        "median_abs_probability_difference": 0.019,
+        "max_abs_probability_difference": 0.026,
+        "mean_signed_probability_difference": -0.019,
+        "per_candidate_signed_D_c": {
+          "S1-01": -0.026,
+          "S1-04": -0.012
+        },
+        "per_candidate_mean_abs_A_c": {
+          "S1-01": 0.026,
+          "S1-04": 0.012
+        },
+        "per_candidate_full_table": {
+          "S1-01": {
+            "stratum": "KNIFE",
+            "D_c": -0.026,
+            "D_c_exact": "-13/500",
+            "A_c": 0.026,
+            "A_c_exact": "13/500",
+            "Dmax_c": -0.026,
+            "Dmin_c": -0.026,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 1,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 1
+          },
+          "S1-04": {
+            "stratum": "OFF",
+            "D_c": -0.012,
+            "D_c_exact": "-3/250",
+            "A_c": 0.012,
+            "A_c_exact": "3/250",
+            "Dmax_c": -0.012,
+            "Dmin_c": -0.012,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 1
+          }
+        },
+        "per_seed_breakdown": {
+          "810001": {
+            "mean_signed": -0.019,
+            "mean_abs": 0.019,
+            "max_abs": 0.026,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 2
+          }
+        },
+        "all_pair_flips": {
+          "n_cells": 2,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "KNIFE_flips": {
+          "n_cells": 1,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "OFF_flips": {
+          "n_cells": 1,
+          "gross_flip_count": 0,
+          "gross_flip_rate": 0.0,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 0,
+          "signed_net_classification_imbalance": 0,
+          "signed_net_imbalance_rate": 0.0
+        },
+        "exact_boundary_mass_at_alpha": {
+          "at_S": 1,
+          "at_ref": 0,
+          "per_candidate": {
+            "S1-01": {
+              "at_S": 1,
+              "at_ref": 0
+            },
+            "S1-04": {
+              "at_S": 0,
+              "at_ref": 0
+            }
+          }
+        },
+        "binding_batch_set_changes": 0,
+        "max_lateness_changes": 0,
+        "nonccp_hard_pass_changes": 0
+      },
+      "sqrt_rate_check": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "observed_mean_abs_dp": 0.019,
+        "sqrt_scale_sqrt_1overS_minus_1overSref": 0.05477225575051661,
+        "implied_constant": 0.34689095308660517,
+        "note": "The implied constant should be comparable across comparisons if the estimator is converging at the Monte-Carlo rate. Descriptive only; never gates."
+      },
+      "ratio_matched_scale_invariance": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "this_comparison": {
+          "S": 200,
+          "S_ref": 500,
+          "ratio": 0.4,
+          "mean_abs_dp": 0.019
+        },
+        "is_ratio_matched_to_stage1": false,
+        "note": "S500-vs-S1000 (ratio 0.5) is ratio-matched to Stage-1's S100-vs-S200 (ratio 0.5); comparing them tests scale invariance. Descriptive only; never gates."
+      },
+      "loco": {
+        "name": "leave_one_candidate_out",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "per_omitted_candidate": {
+          "S1-01": {
+            "G1_value": 0.012,
+            "G2dagger_value": -0.012,
+            "OFF_flip_rate": 0.0,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-04": {
+            "G1_value": 0.026,
+            "G2dagger_value": -0.026,
+            "OFF_flip_rate": null,
+            "omitted_stratum": "OFF"
+          }
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      },
+      "bootstrap": {
+        "name": "seed_cluster_bootstrap",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "resamples": 2000,
+        "ci_level": 0.8,
+        "rng_seed": 20260817,
+        "G1_interval": {
+          "lo": 0.019,
+          "hi": 0.019,
+          "median": 0.019
+        },
+        "G2dagger_interval": {
+          "lo": -0.012,
+          "hi": -0.012,
+          "median": -0.012
+        },
+        "OFF_flip_rate_interval": {
+          "lo": 0.0,
+          "hi": 0.0,
+          "median": 0.0
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      }
+    }
+  }
+]

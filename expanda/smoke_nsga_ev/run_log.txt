@@ -1,0 +1,112 @@
+[INFO] Loaded directional border events: 4 from /home/lunet/cokt2/uncertainty/expanda/data/border_crossing_events.csv
+========================================================================
+  NSGA-II  STOCHASTIC EXTENSION  (3-objective)
+  ▶ Frozen scenarios + empirical CCP quantiles
+========================================================================
+  GA      : pop=10  gen=5  runs=1
+            pc=0.9  pm=0.15
+  PathLib : DFS=200  TopK=15  LibCap=45
+  HV      : MC samples=50000  ref=(1.2, 1.2, 1.2)
+  Data    : data/data_expanded_b20.xlsx
+  Mode    : risk_metric=ev
+  Uncert. : enabled=True  scenarios=50  seed=42
+  CCP     : cost=0.9  emission=0.9  time=0.9  ontime=0.9
+            mode_cv={'road': 0.15, 'rail': 0.1, 'water': 0.2}  mode_cap={'road': 2.0, 'rail': 1.8, 'water': 2.5}
+            requested_speed_override_kmh={'road': None, 'rail': None, 'water': None}  (resolved against workbook Mode_Speeds once loaded, see [INIT] below)
+            border_cv={'road': 0.45, 'rail': 0.6, 'water': 0.4}  border_cap=3.5
+            border_events=/home/lunet/cokt2/uncertainty/expanda/data/border_crossing_events.csv
+  Lateness: ratio=0.5  override_h=None
+  FeasSeed: fraction=0.30  restarts=40  iterations=250
+            penalty=6.25 USD/TEU/hour = 150/day
+  Emission: payload=10 t/TEU  wait_override=None
+  Batches : data/data_expanded_b20.xlsx  caps=input data
+========================================================================
+
+[INIT] Loading network data...
+[INFO] Loaded carbon tax for 5 regions.
+[INFO] Loaded emission factors for 15 (mode, region) pairs.
+[INFO] Loaded mode speeds: {'road': 60.0, 'rail': 120.0, 'water': 35.0}
+[INFO] Effective mode speeds (CLI override > workbook Mode_Speeds > hardcoded fallback): {'rail': (120.0, 'workbook_mode_speeds'), 'road': (60.0, 'workbook_mode_speeds'), 'water': (35.0, 'workbook_mode_speeds')}
+[INFO] Loaded transshipment entries: 140
+[INFO] Loaded border delay map (per-mode +customs): 93 entries.
+[INFO] Loaded carbon tax applicability: 8 entries.
+[INFO] Loaded border capacity: 31 nodes | background flow: 8 nodes.
+[INFO] Active break-of-gauge capacities: {'Manzhouli': 900.0, 'Khorgos': 900.0, 'Brest': 600.0, 'Erenhot': 900.0, 'Malaszewicze': 500.0, 'Dostyk': 800.0, 'Zabaykalsk': 700.0, 'Alashankou': 900.0, 'Altynkol': 700.0}
+[INFO] Active break-of-gauge background flow: {'Manzhouli': 450.0, 'Khorgos': 500.0, 'Brest': 350.0, 'Erenhot': 450.0, 'Dostyk': 450.0, 'Zabaykalsk': 350.0, 'Alashankou': 500.0, 'Altynkol': 350.0}
+[INFO] Loaded China border nodes (7): ['Alashankou', 'Chongqing', 'Erenhot', 'Khorgos', 'Lianyungang', 'Manzhouli', 'Yiwu']
+[INFO] Loaded waiting params: cost=0.8, emission=0.0
+[INFO] Timetable loaded: 168 scheduled services; using frequency, first departure and headway for induced waiting.
+[WARN] Timetable.time is loaded only as legacy metadata: its unit is undocumented (observed values=[300.0, 355.0, 415.0, 518.0]); it is not used as arc travel hours. Running time follows distance / documented mode speed.
+[INFO] Batches loaded: 20
+[INFO] Replaced input late-penalty range 30--100 USD/TEU/hour with 6.25 USD/TEU/hour. Use --use-input-late-penalties only with documented contract values.
+[WARN] Waiting emission is zero: the emission CCP is deterministic under the current system boundary.
+[INIT] Batches confirmed: 20
+[INIT] Building path library (shared across all runs)...
+[INFO] All paths pass border monotonicity. ✅
+[SANITY] ✅ All batches have paths.
+[INIT] Frozen scenario set: S=50, seed=42, stochastic=True
+[INIT] Border-event shocks: 258 events mapped to 268 network arcs
+[FEAS-INIT] Reliable single-path options per batch: min=18  median=32.0  max=39  CCP probability/max-lateness screen disabled (mode=ev)
+
+========================================================================
+  RUN 01/1  |  seed=1000
+========================================================================
+[FEAS-INIT] Capacity-aware seeds=3  zero-excess=3  fully-feasible-after-evaluation=7
+
+========================================================================
+  [NSGA-II] Gen 000/4  |  0.0s elapsed
+  Pop feasible: 10/10 (100.0%)  |  NonDom=2  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=5.965e+06↓ Emis=4.567e+09↓ Time=490.0h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 001/4  |  0.1s elapsed
+  Pop feasible: 10/10 (100.0%)  |  NonDom=2  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=5.965e+06→ Emis=4.567e+09→ Time=490.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 002/4  |  0.1s elapsed
+  Pop feasible: 10/10 (100.0%)  |  NonDom=6  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=5.965e+06→ Emis=4.567e+09→ Time=490.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 003/4  |  0.1s elapsed
+  Pop feasible: 10/10 (100.0%)  |  NonDom=7  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=5.965e+06→ Emis=4.567e+09→ Time=485.9h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 004/4  |  0.1s elapsed
+  Pop feasible: 10/10 (100.0%)  |  NonDom=8  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=5.940e+06↓ Emis=4.567e+09→ Time=485.9h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Run complete: 5 gens, 0.1s, Pareto=8
+  ⚡ Boost: 0 gens triggered, 0 new feasible
+========================================================================
+  [Run 01] Pareto=8  FeasSoft=100.0%  Runtime=0.1s
+
+[INFO] All 1 runs done in 0.2s
+[EXPORT] metrics_per_generation.csv saved.
+[EXPORT] run_summary.xlsx → smoke_nsga_ev/run_summary.xlsx
+[EXPORT] 8 Pareto solutions → smoke_nsga_ev/result.txt
+[EXPORT] pareto_points.json → smoke_nsga_ev/pareto_points.json  (8 solutions)
+[EXPORT] nsga2_front_hist.json saved.
+[PLOT] smoke_nsga_ev/plot_Pareto3D.png
+[PLOT] smoke_nsga_ev/plot_Pareto2D.png
+
+========================================================================
+  NSGA-II STOCHASTIC EXTENSION  1 RUNS COMPLETE
+  Total wall time:    0.2s  (0.0 min)
+  Best run:           #0  (highest final HV)
+  Pareto size (best): 8
+  HV   mean±std:      0.1585 ± 0.0000
+  IGD+ mean±std:      0.3536 ± 0.0000
+  Spacing mean±std:   0.0000 ± 0.0000
+  FeasSoft mean±std:  100.0% ± 0.0%
+  Runtime mean±std:   0.1s ± 0.0s
+  Outputs in:         smoke_nsga_ev/
+========================================================================

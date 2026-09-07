@@ -1,0 +1,72 @@
+{
+  "OOS-MEAN": {
+    "effective_ranges": [
+      856109.826637689,
+      3011554106.669998,
+      122.03042234863005
+    ],
+    "hypervolume_reference_point": [
+      1.2,
+      1.2,
+      1.2
+    ],
+    "maxima": [
+      12427605.4961521,
+      11979134689.529999,
+      594.6327301910172
+    ],
+    "minima": [
+      11571495.66951441,
+      8967580582.86,
+      472.6023078423872
+    ],
+    "objective_order": [
+      "cost",
+      "emission",
+      "makespan"
+    ],
+    "range_epsilon": 1e-12,
+    "raw_ranges": [
+      856109.826637689,
+      3011554106.669998,
+      122.03042234863005
+    ],
+    "scope": "all 15,664 validated candidates pooled across all 60 runs",
+    "zero_range_rule": "effective range 1.0 and normalized coordinate 0.0"
+  },
+  "OOS-Q90": {
+    "effective_ranges": [
+      811451.8832806628,
+      3011554106.669998,
+      111.77341764929497
+    ],
+    "hypervolume_reference_point": [
+      1.2,
+      1.2,
+      1.2
+    ],
+    "maxima": [
+      12641846.709090037,
+      11979134689.529999,
+      639.8609939132043
+    ],
+    "minima": [
+      11830394.825809374,
+      8967580582.86,
+      528.0875762639093
+    ],
+    "objective_order": [
+      "cost",
+      "emission",
+      "makespan"
+    ],
+    "range_epsilon": 1e-12,
+    "raw_ranges": [
+      811451.8832806628,
+      3011554106.669998,
+      111.77341764929497
+    ],
+    "scope": "all 15,664 validated candidates pooled across all 60 runs",
+    "zero_range_rule": "effective range 1.0 and normalized coordinate 0.0"
+  }
+}

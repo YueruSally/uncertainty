@@ -1,0 +1,1254 @@
+{
+  "config": {
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "scenario_counts": [
+      50,
+      100,
+      200
+    ],
+    "master_scenario_count": 200,
+    "confidence_ontime": 0.9,
+    "epsilon_ontime": 0.09999999999999998,
+    "mode_time_cv": {
+      "road": 0.15,
+      "rail": 0.1,
+      "water": 0.2
+    },
+    "border_delay_cv": {
+      "road": 0.45,
+      "rail": 0.6,
+      "water": 0.4
+    },
+    "distribution": "lognormal (mean-one, capped)"
+  },
+  "candidate": {
+    "candidate_id": "reference_1",
+    "candidate_count": 1,
+    "limitation_note": "Only ONE genuinely deterministic-feasible fixed candidate solution exists in previously validated outputs (feasible_reference_50/feasible_reference_report.json). No second or third such candidate was available to load without running a new optimisation search, per the explicit instruction not to create new optimised solutions for this stage. This scenario-count sensitivity analysis therefore covers ONE candidate only; generality across multiple candidate solutions or across the Pareto front is NOT established by this analysis.",
+    "loaded_directly_from_checkpoint": true,
+    "genuinely_deterministic_feasible": true,
+    "identical_to_checkpointed_feasible_reference": true,
+    "path_allocations": {
+      "Xi'an->Berlin (batch 1)": {
+        "path_nodes": [
+          "Xi'an",
+          "Ningbo",
+          "Hamburg",
+          "Berlin"
+        ],
+        "path_modes": [
+          "rail",
+          "water",
+          "rail"
+        ],
+        "share": 1.0
+      },
+      "Xi'an->Duisburg (batch 2)": {
+        "path_nodes": [
+          "Xi'an",
+          "Ningbo",
+          "Hamburg",
+          "Duisburg"
+        ],
+        "path_modes": [
+          "rail",
+          "water",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Chongqing->Duisburg (batch 3)": {
+        "path_nodes": [
+          "Chongqing",
+          "Erenhot",
+          "Novosibirsk",
+          "Omsk",
+          "Yekaterinburg",
+          "Prague",
+          "Duisburg"
+        ],
+        "path_modes": [
+          "road",
+          "rail",
+          "rail",
+          "road",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Chongqing->Hamburg (batch 4)": {
+        "path_nodes": [
+          "Chongqing",
+          "Erenhot",
+          "Novosibirsk",
+          "Omsk",
+          "Yekaterinburg",
+          "Kazan",
+          "Volgograd",
+          "Lodz",
+          "Hamburg"
+        ],
+        "path_modes": [
+          "road",
+          "rail",
+          "rail",
+          "road",
+          "road",
+          "rail",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Chengdu->Lodz (batch 5)": {
+        "path_nodes": [
+          "Chengdu",
+          "Khorgos",
+          "Novosibirsk",
+          "Yekaterinburg",
+          "Minsk",
+          "Lodz"
+        ],
+        "path_modes": [
+          "rail",
+          "road",
+          "rail",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Zhengzhou->Hamburg (batch 6)": {
+        "path_nodes": [
+          "Zhengzhou",
+          "Lianyungang",
+          "Rotterdam",
+          "Antwerp",
+          "Hamburg"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Wuhan->Warsaw (batch 7)": {
+        "path_nodes": [
+          "Wuhan",
+          "Erenhot",
+          "Zabaykalsk",
+          "Novosibirsk",
+          "Yekaterinburg",
+          "Warsaw"
+        ],
+        "path_modes": [
+          "rail",
+          "road",
+          "rail",
+          "rail",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Yiwu->Rotterdam (batch 8)": {
+        "path_nodes": [
+          "Yiwu",
+          "Lianyungang",
+          "Hamburg",
+          "Rotterdam"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Suzhou->Prague (batch 9)": {
+        "path_nodes": [
+          "Suzhou",
+          "Lianyungang",
+          "Rotterdam",
+          "Antwerp",
+          "Nuremberg",
+          "Berlin",
+          "Prague"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water",
+          "road",
+          "rail",
+          "rail"
+        ],
+        "share": 1.0
+      },
+      "Hefei->Budapest (batch 10)": {
+        "path_nodes": [
+          "Hefei",
+          "Erenhot",
+          "Zabaykalsk",
+          "Novosibirsk",
+          "Yekaterinburg",
+          "Budapest"
+        ],
+        "path_modes": [
+          "road",
+          "road",
+          "rail",
+          "rail",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Guangzhou->Lodz (batch 11)": {
+        "path_nodes": [
+          "Guangzhou",
+          "Changsha",
+          "Xiangyang",
+          "Zhengzhou",
+          "Manzhouli",
+          "Yekaterinburg",
+          "Moscow",
+          "Lodz"
+        ],
+        "path_modes": [
+          "road",
+          "road",
+          "rail",
+          "rail",
+          "rail",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Xi'an->Berlin (batch 12)": {
+        "path_nodes": [
+          "Xi'an",
+          "Ningbo",
+          "Rotterdam",
+          "Prague",
+          "Berlin"
+        ],
+        "path_modes": [
+          "rail",
+          "water",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Xiangyang->Bratislava (batch 13)": {
+        "path_nodes": [
+          "Xiangyang",
+          "Erenhot",
+          "Moscow",
+          "Berlin",
+          "Bratislava"
+        ],
+        "path_modes": [
+          "road",
+          "rail",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Xi'an->Warsaw (batch 14)": {
+        "path_nodes": [
+          "Xi'an",
+          "Urumqi",
+          "Dostyk",
+          "Novosibirsk",
+          "Yekaterinburg",
+          "Warsaw"
+        ],
+        "path_modes": [
+          "rail",
+          "road",
+          "road",
+          "rail",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Wuhan->Rotterdam (batch 15)": {
+        "path_nodes": [
+          "Wuhan",
+          "Hefei",
+          "Shanghai",
+          "Rotterdam"
+        ],
+        "path_modes": [
+          "road",
+          "road",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Nanjing->Budapest (batch 16)": {
+        "path_nodes": [
+          "Nanjing",
+          "Shanghai",
+          "Rotterdam",
+          "Duisburg",
+          "Prague",
+          "Budapest"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Chengdu->Warsaw (batch 17)": {
+        "path_nodes": [
+          "Chengdu",
+          "Khorgos",
+          "Altynkol",
+          "Bishkek",
+          "Lodz",
+          "Warsaw"
+        ],
+        "path_modes": [
+          "rail",
+          "rail",
+          "road",
+          "road",
+          "rail"
+        ],
+        "share": 1.0
+      },
+      "Xi'an->Hamburg (batch 18)": {
+        "path_nodes": [
+          "Xi'an",
+          "Lianyungang",
+          "Rotterdam",
+          "Antwerp",
+          "Hamburg"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "road",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Suzhou->Hamburg (batch 19)": {
+        "path_nodes": [
+          "Suzhou",
+          "Erenhot",
+          "Moscow",
+          "Minsk",
+          "Warsaw",
+          "Lodz",
+          "Budapest",
+          "Bratislava",
+          "Hamburg"
+        ],
+        "path_modes": [
+          "road",
+          "rail",
+          "road",
+          "road",
+          "road",
+          "road",
+          "rail",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Suzhou->Duisburg (batch 20)": {
+        "path_nodes": [
+          "Suzhou",
+          "Lianyungang",
+          "Rotterdam",
+          "Duisburg"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water"
+        ],
+        "share": 1.0
+      }
+    }
+  },
+  "deterministic_baseline": {
+    "objectives_cost_emission_makespan": [
+      11742998.22436067,
+      7820945139.459999,
+      525.12
+    ],
+    "feasible": true,
+    "feasible_hard": true,
+    "vio_breakdown": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.85,
+      "late_teu_h": 68595.35607142857,
+      "max_late_excess_h": 0.0,
+      "max_observed_late_h": 112.12583333333333,
+      "chance_vio": 7.200000000000001,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 6802.578690476191,
+      "wait_teu_h": 264723.3603571428,
+      "trans_teu_h": 24069.0,
+      "trans_cost": 851000.0,
+      "carbon_cost": 62894.63587602,
+      "scenario_cost_mean": 11742998.22436067,
+      "scenario_emission_mean": 7820945139.459999,
+      "scenario_time_mean": 525.12,
+      "risk_metric": "deterministic"
+    }
+  },
+  "nested_subset_verification_by_seed": {
+    "42": {
+      "S50_subset_of_S100": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 100
+      },
+      "S100_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 100,
+        "large_size": 200
+      },
+      "S50_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 200
+      },
+      "all_pass": true
+    },
+    "43": {
+      "S50_subset_of_S100": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 100
+      },
+      "S100_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 100,
+        "large_size": 200
+      },
+      "S50_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 200
+      },
+      "all_pass": true
+    },
+    "44": {
+      "S50_subset_of_S100": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 100
+      },
+      "S100_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 100,
+        "large_size": 200
+      },
+      "S50_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 200
+      },
+      "all_pass": true
+    },
+    "45": {
+      "S50_subset_of_S100": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 100
+      },
+      "S100_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 100,
+        "large_size": 200
+      },
+      "S50_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 200
+      },
+      "all_pass": true
+    },
+    "46": {
+      "S50_subset_of_S100": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 100
+      },
+      "S100_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 100,
+        "large_size": 200
+      },
+      "S50_subset_of_S200": {
+        "is_prefix_subset": true,
+        "mismatched_keys": [],
+        "small_size": 50,
+        "large_size": 200
+      },
+      "all_pass": true
+    }
+  },
+  "aggregate_by_S": {
+    "50": {
+      "n_seeds": 5,
+      "ev_cost": {
+        "mean": 12173315.548710074,
+        "std": 285387.017023126,
+        "min": 11835169.404689277,
+        "max": 12592641.550426342,
+        "cv": 0.023443655582670458,
+        "n": 5
+      },
+      "ev_emissions": {
+        "mean": 7820945139.460001,
+        "std": 9.5367431640625e-07,
+        "min": 7820945139.46,
+        "max": 7820945139.46,
+        "cv": 1.2193849968267347e-16,
+        "n": 5
+      },
+      "ev_makespan": {
+        "mean": 571.1022341780563,
+        "std": 6.004068018017384,
+        "min": 561.5807855547584,
+        "max": 577.6215941017822,
+        "cv": 0.01051312297290971,
+        "n": 5
+      },
+      "ev_total_lateness_h": {
+        "mean": 659.5730975388124,
+        "std": 35.36861050494669,
+        "min": 618.5448476191308,
+        "max": 716.6665568738215,
+        "cv": 0.05362348864276629,
+        "n": 5
+      },
+      "ccp_cost": {
+        "mean": 14161281.224347059,
+        "std": 680614.4981512789,
+        "min": 13294165.884646876,
+        "max": 15169465.918185249,
+        "cv": 0.04806164692083928,
+        "n": 5
+      },
+      "ccp_emissions": {
+        "mean": 7820945139.459999,
+        "std": 0.0,
+        "min": 7820945139.459999,
+        "max": 7820945139.459999,
+        "cv": 0.0,
+        "n": 5
+      },
+      "ccp_makespan": {
+        "mean": 613.6201271712082,
+        "std": 2.1220343035523266,
+        "min": 610.3749952938877,
+        "max": 616.7660965665281,
+        "cv": 0.003458221478710151,
+        "n": 5
+      },
+      "ccp_min_on_time_prob": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "cv": null,
+        "n": 5
+      },
+      "n_seeds_passing_chance_constraint": 0,
+      "n_seeds_passing_feasible_hard": 0,
+      "n_seeds_total": 5
+    },
+    "100": {
+      "n_seeds": 5,
+      "ev_cost": {
+        "mean": 12129498.452220973,
+        "std": 131198.0559148335,
+        "min": 12008999.844614897,
+        "max": 12349146.813340724,
+        "cv": 0.010816445249705315,
+        "n": 5
+      },
+      "ev_emissions": {
+        "mean": 7820945139.459994,
+        "std": 9.5367431640625e-07,
+        "min": 7820945139.459995,
+        "max": 7820945139.459995,
+        "cv": 1.219384996826736e-16,
+        "n": 5
+      },
+      "ev_makespan": {
+        "mean": 569.6309969395173,
+        "std": 6.112739719746662,
+        "min": 558.7687484031146,
+        "max": 575.787702960739,
+        "cv": 0.010731051773145877,
+        "n": 5
+      },
+      "ev_total_lateness_h": {
+        "mean": 654.6097527781833,
+        "std": 19.578639044501788,
+        "min": 624.2850843697273,
+        "max": 684.3830486288985,
+        "cv": 0.029908871600842275,
+        "n": 5
+      },
+      "ccp_cost": {
+        "mean": 14136274.887498457,
+        "std": 296361.7193821479,
+        "min": 13706602.183132002,
+        "max": 14473095.27080209,
+        "cv": 0.020964626235744615,
+        "n": 5
+      },
+      "ccp_emissions": {
+        "mean": 7820945139.459999,
+        "std": 0.0,
+        "min": 7820945139.459999,
+        "max": 7820945139.459999,
+        "cv": 0.0,
+        "n": 5
+      },
+      "ccp_makespan": {
+        "mean": 613.5670776380755,
+        "std": 3.280349846121155,
+        "min": 610.3165720929246,
+        "max": 619.8248662348647,
+        "cv": 0.005346358964938033,
+        "n": 5
+      },
+      "ccp_min_on_time_prob": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "cv": null,
+        "n": 5
+      },
+      "n_seeds_passing_chance_constraint": 0,
+      "n_seeds_passing_feasible_hard": 0,
+      "n_seeds_total": 5
+    },
+    "200": {
+      "n_seeds": 5,
+      "ev_cost": {
+        "mean": 12073539.49169071,
+        "std": 110680.38064723405,
+        "min": 11936253.063157601,
+        "max": 12245617.85231937,
+        "cv": 0.009167185871500802,
+        "n": 5
+      },
+      "ev_emissions": {
+        "mean": 7820945139.459996,
+        "std": 0.0,
+        "min": 7820945139.459996,
+        "max": 7820945139.459996,
+        "cv": 0.0,
+        "n": 5
+      },
+      "ev_makespan": {
+        "mean": 568.1338878066297,
+        "std": 4.437170507569885,
+        "min": 561.1744165458844,
+        "max": 574.4039469634849,
+        "cv": 0.00781007893174667,
+        "n": 5
+      },
+      "ev_total_lateness_h": {
+        "mean": 646.8830259693217,
+        "std": 15.668414197822656,
+        "min": 624.9842234689957,
+        "max": 672.9974686224497,
+        "cv": 0.024221402585644175,
+        "n": 5
+      },
+      "ccp_cost": {
+        "mean": 14082191.931133116,
+        "std": 248850.96217860663,
+        "min": 13760846.405931905,
+        "max": 14391296.837240085,
+        "cv": 0.01767132300110491,
+        "n": 5
+      },
+      "ccp_emissions": {
+        "mean": 7820945139.459999,
+        "std": 0.0,
+        "min": 7820945139.459999,
+        "max": 7820945139.459999,
+        "cv": 0.0,
+        "n": 5
+      },
+      "ccp_makespan": {
+        "mean": 612.2453742894538,
+        "std": 1.5737208003177614,
+        "min": 610.593287825645,
+        "max": 615.2377233082518,
+        "cv": 0.002570408640725388,
+        "n": 5
+      },
+      "ccp_min_on_time_prob": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "cv": null,
+        "n": 5
+      },
+      "n_seeds_passing_chance_constraint": 0,
+      "n_seeds_passing_feasible_hard": 0,
+      "n_seeds_total": 5
+    }
+  },
+  "ev_paired_changes_by_seed": {
+    "42": {
+      "cost": {
+        "S50_to_S100": {
+          "absolute": 64995.29496975988,
+          "percent": 0.5441666963505211
+        },
+        "S100_to_S200": {
+          "absolute": -72746.78145729564,
+          "percent": -0.6057688600097444
+        },
+        "S50_to_S200": {
+          "absolute": -7751.48648753576,
+          "percent": -0.06489855605225854
+        }
+      },
+      "emissions": {
+        "S50_to_S100": {
+          "absolute": -4.76837158203125e-06,
+          "percent": -6.096924984133673e-14
+        },
+        "S100_to_S200": {
+          "absolute": 9.5367431640625e-07,
+          "percent": 1.2193849968267356e-14
+        },
+        "S50_to_S200": {
+          "absolute": -3.814697265625e-06,
+          "percent": -4.87753998730694e-14
+        }
+      },
+      "makespan": {
+        "S50_to_S100": {
+          "absolute": -2.8120371516438354,
+          "percent": -0.5007359980925915
+        },
+        "S100_to_S200": {
+          "absolute": 2.4056681427697413,
+          "percent": 0.43053018796144465
+        },
+        "S50_to_S200": {
+          "absolute": -0.4063690088740941,
+          "percent": -0.07236162976492543
+        }
+      },
+      "total_lateness_h": {
+        "S50_to_S100": {
+          "absolute": 5.740236750596523,
+          "percent": 0.928022725060524
+        },
+        "S100_to_S200": {
+          "absolute": 0.6991390992683364,
+          "percent": 0.1119903577344285
+        },
+        "S50_to_S200": {
+          "absolute": 6.4393758498648594,
+          "percent": 1.0410523787646044
+        }
+      }
+    },
+    "43": {
+      "cost": {
+        "S50_to_S100": {
+          "absolute": -61783.51146553829,
+          "percent": -0.49781531157296827
+        },
+        "S100_to_S200": {
+          "absolute": -103528.96102135442,
+          "percent": -0.8383490988180057
+        },
+        "S50_to_S200": {
+          "absolute": -165312.47248689272,
+          "percent": -1.3319909802126237
+        }
+      },
+      "emissions": {
+        "S50_to_S100": {
+          "absolute": -4.76837158203125e-06,
+          "percent": -6.096924984133673e-14
+        },
+        "S100_to_S200": {
+          "absolute": 9.5367431640625e-07,
+          "percent": 1.2193849968267356e-14
+        },
+        "S50_to_S200": {
+          "absolute": -3.814697265625e-06,
+          "percent": -4.87753998730694e-14
+        }
+      },
+      "makespan": {
+        "S50_to_S100": {
+          "absolute": 2.6029633465687994,
+          "percent": 0.45461919215211605
+        },
+        "S100_to_S200": {
+          "absolute": -0.7580705327038686,
+          "percent": -0.13180121594327843
+        },
+        "S50_to_S200": {
+          "absolute": 1.8448928138649308,
+          "percent": 0.32221878258566966
+        }
+      },
+      "total_lateness_h": {
+        "S50_to_S100": {
+          "absolute": 6.207266480065982,
+          "percent": 0.9152887265301572
+        },
+        "S100_to_S200": {
+          "absolute": -11.385580006448777,
+          "percent": -1.6636268284637952
+        },
+        "S50_to_S200": {
+          "absolute": -5.178313526382794,
+          "percent": -0.7635650907460984
+        }
+      }
+    },
+    "44": {
+      "cost": {
+        "S50_to_S100": {
+          "absolute": -34797.26404354721,
+          "percent": -0.2879654756144031
+        },
+        "S100_to_S200": {
+          "absolute": -4649.957607951015,
+          "percent": -0.03859195149691302
+        },
+        "S50_to_S200": {
+          "absolute": -39447.22165149823,
+          "percent": -0.32644629561463917
+        }
+      },
+      "emissions": {
+        "S50_to_S100": {
+          "absolute": -4.76837158203125e-06,
+          "percent": -6.096924984133673e-14
+        },
+        "S100_to_S200": {
+          "absolute": 9.5367431640625e-07,
+          "percent": 1.2193849968267356e-14
+        },
+        "S50_to_S200": {
+          "absolute": -3.814697265625e-06,
+          "percent": -4.87753998730694e-14
+        }
+      },
+      "makespan": {
+        "S50_to_S100": {
+          "absolute": -0.7651926212862463,
+          "percent": -0.1327185462339567
+        },
+        "S100_to_S200": {
+          "absolute": -6.094320635513782,
+          "percent": -1.0584318845602947
+        },
+        "S50_to_S200": {
+          "absolute": -6.859513256800028,
+          "percent": -1.1897456953841863
+        }
+      },
+      "total_lateness_h": {
+        "S50_to_S100": {
+          "absolute": 0.11538154188372118,
+          "percent": 0.01759553637632537
+        },
+        "S100_to_S200": {
+          "absolute": -13.668534817835393,
+          "percent": -2.0840672341265125
+        },
+        "S50_to_S200": {
+          "absolute": -13.553153275951672,
+          "percent": -2.066838400558475
+        }
+      }
+    },
+    "45": {
+      "cost": {
+        "S50_to_S100": {
+          "absolute": 193743.7392586898,
+          "percent": 1.6370170348548245
+        },
+        "S100_to_S200": {
+          "absolute": -35413.70749580115,
+          "percent": -0.2944048815716874
+        },
+        "S50_to_S200": {
+          "absolute": 158330.03176288866,
+          "percent": 1.3377926952203645
+        }
+      },
+      "emissions": {
+        "S50_to_S100": {
+          "absolute": -4.76837158203125e-06,
+          "percent": -6.096924984133673e-14
+        },
+        "S100_to_S200": {
+          "absolute": 9.5367431640625e-07,
+          "percent": 1.2193849968267356e-14
+        },
+        "S50_to_S200": {
+          "absolute": -3.814697265625e-06,
+          "percent": -4.87753998730694e-14
+        }
+      },
+      "makespan": {
+        "S50_to_S100": {
+          "absolute": 2.049404911618126,
+          "percent": 0.36132163680438173
+        },
+        "S100_to_S200": {
+          "absolute": 0.4380451796281477,
+          "percent": 0.07695179061572374
+        },
+        "S50_to_S200": {
+          "absolute": 2.4874500912462736,
+          "percent": 0.4385514708895084
+        }
+      },
+      "total_lateness_h": {
+        "S50_to_S100": {
+          "absolute": 18.151060840800938,
+          "percent": 2.8869172756846218
+        },
+        "S100_to_S200": {
+          "absolute": -4.4461538536174885,
+          "percent": -0.6873163241340231
+        },
+        "S50_to_S200": {
+          "absolute": 13.704906987183449,
+          "percent": 2.1797586978505734
+        }
+      }
+    },
+    "46": {
+      "cost": {
+        "S50_to_S100": {
+          "absolute": -381243.74116487615,
+          "percent": -3.0275120564514806
+        },
+        "S100_to_S200": {
+          "absolute": -63455.39506890811,
+          "percent": -0.5196407164852312
+        },
+        "S50_to_S200": {
+          "absolute": -444699.13623378426,
+          "percent": -3.5314205875948903
+        }
+      },
+      "emissions": {
+        "S50_to_S100": {
+          "absolute": -4.76837158203125e-06,
+          "percent": -6.096924984133673e-14
+        },
+        "S100_to_S200": {
+          "absolute": 9.5367431640625e-07,
+          "percent": 1.2193849968267356e-14
+        },
+        "S50_to_S200": {
+          "absolute": -3.814697265625e-06,
+          "percent": -4.87753998730694e-14
+        }
+      },
+      "makespan": {
+        "S50_to_S100": {
+          "absolute": -8.431324677951693,
+          "percent": -1.4596623055726716
+        },
+        "S100_to_S200": {
+          "absolute": -3.476867818618757,
+          "percent": -0.6108445638289385
+        },
+        "S50_to_S200": {
+          "absolute": -11.90819249657045,
+          "percent": -2.0615906015577594
+        }
+      },
+      "total_lateness_h": {
+        "S50_to_S100": {
+          "absolute": -55.03066941649297,
+          "percent": -7.678699234486791
+        },
+        "S100_to_S200": {
+          "absolute": -9.832504465674447,
+          "percent": -1.4860899555283846
+        },
+        "S50_to_S200": {
+          "absolute": -64.86317388216742,
+          "percent": -9.050676811976233
+        }
+      }
+    }
+  },
+  "ev_paired_changes_aggregate_across_seeds": {
+    "cost": {
+      "S50_to_S100": {
+        "percent_abs_stats": {
+          "mean": 1.1988953149688395,
+          "std": 1.0281795306357886,
+          "min": 0.2879654756144031,
+          "max": 3.0275120564514806,
+          "cv": 0.8576057624034605,
+          "n": 5
+        }
+      },
+      "S100_to_S200": {
+        "percent_abs_stats": {
+          "mean": 0.45935110167631626,
+          "std": 0.27311462700965095,
+          "min": 0.03859195149691302,
+          "max": 0.8383490988180057,
+          "cv": 0.5945661739200581,
+          "n": 5
+        }
+      },
+      "S50_to_S200": {
+        "percent_abs_stats": {
+          "mean": 1.3185098229389554,
+          "std": 1.2209225097283942,
+          "min": 0.06489855605225854,
+          "max": 3.5314205875948903,
+          "cv": 0.9259866619779599,
+          "n": 5
+        }
+      }
+    },
+    "emissions": {
+      "S50_to_S100": {
+        "percent_abs_stats": {
+          "mean": 6.096924984133673e-14,
+          "std": 0.0,
+          "min": 6.096924984133673e-14,
+          "max": 6.096924984133673e-14,
+          "cv": null,
+          "n": 5
+        }
+      },
+      "S100_to_S200": {
+        "percent_abs_stats": {
+          "mean": 1.2193849968267358e-14,
+          "std": 1.5777218104420236e-30,
+          "min": 1.2193849968267356e-14,
+          "max": 1.2193849968267356e-14,
+          "cv": null,
+          "n": 5
+        }
+      },
+      "S50_to_S200": {
+        "percent_abs_stats": {
+          "mean": 4.87753998730694e-14,
+          "std": 0.0,
+          "min": 4.87753998730694e-14,
+          "max": 4.87753998730694e-14,
+          "cv": null,
+          "n": 5
+        }
+      }
+    },
+    "makespan": {
+      "S50_to_S100": {
+        "percent_abs_stats": {
+          "mean": 0.5818115357711434,
+          "std": 0.4568749102159415,
+          "min": 0.1327185462339567,
+          "max": 1.4596623055726716,
+          "cv": 0.7852627219059714,
+          "n": 5
+        }
+      },
+      "S100_to_S200": {
+        "percent_abs_stats": {
+          "mean": 0.461711928581936,
+          "std": 0.35669846979996395,
+          "min": 0.07695179061572374,
+          "max": 1.0584318845602947,
+          "cv": 0.7725563229338654,
+          "n": 5
+        }
+      },
+      "S50_to_S200": {
+        "percent_abs_stats": {
+          "mean": 0.81689363603641,
+          "std": 0.7253224258307656,
+          "min": 0.07236162976492543,
+          "max": 2.0615906015577594,
+          "cv": 0.8879031416501781,
+          "n": 5
+        }
+      }
+    },
+    "total_lateness_h": {
+      "S50_to_S100": {
+        "percent_abs_stats": {
+          "mean": 2.485304699627684,
+          "std": 2.76088048544081,
+          "min": 0.01759553637632537,
+          "max": 7.678699234486791,
+          "cv": 1.1108820925878462,
+          "n": 5
+        }
+      },
+      "S100_to_S200": {
+        "percent_abs_stats": {
+          "mean": 1.2066181399974287,
+          "std": 0.7106001277031846,
+          "min": 0.1119903577344285,
+          "max": 2.0840672341265125,
+          "cv": 0.5889188171037266,
+          "n": 5
+        }
+      },
+      "S50_to_S200": {
+        "percent_abs_stats": {
+          "mean": 3.020378275979197,
+          "std": 3.065658714300234,
+          "min": 0.7635650907460984,
+          "max": 9.050676811976233,
+          "cv": 1.0149916448152037,
+          "n": 5
+        }
+      }
+    }
+  },
+  "ccp_classification_stability_by_seed": {
+    "42": {
+      "chance_constraint_pass_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "feasible_hard_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "chance_constraint_classification_stable": true,
+      "feasible_hard_classification_stable": true
+    },
+    "43": {
+      "chance_constraint_pass_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "feasible_hard_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "chance_constraint_classification_stable": true,
+      "feasible_hard_classification_stable": true
+    },
+    "44": {
+      "chance_constraint_pass_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "feasible_hard_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "chance_constraint_classification_stable": true,
+      "feasible_hard_classification_stable": true
+    },
+    "45": {
+      "chance_constraint_pass_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "feasible_hard_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "chance_constraint_classification_stable": true,
+      "feasible_hard_classification_stable": true
+    },
+    "46": {
+      "chance_constraint_pass_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "feasible_hard_by_S": {
+        "50": false,
+        "100": false,
+        "200": false
+      },
+      "chance_constraint_classification_stable": true,
+      "feasible_hard_classification_stable": true
+    }
+  },
+  "ccp_classification_stability_overall": {
+    "n_seeds_chance_constraint_classification_stable": 5,
+    "n_seeds_feasible_hard_classification_stable": 5,
+    "n_seeds_total": 5
+  },
+  "cross_validation": {
+    "status": "ALL PASSED",
+    "cache_safety_spot_check": {
+      "seed": 42,
+      "S": 50,
+      "ev_objectives_match": true,
+      "ccp_objectives_match": true,
+      "batch_on_time_prob_match": true,
+      "min_on_time_prob_match": true,
+      "feasible_hard_match": true
+    },
+    "note": "EV cost/emission/makespan means were cross-validated against an independently reconstructed full-solution per-scenario array for every (seed, S) combination; the CCP bottleneck batch's recomputed satisfied-fraction was cross-validated against evaluate_individual's own batch_on_time_prob and min_on_time_prob. cache_safety_spot_check additionally clears _PATH_SCENARIO_CACHE and forces a fresh, uncached recomputation of the SAME seed=42/S=50 ScenarioSet object already used in the sweep, confirming objectives, batch_on_time_prob, min_on_time_prob, and feasible_hard all reproduce -- a spot-check of that one (seed, S) pair, not a proof covering every combination swept (the argument for the remaining combinations is the cache-key/construction-pattern argument in the code comment above the subset loop). The script would have raised RuntimeError and aborted before writing this file otherwise."
+  }
+}

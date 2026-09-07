@@ -1,0 +1,2240 @@
+===== NSGA-II Tuned Baseline Pareto Solutions (3-Objective) =====
+
+===== Pareto Sol 0 =====
+Cost=7824396.673791  Emission_gCO2=10423665661.849998  Time=334.209983
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9466666666666667, 'late_teu_h': 27.5089217964743, 'max_late_excess_h': 0.0, 'max_observed_late_h': 38.057763154477925, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.988, 'mean_arrival_h_sum': 4364.165787891485, 'wait_teu_h': 132414.3448795842, 'trans_teu_h': 14001.0, 'trans_cost': 700050.0, 'carbon_cost': 63031.866556450004, 'scenario_cost_mean': 7813372.322713859, 'scenario_emission_mean': 10423665661.850002, 'scenario_time_mean': 291.68297684061525}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Lodz--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Manzhouli--(rail)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Lodz--(road)-->Budapest--(rail)-->Bratislava--(road)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Shenyang--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 1 =====
+Cost=7101901.736192  Emission_gCO2=8344498311.790000  Time=354.348503
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9311111111111111, 'late_teu_h': 76.48900901304978, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4417.043415959671, 'wait_teu_h': 119999.71050028403, 'trans_teu_h': 16788.0, 'trans_cost': 718300.0, 'carbon_cost': 45930.940287165016, 'scenario_cost_mean': 7089653.930789501, 'scenario_emission_mean': 8344498311.789998, 'scenario_time_mean': 305.29201929662247}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 2 =====
+Cost=7861622.669572  Emission_gCO2=10143046648.380001  Time=335.006900
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9466666666666667, 'late_teu_h': 27.721566595547934, 'max_late_excess_h': 0.0, 'max_observed_late_h': 38.057763154477925, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.988, 'mean_arrival_h_sum': 4455.122065384144, 'wait_teu_h': 144815.717271303, 'trans_teu_h': 15279.0, 'trans_cost': 763950.0, 'carbon_cost': 64338.48685896501, 'scenario_cost_mean': 7850053.033939747, 'scenario_emission_mean': 10143046648.380003, 'scenario_time_mean': 293.3204526009939}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Kazan--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Manzhouli--(rail)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Lodz--(road)-->Budapest--(rail)-->Bratislava--(road)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Shenyang--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 3 =====
+Cost=7835543.282131  Emission_gCO2=10254341727.779999  Time=334.209983
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9466666666666667, 'late_teu_h': 27.5089217964743, 'max_late_excess_h': 0.0, 'max_observed_late_h': 38.057763154477925, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.988, 'mean_arrival_h_sum': 4412.170773275774, 'wait_teu_h': 139256.31517464115, 'trans_teu_h': 14619.0, 'trans_cost': 730950.0, 'carbon_cost': 65679.485831465, 'scenario_cost_mean': 7824382.66822492, 'scenario_emission_mean': 10254341727.779999, 'scenario_time_mean': 292.59688204414016}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Lodz--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Manzhouli--(rail)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Lodz--(road)-->Budapest--(rail)-->Bratislava--(road)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Shenyang--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 4 =====
+Cost=6999741.934300  Emission_gCO2=8653642859.490000  Time=339.528628
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9855555555555555, 'late_teu_h': 69.30622215231193, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4184.400666067139, 'wait_teu_h': 95039.37857264894, 'trans_teu_h': 14442.0, 'trans_cost': 601000.0, 'carbon_cost': 46168.37406035001, 'scenario_cost_mean': 6986892.114881286, 'scenario_emission_mean': 8653642859.490002, 'scenario_time_mean': 293.86787706966714}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Lodz--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 5 =====
+Cost=6902352.935284  Emission_gCO2=8375776425.200001  Time=411.947471
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.8844444444444445, 'late_teu_h': 326.05220482151856, 'max_late_excess_h': 0.0, 'max_observed_late_h': 136.4690909339564, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.94, 'mean_arrival_h_sum': 4337.36900831405, 'wait_teu_h': 99654.93671791445, 'trans_teu_h': 14892.0, 'trans_cost': 623500.0, 'carbon_cost': 39906.226569150014, 'scenario_cost_mean': 6888956.741370192, 'scenario_emission_mean': 8375776425.199998, 'scenario_time_mean': 326.84990204652934}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Hamburg--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 6 =====
+Cost=7790109.282243  Emission_gCO2=10338293049.220001  Time=335.006900
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9542857142857143, 'late_teu_h': 27.721566595547934, 'max_late_excess_h': 0.0, 'max_observed_late_h': 38.057763154477925, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.988, 'mean_arrival_h_sum': 4500.792653073635, 'wait_teu_h': 147981.97021160612, 'trans_teu_h': 13641.0, 'trans_cost': 682050.0, 'carbon_cost': 58143.413801450006, 'scenario_cost_mean': 7778947.723234474, 'scenario_emission_mean': 10338293049.220001, 'scenario_time_mean': 296.02872813883135}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Kazan--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Malaszewicze--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Manzhouli--(rail)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Kazan--(rail)-->Moscow--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Lodz--(road)-->Budapest--(rail)-->Bratislava--(road)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Shenyang--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 7 =====
+Cost=7925043.485232  Emission_gCO2=10629825873.525002  Time=315.809308
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.99, 'late_teu_h': 0.0, 'max_late_excess_h': 0.0, 'max_observed_late_h': 0.0, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 1.0, 'mean_arrival_h_sum': 4208.442642158745, 'wait_teu_h': 107260.5066088368, 'trans_teu_h': 14578.5, 'trans_cost': 728925.0, 'carbon_cost': 76515.94228058751, 'scenario_cost_mean': 7915417.062567657, 'scenario_emission_mean': 10629825873.524998, 'scenario_time_mean': 283.3742452634157}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Kazan--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(road)-->Dostyk--(road)-->Altynkol--(road)-->Bishkek--(road)-->Malaszewicze--(road)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 83.33% }
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(rail)-->Warsaw], Share: 16.67% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Erenhot--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Lodz--(road)-->Budapest--(rail)-->Bratislava--(road)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Shenyang--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 8 =====
+Cost=7021847.987852  Emission_gCO2=8418544873.700001  Time=354.287714
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9311111111111111, 'late_teu_h': 69.30622215231193, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4386.61206885791, 'wait_teu_h': 116430.73519572511, 'trans_teu_h': 15810.0, 'trans_cost': 669400.0, 'carbon_cost': 36571.30514115001, 'scenario_cost_mean': 7009900.801260548, 'scenario_emission_mean': 8418544873.699998, 'scenario_time_mean': 303.1174859077338}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Malaszewicze--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Duisburg--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 9 =====
+Cost=7113220.494406  Emission_gCO2=9044968863.320000  Time=338.691766
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9855555555555555, 'late_teu_h': 69.30622215231193, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4273.085528082637, 'wait_teu_h': 97478.431702867, 'trans_teu_h': 14805.0, 'trans_cost': 619150.0, 'carbon_cost': 54395.99287559001, 'scenario_cost_mean': 7098405.626200701, 'scenario_emission_mean': 9044968863.320002, 'scenario_time_mean': 295.3566782084811}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Lodz--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->Prague--(road)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 10 =====
+Cost=7078906.563723  Emission_gCO2=8380574652.430000  Time=354.315498
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.97, 'late_teu_h': 76.48900901304978, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4436.11112750979, 'wait_teu_h': 121994.4667636651, 'trans_teu_h': 16170.0, 'trans_cost': 687400.0, 'carbon_cost': 44679.99222215002, 'scenario_cost_mean': 7066723.027735192, 'scenario_emission_mean': 8380574652.429998, 'scenario_time_mean': 304.8371887244837}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Bratislava--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 11 =====
+Cost=7083076.394228  Emission_gCO2=8644322652.750000  Time=341.479320
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.8777777777777778, 'late_teu_h': 76.48900901304978, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4296.820738929248, 'wait_teu_h': 104386.13529909606, 'trans_teu_h': 15750.0, 'trans_cost': 666400.0, 'carbon_cost': 42555.70218035001, 'scenario_cost_mean': 7070972.952521738, 'scenario_emission_mean': 8644322652.75, 'scenario_time_mean': 299.83623749927716}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(road)-->Omsk--(road)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 12 =====
+Cost=7072044.456297  Emission_gCO2=8622356839.090000  Time=341.791606
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.8777777777777778, 'late_teu_h': 69.30622215231193, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4310.494327855167, 'wait_teu_h': 102436.62780692593, 'trans_teu_h': 15420.0, 'trans_cost': 649900.0, 'carbon_cost': 44562.93192850001, 'scenario_cost_mean': 7060509.352136856, 'scenario_emission_mean': 8622356839.089996, 'scenario_time_mean': 299.7192278389032}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Lodz--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Brest--(road)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 13 =====
+Cost=7317536.205906  Emission_gCO2=9288989835.209999  Time=338.310906
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9855555555555555, 'late_teu_h': 73.95950172557323, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4264.458369643532, 'wait_teu_h': 111302.91693182602, 'trans_teu_h': 14352.0, 'trans_cost': 640250.0, 'carbon_cost': 58203.87609835001, 'scenario_cost_mean': 7304555.6619390715, 'scenario_emission_mean': 9288989835.209995, 'scenario_time_mean': 297.75340389183947}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Bratislava--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 14 =====
+Cost=7039468.071946  Emission_gCO2=8410287421.720000  Time=354.103021
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9622222222222222, 'late_teu_h': 76.48900901304978, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4428.585063100604, 'wait_teu_h': 123008.29494060502, 'trans_teu_h': 15897.0, 'trans_cost': 673750.0, 'carbon_cost': 42433.99858415002, 'scenario_cost_mean': 7027248.1866387455, 'scenario_emission_mean': 8410287421.72, 'scenario_time_mean': 304.6277102600577}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Bratislava--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 15 =====
+Cost=7055559.126545  Emission_gCO2=8390929513.380000  Time=354.315498
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9311111111111111, 'late_teu_h': 76.48900901304978, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4357.945316606147, 'wait_teu_h': 112758.45216278774, 'trans_teu_h': 15750.0, 'trans_cost': 666400.0, 'carbon_cost': 45650.235850350015, 'scenario_cost_mean': 7043338.069682689, 'scenario_emission_mean': 8390929513.380002, 'scenario_time_mean': 304.7975387485467}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Bratislava--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 16 =====
+Cost=6967165.697333  Emission_gCO2=8219219881.480000  Time=411.947471
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9311111111111111, 'late_teu_h': 326.05220482151856, 'max_late_excess_h': 0.0, 'max_observed_late_h': 136.4690909339564, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.94, 'mean_arrival_h_sum': 4539.420267099789, 'wait_teu_h': 120719.71468479719, 'trans_teu_h': 16215.0, 'trans_cost': 689650.0, 'carbon_cost': 40724.285400950015, 'scenario_cost_mean': 6953638.642575499, 'scenario_emission_mean': 8219219881.479996, 'scenario_time_mean': 330.42867093801937}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Hamburg--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 17 =====
+Cost=6919496.465632  Emission_gCO2=8241148517.919999  Time=411.947471
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9855555555555555, 'late_teu_h': 318.8694179607807, 'max_late_excess_h': 0.0, 'max_observed_late_h': 136.4690909339564, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.94, 'mean_arrival_h_sum': 4408.574303880574, 'wait_teu_h': 109028.83503862629, 'trans_teu_h': 15825.0, 'trans_cost': 670150.0, 'carbon_cost': 43020.80744416501, 'scenario_cost_mean': 6905376.536762483, 'scenario_emission_mean': 8241148517.919999, 'scenario_time_mean': 324.754552921026}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Kazan--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Hamburg--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 18 =====
+Cost=7143751.548815  Emission_gCO2=8571760245.780000  Time=341.555240
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.8766666666666667, 'late_teu_h': 76.48900901304978, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4434.86415113403, 'wait_teu_h': 118838.11630120136, 'trans_teu_h': 16683.0, 'trans_cost': 713050.0, 'carbon_cost': 46765.210133365006, 'scenario_cost_mean': 7131998.035276435, 'scenario_emission_mean': 8571760245.78, 'scenario_time_mean': 303.3154209407774}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 19 =====
+Cost=6899613.022297  Emission_gCO2=8413455642.959999  Time=411.947471
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.99, 'late_teu_h': 318.8694179607807, 'max_late_excess_h': 0.0, 'max_observed_late_h': 136.4690909339564, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.94, 'mean_arrival_h_sum': 4403.632890126599, 'wait_teu_h': 106365.44141788372, 'trans_teu_h': 15870.0, 'trans_cost': 672400.0, 'carbon_cost': 40261.957684165005, 'scenario_cost_mean': 6886078.492105889, 'scenario_emission_mean': 8413455642.959996, 'scenario_time_mean': 326.3048047941146}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Kazan--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Shanghai--(water)-->Hamburg--(water)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 20 =====
+Cost=7106226.999234  Emission_gCO2=8326553478.989999  Time=354.451506
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9311111111111111, 'late_teu_h': 69.30622215231193, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4474.758646283361, 'wait_teu_h': 125953.64357271414, 'trans_teu_h': 16473.0, 'trans_cost': 702550.0, 'carbon_cost': 51017.95271216502, 'scenario_cost_mean': 7093975.525533154, 'scenario_emission_mean': 8326553478.990001, 'scenario_time_mean': 304.4123457493262}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Kazan--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Volgograd--(road)-->Lodz--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Bratislava--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 21 =====
+Cost=7193475.332886  Emission_gCO2=8652940388.180000  Time=340.884814
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9855555555555555, 'late_teu_h': 76.48900901304978, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4393.915696209532, 'wait_teu_h': 114520.7331509015, 'trans_teu_h': 16389.0, 'trans_cost': 698350.0, 'carbon_cost': 61400.782672575006, 'scenario_cost_mean': 7180481.301295404, 'scenario_emission_mean': 8652940388.179998, 'scenario_time_mean': 300.6607233323287}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Warsaw--(road)-->Hamburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Lodz--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 22 =====
+Cost=7289823.140976  Emission_gCO2=9328917304.389999  Time=338.310906
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9855555555555555, 'late_teu_h': 73.95950172557323, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4259.835592368939, 'wait_teu_h': 111302.91693182602, 'trans_teu_h': 14352.0, 'trans_cost': 640250.0, 'carbon_cost': 49475.39116835001, 'scenario_cost_mean': 7276842.597009071, 'scenario_emission_mean': 9328917304.39, 'scenario_time_mean': 297.7796325555495}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Bratislava--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Berlin--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 23 =====
+Cost=7823802.732091  Emission_gCO2=10119448321.170002  Time=338.015535
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9466666666666667, 'late_teu_h': 27.5089217964743, 'max_late_excess_h': 0.0, 'max_observed_late_h': 38.057763154477925, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.988, 'mean_arrival_h_sum': 4432.611362705952, 'wait_teu_h': 143320.5696365281, 'trans_teu_h': 14661.0, 'trans_cost': 733050.0, 'carbon_cost': 62706.778793950005, 'scenario_cost_mean': 7812737.2547569135, 'scenario_emission_mean': 10119448321.17, 'scenario_time_mean': 293.35886127874556}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Bratislava--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Manzhouli--(rail)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Lodz--(road)-->Budapest--(rail)-->Bratislava--(road)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Shenyang--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 24 =====
+Cost=7107988.877445  Emission_gCO2=8636919856.570000  Time=341.479320
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.8766666666666667, 'late_teu_h': 76.48900901304978, 'max_late_excess_h': 0.0, 'max_observed_late_h': 57.117489077843686, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.99, 'mean_arrival_h_sum': 4389.369718980681, 'wait_teu_h': 114003.76872705959, 'trans_teu_h': 16065.0, 'trans_cost': 682150.0, 'carbon_cost': 43380.33018035001, 'scenario_cost_mean': 7096184.327264109, 'scenario_emission_mean': 8636919856.570002, 'scenario_time_mean': 302.22678413810115}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Wuhan--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Moscow--(road)-->St.Petersburg--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(road)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(road)-->Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Shanghai--(water)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+
+===== Pareto Sol 25 =====
+Cost=7874000.831942  Emission_gCO2=10141606068.380001  Time=335.063541
+Penalty=0.000000  Feasible=True
+Breakdown={'miss_alloc': 0.0, 'miss_tt': 0.0, 'cap_excess': 0.0, 'border_cap_excess': 0.0, 'max_border_util': 0.9466666666666667, 'late_teu_h': 27.721566595547934, 'max_late_excess_h': 0.0, 'max_observed_late_h': 38.057763154477925, 'chance_vio': 0.0, 'normalized_violation': 0.0, 'min_on_time_prob': 0.988, 'mean_arrival_h_sum': 4464.34344225641, 'wait_teu_h': 144815.717271303, 'trans_teu_h': 15279.0, 'trans_cost': 763950.0, 'carbon_cost': 69470.049228965, 'scenario_cost_mean': 7862431.196309747, 'scenario_emission_mean': 10141606068.380003, 'scenario_time_mean': 293.6221959564886}
+
+Batch 1: Xi'an -> Berlin, Q=120.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(rail)-->Kazan--(road)-->Berlin], Share: 100.00% }
+
+Batch 2: Xi'an -> Duisburg, Q=110.0
+
+    { Structure: [Xi'an--(road)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Duisburg], Share: 100.00% }
+
+Batch 3: Chongqing -> Duisburg, Q=100.0
+
+    { Structure: [Chongqing--(road)-->Chengdu--(rail)-->Khorgos--(road)-->Altynkol--(road)-->Almaty--(road)-->Tashkent--(road)-->Bratislava--(road)-->Prague--(road)-->Nuremberg--(road)-->Berlin--(rail)-->Duisburg], Share: 100.00% }
+
+Batch 4: Chongqing -> Hamburg, Q=95.0
+
+    { Structure: [Chongqing--(road)-->Xi'an--(road)-->Xiangyang--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Omsk--(road)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg], Share: 100.00% }
+
+Batch 5: Chengdu -> Lodz, Q=130.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(rail)-->Minsk--(rail)-->Warsaw--(rail)-->Lodz], Share: 100.00% }
+
+Batch 6: Zhengzhou -> Hamburg, Q=115.0
+
+    { Structure: [Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Rotterdam--(road)-->Hamburg], Share: 100.00% }
+
+Batch 7: Wuhan -> Warsaw, Q=105.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Minsk--(road)-->Warsaw], Share: 100.00% }
+
+Batch 8: Yiwu -> Rotterdam, Q=90.0
+
+    { Structure: [Yiwu--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Prague--(road)-->Rotterdam], Share: 100.00% }
+
+Batch 9: Suzhou -> Prague, Q=125.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Tianjin--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Budapest--(road)-->Prague], Share: 100.00% }
+
+Batch 10: Hefei -> Budapest, Q=140.0
+
+    { Structure: [Hefei--(road)-->Erenhot--(rail)-->Moscow--(road)-->Bratislava--(rail)-->Budapest], Share: 100.00% }
+
+Batch 11: Guangzhou -> Lodz, Q=91.0
+
+    { Structure: [Guangzhou--(road)-->Xiangyang--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(rail)-->Moscow--(rail)-->Lodz], Share: 100.00% }
+
+Batch 12: Xi'an -> Berlin, Q=122.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Moscow--(road)-->Budapest--(road)-->Berlin], Share: 100.00% }
+
+Batch 13: Xiangyang -> Bratislava, Q=126.0
+
+    { Structure: [Xiangyang--(road)-->Manzhouli--(rail)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->St.Petersburg--(road)-->Bratislava], Share: 100.00% }
+
+Batch 14: Xi'an -> Warsaw, Q=98.0
+
+    { Structure: [Xi'an--(road)-->Zhengzhou--(rail)-->Manzhouli--(road)-->Zabaykalsk--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(road)-->Warsaw], Share: 100.00% }
+
+Batch 15: Wuhan -> Rotterdam, Q=120.0
+
+    { Structure: [Wuhan--(rail)-->Erenhot--(rail)-->Moscow--(rail)-->Rotterdam], Share: 100.00% }
+
+Batch 16: Nanjing -> Budapest, Q=123.0
+
+    { Structure: [Nanjing--(road)-->Zhengzhou--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Budapest], Share: 100.00% }
+
+Batch 17: Chengdu -> Warsaw, Q=97.0
+
+    { Structure: [Chengdu--(rail)-->Khorgos--(rail)-->Almaty--(road)-->Bishkek--(road)-->Astana--(road)-->Minsk--(rail)-->Warsaw], Share: 100.00% }
+
+Batch 18: Xi'an -> Hamburg, Q=103.0
+
+    { Structure: [Xi'an--(road)-->Erenhot--(rail)-->Novosibirsk--(rail)-->Yekaterinburg--(rail)-->Moscow--(road)-->Lodz--(rail)-->Berlin--(road)-->Hamburg], Share: 100.00% }
+
+Batch 19: Suzhou -> Hamburg, Q=140.0
+
+    { Structure: [Suzhou--(road)-->Erenhot--(rail)-->Moscow--(road)-->Minsk--(road)-->Warsaw--(road)-->Lodz--(road)-->Budapest--(rail)-->Bratislava--(road)-->Hamburg], Share: 100.00% }
+
+Batch 20: Suzhou -> Duisburg, Q=106.0
+
+    { Structure: [Suzhou--(road)-->Qingdao--(road)-->Shenyang--(rail)-->Manzhouli--(rail)-->Yekaterinburg--(road)-->Malaszewicze--(road)-->Hamburg--(road)-->Duisburg], Share: 100.00% }
+
+

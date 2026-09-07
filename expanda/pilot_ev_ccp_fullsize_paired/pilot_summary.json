@@ -1,0 +1,51 @@
+{
+  "candidate_counts": {
+    "EV": 264,
+    "CCP30": 269,
+    "CCP50": 270
+  },
+  "unique_fingerprints_by_method": {
+    "EV": 264,
+    "CCP30": 269,
+    "CCP50": 270
+  },
+  "unique_fingerprints_global": 803,
+  "shared_fingerprints_across_methods": {
+    "EV_CCP30": [],
+    "EV_CCP50": [],
+    "CCP30_CCP50": []
+  },
+  "oos_front_representation": {
+    "mean": {
+      "EV": 50,
+      "CCP30": 7,
+      "CCP50": 71
+    },
+    "q90": {
+      "EV": 68,
+      "CCP30": 16,
+      "CCP50": 64
+    }
+  },
+  "punctuality_diagnostic_counts_all_batches_at_least_alpha": {
+    "EV": 0,
+    "CCP30": 0,
+    "CCP50": 0
+  },
+  "methods_have_different_decisions": true,
+  "all_fixed_candidate_emissions_scenario_invariant": true,
+  "total_candidate_scenario_evaluations": 4015000,
+  "previous_S200_runtime_reference": {
+    "training_scenarios": 200,
+    "population": 300,
+    "generations": 500,
+    "runtime_seconds": 650.3,
+    "comparison_is_descriptive_only": true
+  },
+  "runtime_seconds": {
+    "EV_optimisation_seconds": 1012.92604234186,
+    "CCP30_optimisation_seconds": 962.1881037689745,
+    "CCP50_optimisation_seconds": 958.2209016350098,
+    "stage_c_validation_seconds": 37.4871482020244
+  }
+}

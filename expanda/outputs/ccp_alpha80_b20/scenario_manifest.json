@@ -1,0 +1,38 @@
+{
+  "scenario_count": 500,
+  "scenario_seed": 1000003,
+  "stochastic": true,
+  "confidence": {
+    "cost": 0.9,
+    "emission": 0.9,
+    "time": 0.9,
+    "on_time_per_batch": 0.8
+  },
+  "mode_time_cv": {
+    "road": 0.15,
+    "rail": 0.1,
+    "water": 0.2
+  },
+  "mode_time_cap_factor": {
+    "road": 2.0,
+    "rail": 1.8,
+    "water": 2.5
+  },
+  "border_delay_cv": {
+    "road": 0.45,
+    "rail": 0.6,
+    "water": 0.3
+  },
+  "border_delay_cap_factor": 3.5,
+  "max_late_ratio": 0.5,
+  "max_late_h_override": null,
+  "late_penalty": {
+    "source_mode": "sourced_common_daily_rate_converted_to_hourly",
+    "baseline_usd_per_teu_day": 50.0,
+    "applied_common_usd_per_teu_hour": 2.0833333333333335
+  },
+  "payload_tonnes_per_teu": 10.0,
+  "wait_emission_g_per_teu_h": 0.0,
+  "fitness_evaluation": "frozen_scenarios_empirical_order_statistics",
+  "algorithmic_randomness": "controlled separately by --seed"
+}

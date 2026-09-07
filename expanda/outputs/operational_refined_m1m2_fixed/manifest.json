@@ -1,0 +1,169 @@
+{
+  "data": "/home/lunet/cokt2/uncertainty/expanda/data/data_expanded.xlsx",
+  "output": "/home/lunet/cokt2/uncertainty/expanda/outputs/operational_refined_m1m2_fixed",
+  "mode": "refined",
+  "pop": 120,
+  "gens": 80,
+  "seeds": [
+    2026,
+    7,
+    99,
+    1000
+  ],
+  "levels": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5"
+  ],
+  "candidates": [
+    "M1",
+    "M2"
+  ],
+  "combo_levels": [
+    "r3",
+    "r5"
+  ],
+  "expected_batches": 40,
+  "fixed_path_library": true,
+  "candidate_definitions": {
+    "C1": {
+      "name": "line_haul_travel_time",
+      "label": "Line-haul travel time uncertainty",
+      "mechanism": "realized_time",
+      "literature_class": "transit time / travel time reliability",
+      "operational_meaning": "Realized movement time on rail, road and water main-haul arcs deviates from the planned travel time."
+    },
+    "C2": {
+      "name": "border_processing_time",
+      "label": "Border processing and break-of-gauge time uncertainty",
+      "mechanism": "realized_time",
+      "literature_class": "service/transfer time + queueing delay",
+      "operational_meaning": "Customs, inspection, break-of-gauge handling and queueing at border nodes vary during execution."
+    },
+    "C3": {
+      "name": "terminal_transshipment_time",
+      "label": "Terminal/transshipment handling time uncertainty",
+      "mechanism": "realized_time",
+      "literature_class": "transfer time / terminal handling time",
+      "operational_meaning": "Handling and transfer processing time at terminals, ports and hubs varies during execution."
+    },
+    "C4": {
+      "name": "capacity_slot_availability",
+      "label": "Service capacity and slot availability uncertainty",
+      "mechanism": "service_feasibility",
+      "literature_class": "capacity uncertainty",
+      "operational_meaning": "Short-term available capacity on links, nodes, services, slots or wagons is lower than planned."
+    },
+    "C5": {
+      "name": "shipment_volume",
+      "label": "Shipment volume uncertainty",
+      "mechanism": "shipment_planning",
+      "literature_class": "demand uncertainty",
+      "operational_meaning": "Execution-stage batch quantities or short-term OD shipment volumes deviate from the planned quantities."
+    },
+    "C6": {
+      "name": "corridor_link_node_disruption",
+      "label": "Corridor/link/node disruption uncertainty",
+      "mechanism": "network_disruption",
+      "literature_class": "link-node failure / disruption",
+      "operational_meaning": "A recurrent operational disruption temporarily reduces the availability of key corridors, links, border nodes or terminals."
+    }
+  },
+  "scenario_definitions": {
+    "M1": {
+      "label": "Boundary bottleneck congestion",
+      "role": "core",
+      "description": "Border capacity pressure creates endogenous processing delay through a BPR congestion function; this merges C4 and C2 into one mechanism."
+    },
+    "M2": {
+      "label": "Corridor/link disruption",
+      "role": "core",
+      "description": "Recurrent link, node or corridor disruption."
+    },
+    "B1": {
+      "label": "Line-haul travel time benchmark",
+      "role": "benchmark",
+      "description": "Benchmark for established travel-time reliability uncertainty."
+    },
+    "B2": {
+      "label": "Shipment volume benchmark",
+      "role": "benchmark",
+      "description": "Benchmark for established demand/volume uncertainty."
+    }
+  },
+  "level_definitions": {
+    "r1": {
+      "intensity": 1,
+      "boundary_capacity_loss": 0.08,
+      "boundary_background_growth": 0.05,
+      "line_time_spread": 0.05,
+      "border_time_spread": 0.1,
+      "terminal_time_spread": 0.1,
+      "capacity_loss": 0.08,
+      "demand_growth": 0.05,
+      "disruption_capacity_factor": 0.7,
+      "disruption_delay_spread": 0.15,
+      "disruption_nodes": 1
+    },
+    "r2": {
+      "intensity": 2,
+      "boundary_capacity_loss": 0.15,
+      "boundary_background_growth": 0.12,
+      "line_time_spread": 0.12,
+      "border_time_spread": 0.22,
+      "terminal_time_spread": 0.18,
+      "capacity_loss": 0.15,
+      "demand_growth": 0.12,
+      "disruption_capacity_factor": 0.5,
+      "disruption_delay_spread": 0.3,
+      "disruption_nodes": 1
+    },
+    "r3": {
+      "intensity": 3,
+      "boundary_capacity_loss": 0.25,
+      "boundary_background_growth": 0.25,
+      "line_time_spread": 0.18,
+      "border_time_spread": 0.35,
+      "terminal_time_spread": 0.3,
+      "capacity_loss": 0.25,
+      "demand_growth": 0.25,
+      "disruption_capacity_factor": 0.25,
+      "disruption_delay_spread": 0.5,
+      "disruption_nodes": 2
+    },
+    "r4": {
+      "intensity": 4,
+      "boundary_capacity_loss": 0.35,
+      "boundary_background_growth": 0.4,
+      "line_time_spread": 0.25,
+      "border_time_spread": 0.5,
+      "terminal_time_spread": 0.42,
+      "capacity_loss": 0.35,
+      "demand_growth": 0.35,
+      "disruption_capacity_factor": 0.1,
+      "disruption_delay_spread": 0.7,
+      "disruption_nodes": 2
+    },
+    "r5": {
+      "intensity": 5,
+      "boundary_capacity_loss": 0.45,
+      "boundary_background_growth": 0.6,
+      "line_time_spread": 0.35,
+      "border_time_spread": 0.7,
+      "terminal_time_spread": 0.55,
+      "capacity_loss": 0.45,
+      "demand_growth": 0.45,
+      "disruption_capacity_factor": 0.02,
+      "disruption_delay_spread": 1.0,
+      "disruption_nodes": 3
+    }
+  },
+  "m1_congestion_formula": "border_delay = base_border_delay * (1 + alpha * utilisation ** beta)",
+  "m1_bpr_alpha": 0.15,
+  "m1_bpr_beta": 4.0,
+  "default_combinations": [
+    "M1+M2"
+  ]
+}

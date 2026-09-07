@@ -1,0 +1,15 @@
+{
+  "method": "EV",
+  "run_id": 30,
+  "algorithm_seed": 910030,
+  "training_seed": null,
+  "population": 300,
+  "generations": 500,
+  "alpha": 0.9,
+  "formulation": "EV direct expectations / CCP30 separate empirical q90 objectives; punctuality diagnostic only",
+  "candidate_count": 239,
+  "runtime_seconds": 965.1129914959893,
+  "candidate_sha256": "8a1e0551aa491fe8fb81365fcebdb8c6be8ade3e1d1ff848f42fa7fde3741ba0",
+  "configuration_sha256": "f28429684d6caacea3c321ab45589c7e93d7eb7432a3ad22c5004b3fab1a611a",
+  "completed": true
+}

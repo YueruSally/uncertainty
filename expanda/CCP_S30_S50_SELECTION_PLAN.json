@@ -1,0 +1,38 @@
+{
+  "status": "predeclared before execution",
+  "purpose": "engineering selection of CCP S_train=30 versus S_train=50",
+  "formal_experiment": false,
+  "replicates": 5,
+  "configuration": {
+    "population": 300,
+    "generations": 500,
+    "alpha": 0.90,
+    "validation_scenarios": 5000,
+    "output_directory": "ccp_s30_s50_selection_5runs"
+  },
+  "replicate_seeds": [
+    {"replicate": 1, "algorithm": 871001, "training_S50_master": 872001},
+    {"replicate": 2, "algorithm": 871002, "training_S50_master": 872002},
+    {"replicate": 3, "algorithm": 871003, "training_S50_master": 872003},
+    {"replicate": 4, "algorithm": 871004, "training_S50_master": 872004},
+    {"replicate": 5, "algorithm": 871005, "training_S50_master": 872005}
+  ],
+  "selection_validation_seed": 879999,
+  "path_library_seed": 0,
+  "quality_metrics": {
+    "objectives": ["q90 cost", "q90 emission", "q90 makespan"],
+    "pooled_reference_front": "nondominated union of both methods' validated candidates within each replicate",
+    "normalisation": "objective-wise pooled-reference-front ideal and nadir; a zero range maps to zero",
+    "hypervolume_reference_point": [1.2, 1.2, 1.2],
+    "hypervolume_algorithm": "exact three-dimensional dominated volume",
+    "IGD_plus_reference": "normalised pooled validated reference front"
+  },
+  "runtime_similarity_rule": "median absolute paired runtime difference <= 5 percent of CCP30 runtime",
+  "guards": {
+    "same_algorithm_seed_within_pair": true,
+    "S30_exact_prefix_of_S50": true,
+    "one_common_selection_validation_set": true,
+    "selection_validation_must_not_be_reused_as_formal_final_validation": true,
+    "stage_c_fixed_decisions_only": true
+  }
+}

@@ -1,0 +1,7 @@
+candidate,candidate_name,candidate_label,max_kpi_score,mean_kpi_score,max_route_change_ratio,mean_route_change_ratio,retained_levels,tested_levels,retain_for_refined_screening,priority_score
+C5,shipment_volume,Shipment volume uncertainty,0.2286248611596056,0.1576717750975765,0.8817268384581594,0.8632580039777767,3,3,True,1.110351699617765
+C6,corridor_link_node_disruption,Corridor/link/node disruption uncertainty,0.1376893159724852,0.09046949827582222,0.8399189081483004,0.8265628330389084,3,3,True,0.9776082241207856
+C1,line_haul_travel_time,Line-haul travel time uncertainty,0.050269591214507435,0.038413276529463886,0.9099945444643348,0.8704074318950402,3,3,True,0.9602641356788423
+C4,capacity_slot_availability,Service capacity and slot availability uncertainty,0.06723643504749034,0.041631469406843195,0.8887617961682647,0.8705998803111564,3,3,True,0.955998231215755
+C2,border_processing_time,Border processing and break-of-gauge time uncertainty,0.0303778526000746,0.020718770232082132,0.8846245371130808,0.8661438417716297,3,3,True,0.9150023897131554
+C3,terminal_transshipment_time,Terminal/transshipment handling time uncertainty,0.010538500814510583,0.009135183979053706,0.8551435529519654,0.8376917842738033,3,3,True,0.865682053766476

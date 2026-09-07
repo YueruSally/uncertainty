@@ -1,0 +1,3 @@
+scenario,summary_file,n_runs,runtime_s_mean,runtime_s_std,pareto_size_mean,feas_soft_mean,feas_strict_mean,hv_mean,hv_std,igd_plus_mean,spacing_mean,delta_hv_vs_original,delta_feas_soft_vs_original,delta_pareto_size_vs_original,runtime_ratio_vs_original
+original,/home/lunet/cokt2/uncertainty/expanda/outputs/original_full/run_summary.xlsx,30,82.47366666666667,2.6043868605758678,166.16666666666666,1.0,1.0,0.4437619999999999,0.06013250801355287,0.14632356157278148,0.02127496576709618,,,,
+expanded,/home/lunet/cokt2/uncertainty/expanda/outputs/expanded_full/run_summary.xlsx,30,153.66366666666667,5.685312888810797,18.166666666666668,1.0,1.0,0.18661733333333333,0.1693102441639329,0.6441746379536757,0.06701921253829618,-0.2571446666666666,0.0,-148.0,1.8631846124621596

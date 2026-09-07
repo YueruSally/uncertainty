@@ -1,0 +1,83 @@
+[FORMAL GATE] internal checks passed {'30_seed_rows': True, 'unique_algorithm_seeds': True, 'unique_training_seeds': True, 'all_formal_seeds_unique': True, 'path_seed_zero': True, 'methods_exact': True, 'settings_exact': True, 'ccp_S30': True, 'validation_S5000': True, 'quantile_definition': True}
+[INFO] Loaded directional border events: 4 from /home/lunet/cokt2/uncertainty/expanda/data/border_crossing_events.csv
+[INFO] Loaded carbon tax for 5 regions.
+[INFO] Loaded emission factors for 15 (mode, region) pairs.
+[INFO] Loaded mode speeds: {'road': 60.0, 'rail': 120.0, 'water': 35.0}
+[INFO] Effective mode speeds (CLI override > workbook Mode_Speeds > hardcoded fallback): {'rail': (120.0, 'workbook_mode_speeds'), 'road': (60.0, 'workbook_mode_speeds'), 'water': (35.0, 'workbook_mode_speeds')}
+[INFO] Loaded transshipment entries: 140
+[INFO] Loaded border delay map (per-mode +customs): 93 entries.
+[INFO] Loaded carbon tax applicability: 8 entries.
+[INFO] Loaded border capacity: 31 nodes | background flow: 8 nodes.
+[INFO] Active break-of-gauge capacities: {'Brest': 600.0, 'Manzhouli': 900.0, 'Malaszewicze': 500.0, 'Altynkol': 700.0, 'Erenhot': 900.0, 'Zabaykalsk': 700.0, 'Dostyk': 800.0, 'Khorgos': 900.0, 'Alashankou': 900.0}
+[INFO] Active break-of-gauge background flow: {'Brest': 350.0, 'Manzhouli': 450.0, 'Altynkol': 350.0, 'Erenhot': 450.0, 'Zabaykalsk': 350.0, 'Dostyk': 450.0, 'Khorgos': 500.0, 'Alashankou': 500.0}
+[INFO] Loaded China border nodes (7): ['Alashankou', 'Chongqing', 'Erenhot', 'Khorgos', 'Lianyungang', 'Manzhouli', 'Yiwu']
+[INFO] Loaded waiting params: cost=0.8, emission=0.0
+[INFO] Timetable loaded: 168 scheduled services; using frequency, first departure and headway for induced waiting.
+[WARN] Timetable.time is loaded only as legacy metadata: its unit is undocumented (observed values=[300.0, 355.0, 415.0, 518.0]); it is not used as arc travel hours. Running time follows distance / documented mode speed.
+[INFO] Batches loaded: 40
+[INFO] All paths pass border monotonicity. ✅
+[SANITY] ✅ All batches have paths.
+[FEAS-INIT] Structurally feasible single-path options per batch: min=18  median=31.0  max=39
+[RESUME] valid complete run=01 method=EV
+[RESUME] valid complete run=01 method=CCP30
+[RESUME] valid complete run=02 method=EV
+[RESUME] valid complete run=02 method=CCP30
+[RESUME] valid complete run=03 method=EV
+[RESUME] valid complete run=03 method=CCP30
+[RESUME] valid complete run=04 method=EV
+[RESUME] valid complete run=04 method=CCP30
+[RESUME] valid complete run=05 method=EV
+[RESUME] valid complete run=05 method=CCP30
+[RESUME] valid complete run=06 method=EV
+[RESUME] valid complete run=06 method=CCP30
+[RESUME] valid complete run=07 method=EV
+[RESUME] valid complete run=07 method=CCP30
+[RESUME] valid complete run=08 method=EV
+[RESUME] valid complete run=08 method=CCP30
+[RESUME] valid complete run=09 method=EV
+[RESUME] valid complete run=09 method=CCP30
+[RESUME] valid complete run=10 method=EV
+[RESUME] valid complete run=10 method=CCP30
+[RESUME] valid complete run=11 method=EV
+[RESUME] valid complete run=11 method=CCP30
+[RESUME] valid complete run=12 method=EV
+[RESUME] valid complete run=12 method=CCP30
+[RESUME] valid complete run=13 method=EV
+[RESUME] valid complete run=13 method=CCP30
+[RESUME] valid complete run=14 method=EV
+[RESUME] valid complete run=14 method=CCP30
+[RESUME] valid complete run=15 method=EV
+[RESUME] valid complete run=15 method=CCP30
+[RESUME] valid complete run=16 method=EV
+[RESUME] valid complete run=16 method=CCP30
+[RESUME] valid complete run=17 method=EV
+[RESUME] valid complete run=17 method=CCP30
+[RESUME] valid complete run=18 method=EV
+[RESUME] valid complete run=18 method=CCP30
+[RESUME] valid complete run=19 method=EV
+[RESUME] valid complete run=19 method=CCP30
+[RESUME] valid complete run=20 method=EV
+[RESUME] valid complete run=20 method=CCP30
+[RESUME] valid complete run=21 method=EV
+[RESUME] valid complete run=21 method=CCP30
+[RESUME] valid complete run=22 method=EV
+[RESUME] valid complete run=22 method=CCP30
+[RESUME] valid complete run=23 method=EV
+[RESUME] valid complete run=23 method=CCP30
+[RESUME] valid complete run=24 method=EV
+[RESUME] valid complete run=24 method=CCP30
+[RESUME] valid complete run=25 method=EV
+[RESUME] valid complete run=25 method=CCP30
+[RESUME] valid complete run=26 method=EV
+[RESUME] valid complete run=26 method=CCP30
+[RESUME] valid complete run=27 method=EV
+[RESUME] valid complete run=27 method=CCP30
+[RESUME] valid complete run=28 method=EV
+[RESUME] valid complete run=28 method=CCP30
+[RESUME] valid complete run=29 method=EV
+[RESUME] valid complete run=29 method=CCP30
+[RESUME] valid complete run=30 method=EV
+[RESUME] valid complete run=30 method=CCP30
+[FORMAL] all 60 optimisations complete
+[FORMAL GATE] restoration audit passed {'total_candidate_records': 15664, 'unique_fingerprints': 15664, 'static_candidates': 0, 'fallback_candidates': 15664, 'fallback_allocations': 187985, 'failures': 0}
+[FORMAL] starting common S5000 validation

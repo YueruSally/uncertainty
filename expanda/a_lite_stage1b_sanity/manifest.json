@@ -1,0 +1,118 @@
+{
+  "stage": "A-lite Stage 1B",
+  "grid_validation": {
+    "status": "VALIDATED",
+    "rule": "amendment section 2.2 item 10: every declared (candidate, seed, S) cell present exactly once, probability finite in [0,1], chance_vio_total finite and >= 0, and the stored chance_constraint_pass equal to the recomputed frozen inclusive predicate",
+    "expected_cells": 6,
+    "validated_cells": 6,
+    "n_candidates": 2,
+    "n_seeds": 1,
+    "s_values": [
+      200,
+      500,
+      1000
+    ],
+    "imputed_cells": 0,
+    "dropped_cells": 0,
+    "reduced_denominators": 0
+  },
+  "mode": "sanity-run",
+  "sanity_run": true,
+  "is_full_study": false,
+  "scientifically_interpretable": false,
+  "warning": "SANITY RUN -- PLUMBING/DATA-FLOW CHECK ONLY. Reduced candidates/seeds. Every gate value, D_c, flip rate, tripwire and bootstrap interval in this file is SCIENTIFICALLY UNINTERPRETABLE and must never be quoted, plotted or treated as a Stage-1B result.",
+  "scientific_question": "Is a scenario count S in {200,500} ADEQUATE relative to the larger empirical reference S_ref=1000, for the 10 FIXED Stage-1 candidates, under the frozen gates G1, G2dagger and G3?",
+  "explicitly_not": [
+    "an optimisation experiment (no search is performed)",
+    "an SAA convergence proof; S=1000 is an empirical reference and is explicitly NOT ground truth",
+    "evidence about NSGA-II search-time selection bias (Stage 2)"
+  ],
+  "frozen_methodology": {
+    "amendment_path": "/home/lunet/cokt2/uncertainty/expanda/A_LITE_STAGE1B_METHODOLOGY_AMENDMENT.md",
+    "amendment_sha256": "df85d40b041f3a3882c2bca1adeec9b2b2b06b6f2452a920b4c23d9ab21a0188",
+    "freeze_commit": "369585eb6d781dc4f69cf05960842bdded26ee09",
+    "freeze_commit_blob_sha256": "df85d40b041f3a3882c2bca1adeec9b2b2b06b6f2452a920b4c23d9ab21a0188",
+    "verified": true
+  },
+  "master_seeds": [
+    810001
+  ],
+  "seed_provenance": "Ten NEW seeds declared in source before any Stage-1B result existed; a contiguous block so the choice is transparently not cherry-picked. Disjoint from every previously used seed including all Stage-1 seeds ([0, 42, 43, 44, 45, 46, 1000, 700001, 700002, 700003, 700004, 700005, 700006, 700007, 700008, 700009, 700010, 1000003]).",
+  "S_values": [
+    200,
+    500,
+    1000
+  ],
+  "master_S": 1000,
+  "S_ref": 1000,
+  "risk_metric": "ccp",
+  "confidence_ontime_alpha": 0.9,
+  "confidence_ontime_asserted": 0.9,
+  "tie_rule": "INCLUSIVE: p_hat >= 0.90 is a CCP probability PASS, so p_hat == 0.90 PASSES. Implemented as the production predicate chance_vio_total <= 1e-12.",
+  "gates": {
+    "G1": {
+      "statistic": "mean |p_S - p_1000| over all 100 cells",
+      "threshold": 0.02,
+      "strict": true,
+      "gating": true
+    },
+    "G2dagger": {
+      "statistic": "max_c D_c(S,1000)",
+      "D_c": "(1/10) sum_s [p_{c,s,S} - p_{c,s,1000}], signed",
+      "threshold": 0.02,
+      "strict": true,
+      "gating": true
+    },
+    "G3": {
+      "statistic": "OFF-stratum gross classification flip rate",
+      "threshold": 0.1,
+      "strict": true,
+      "gating": true
+    },
+    "rule": "PASS iff G1 AND G2dagger AND G3"
+  },
+  "non_gating": {
+    "optimism_tripwire_0.01": "reporting/investigation only",
+    "seed_cluster_bootstrap": "DESCRIPTIVE ONLY",
+    "leave_one_candidate_out": "DESCRIPTIVE ONLY",
+    "all_pair_flips": "diagnostic only",
+    "KNIFE_flips": "diagnostic only",
+    "S200_vs_S500": "diagnostic only; never enters the ladder",
+    "objectives": "cost/emission/time/penalty are DESCRIPTIVE ONLY and never influence candidate selection or any gate"
+  },
+  "indeterminate_category_exists": false,
+  "strata": {
+    "KNIFE": [
+      "S1-01",
+      "S1-02",
+      "S1-03",
+      "S1-05",
+      "S1-06"
+    ],
+    "OFF": [
+      "S1-04",
+      "S1-07",
+      "S1-08",
+      "S1-09",
+      "S1-10"
+    ],
+    "provenance": "pre-registered from Stage-1 pooled estimates, out-of-sample w.r.t. Stage-1B's new seeds; membership is FROZEN and candidates are never relabelled after results"
+  },
+  "nesting": "For each seed exactly ONE master ScenarioSet of size 1000 is built; S=200 and S=500 are literal array prefixes of it. Independent build_scenario_set(seed, S) calls are never made, because they do NOT form prefixes.",
+  "correlation_caveat": "S200/S500/S1000 are nested and therefore positively correlated by construction. They are NOT independent samples. Independent replication comes only from the distinct master seeds; the 100 cells are crossed-clustered (effective replication of order 10).",
+  "candidate_provenance": {
+    "checkpoint": "/home/lunet/cokt2/uncertainty/expanda/a_lite_stage1_candidates.json",
+    "candidates_canonical_sha256": "ce214df2f78007f19f39c3a342924d2c6eee54501f4bd88485ffb72118279f33",
+    "candidate_ids": [
+      "S1-01",
+      "S1-04"
+    ],
+    "panel_origin": "frozen Stage-1 panel; NOT reselected for Stage 1B"
+  },
+  "border_event_integrity": {
+    "expected_events": 258,
+    "expected_arcs": 268
+  },
+  "expected_row_count": 6,
+  "n_rows": 6
+}

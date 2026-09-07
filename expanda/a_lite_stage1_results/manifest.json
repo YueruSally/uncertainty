@@ -1,0 +1,96 @@
+{
+  "stage": "A-lite Stage 1",
+  "mode": "full-run",
+  "sanity_run": false,
+  "is_full_study": true,
+  "scientific_question": "Does finite scenario count S materially affect the empirical CCP probability estimate and the CCP feasibility classification for FIXED candidates near the alpha=0.90 boundary?",
+  "explicitly_not": [
+    "an optimisation experiment (no search is performed)",
+    "an SAA convergence proof (no claim any S is sufficient)",
+    "evidence about NSGA-II search-time selection bias (Stage 2)"
+  ],
+  "master_seeds": [
+    700001,
+    700002,
+    700003,
+    700004,
+    700005,
+    700006,
+    700007,
+    700008,
+    700009,
+    700010
+  ],
+  "seed_provenance": "Ten fresh seeds declared before any Stage-1 result was inspected, disjoint from every previously used seed ([0, 42, 43, 44, 45, 46, 1000, 1000003]).",
+  "S_values": [
+    50,
+    100,
+    200
+  ],
+  "master_S": 200,
+  "risk_metric": "ccp",
+  "confidence_ontime_alpha": 0.9,
+  "confidence_ontime_asserted": 0.9,
+  "predeclared_materiality": {
+    "mean_abs_prob_delta_vs_S200": 0.02,
+    "classification_flip_rate_vs_S200": 0.1,
+    "rationale": "A mean |p_hat_S - p_hat_200| at or above 0.02 is one full S=50 quantisation step: a practically meaningful shift in the probability ESTIMATE at the scale the estimator can even resolve. It does not by itself imply any candidate crossed the 0.90 boundary -- the separately reported classification flip rate is what establishes that. A classification flip rate at or above 0.10 (i.e. at least one in ten) means at least one in ten fixed candidate x seed cases would be labelled differently by the choice of S alone. Either condition is reported as a MATERIAL effect of scenario count; both below is reported as immaterial at the scales tested. Thresholds are inclusive (>=). This is a reporting rule only: nothing branches on it and no candidate or seed is filtered by it."
+  },
+  "nesting": "For each seed exactly ONE master ScenarioSet of size 200 is built; S=50 and S=100 are literal array prefixes of it. Independent build_scenario_set(seed, S) calls are never made, because they do NOT form prefixes.",
+  "correlation_caveat": "S50/S100/S200 are nested and therefore positively correlated by construction. They are NOT independent samples; no test or confidence interval treats them as such. Independent replication comes only from the 10 distinct master seeds.",
+  "candidate_provenance": {
+    "checkpoint": "/home/lunet/cokt2/uncertainty/expanda/a_lite_stage1_candidates.json",
+    "candidates_canonical_sha256": "ce214df2f78007f19f39c3a342924d2c6eee54501f4bd88485ffb72118279f33",
+    "candidate_ids": [
+      "S1-01",
+      "S1-02",
+      "S1-03",
+      "S1-04",
+      "S1-05",
+      "S1-06",
+      "S1-07",
+      "S1-08",
+      "S1-09",
+      "S1-10"
+    ],
+    "upstream_pool_scope": {
+      "step_1_total_reconstructed_and_evaluated_archive_candidates": 587,
+      "step_2_satisfy_eligibility_predicates_regardless_of_band": 182,
+      "step_3_satisfy_eligibility_AND_band_0p86_to_0p96": 100,
+      "step_4_frozen_stage1_subset": 10,
+      "chain": "587 -> 182 -> 100 -> 10"
+    },
+    "scan_caveat": "scan_min_on_time_prob values were produced by a single fixed ScenarioSet (S=200, seed=42) and are used ONLY to stratify and select candidates. They are NOT evidence that S=200 is sufficient, and carry no convergence claim. Stage 1 must re-evaluate these candidates on its own scenario sets."
+  },
+  "binding_batch_limitation": "Composition limitation, deliberately preserved and NOT corrected by generating new candidates: all 64 clean below-threshold candidates (0.86<=p<0.90) bind on batch 17, and all 22 clean p=0.900 candidates bind on batch 2. Within EVERY stratum the binding batch is constant, so the binding-batch diversity rule had no free choice to exercise. Stage 1 must stratify and report by bottleneck batch and must not treat this pool as representative across all 20 batches.",
+  "border_event_integrity": {
+    "expected_events": 258,
+    "expected_arcs": 268,
+    "note": "Asserted per seed as a tripwire against the validated configuration; not model logic and not a parameter."
+  },
+  "held_out_validation": {
+    "designed": true,
+    "executed": false,
+    "seed": null,
+    "S": null,
+    "enabled": false,
+    "rule": "Must be independent of candidate selection and of all Stage-1 master seeds, and must never be used to choose candidates or to tune decision criteria after results are inspected. Size/seed deliberately unset pending review; any use fails closed."
+  },
+  "n_rows": 300,
+  "candidates_evaluated": [
+    "S1-01",
+    "S1-02",
+    "S1-03",
+    "S1-04",
+    "S1-05",
+    "S1-06",
+    "S1-07",
+    "S1-08",
+    "S1-09",
+    "S1-10"
+  ],
+  "candidate_loading": {
+    "path_lib_reuse": 59,
+    "reconstructed": 141
+  }
+}

@@ -1,0 +1,1704 @@
+[
+  {
+    "comparison": "S200_vs_S1000",
+    "S": 200,
+    "S_ref": 1000,
+    "is_gating_comparison": true,
+    "gate_verdict": "PASS",
+    "gates": {
+      "G1": {
+        "name": "G1",
+        "gating": true,
+        "statistic": "mean_abs_paired_probability_difference",
+        "value": 0.01589,
+        "value_exact": "1589/100000",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 100,
+        "passed": true
+      },
+      "G2dagger": {
+        "name": "G2dagger",
+        "gating": true,
+        "statistic": "max_over_candidates_of_signed_mean_seed_difference",
+        "value": 0.0148,
+        "value_exact": "37/2500",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "argmax_candidate": "S1-07",
+        "argmax_stratum": "OFF",
+        "min_D_c": -0.0119,
+        "argmin_candidate": "S1-01",
+        "seed_denominator": 10,
+        "per_candidate_D_c": {
+          "S1-01": -0.0119,
+          "S1-02": -0.0089,
+          "S1-03": -0.0088,
+          "S1-04": -0.0084,
+          "S1-05": 0.0059,
+          "S1-06": 0.0059,
+          "S1-07": 0.0148,
+          "S1-08": 0.0031,
+          "S1-09": -0.0003,
+          "S1-10": 0.0011
+        },
+        "per_candidate_D_c_exact": {
+          "S1-01": "-119/10000",
+          "S1-02": "-89/10000",
+          "S1-03": "-11/1250",
+          "S1-04": "-21/2500",
+          "S1-05": "59/10000",
+          "S1-06": "59/10000",
+          "S1-07": "37/2500",
+          "S1-08": "31/10000",
+          "S1-09": "-3/10000",
+          "S1-10": "11/10000"
+        },
+        "passed": true
+      },
+      "G3": {
+        "name": "G3",
+        "gating": true,
+        "statistic": "OFF_stratum_gross_classification_flip_rate",
+        "value": 0.08,
+        "value_exact": "2/25",
+        "threshold": 0.1,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 50,
+        "flip_count": 4,
+        "stratum_membership": [
+          "S1-04",
+          "S1-07",
+          "S1-08",
+          "S1-09",
+          "S1-10"
+        ],
+        "passed": true
+      }
+    },
+    "gate_rule": "PASS iff G1 AND G2dagger AND G3 all pass (all STRICT <)",
+    "indeterminate_category_exists": false,
+    "non_gating": {
+      "optimism_tripwire": {
+        "name": "optimism_tripwire_0.01",
+        "gating": false,
+        "role": "NON_GATING_investigation_and_reporting_only",
+        "statistic": "global_mean_signed_probability_difference",
+        "value": -0.00075,
+        "value_exact": "-3/4000",
+        "threshold": 0.01,
+        "comparison": "inclusive_absolute_at_or_above",
+        "denominator": 100,
+        "tripped": false,
+        "tripped_optimism": false,
+        "tripped_pessimism": false,
+        "direction": "not_tripped",
+        "consequence": "Report only. Must never make G1/G2dagger/G3 pass or fail, never creates INDETERMINATE, never blocks Stage 2 independently. If tripped, a decomposition by candidate, seed and stratum is mandatory; if tripped while the gate PASSES this must be prominent in the summary and carried as an explicit Stage-2 limitation."
+      },
+      "tripwire_decomposition": null,
+      "diagnostics": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "mean_abs_probability_difference": 0.01589,
+        "median_abs_probability_difference": 0.012,
+        "max_abs_probability_difference": 0.052,
+        "mean_signed_probability_difference": -0.00075,
+        "per_candidate_signed_D_c": {
+          "S1-01": -0.0119,
+          "S1-02": -0.0089,
+          "S1-03": -0.0088,
+          "S1-04": -0.0084,
+          "S1-05": 0.0059,
+          "S1-06": 0.0059,
+          "S1-07": 0.0148,
+          "S1-08": 0.0031,
+          "S1-09": -0.0003,
+          "S1-10": 0.0011
+        },
+        "per_candidate_mean_abs_A_c": {
+          "S1-01": 0.0191,
+          "S1-02": 0.0193,
+          "S1-03": 0.0188,
+          "S1-04": 0.0188,
+          "S1-05": 0.0195,
+          "S1-06": 0.0195,
+          "S1-07": 0.0178,
+          "S1-08": 0.0093,
+          "S1-09": 0.0093,
+          "S1-10": 0.0075
+        },
+        "per_candidate_full_table": {
+          "S1-01": {
+            "stratum": "KNIFE",
+            "D_c": -0.0119,
+            "D_c_exact": "-119/10000",
+            "A_c": 0.0191,
+            "A_c_exact": "191/10000",
+            "Dmax_c": 0.022,
+            "Dmin_c": -0.046,
+            "nflip_c": 5,
+            "netflip_c": -3,
+            "nboundary_c_at_S": 3,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-02": {
+            "stratum": "KNIFE",
+            "D_c": -0.0089,
+            "D_c_exact": "-89/10000",
+            "A_c": 0.0193,
+            "A_c_exact": "193/10000",
+            "Dmax_c": 0.022,
+            "Dmin_c": -0.046,
+            "nflip_c": 5,
+            "netflip_c": -3,
+            "nboundary_c_at_S": 2,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-03": {
+            "stratum": "KNIFE",
+            "D_c": -0.0088,
+            "D_c_exact": "-11/1250",
+            "A_c": 0.0188,
+            "A_c_exact": "47/2500",
+            "Dmax_c": 0.026,
+            "Dmin_c": -0.047,
+            "nflip_c": 5,
+            "netflip_c": -5,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 1,
+            "n_seeds": 10
+          },
+          "S1-04": {
+            "stratum": "OFF",
+            "D_c": -0.0084,
+            "D_c_exact": "-21/2500",
+            "A_c": 0.0188,
+            "A_c_exact": "47/2500",
+            "Dmax_c": 0.026,
+            "Dmin_c": -0.052,
+            "nflip_c": 4,
+            "netflip_c": -4,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 1,
+            "n_seeds": 10
+          },
+          "S1-05": {
+            "stratum": "KNIFE",
+            "D_c": 0.0059,
+            "D_c_exact": "59/10000",
+            "A_c": 0.0195,
+            "A_c_exact": "39/2000",
+            "Dmax_c": 0.031,
+            "Dmin_c": -0.038,
+            "nflip_c": 2,
+            "netflip_c": -2,
+            "nboundary_c_at_S": 1,
+            "nboundary_c_at_ref": 1,
+            "n_seeds": 10
+          },
+          "S1-06": {
+            "stratum": "KNIFE",
+            "D_c": 0.0059,
+            "D_c_exact": "59/10000",
+            "A_c": 0.0195,
+            "A_c_exact": "39/2000",
+            "Dmax_c": 0.031,
+            "Dmin_c": -0.038,
+            "nflip_c": 2,
+            "netflip_c": -2,
+            "nboundary_c_at_S": 1,
+            "nboundary_c_at_ref": 1,
+            "n_seeds": 10
+          },
+          "S1-07": {
+            "stratum": "OFF",
+            "D_c": 0.0148,
+            "D_c_exact": "37/2500",
+            "A_c": 0.0178,
+            "A_c_exact": "89/5000",
+            "Dmax_c": 0.03,
+            "Dmin_c": -0.008,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-08": {
+            "stratum": "OFF",
+            "D_c": 0.0031,
+            "D_c_exact": "31/10000",
+            "A_c": 0.0093,
+            "A_c_exact": "93/10000",
+            "Dmax_c": 0.022,
+            "Dmin_c": -0.018,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-09": {
+            "stratum": "OFF",
+            "D_c": -0.0003,
+            "D_c_exact": "-3/10000",
+            "A_c": 0.0093,
+            "A_c_exact": "93/10000",
+            "Dmax_c": 0.014,
+            "Dmin_c": -0.021,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-10": {
+            "stratum": "OFF",
+            "D_c": 0.0011,
+            "D_c_exact": "11/10000",
+            "A_c": 0.0075,
+            "A_c_exact": "3/400",
+            "Dmax_c": 0.017,
+            "Dmin_c": -0.012,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          }
+        },
+        "per_seed_breakdown": {
+          "810001": {
+            "mean_signed": 0.0061,
+            "mean_abs": 0.0089,
+            "max_abs": 0.022,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810002": {
+            "mean_signed": -0.0003,
+            "mean_abs": 0.0089,
+            "max_abs": 0.015,
+            "gross_flip_count": 2,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 2,
+            "signed_net_classification_imbalance": -2,
+            "n_candidates": 10
+          },
+          "810003": {
+            "mean_signed": -0.0197,
+            "mean_abs": 0.0209,
+            "max_abs": 0.052,
+            "gross_flip_count": 4,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 4,
+            "signed_net_classification_imbalance": -4,
+            "n_candidates": 10
+          },
+          "810004": {
+            "mean_signed": 0.0159,
+            "mean_abs": 0.0159,
+            "max_abs": 0.03,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810005": {
+            "mean_signed": 0.0113,
+            "mean_abs": 0.0113,
+            "max_abs": 0.028,
+            "gross_flip_count": 2,
+            "false_feasible_count": 2,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 2,
+            "n_candidates": 10
+          },
+          "810006": {
+            "mean_signed": -0.0117,
+            "mean_abs": 0.0167,
+            "max_abs": 0.025,
+            "gross_flip_count": 6,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 6,
+            "signed_net_classification_imbalance": -6,
+            "n_candidates": 10
+          },
+          "810007": {
+            "mean_signed": -0.0191,
+            "mean_abs": 0.0285,
+            "max_abs": 0.038,
+            "gross_flip_count": 5,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 5,
+            "signed_net_classification_imbalance": -5,
+            "n_candidates": 10
+          },
+          "810008": {
+            "mean_signed": 0.0195,
+            "mean_abs": 0.0195,
+            "max_abs": 0.031,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810009": {
+            "mean_signed": -0.0149,
+            "mean_abs": 0.0199,
+            "max_abs": 0.05,
+            "gross_flip_count": 4,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 4,
+            "signed_net_classification_imbalance": -4,
+            "n_candidates": 10
+          },
+          "810010": {
+            "mean_signed": 0.0054,
+            "mean_abs": 0.0084,
+            "max_abs": 0.022,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          }
+        },
+        "all_pair_flips": {
+          "n_cells": 100,
+          "gross_flip_count": 23,
+          "gross_flip_rate": 0.23,
+          "false_feasible_count": 2,
+          "false_infeasible_count": 21,
+          "signed_net_classification_imbalance": -19,
+          "signed_net_imbalance_rate": -0.19
+        },
+        "KNIFE_flips": {
+          "n_cells": 50,
+          "gross_flip_count": 19,
+          "gross_flip_rate": 0.38,
+          "false_feasible_count": 2,
+          "false_infeasible_count": 17,
+          "signed_net_classification_imbalance": -15,
+          "signed_net_imbalance_rate": -0.3
+        },
+        "OFF_flips": {
+          "n_cells": 50,
+          "gross_flip_count": 4,
+          "gross_flip_rate": 0.08,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 4,
+          "signed_net_classification_imbalance": -4,
+          "signed_net_imbalance_rate": -0.08
+        },
+        "exact_boundary_mass_at_alpha": {
+          "at_S": 7,
+          "at_ref": 4,
+          "per_candidate": {
+            "S1-01": {
+              "at_S": 3,
+              "at_ref": 0
+            },
+            "S1-02": {
+              "at_S": 2,
+              "at_ref": 0
+            },
+            "S1-03": {
+              "at_S": 0,
+              "at_ref": 1
+            },
+            "S1-04": {
+              "at_S": 0,
+              "at_ref": 1
+            },
+            "S1-05": {
+              "at_S": 1,
+              "at_ref": 1
+            },
+            "S1-06": {
+              "at_S": 1,
+              "at_ref": 1
+            },
+            "S1-07": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-08": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-09": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-10": {
+              "at_S": 0,
+              "at_ref": 0
+            }
+          }
+        },
+        "binding_batch_set_changes": 29,
+        "max_lateness_changes": 3,
+        "nonccp_hard_pass_changes": 0
+      },
+      "sqrt_rate_check": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "observed_mean_abs_dp": 0.01589,
+        "sqrt_scale_sqrt_1overS_minus_1overSref": 0.06324555320336758,
+        "implied_constant": 0.2512429601003778,
+        "note": "The implied constant should be comparable across comparisons if the estimator is converging at the Monte-Carlo rate. Descriptive only; never gates."
+      },
+      "ratio_matched_scale_invariance": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "this_comparison": {
+          "S": 200,
+          "S_ref": 1000,
+          "ratio": 0.2,
+          "mean_abs_dp": 0.01589
+        },
+        "is_ratio_matched_to_stage1": false,
+        "note": "S500-vs-S1000 (ratio 0.5) is ratio-matched to Stage-1's S100-vs-S200 (ratio 0.5); comparing them tests scale invariance. Descriptive only; never gates."
+      },
+      "loco": {
+        "name": "leave_one_candidate_out",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "per_omitted_candidate": {
+          "S1-01": {
+            "G1_value": 0.015533333333333333,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.08,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-02": {
+            "G1_value": 0.015511111111111111,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.08,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-03": {
+            "G1_value": 0.015566666666666666,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.08,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-04": {
+            "G1_value": 0.015566666666666666,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.0,
+            "omitted_stratum": "OFF"
+          },
+          "S1-05": {
+            "G1_value": 0.015488888888888889,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.08,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-06": {
+            "G1_value": 0.015488888888888889,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.08,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-07": {
+            "G1_value": 0.015677777777777777,
+            "G2dagger_value": 0.0059,
+            "OFF_flip_rate": 0.1,
+            "omitted_stratum": "OFF"
+          },
+          "S1-08": {
+            "G1_value": 0.016622222222222222,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.1,
+            "omitted_stratum": "OFF"
+          },
+          "S1-09": {
+            "G1_value": 0.016622222222222222,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.1,
+            "omitted_stratum": "OFF"
+          },
+          "S1-10": {
+            "G1_value": 0.01682222222222222,
+            "G2dagger_value": 0.0148,
+            "OFF_flip_rate": 0.1,
+            "omitted_stratum": "OFF"
+          }
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      },
+      "bootstrap": {
+        "name": "seed_cluster_bootstrap",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "resamples": 2000,
+        "ci_level": 0.8,
+        "rng_seed": 20260817,
+        "G1_interval": {
+          "lo": 0.01333,
+          "hi": 0.018531000000000002,
+          "median": 0.01587
+        },
+        "G2dagger_interval": {
+          "lo": 0.010389999999999995,
+          "hi": 0.0204,
+          "median": 0.0154
+        },
+        "OFF_flip_rate_interval": {
+          "lo": 0.04,
+          "hi": 0.12,
+          "median": 0.08
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      }
+    },
+    "tripwire_tripped_while_gate_passed": false
+  },
+  {
+    "comparison": "S500_vs_S1000",
+    "S": 500,
+    "S_ref": 1000,
+    "is_gating_comparison": true,
+    "gate_verdict": "PASS",
+    "gates": {
+      "G1": {
+        "name": "G1",
+        "gating": true,
+        "statistic": "mean_abs_paired_probability_difference",
+        "value": 0.00611,
+        "value_exact": "611/100000",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 100,
+        "passed": true
+      },
+      "G2dagger": {
+        "name": "G2dagger",
+        "gating": true,
+        "statistic": "max_over_candidates_of_signed_mean_seed_difference",
+        "value": 0.0008,
+        "value_exact": "1/1250",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "argmax_candidate": "S1-05",
+        "argmax_stratum": "KNIFE",
+        "min_D_c": -0.0039,
+        "argmin_candidate": "S1-04",
+        "seed_denominator": 10,
+        "per_candidate_D_c": {
+          "S1-01": -0.0028,
+          "S1-02": -0.0024,
+          "S1-03": -0.0021,
+          "S1-04": -0.0039,
+          "S1-05": 0.0008,
+          "S1-06": 0.0008,
+          "S1-07": -0.0012,
+          "S1-08": -0.0009,
+          "S1-09": -0.0002,
+          "S1-10": -0.0014
+        },
+        "per_candidate_D_c_exact": {
+          "S1-01": "-7/2500",
+          "S1-02": "-3/1250",
+          "S1-03": "-21/10000",
+          "S1-04": "-39/10000",
+          "S1-05": "1/1250",
+          "S1-06": "1/1250",
+          "S1-07": "-3/2500",
+          "S1-08": "-9/10000",
+          "S1-09": "-1/5000",
+          "S1-10": "-7/5000"
+        },
+        "passed": true
+      },
+      "G3": {
+        "name": "G3",
+        "gating": true,
+        "statistic": "OFF_stratum_gross_classification_flip_rate",
+        "value": 0.06,
+        "value_exact": "3/50",
+        "threshold": 0.1,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 50,
+        "flip_count": 3,
+        "stratum_membership": [
+          "S1-04",
+          "S1-07",
+          "S1-08",
+          "S1-09",
+          "S1-10"
+        ],
+        "passed": true
+      }
+    },
+    "gate_rule": "PASS iff G1 AND G2dagger AND G3 all pass (all STRICT <)",
+    "indeterminate_category_exists": false,
+    "non_gating": {
+      "optimism_tripwire": {
+        "name": "optimism_tripwire_0.01",
+        "gating": false,
+        "role": "NON_GATING_investigation_and_reporting_only",
+        "statistic": "global_mean_signed_probability_difference",
+        "value": -0.00133,
+        "value_exact": "-133/100000",
+        "threshold": 0.01,
+        "comparison": "inclusive_absolute_at_or_above",
+        "denominator": 100,
+        "tripped": false,
+        "tripped_optimism": false,
+        "tripped_pessimism": false,
+        "direction": "not_tripped",
+        "consequence": "Report only. Must never make G1/G2dagger/G3 pass or fail, never creates INDETERMINATE, never blocks Stage 2 independently. If tripped, a decomposition by candidate, seed and stratum is mandatory; if tripped while the gate PASSES this must be prominent in the summary and carried as an explicit Stage-2 limitation."
+      },
+      "tripwire_decomposition": null,
+      "diagnostics": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "mean_abs_probability_difference": 0.00611,
+        "median_abs_probability_difference": 0.004,
+        "max_abs_probability_difference": 0.026,
+        "mean_signed_probability_difference": -0.00133,
+        "per_candidate_signed_D_c": {
+          "S1-01": -0.0028,
+          "S1-02": -0.0024,
+          "S1-03": -0.0021,
+          "S1-04": -0.0039,
+          "S1-05": 0.0008,
+          "S1-06": 0.0008,
+          "S1-07": -0.0012,
+          "S1-08": -0.0009,
+          "S1-09": -0.0002,
+          "S1-10": -0.0014
+        },
+        "per_candidate_mean_abs_A_c": {
+          "S1-01": 0.0068,
+          "S1-02": 0.0072,
+          "S1-03": 0.0073,
+          "S1-04": 0.0091,
+          "S1-05": 0.0062,
+          "S1-06": 0.0062,
+          "S1-07": 0.0068,
+          "S1-08": 0.0049,
+          "S1-09": 0.0036,
+          "S1-10": 0.003
+        },
+        "per_candidate_full_table": {
+          "S1-01": {
+            "stratum": "KNIFE",
+            "D_c": -0.0028,
+            "D_c_exact": "-7/2500",
+            "A_c": 0.0068,
+            "A_c_exact": "17/2500",
+            "Dmax_c": 0.012,
+            "Dmin_c": -0.026,
+            "nflip_c": 3,
+            "netflip_c": -3,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-02": {
+            "stratum": "KNIFE",
+            "D_c": -0.0024,
+            "D_c_exact": "-3/1250",
+            "A_c": 0.0072,
+            "A_c_exact": "9/1250",
+            "Dmax_c": 0.016,
+            "Dmin_c": -0.026,
+            "nflip_c": 3,
+            "netflip_c": -3,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-03": {
+            "stratum": "KNIFE",
+            "D_c": -0.0021,
+            "D_c_exact": "-21/10000",
+            "A_c": 0.0073,
+            "A_c_exact": "73/10000",
+            "Dmax_c": 0.014,
+            "Dmin_c": -0.019,
+            "nflip_c": 3,
+            "netflip_c": -3,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 1,
+            "n_seeds": 10
+          },
+          "S1-04": {
+            "stratum": "OFF",
+            "D_c": -0.0039,
+            "D_c_exact": "-39/10000",
+            "A_c": 0.0091,
+            "A_c_exact": "91/10000",
+            "Dmax_c": 0.014,
+            "Dmin_c": -0.024,
+            "nflip_c": 3,
+            "netflip_c": -3,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 1,
+            "n_seeds": 10
+          },
+          "S1-05": {
+            "stratum": "KNIFE",
+            "D_c": 0.0008,
+            "D_c_exact": "1/1250",
+            "A_c": 0.0062,
+            "A_c_exact": "31/5000",
+            "Dmax_c": 0.011,
+            "Dmin_c": -0.017,
+            "nflip_c": 1,
+            "netflip_c": -1,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 1,
+            "n_seeds": 10
+          },
+          "S1-06": {
+            "stratum": "KNIFE",
+            "D_c": 0.0008,
+            "D_c_exact": "1/1250",
+            "A_c": 0.0062,
+            "A_c_exact": "31/5000",
+            "Dmax_c": 0.011,
+            "Dmin_c": -0.017,
+            "nflip_c": 1,
+            "netflip_c": -1,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 1,
+            "n_seeds": 10
+          },
+          "S1-07": {
+            "stratum": "OFF",
+            "D_c": -0.0012,
+            "D_c_exact": "-3/2500",
+            "A_c": 0.0068,
+            "A_c_exact": "17/2500",
+            "Dmax_c": 0.016,
+            "Dmin_c": -0.011,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-08": {
+            "stratum": "OFF",
+            "D_c": -0.0009,
+            "D_c_exact": "-9/10000",
+            "A_c": 0.0049,
+            "A_c_exact": "49/10000",
+            "Dmax_c": 0.006,
+            "Dmin_c": -0.012,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-09": {
+            "stratum": "OFF",
+            "D_c": -0.0002,
+            "D_c_exact": "-1/5000",
+            "A_c": 0.0036,
+            "A_c_exact": "9/2500",
+            "Dmax_c": 0.005,
+            "Dmin_c": -0.01,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-10": {
+            "stratum": "OFF",
+            "D_c": -0.0014,
+            "D_c_exact": "-7/5000",
+            "A_c": 0.003,
+            "A_c_exact": "3/1000",
+            "Dmax_c": 0.004,
+            "Dmin_c": -0.01,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          }
+        },
+        "per_seed_breakdown": {
+          "810001": {
+            "mean_signed": 0.0065,
+            "mean_abs": 0.0091,
+            "max_abs": 0.016,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810002": {
+            "mean_signed": -0.0067,
+            "mean_abs": 0.0067,
+            "max_abs": 0.012,
+            "gross_flip_count": 4,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 4,
+            "signed_net_classification_imbalance": -4,
+            "n_candidates": 10
+          },
+          "810003": {
+            "mean_signed": -0.0078,
+            "mean_abs": 0.0128,
+            "max_abs": 0.026,
+            "gross_flip_count": 4,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 4,
+            "signed_net_classification_imbalance": -4,
+            "n_candidates": 10
+          },
+          "810004": {
+            "mean_signed": 0.0013,
+            "mean_abs": 0.0041,
+            "max_abs": 0.016,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810005": {
+            "mean_signed": -0.0009,
+            "mean_abs": 0.0053,
+            "max_abs": 0.011,
+            "gross_flip_count": 2,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 2,
+            "signed_net_classification_imbalance": -2,
+            "n_candidates": 10
+          },
+          "810006": {
+            "mean_signed": -0.0089,
+            "mean_abs": 0.0097,
+            "max_abs": 0.017,
+            "gross_flip_count": 2,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 2,
+            "signed_net_classification_imbalance": -2,
+            "n_candidates": 10
+          },
+          "810007": {
+            "mean_signed": 0.0017,
+            "mean_abs": 0.0023,
+            "max_abs": 0.008,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810008": {
+            "mean_signed": 0.0011,
+            "mean_abs": 0.0023,
+            "max_abs": 0.004,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810009": {
+            "mean_signed": 0.0014,
+            "mean_abs": 0.006,
+            "max_abs": 0.016,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810010": {
+            "mean_signed": -0.001,
+            "mean_abs": 0.0028,
+            "max_abs": 0.006,
+            "gross_flip_count": 2,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 2,
+            "signed_net_classification_imbalance": -2,
+            "n_candidates": 10
+          }
+        },
+        "all_pair_flips": {
+          "n_cells": 100,
+          "gross_flip_count": 14,
+          "gross_flip_rate": 0.14,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 14,
+          "signed_net_classification_imbalance": -14,
+          "signed_net_imbalance_rate": -0.14
+        },
+        "KNIFE_flips": {
+          "n_cells": 50,
+          "gross_flip_count": 11,
+          "gross_flip_rate": 0.22,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 11,
+          "signed_net_classification_imbalance": -11,
+          "signed_net_imbalance_rate": -0.22
+        },
+        "OFF_flips": {
+          "n_cells": 50,
+          "gross_flip_count": 3,
+          "gross_flip_rate": 0.06,
+          "false_feasible_count": 0,
+          "false_infeasible_count": 3,
+          "signed_net_classification_imbalance": -3,
+          "signed_net_imbalance_rate": -0.06
+        },
+        "exact_boundary_mass_at_alpha": {
+          "at_S": 0,
+          "at_ref": 4,
+          "per_candidate": {
+            "S1-01": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-02": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-03": {
+              "at_S": 0,
+              "at_ref": 1
+            },
+            "S1-04": {
+              "at_S": 0,
+              "at_ref": 1
+            },
+            "S1-05": {
+              "at_S": 0,
+              "at_ref": 1
+            },
+            "S1-06": {
+              "at_S": 0,
+              "at_ref": 1
+            },
+            "S1-07": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-08": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-09": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-10": {
+              "at_S": 0,
+              "at_ref": 0
+            }
+          }
+        },
+        "binding_batch_set_changes": 13,
+        "max_lateness_changes": 1,
+        "nonccp_hard_pass_changes": 0
+      },
+      "sqrt_rate_check": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "observed_mean_abs_dp": 0.00611,
+        "sqrt_scale_sqrt_1overS_minus_1overSref": 0.03162277660168379,
+        "implied_constant": 0.193215165036288,
+        "note": "The implied constant should be comparable across comparisons if the estimator is converging at the Monte-Carlo rate. Descriptive only; never gates."
+      },
+      "ratio_matched_scale_invariance": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "this_comparison": {
+          "S": 500,
+          "S_ref": 1000,
+          "ratio": 0.5,
+          "mean_abs_dp": 0.00611
+        },
+        "is_ratio_matched_to_stage1": true,
+        "note": "S500-vs-S1000 (ratio 0.5) is ratio-matched to Stage-1's S100-vs-S200 (ratio 0.5); comparing them tests scale invariance. Descriptive only; never gates.",
+        "stage1_reference": {
+          "available": true,
+          "source": "/home/lunet/cokt2/uncertainty/expanda/a_lite_stage1_results/raw_rows.csv",
+          "stage1_reference": {
+            "S100_vs_S200": {
+              "ratio": 0.5,
+              "n_cells": 100,
+              "mean_abs_dp": 0.0155
+            }
+          }
+        }
+      },
+      "loco": {
+        "name": "leave_one_candidate_out",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "per_omitted_candidate": {
+          "S1-01": {
+            "G1_value": 0.006033333333333333,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-02": {
+            "G1_value": 0.005988888888888889,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-03": {
+            "G1_value": 0.005977777777777778,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-04": {
+            "G1_value": 0.0057777777777777775,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.0,
+            "omitted_stratum": "OFF"
+          },
+          "S1-05": {
+            "G1_value": 0.0061,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-06": {
+            "G1_value": 0.0061,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-07": {
+            "G1_value": 0.006033333333333333,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.075,
+            "omitted_stratum": "OFF"
+          },
+          "S1-08": {
+            "G1_value": 0.006244444444444445,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.075,
+            "omitted_stratum": "OFF"
+          },
+          "S1-09": {
+            "G1_value": 0.006388888888888889,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.075,
+            "omitted_stratum": "OFF"
+          },
+          "S1-10": {
+            "G1_value": 0.0064555555555555555,
+            "G2dagger_value": 0.0008,
+            "OFF_flip_rate": 0.075,
+            "omitted_stratum": "OFF"
+          }
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      },
+      "bootstrap": {
+        "name": "seed_cluster_bootstrap",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "resamples": 2000,
+        "ci_level": 0.8,
+        "rng_seed": 20260817,
+        "G1_interval": {
+          "lo": 0.00469,
+          "hi": 0.00748,
+          "median": 0.00601
+        },
+        "G2dagger_interval": {
+          "lo": -0.0001,
+          "hi": 0.0043,
+          "median": 0.0018
+        },
+        "OFF_flip_rate_interval": {
+          "lo": 0.02,
+          "hi": 0.1,
+          "median": 0.06
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      }
+    },
+    "tripwire_tripped_while_gate_passed": false
+  },
+  {
+    "comparison": "S200_vs_S500",
+    "S": 200,
+    "S_ref": 500,
+    "is_gating_comparison": false,
+    "gate_verdict": "NOT_A_GATE",
+    "gates": {
+      "G1": {
+        "name": "G1",
+        "gating": true,
+        "statistic": "mean_abs_paired_probability_difference",
+        "value": 0.0145,
+        "value_exact": "29/2000",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 100,
+        "passed": true
+      },
+      "G2dagger": {
+        "name": "G2dagger",
+        "gating": true,
+        "statistic": "max_over_candidates_of_signed_mean_seed_difference",
+        "value": 0.016,
+        "value_exact": "2/125",
+        "threshold": 0.02,
+        "comparison": "strict_less_than_exact_rational",
+        "argmax_candidate": "S1-07",
+        "argmax_stratum": "OFF",
+        "min_D_c": -0.0091,
+        "argmin_candidate": "S1-01",
+        "seed_denominator": 10,
+        "per_candidate_D_c": {
+          "S1-01": -0.0091,
+          "S1-02": -0.0065,
+          "S1-03": -0.0067,
+          "S1-04": -0.0045,
+          "S1-05": 0.0051,
+          "S1-06": 0.0051,
+          "S1-07": 0.016,
+          "S1-08": 0.004,
+          "S1-09": -0.0001,
+          "S1-10": 0.0025
+        },
+        "per_candidate_D_c_exact": {
+          "S1-01": "-91/10000",
+          "S1-02": "-13/2000",
+          "S1-03": "-67/10000",
+          "S1-04": "-9/2000",
+          "S1-05": "51/10000",
+          "S1-06": "51/10000",
+          "S1-07": "2/125",
+          "S1-08": "1/250",
+          "S1-09": "-1/10000",
+          "S1-10": "1/400"
+        },
+        "passed": true
+      },
+      "G3": {
+        "name": "G3",
+        "gating": true,
+        "statistic": "OFF_stratum_gross_classification_flip_rate",
+        "value": 0.06,
+        "value_exact": "3/50",
+        "threshold": 0.1,
+        "comparison": "strict_less_than_exact_rational",
+        "denominator": 50,
+        "flip_count": 3,
+        "stratum_membership": [
+          "S1-04",
+          "S1-07",
+          "S1-08",
+          "S1-09",
+          "S1-10"
+        ],
+        "passed": true
+      }
+    },
+    "gate_rule": "PASS iff G1 AND G2dagger AND G3 all pass (all STRICT <)",
+    "indeterminate_category_exists": false,
+    "non_gating": {
+      "optimism_tripwire": {
+        "name": "optimism_tripwire_0.01",
+        "gating": false,
+        "role": "NON_GATING_investigation_and_reporting_only",
+        "statistic": "global_mean_signed_probability_difference",
+        "value": 0.00058,
+        "value_exact": "29/50000",
+        "threshold": 0.01,
+        "comparison": "inclusive_absolute_at_or_above",
+        "denominator": 100,
+        "tripped": false,
+        "tripped_optimism": false,
+        "tripped_pessimism": false,
+        "direction": "not_tripped",
+        "consequence": "Report only. Must never make G1/G2dagger/G3 pass or fail, never creates INDETERMINATE, never blocks Stage 2 independently. If tripped, a decomposition by candidate, seed and stratum is mandatory; if tripped while the gate PASSES this must be prominent in the summary and carried as an explicit Stage-2 limitation."
+      },
+      "tripwire_decomposition": null,
+      "diagnostics": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "mean_abs_probability_difference": 0.0145,
+        "median_abs_probability_difference": 0.012,
+        "max_abs_probability_difference": 0.037,
+        "mean_signed_probability_difference": 0.00058,
+        "per_candidate_signed_D_c": {
+          "S1-01": -0.0091,
+          "S1-02": -0.0065,
+          "S1-03": -0.0067,
+          "S1-04": -0.0045,
+          "S1-05": 0.0051,
+          "S1-06": 0.0051,
+          "S1-07": 0.016,
+          "S1-08": 0.004,
+          "S1-09": -0.0001,
+          "S1-10": 0.0025
+        },
+        "per_candidate_mean_abs_A_c": {
+          "S1-01": 0.0167,
+          "S1-02": 0.0161,
+          "S1-03": 0.0173,
+          "S1-04": 0.0133,
+          "S1-05": 0.0185,
+          "S1-06": 0.0185,
+          "S1-07": 0.0164,
+          "S1-08": 0.0108,
+          "S1-09": 0.0095,
+          "S1-10": 0.0079
+        },
+        "per_candidate_full_table": {
+          "S1-01": {
+            "stratum": "KNIFE",
+            "D_c": -0.0091,
+            "D_c_exact": "-91/10000",
+            "A_c": 0.0167,
+            "A_c_exact": "167/10000",
+            "Dmax_c": 0.019,
+            "Dmin_c": -0.037,
+            "nflip_c": 4,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 3,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-02": {
+            "stratum": "KNIFE",
+            "D_c": -0.0065,
+            "D_c_exact": "-13/2000",
+            "A_c": 0.0161,
+            "A_c_exact": "161/10000",
+            "Dmax_c": 0.019,
+            "Dmin_c": -0.037,
+            "nflip_c": 4,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 2,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-03": {
+            "stratum": "KNIFE",
+            "D_c": -0.0067,
+            "D_c_exact": "-67/10000",
+            "A_c": 0.0173,
+            "A_c_exact": "173/10000",
+            "Dmax_c": 0.024,
+            "Dmin_c": -0.037,
+            "nflip_c": 4,
+            "netflip_c": -2,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-04": {
+            "stratum": "OFF",
+            "D_c": -0.0045,
+            "D_c_exact": "-9/2000",
+            "A_c": 0.0133,
+            "A_c_exact": "133/10000",
+            "Dmax_c": 0.023,
+            "Dmin_c": -0.034,
+            "nflip_c": 3,
+            "netflip_c": -1,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-05": {
+            "stratum": "KNIFE",
+            "D_c": 0.0051,
+            "D_c_exact": "51/10000",
+            "A_c": 0.0185,
+            "A_c_exact": "37/2000",
+            "Dmax_c": 0.029,
+            "Dmin_c": -0.037,
+            "nflip_c": 3,
+            "netflip_c": -1,
+            "nboundary_c_at_S": 1,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-06": {
+            "stratum": "KNIFE",
+            "D_c": 0.0051,
+            "D_c_exact": "51/10000",
+            "A_c": 0.0185,
+            "A_c_exact": "37/2000",
+            "Dmax_c": 0.029,
+            "Dmin_c": -0.037,
+            "nflip_c": 3,
+            "netflip_c": -1,
+            "nboundary_c_at_S": 1,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-07": {
+            "stratum": "OFF",
+            "D_c": 0.016,
+            "D_c_exact": "2/125",
+            "A_c": 0.0164,
+            "A_c_exact": "41/2500",
+            "Dmax_c": 0.031,
+            "Dmin_c": -0.002,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-08": {
+            "stratum": "OFF",
+            "D_c": 0.004,
+            "D_c_exact": "1/250",
+            "A_c": 0.0108,
+            "A_c_exact": "27/2500",
+            "Dmax_c": 0.018,
+            "Dmin_c": -0.021,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-09": {
+            "stratum": "OFF",
+            "D_c": -0.0001,
+            "D_c_exact": "-1/10000",
+            "A_c": 0.0095,
+            "A_c_exact": "19/2000",
+            "Dmax_c": 0.012,
+            "Dmin_c": -0.023,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          },
+          "S1-10": {
+            "stratum": "OFF",
+            "D_c": 0.0025,
+            "D_c_exact": "1/400",
+            "A_c": 0.0079,
+            "A_c_exact": "79/10000",
+            "Dmax_c": 0.016,
+            "Dmin_c": -0.015,
+            "nflip_c": 0,
+            "netflip_c": 0,
+            "nboundary_c_at_S": 0,
+            "nboundary_c_at_ref": 0,
+            "n_seeds": 10
+          }
+        },
+        "per_seed_breakdown": {
+          "810001": {
+            "mean_signed": -0.0004,
+            "mean_abs": 0.0116,
+            "max_abs": 0.026,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810002": {
+            "mean_signed": 0.0064,
+            "mean_abs": 0.0108,
+            "max_abs": 0.023,
+            "gross_flip_count": 2,
+            "false_feasible_count": 2,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 2,
+            "n_candidates": 10
+          },
+          "810003": {
+            "mean_signed": -0.0119,
+            "mean_abs": 0.0121,
+            "max_abs": 0.028,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810004": {
+            "mean_signed": 0.0146,
+            "mean_abs": 0.0146,
+            "max_abs": 0.025,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810005": {
+            "mean_signed": 0.0122,
+            "mean_abs": 0.0122,
+            "max_abs": 0.023,
+            "gross_flip_count": 4,
+            "false_feasible_count": 4,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 4,
+            "n_candidates": 10
+          },
+          "810006": {
+            "mean_signed": -0.0028,
+            "mean_abs": 0.0076,
+            "max_abs": 0.021,
+            "gross_flip_count": 4,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 4,
+            "signed_net_classification_imbalance": -4,
+            "n_candidates": 10
+          },
+          "810007": {
+            "mean_signed": -0.0208,
+            "mean_abs": 0.028,
+            "max_abs": 0.037,
+            "gross_flip_count": 5,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 5,
+            "signed_net_classification_imbalance": -5,
+            "n_candidates": 10
+          },
+          "810008": {
+            "mean_signed": 0.0184,
+            "mean_abs": 0.0184,
+            "max_abs": 0.03,
+            "gross_flip_count": 0,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 0,
+            "n_candidates": 10
+          },
+          "810009": {
+            "mean_signed": -0.0163,
+            "mean_abs": 0.0225,
+            "max_abs": 0.034,
+            "gross_flip_count": 4,
+            "false_feasible_count": 0,
+            "false_infeasible_count": 4,
+            "signed_net_classification_imbalance": -4,
+            "n_candidates": 10
+          },
+          "810010": {
+            "mean_signed": 0.0064,
+            "mean_abs": 0.0072,
+            "max_abs": 0.018,
+            "gross_flip_count": 2,
+            "false_feasible_count": 2,
+            "false_infeasible_count": 0,
+            "signed_net_classification_imbalance": 2,
+            "n_candidates": 10
+          }
+        },
+        "all_pair_flips": {
+          "n_cells": 100,
+          "gross_flip_count": 21,
+          "gross_flip_rate": 0.21,
+          "false_feasible_count": 8,
+          "false_infeasible_count": 13,
+          "signed_net_classification_imbalance": -5,
+          "signed_net_imbalance_rate": -0.05
+        },
+        "KNIFE_flips": {
+          "n_cells": 50,
+          "gross_flip_count": 18,
+          "gross_flip_rate": 0.36,
+          "false_feasible_count": 7,
+          "false_infeasible_count": 11,
+          "signed_net_classification_imbalance": -4,
+          "signed_net_imbalance_rate": -0.08
+        },
+        "OFF_flips": {
+          "n_cells": 50,
+          "gross_flip_count": 3,
+          "gross_flip_rate": 0.06,
+          "false_feasible_count": 1,
+          "false_infeasible_count": 2,
+          "signed_net_classification_imbalance": -1,
+          "signed_net_imbalance_rate": -0.02
+        },
+        "exact_boundary_mass_at_alpha": {
+          "at_S": 7,
+          "at_ref": 0,
+          "per_candidate": {
+            "S1-01": {
+              "at_S": 3,
+              "at_ref": 0
+            },
+            "S1-02": {
+              "at_S": 2,
+              "at_ref": 0
+            },
+            "S1-03": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-04": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-05": {
+              "at_S": 1,
+              "at_ref": 0
+            },
+            "S1-06": {
+              "at_S": 1,
+              "at_ref": 0
+            },
+            "S1-07": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-08": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-09": {
+              "at_S": 0,
+              "at_ref": 0
+            },
+            "S1-10": {
+              "at_S": 0,
+              "at_ref": 0
+            }
+          }
+        },
+        "binding_batch_set_changes": 25,
+        "max_lateness_changes": 2,
+        "nonccp_hard_pass_changes": 0
+      },
+      "sqrt_rate_check": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "observed_mean_abs_dp": 0.0145,
+        "sqrt_scale_sqrt_1overS_minus_1overSref": 0.05477225575051661,
+        "implied_constant": 0.2647325694608303,
+        "note": "The implied constant should be comparable across comparisons if the estimator is converging at the Monte-Carlo rate. Descriptive only; never gates."
+      },
+      "ratio_matched_scale_invariance": {
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "this_comparison": {
+          "S": 200,
+          "S_ref": 500,
+          "ratio": 0.4,
+          "mean_abs_dp": 0.0145
+        },
+        "is_ratio_matched_to_stage1": false,
+        "note": "S500-vs-S1000 (ratio 0.5) is ratio-matched to Stage-1's S100-vs-S200 (ratio 0.5); comparing them tests scale invariance. Descriptive only; never gates."
+      },
+      "loco": {
+        "name": "leave_one_candidate_out",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "per_omitted_candidate": {
+          "S1-01": {
+            "G1_value": 0.014255555555555556,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-02": {
+            "G1_value": 0.014322222222222222,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-03": {
+            "G1_value": 0.014188888888888888,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-04": {
+            "G1_value": 0.014633333333333333,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.0,
+            "omitted_stratum": "OFF"
+          },
+          "S1-05": {
+            "G1_value": 0.014055555555555556,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-06": {
+            "G1_value": 0.014055555555555556,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.06,
+            "omitted_stratum": "KNIFE"
+          },
+          "S1-07": {
+            "G1_value": 0.01428888888888889,
+            "G2dagger_value": 0.0051,
+            "OFF_flip_rate": 0.075,
+            "omitted_stratum": "OFF"
+          },
+          "S1-08": {
+            "G1_value": 0.014911111111111111,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.075,
+            "omitted_stratum": "OFF"
+          },
+          "S1-09": {
+            "G1_value": 0.015055555555555556,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.075,
+            "omitted_stratum": "OFF"
+          },
+          "S1-10": {
+            "G1_value": 0.015233333333333333,
+            "G2dagger_value": 0.016,
+            "OFF_flip_rate": 0.075,
+            "omitted_stratum": "OFF"
+          }
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      },
+      "bootstrap": {
+        "name": "seed_cluster_bootstrap",
+        "gating": false,
+        "role": "DESCRIPTIVE_ONLY",
+        "resamples": 2000,
+        "ci_level": 0.8,
+        "rng_seed": 20260817,
+        "G1_interval": {
+          "lo": 0.01195,
+          "hi": 0.01711,
+          "median": 0.014365
+        },
+        "G2dagger_interval": {
+          "lo": 0.0118,
+          "hi": 0.0201,
+          "median": 0.0162
+        },
+        "OFF_flip_rate_interval": {
+          "lo": 0.02,
+          "hi": 0.1,
+          "median": 0.06
+        },
+        "note": "Descriptive robustness only. Does NOT create an INDETERMINATE category, does NOT override G1/G2dagger/G3, cannot turn PASS into FAIL or FAIL into PASS, and cannot block Stage 2 independently."
+      }
+    }
+  }
+]

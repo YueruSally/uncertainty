@@ -1,0 +1,780 @@
+[
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-01",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.885,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      12,
+      17,
+      20
+    ],
+    "observed_binding_batch_sets": [
+      "12",
+      "17",
+      "2",
+      "2,12,17,20",
+      "20"
+    ],
+    "mean_min_on_time_prob": 0.8880000000000001,
+    "median_min_on_time_prob": 0.89,
+    "sd_min_on_time_prob": 0.028596814119369648,
+    "min_min_on_time_prob": 0.84,
+    "max_min_on_time_prob": 0.92,
+    "ccp_pass_rate_across_seeds": 0.5,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.5
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-01",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.885,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "17",
+      "2",
+      "2,12",
+      "2,12,17"
+    ],
+    "mean_min_on_time_prob": 0.893,
+    "median_min_on_time_prob": 0.895,
+    "sd_min_on_time_prob": 0.024517567397911076,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.93,
+    "ccp_pass_rate_across_seeds": 0.5,
+    "maxlate_pass_rate": 0.8,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.4
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-01",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.885,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "17",
+      "2",
+      "2,17"
+    ],
+    "mean_min_on_time_prob": 0.8949999999999999,
+    "median_min_on_time_prob": 0.895,
+    "sd_min_on_time_prob": 0.018104634152000375,
+    "min_min_on_time_prob": 0.85,
+    "max_min_on_time_prob": 0.915,
+    "ccp_pass_rate_across_seeds": 0.4,
+    "maxlate_pass_rate": 0.7,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.3
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-02",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.885,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      17,
+      20
+    ],
+    "observed_binding_batch_sets": [
+      "17",
+      "2",
+      "2,16,17",
+      "2,17,20",
+      "2,8,17",
+      "20"
+    ],
+    "mean_min_on_time_prob": 0.9039999999999999,
+    "median_min_on_time_prob": 0.91,
+    "sd_min_on_time_prob": 0.03373096170846271,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.96,
+    "ccp_pass_rate_across_seeds": 0.6,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.6
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-02",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.885,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "17",
+      "2",
+      "2,17"
+    ],
+    "mean_min_on_time_prob": 0.893,
+    "median_min_on_time_prob": 0.895,
+    "sd_min_on_time_prob": 0.024517567397911076,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.93,
+    "ccp_pass_rate_across_seeds": 0.5,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.5
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-02",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.885,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "17",
+      "2",
+      "2,17"
+    ],
+    "mean_min_on_time_prob": 0.8949999999999999,
+    "median_min_on_time_prob": 0.895,
+    "sd_min_on_time_prob": 0.018104634152000375,
+    "min_min_on_time_prob": 0.85,
+    "max_min_on_time_prob": 0.915,
+    "ccp_pass_rate_across_seeds": 0.4,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.4
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-03",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.895,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "17",
+      "2",
+      "2,16",
+      "2,17"
+    ],
+    "mean_min_on_time_prob": 0.906,
+    "median_min_on_time_prob": 0.91,
+    "sd_min_on_time_prob": 0.035339622081862844,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.96,
+    "ccp_pass_rate_across_seeds": 0.6,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.6
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-03",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.895,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "17",
+      "2"
+    ],
+    "mean_min_on_time_prob": 0.8939999999999999,
+    "median_min_on_time_prob": 0.895,
+    "sd_min_on_time_prob": 0.023190036174568135,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.93,
+    "ccp_pass_rate_across_seeds": 0.5,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.5
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-03",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.895,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "17",
+      "2"
+    ],
+    "mean_min_on_time_prob": 0.8960000000000001,
+    "median_min_on_time_prob": 0.9,
+    "sd_min_on_time_prob": 0.018226964152656438,
+    "min_min_on_time_prob": 0.85,
+    "max_min_on_time_prob": 0.915,
+    "ccp_pass_rate_across_seeds": 0.6,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.6
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-04",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.895,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      16,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "16",
+      "16,17,20",
+      "17"
+    ],
+    "mean_min_on_time_prob": 0.9279999999999999,
+    "median_min_on_time_prob": 0.94,
+    "sd_min_on_time_prob": 0.03794733192202054,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.98,
+    "ccp_pass_rate_across_seeds": 0.8,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.8
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-04",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.895,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      16,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "16",
+      "17"
+    ],
+    "mean_min_on_time_prob": 0.916,
+    "median_min_on_time_prob": 0.92,
+    "sd_min_on_time_prob": 0.029888682361946504,
+    "min_min_on_time_prob": 0.87,
+    "max_min_on_time_prob": 0.95,
+    "ccp_pass_rate_across_seeds": 0.7,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.7
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-04",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.895,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      16,
+      17
+    ],
+    "observed_binding_batch_sets": [
+      "16,17,20",
+      "17"
+    ],
+    "mean_min_on_time_prob": 0.925,
+    "median_min_on_time_prob": 0.925,
+    "sd_min_on_time_prob": 0.019860625479688282,
+    "min_min_on_time_prob": 0.9,
+    "max_min_on_time_prob": 0.955,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-05",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.9,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "2,16",
+      "2,5"
+    ],
+    "mean_min_on_time_prob": 0.9259999999999999,
+    "median_min_on_time_prob": 0.9299999999999999,
+    "sd_min_on_time_prob": 0.0377712412645741,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.98,
+    "ccp_pass_rate_across_seeds": 0.8,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.8
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-05",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.9,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2
+    ],
+    "observed_binding_batch_sets": [
+      "2"
+    ],
+    "mean_min_on_time_prob": 0.913,
+    "median_min_on_time_prob": 0.91,
+    "sd_min_on_time_prob": 0.03164033993355809,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.97,
+    "ccp_pass_rate_across_seeds": 0.8,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.8
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-05",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.9,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2
+    ],
+    "observed_binding_batch_sets": [
+      "2"
+    ],
+    "mean_min_on_time_prob": 0.8995000000000001,
+    "median_min_on_time_prob": 0.9025000000000001,
+    "sd_min_on_time_prob": 0.02204162728414883,
+    "min_min_on_time_prob": 0.85,
+    "max_min_on_time_prob": 0.935,
+    "ccp_pass_rate_across_seeds": 0.6,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.6
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-06",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.9,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "2,16",
+      "2,5"
+    ],
+    "mean_min_on_time_prob": 0.9259999999999999,
+    "median_min_on_time_prob": 0.9299999999999999,
+    "sd_min_on_time_prob": 0.0377712412645741,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.98,
+    "ccp_pass_rate_across_seeds": 0.8,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.8
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-06",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.9,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2
+    ],
+    "observed_binding_batch_sets": [
+      "2"
+    ],
+    "mean_min_on_time_prob": 0.913,
+    "median_min_on_time_prob": 0.91,
+    "sd_min_on_time_prob": 0.03164033993355809,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.97,
+    "ccp_pass_rate_across_seeds": 0.8,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.8
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-06",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.9,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2
+    ],
+    "observed_binding_batch_sets": [
+      "2"
+    ],
+    "mean_min_on_time_prob": 0.8995000000000001,
+    "median_min_on_time_prob": 0.9025000000000001,
+    "sd_min_on_time_prob": 0.02204162728414883,
+    "min_min_on_time_prob": 0.85,
+    "max_min_on_time_prob": 0.935,
+    "ccp_pass_rate_across_seeds": 0.6,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.6
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-07",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.925,
+    "scan_binding_batch": 8,
+    "observed_binding_batches": [
+      5,
+      8
+    ],
+    "observed_binding_batch_sets": [
+      "5,7,8,17",
+      "8"
+    ],
+    "mean_min_on_time_prob": 0.9119999999999999,
+    "median_min_on_time_prob": 0.91,
+    "sd_min_on_time_prob": 0.0285968141193696,
+    "min_min_on_time_prob": 0.86,
+    "max_min_on_time_prob": 0.94,
+    "ccp_pass_rate_across_seeds": 0.8,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.8
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-07",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.925,
+    "scan_binding_batch": 8,
+    "observed_binding_batches": [
+      2,
+      5,
+      8
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "2,8",
+      "5,7,8,17",
+      "8"
+    ],
+    "mean_min_on_time_prob": 0.924,
+    "median_min_on_time_prob": 0.935,
+    "sd_min_on_time_prob": 0.01955050439815354,
+    "min_min_on_time_prob": 0.89,
+    "max_min_on_time_prob": 0.94,
+    "ccp_pass_rate_across_seeds": 0.9,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.9
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-07",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.925,
+    "scan_binding_batch": 8,
+    "observed_binding_batches": [
+      2,
+      8
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "8"
+    ],
+    "mean_min_on_time_prob": 0.9189999999999999,
+    "median_min_on_time_prob": 0.9175,
+    "sd_min_on_time_prob": 0.01696401419999929,
+    "min_min_on_time_prob": 0.89,
+    "max_min_on_time_prob": 0.95,
+    "ccp_pass_rate_across_seeds": 0.9,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 0.9
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-08",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.93,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2,
+      5
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "2,16",
+      "2,5,17",
+      "5,17"
+    ],
+    "mean_min_on_time_prob": 0.954,
+    "median_min_on_time_prob": 0.95,
+    "sd_min_on_time_prob": 0.021186998109427604,
+    "min_min_on_time_prob": 0.92,
+    "max_min_on_time_prob": 0.98,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-08",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.93,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2,
+      5
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "2,5,17",
+      "5,17"
+    ],
+    "mean_min_on_time_prob": 0.9480000000000001,
+    "median_min_on_time_prob": 0.945,
+    "sd_min_on_time_prob": 0.01475729574745242,
+    "min_min_on_time_prob": 0.93,
+    "max_min_on_time_prob": 0.97,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-08",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.93,
+    "scan_binding_batch": 2,
+    "observed_binding_batches": [
+      2,
+      5
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "5,17"
+    ],
+    "mean_min_on_time_prob": 0.9410000000000001,
+    "median_min_on_time_prob": 0.945,
+    "sd_min_on_time_prob": 0.014681810363696786,
+    "min_min_on_time_prob": 0.92,
+    "max_min_on_time_prob": 0.955,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-09",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.94,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      1,
+      2,
+      5
+    ],
+    "observed_binding_batch_sets": [
+      "1,2,5,17",
+      "2",
+      "2,5,11,16,17",
+      "2,5,17",
+      "2,8,11,16",
+      "5,17"
+    ],
+    "mean_min_on_time_prob": 0.9560000000000001,
+    "median_min_on_time_prob": 0.96,
+    "sd_min_on_time_prob": 0.020655911179772887,
+    "min_min_on_time_prob": 0.92,
+    "max_min_on_time_prob": 0.98,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-09",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.94,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      5
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "2,11,16",
+      "2,5,17",
+      "2,8,11,16",
+      "5,17"
+    ],
+    "mean_min_on_time_prob": 0.9549999999999998,
+    "median_min_on_time_prob": 0.96,
+    "sd_min_on_time_prob": 0.015092308563562353,
+    "min_min_on_time_prob": 0.93,
+    "max_min_on_time_prob": 0.98,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-09",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.94,
+    "scan_binding_batch": 17,
+    "observed_binding_batches": [
+      2,
+      5
+    ],
+    "observed_binding_batch_sets": [
+      "2",
+      "5,17"
+    ],
+    "mean_min_on_time_prob": 0.9475,
+    "median_min_on_time_prob": 0.9524999999999999,
+    "sd_min_on_time_prob": 0.012963624321753344,
+    "min_min_on_time_prob": 0.92,
+    "max_min_on_time_prob": 0.965,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-10",
+    "S": 50,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.96,
+    "scan_binding_batch": 16,
+    "observed_binding_batches": [
+      1,
+      5,
+      16
+    ],
+    "observed_binding_batch_sets": [
+      "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
+      "16",
+      "5",
+      "5,16"
+    ],
+    "mean_min_on_time_prob": 0.97,
+    "median_min_on_time_prob": 0.97,
+    "sd_min_on_time_prob": 0.016996731711975965,
+    "min_min_on_time_prob": 0.94,
+    "max_min_on_time_prob": 1.0,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-10",
+    "S": 100,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.96,
+    "scan_binding_batch": 16,
+    "observed_binding_batches": [
+      5,
+      16
+    ],
+    "observed_binding_batch_sets": [
+      "16",
+      "5",
+      "5,16"
+    ],
+    "mean_min_on_time_prob": 0.969,
+    "median_min_on_time_prob": 0.97,
+    "sd_min_on_time_prob": 0.012866839377079201,
+    "min_min_on_time_prob": 0.94,
+    "max_min_on_time_prob": 0.98,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  },
+  {
+    "interpretation_scope": "Full Stage-1 study. Nested S values are positively correlated by construction; independent replication comes only from distinct master seeds.",
+    "stage1_candidate_id": "S1-10",
+    "S": 200,
+    "n_seeds": 10,
+    "scan_min_on_time_prob": 0.96,
+    "scan_binding_batch": 16,
+    "observed_binding_batches": [
+      5,
+      16
+    ],
+    "observed_binding_batch_sets": [
+      "16",
+      "5"
+    ],
+    "mean_min_on_time_prob": 0.9654999999999999,
+    "median_min_on_time_prob": 0.965,
+    "sd_min_on_time_prob": 0.012122064363978799,
+    "min_min_on_time_prob": 0.94,
+    "max_min_on_time_prob": 0.985,
+    "ccp_pass_rate_across_seeds": 1.0,
+    "maxlate_pass_rate": 1.0,
+    "nonccp_hard_pass_rate": 1.0,
+    "feasible_hard_rate": 1.0
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "method": "CCP30",
+  "run_id": 1,
+  "algorithm_seed": 910001,
+  "training_seed": 920001,
+  "population": 300,
+  "generations": 500,
+  "alpha": 0.9,
+  "formulation": "EV direct expectations / CCP30 separate empirical q90 objectives; punctuality diagnostic only",
+  "waiting_emission_gCO2_per_TEU_h": 320.5,
+  "waiting_emission_scope": "timetable-induced schedule waiting",
+  "waiting_emission_parameterisation": "common across road/rail/water",
+  "waiting_emission_source_note": "literature-informed common modelling assumption based on Lomotko et al. (2023)",
+  "carbon_cost_waiting_emission": true,
+  "waiting_carbon_region_basis": "waiting-node region",
+  "waiting_carbon_mode_basis": "outgoing scheduled mode",
+  "candidate_count": 263,
+  "runtime_seconds": 1106.9806566881016,
+  "candidate_sha256": "c9bd6e68beae711d663eafdb13bcbc585be80050945371adee812461d986e007",
+  "configuration_sha256": "2b92ae845d3c1ad095d0cec1b4347a44bb25f226bc77da3707e6c35ce10e9684",
+  "completed": true
+}

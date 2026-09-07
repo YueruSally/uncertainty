@@ -1,0 +1,3083 @@
+nohup: ignoring input
+[INFO] Loaded directional border events: 4 from /home/lunet/cokt2/uncertainty/expanda/data/border_crossing_events.csv
+========================================================================
+  NSGA-II  STOCHASTIC EXTENSION  (3-objective)
+  ▶ Frozen scenarios + empirical CCP quantiles
+========================================================================
+  GA      : pop=300  gen=500  runs=1
+            pc=0.9  pm=0.15
+  PathLib : DFS=200  TopK=15  LibCap=45
+  HV      : MC samples=50000  ref=(1.2, 1.2, 1.2)
+  Data    : data/data_expanded_b20.xlsx
+  Mode    : risk_metric=ccp
+  Uncert. : enabled=True  scenarios=200  seed=1000003
+  CCP     : cost=0.9  emission=0.9  time=0.9  ontime=0.9
+            mode_cv={'road': 0.15, 'rail': 0.1, 'water': 0.2}  mode_cap={'road': 2.0, 'rail': 1.8, 'water': 2.5}
+            requested_speed_override_kmh={'road': None, 'rail': None, 'water': None}  (resolved against workbook Mode_Speeds once loaded, see [INIT] below)
+            border_cv={'road': 0.45, 'rail': 0.6, 'water': 0.4}  border_cap=3.5
+            border_events=/home/lunet/cokt2/uncertainty/expanda/data/border_crossing_events.csv
+  Lateness: ratio=0.5  override_h=None
+  FeasSeed: fraction=0.30  restarts=40  iterations=250
+            penalty=6.25 USD/TEU/hour = 150/day
+  Emission: payload=10 t/TEU  wait_override=None
+  Batches : data/data_expanded_b20.xlsx  caps=input data
+========================================================================
+
+[INIT] Loading network data...
+[INFO] Loaded carbon tax for 5 regions.
+[INFO] Loaded emission factors for 15 (mode, region) pairs.
+[INFO] Loaded mode speeds: {'road': 60.0, 'rail': 120.0, 'water': 35.0}
+[INFO] Effective mode speeds (CLI override > workbook Mode_Speeds > hardcoded fallback): {'rail': (120.0, 'workbook_mode_speeds'), 'road': (60.0, 'workbook_mode_speeds'), 'water': (35.0, 'workbook_mode_speeds')}
+[INFO] Loaded transshipment entries: 140
+[INFO] Loaded border delay map (per-mode +customs): 93 entries.
+[INFO] Loaded carbon tax applicability: 8 entries.
+[INFO] Loaded border capacity: 31 nodes | background flow: 8 nodes.
+[INFO] Active break-of-gauge capacities: {'Malaszewicze': 500.0, 'Khorgos': 900.0, 'Erenhot': 900.0, 'Alashankou': 900.0, 'Manzhouli': 900.0, 'Dostyk': 800.0, 'Zabaykalsk': 700.0, 'Brest': 600.0, 'Altynkol': 700.0}
+[INFO] Active break-of-gauge background flow: {'Khorgos': 500.0, 'Erenhot': 450.0, 'Alashankou': 500.0, 'Manzhouli': 450.0, 'Dostyk': 450.0, 'Zabaykalsk': 350.0, 'Brest': 350.0, 'Altynkol': 350.0}
+[INFO] Loaded China border nodes (7): ['Alashankou', 'Chongqing', 'Erenhot', 'Khorgos', 'Lianyungang', 'Manzhouli', 'Yiwu']
+[INFO] Loaded waiting params: cost=0.8, emission=0.0
+[INFO] Timetable loaded: 168 scheduled services; using frequency, first departure and headway for induced waiting.
+[WARN] Timetable.time is loaded only as legacy metadata: its unit is undocumented (observed values=[300.0, 355.0, 415.0, 518.0]); it is not used as arc travel hours. Running time follows distance / documented mode speed.
+[INFO] Batches loaded: 20
+[INFO] Replaced input late-penalty range 30--100 USD/TEU/hour with 6.25 USD/TEU/hour. Use --use-input-late-penalties only with documented contract values.
+[WARN] Waiting emission is zero: the emission CCP is deterministic under the current system boundary.
+[INIT] Batches confirmed: 20
+[INIT] Building path library (shared across all runs)...
+[INFO] All paths pass border monotonicity. ✅
+[SANITY] ✅ All batches have paths.
+[INIT] Frozen scenario set: S=200, seed=1000003, stochastic=True
+[INIT] Border-event shocks: 258 events mapped to 268 network arcs
+[FEAS-INIT] Reliable single-path options per batch: min=10  median=15.0  max=22  alpha=0.900
+
+========================================================================
+  RUN 01/1  |  seed=990001
+========================================================================
+[FEAS-INIT] Capacity-aware seeds=90  zero-excess=90  fully-feasible-after-evaluation=90
+
+========================================================================
+  [NSGA-II] Gen 000/499  |  2.3s elapsed
+  Pop feasible: 128/300 (42.7%)  |  NonDom=5  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.348e+06↓ Emis=9.311e+09↓ Time=388.0h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 001/499  |  4.9s elapsed
+  Pop feasible: 205/300 (68.3%)  |  NonDom=9  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.348e+06→ Emis=9.311e+09→ Time=378.9h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 002/499  |  7.0s elapsed
+  Pop feasible: 283/300 (94.3%)  |  NonDom=8  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.348e+06→ Emis=9.311e+09→ Time=370.4h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 003/499  |  8.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=9  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.272e+06↓ Emis=9.311e+09→ Time=366.2h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 004/499  |  10.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=7  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.272e+06→ Emis=9.158e+09↓ Time=355.2h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 005/499  |  11.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=4  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.243e+06↓ Emis=8.926e+09↓ Time=348.6h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 006/499  |  13.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=9  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.243e+06→ Emis=8.926e+09→ Time=348.6h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 007/499  |  14.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=15  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.205e+06↓ Emis=8.874e+09↓ Time=348.6h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 008/499  |  16.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=16  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=7.092e+06↓ Emis=8.733e+09↓ Time=348.6h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 009/499  |  17.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=22  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.982e+06↓ Emis=8.565e+09↓ Time=348.5h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 010/499  |  19.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=26  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.943e+06↓ Emis=8.518e+09↓ Time=332.2h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 011/499  |  20.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=32  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.904e+06↓ Emis=8.338e+09↓ Time=332.2h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 012/499  |  21.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=25  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.831e+06↓ Emis=8.251e+09↓ Time=332.2h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 013/499  |  23.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=27  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.831e+06→ Emis=8.247e+09↓ Time=331.8h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 014/499  |  24.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=23  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.826e+06↓ Emis=8.236e+09↓ Time=331.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 015/499  |  25.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=37  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.826e+06→ Emis=8.125e+09↓ Time=320.1h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 016/499  |  27.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=41  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.725e+06↓ Emis=8.031e+09↓ Time=315.5h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 017/499  |  28.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=33  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.725e+06→ Emis=8.031e+09→ Time=315.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 018/499  |  29.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=32  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.725e+06→ Emis=8.019e+09↓ Time=315.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 019/499  |  30.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=40  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.725e+06→ Emis=7.852e+09↓ Time=315.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 020/499  |  32.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=44  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.597e+06↓ Emis=7.852e+09↓ Time=315.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 021/499  |  33.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=34  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.597e+06→ Emis=7.852e+09→ Time=315.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 022/499  |  34.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=33  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.597e+06→ Emis=7.852e+09→ Time=315.0h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 023/499  |  36.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=36  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.597e+06→ Emis=7.759e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 024/499  |  37.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=31  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.590e+06↓ Emis=7.759e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 025/499  |  38.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=35  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.590e+06→ Emis=7.759e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 026/499  |  39.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=36  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.529e+06↓ Emis=7.733e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 027/499  |  41.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=41  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.529e+06→ Emis=7.683e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 028/499  |  42.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=56  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.529e+06→ Emis=7.683e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 029/499  |  43.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=66  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.529e+06→ Emis=7.632e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 030/499  |  44.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=67  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.519e+06↓ Emis=7.632e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 031/499  |  45.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=61  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.519e+06→ Emis=7.608e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 032/499  |  47.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=61  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.519e+06→ Emis=7.608e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 033/499  |  48.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=61  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.519e+06→ Emis=7.557e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 034/499  |  49.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=56  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.519e+06→ Emis=7.557e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 035/499  |  50.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=55  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.499e+06↓ Emis=7.557e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 036/499  |  52.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=62  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.499e+06→ Emis=7.500e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 037/499  |  53.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=60  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.499e+06→ Emis=7.500e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 038/499  |  54.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=61  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.499e+06→ Emis=7.500e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 039/499  |  55.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=63  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.499e+06→ Emis=7.489e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 040/499  |  57.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=50  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.498e+06↓ Emis=7.468e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 041/499  |  58.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=61  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.498e+06→ Emis=7.468e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 042/499  |  59.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=67  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.498e+06→ Emis=7.452e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 043/499  |  60.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=75  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.493e+06↓ Emis=7.452e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 044/499  |  61.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=78  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.493e+06→ Emis=7.452e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 045/499  |  63.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=83  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.493e+06→ Emis=7.448e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 046/499  |  64.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=85  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.487e+06↓ Emis=7.448e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 047/499  |  65.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=86  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.487e+06→ Emis=7.417e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 048/499  |  66.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=93  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.487e+06→ Emis=7.417e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 049/499  |  68.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=99  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.487e+06→ Emis=7.399e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 050/499  |  69.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=106  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06↓ Emis=7.399e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 051/499  |  70.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=113  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.399e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 052/499  |  71.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=119  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.399e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 053/499  |  73.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=127  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.399e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 054/499  |  74.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=134  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.399e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 055/499  |  75.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=142  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.384e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 056/499  |  76.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=154  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.384e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 057/499  |  78.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=161  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.384e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 058/499  |  79.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=160  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.384e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 059/499  |  80.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=161  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.384e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 060/499  |  81.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=166  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.368e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 061/499  |  83.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=150  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.368e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 062/499  |  84.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=154  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.368e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 063/499  |  85.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=148  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.354e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 064/499  |  86.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=155  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.354e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 065/499  |  88.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=149  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.354e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 066/499  |  89.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=137  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.354e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 067/499  |  90.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=134  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.482e+06→ Emis=7.354e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 068/499  |  91.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=132  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06↓ Emis=7.337e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 069/499  |  93.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=143  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.319e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 070/499  |  94.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=150  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.319e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 071/499  |  95.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=165  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.319e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 072/499  |  96.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=173  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.319e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 073/499  |  98.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=177  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.288e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 074/499  |  99.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=187  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.288e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 075/499  |  100.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=192  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.288e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 076/499  |  101.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=188  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.273e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 077/499  |  103.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=193  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09↓ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 078/499  |  104.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=201  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 079/499  |  105.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=205  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 080/499  |  106.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=209  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 081/499  |  108.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=210  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 082/499  |  109.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=211  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 083/499  |  110.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=215  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 084/499  |  111.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=217  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 085/499  |  113.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=222  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 086/499  |  114.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=224  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 087/499  |  115.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=223  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=315.0h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 088/499  |  116.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=225  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=313.4h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 089/499  |  118.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=225  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=310.8h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 090/499  |  119.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=222  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 091/499  |  120.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=228  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 092/499  |  121.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=228  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.240e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 093/499  |  123.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=230  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09↓ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 094/499  |  124.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 095/499  |  125.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 096/499  |  127.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=230  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 097/499  |  128.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=233  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 098/499  |  129.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=234  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 099/499  |  130.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=232  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 100/499  |  132.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=233  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 101/499  |  133.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=231  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 102/499  |  134.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=234  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 103/499  |  135.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=231  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=310.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 104/499  |  137.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=232  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 105/499  |  138.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 106/499  |  139.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=227  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 107/499  |  140.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=228  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 108/499  |  142.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=228  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 109/499  |  143.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=232  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 110/499  |  144.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=228  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 111/499  |  146.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 112/499  |  147.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=225  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 113/499  |  148.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=230  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 114/499  |  149.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=233  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 115/499  |  151.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=230  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 116/499  |  152.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=233  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.236e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 117/499  |  153.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=235  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.218e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 118/499  |  154.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.218e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 119/499  |  156.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=234  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.218e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 120/499  |  157.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=233  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.218e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 121/499  |  158.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=226  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 122/499  |  159.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=226  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 123/499  |  161.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=224  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 124/499  |  162.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 125/499  |  163.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 126/499  |  165.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=216  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 127/499  |  166.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=199  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06↓ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 128/499  |  167.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=182  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 129/499  |  168.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=180  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 130/499  |  170.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=172  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 131/499  |  171.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=174  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 132/499  |  172.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=175  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 133/499  |  173.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=180  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 134/499  |  175.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=144  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 135/499  |  176.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=144  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.204e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 136/499  |  177.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=129  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.474e+06→ Emis=7.191e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 137/499  |  178.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=121  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.449e+06↓ Emis=7.191e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 138/499  |  180.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=104  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.449e+06→ Emis=7.191e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 139/499  |  181.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=107  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.449e+06→ Emis=7.168e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 140/499  |  182.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=121  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.449e+06→ Emis=7.168e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 141/499  |  184.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=132  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06↓ Emis=7.152e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 142/499  |  185.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=142  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.152e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 143/499  |  186.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=155  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.152e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 144/499  |  187.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=161  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.152e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 145/499  |  189.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=179  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.152e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 146/499  |  190.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=189  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.152e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 147/499  |  191.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=193  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 148/499  |  193.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=195  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 149/499  |  194.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=205  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 150/499  |  195.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=205  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 151/499  |  196.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=214  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 152/499  |  198.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=219  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 153/499  |  199.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=218  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 154/499  |  200.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=220  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 155/499  |  202.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=220  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 156/499  |  203.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=221  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 157/499  |  204.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=227  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 158/499  |  205.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=231  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 159/499  |  207.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 160/499  |  208.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=227  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 161/499  |  209.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 162/499  |  211.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=227  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 163/499  |  212.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=228  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 164/499  |  213.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=226  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 165/499  |  214.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=228  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 166/499  |  216.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=230  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 167/499  |  217.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=231  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 168/499  |  218.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=234  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 169/499  |  220.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=231  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 170/499  |  221.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=233  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 171/499  |  222.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=229  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 172/499  |  223.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=227  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 173/499  |  225.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=228  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 174/499  |  226.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=232  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 175/499  |  227.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=236  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 176/499  |  229.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=236  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 177/499  |  230.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=234  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.137e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 178/499  |  231.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 179/499  |  232.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 180/499  |  234.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 181/499  |  235.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=237  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 182/499  |  236.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=236  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 183/499  |  238.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 184/499  |  239.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 185/499  |  240.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 186/499  |  241.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 187/499  |  243.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 188/499  |  244.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=234  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 189/499  |  245.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=235  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 190/499  |  247.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=233  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 191/499  |  248.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=237  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 192/499  |  249.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 193/499  |  251.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 194/499  |  252.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 195/499  |  253.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 196/499  |  254.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 197/499  |  256.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 198/499  |  257.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 199/499  |  258.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=238  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 200/499  |  260.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 201/499  |  261.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 202/499  |  262.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 203/499  |  263.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 204/499  |  265.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 205/499  |  266.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 206/499  |  267.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 207/499  |  269.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 208/499  |  270.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=254  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 209/499  |  271.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 210/499  |  272.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=254  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 211/499  |  274.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 212/499  |  275.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 213/499  |  276.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 214/499  |  278.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 215/499  |  279.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 216/499  |  280.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 217/499  |  282.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=255  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 218/499  |  283.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 219/499  |  284.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 220/499  |  285.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 221/499  |  287.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 222/499  |  288.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=254  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 223/499  |  289.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 224/499  |  291.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 225/499  |  292.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 226/499  |  293.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 227/499  |  294.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.129e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 228/499  |  296.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09↓ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 229/499  |  297.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 230/499  |  298.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 231/499  |  300.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 232/499  |  301.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 233/499  |  302.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 234/499  |  304.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 235/499  |  305.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 236/499  |  306.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 237/499  |  307.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 238/499  |  309.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 239/499  |  310.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 240/499  |  311.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 241/499  |  313.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 242/499  |  314.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 243/499  |  315.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 244/499  |  316.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.8h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 245/499  |  318.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 246/499  |  319.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 247/499  |  320.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 248/499  |  322.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 249/499  |  323.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 250/499  |  324.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 251/499  |  325.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 252/499  |  327.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 253/499  |  328.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 254/499  |  329.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 255/499  |  331.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 256/499  |  332.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 257/499  |  333.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=258  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 258/499  |  335.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=260  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 259/499  |  336.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=261  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 260/499  |  337.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=263  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 261/499  |  339.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=258  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 262/499  |  340.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=257  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 263/499  |  341.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 264/499  |  342.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=259  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 265/499  |  344.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=257  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 266/499  |  345.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 267/499  |  346.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 268/499  |  348.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 269/499  |  349.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 270/499  |  350.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 271/499  |  351.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 272/499  |  353.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 273/499  |  354.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 274/499  |  355.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.128e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 275/499  |  357.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09↓ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 276/499  |  358.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 277/499  |  359.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 278/499  |  360.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 279/499  |  362.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 280/499  |  363.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 281/499  |  364.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 282/499  |  366.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 283/499  |  367.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 284/499  |  368.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 285/499  |  369.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 286/499  |  371.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 287/499  |  372.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 288/499  |  373.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 289/499  |  375.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09↓ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 290/499  |  376.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 291/499  |  377.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 292/499  |  379.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.117e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 293/499  |  380.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09↓ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 294/499  |  381.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 295/499  |  382.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 296/499  |  384.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 297/499  |  385.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 298/499  |  386.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 299/499  |  388.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 300/499  |  389.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 301/499  |  390.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 302/499  |  391.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 303/499  |  393.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 304/499  |  394.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 305/499  |  395.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 306/499  |  397.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 307/499  |  398.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 308/499  |  399.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 309/499  |  400.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 310/499  |  402.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 311/499  |  403.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=255  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 312/499  |  404.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 313/499  |  406.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 314/499  |  407.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 315/499  |  408.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.101e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 316/499  |  410.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09↓ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 317/499  |  411.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 318/499  |  412.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=254  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 319/499  |  414.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 320/499  |  415.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=254  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 321/499  |  416.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 322/499  |  417.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 323/499  |  419.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 324/499  |  420.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 325/499  |  421.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 326/499  |  423.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 327/499  |  424.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 328/499  |  425.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 329/499  |  427.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 330/499  |  428.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 331/499  |  429.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 332/499  |  430.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 333/499  |  432.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 334/499  |  433.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 335/499  |  434.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 336/499  |  436.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 337/499  |  437.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 338/499  |  438.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 339/499  |  440.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 340/499  |  441.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 341/499  |  442.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 342/499  |  443.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 343/499  |  445.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 344/499  |  446.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 345/499  |  447.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 346/499  |  449.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 347/499  |  450.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 348/499  |  451.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 349/499  |  453.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 350/499  |  454.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 351/499  |  455.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 352/499  |  456.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=256  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=309.7h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 353/499  |  458.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=304.4h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 354/499  |  459.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=304.4h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 355/499  |  460.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=304.4h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 356/499  |  462.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=304.4h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 357/499  |  463.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=304.4h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 358/499  |  464.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=304.4h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 359/499  |  466.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h↓
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 360/499  |  467.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 361/499  |  468.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 362/499  |  469.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 363/499  |  471.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 364/499  |  472.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=254  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 365/499  |  473.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=256  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 366/499  |  475.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 367/499  |  476.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 368/499  |  477.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 369/499  |  479.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 370/499  |  480.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 371/499  |  481.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 372/499  |  483.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 373/499  |  484.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 374/499  |  485.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 375/499  |  486.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 376/499  |  488.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 377/499  |  489.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 378/499  |  490.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 379/499  |  492.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 380/499  |  493.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=254  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 381/499  |  494.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 382/499  |  496.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 383/499  |  497.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 384/499  |  498.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 385/499  |  499.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 386/499  |  501.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 387/499  |  502.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 388/499  |  503.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 389/499  |  505.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 390/499  |  506.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 391/499  |  507.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 392/499  |  509.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 393/499  |  510.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 394/499  |  511.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 395/499  |  512.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 396/499  |  514.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 397/499  |  515.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 398/499  |  516.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 399/499  |  518.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 400/499  |  519.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 401/499  |  520.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 402/499  |  522.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 403/499  |  523.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 404/499  |  524.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 405/499  |  525.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 406/499  |  527.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 407/499  |  528.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 408/499  |  529.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=255  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 409/499  |  531.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 410/499  |  532.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 411/499  |  533.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=252  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 412/499  |  535.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 413/499  |  536.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 414/499  |  537.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 415/499  |  538.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 416/499  |  540.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 417/499  |  541.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 418/499  |  542.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 419/499  |  544.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 420/499  |  545.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 421/499  |  546.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 422/499  |  548.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=238  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 423/499  |  549.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 424/499  |  550.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 425/499  |  552.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 426/499  |  553.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 427/499  |  554.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=237  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 428/499  |  556.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 429/499  |  557.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 430/499  |  558.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 431/499  |  559.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=235  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 432/499  |  561.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=236  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 433/499  |  562.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 434/499  |  563.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 435/499  |  565.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 436/499  |  566.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 437/499  |  567.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 438/499  |  569.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 439/499  |  570.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 440/499  |  571.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 441/499  |  573.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 442/499  |  574.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 443/499  |  575.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 444/499  |  577.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 445/499  |  578.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 446/499  |  579.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 447/499  |  580.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 448/499  |  582.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 449/499  |  583.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 450/499  |  584.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 451/499  |  586.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 452/499  |  587.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 453/499  |  588.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 454/499  |  590.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 455/499  |  591.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 456/499  |  592.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 457/499  |  594.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 458/499  |  595.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 459/499  |  596.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 460/499  |  597.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 461/499  |  599.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 462/499  |  600.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 463/499  |  601.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 464/499  |  603.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=251  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 465/499  |  604.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 466/499  |  605.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 467/499  |  607.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 468/499  |  608.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 469/499  |  609.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 470/499  |  610.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 471/499  |  612.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 472/499  |  613.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 473/499  |  614.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=247  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 474/499  |  616.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 475/499  |  617.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=253  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 476/499  |  618.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 477/499  |  620.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 478/499  |  621.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 479/499  |  622.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=236  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 480/499  |  624.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 481/499  |  625.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 482/499  |  626.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=237  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.100e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 483/499  |  627.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.090e+09↓ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 484/499  |  629.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=239  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.090e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 485/499  |  630.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.090e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 486/499  |  631.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=240  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.090e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 487/499  |  633.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.090e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 488/499  |  634.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=242  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.090e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 489/499  |  635.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09↓ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 490/499  |  637.0s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=249  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 491/499  |  638.3s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 492/499  |  639.6s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=241  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 493/499  |  640.9s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=246  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 494/499  |  642.2s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 495/499  |  643.5s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=243  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 496/499  |  644.8s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=250  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 497/499  |  646.1s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=245  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 498/499  |  647.4s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=244  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Gen 499/499  |  648.7s elapsed
+  Pop feasible: 300/300 (100.0%)  |  NonDom=248  |  BestPenalty=0.00e+00  |  BestNormVio=0
+  Best feasible: Cost=6.447e+06→ Emis=7.074e+09→ Time=301.5h→
+========================================================================
+
+========================================================================
+  [NSGA-II] Run complete: 500 gens, 648.8s, Pareto=248
+  ⚡ Boost: 0 gens triggered, 0 new feasible
+========================================================================
+  [Run 01] Pareto=248  FeasSoft=100.0%  Runtime=648.8s
+
+[INFO] All 1 runs done in 650.3s
+[EXPORT] metrics_per_generation.csv saved.
+[EXPORT] run_summary.xlsx → pilot_s200_nsga2_run1/run_summary.xlsx
+[EXPORT] 248 Pareto solutions → pilot_s200_nsga2_run1/result.txt
+[EXPORT] pareto_points.json → pilot_s200_nsga2_run1/pareto_points.json  (248 solutions)
+[EXPORT] nsga2_front_hist.json saved.
+[PLOT] pilot_s200_nsga2_run1/plot_Pareto3D.png
+[PLOT] pilot_s200_nsga2_run1/plot_Pareto2D.png
+
+========================================================================
+  NSGA-II STOCHASTIC EXTENSION  1 RUNS COMPLETE
+  Total wall time:    650.3s  (10.8 min)
+  Best run:           #0  (highest final HV)
+  Pareto size (best): 248
+  HV   mean±std:      0.7983 ± 0.0000
+  IGD+ mean±std:      0.0028 ± 0.0000
+  Spacing mean±std:   0.0134 ± 0.0000
+  FeasSoft mean±std:  100.0% ± 0.0%
+  Runtime mean±std:   648.8s ± 0.0s
+  Outputs in:         pilot_s200_nsga2_run1/
+========================================================================

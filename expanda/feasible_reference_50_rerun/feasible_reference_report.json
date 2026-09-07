@@ -1,0 +1,578 @@
+{
+  "config": {
+    "scenario_count": 50,
+    "seed": 42,
+    "risk_metrics_evaluated": [
+      "deterministic",
+      "ev",
+      "ccp"
+    ],
+    "confidence_ontime": 0.9,
+    "epsilon_ontime": 0.09999999999999998,
+    "mode_time_cv": {
+      "road": 0.15,
+      "rail": 0.1,
+      "water": 0.2
+    },
+    "border_delay_cv": {
+      "road": 0.45,
+      "rail": 0.6,
+      "water": 0.4
+    }
+  },
+  "step1_reference_construction": {
+    "method": "Existing checkpointed capacity-aware min-conflicts search: build_reliable_path_options(mode='deterministic') [timetable-validity + nominal-capacity screen only, NOT CCP probability/max-lateness] -> capacity_aware_initial_individual() / find_capacity_aware_choice() (random-restart min-conflicts over each batch's independently-reliable single-path options). NOT NSGA-II; no population; no genetic operators.",
+    "attempts_log": [
+      {
+        "restarts": 40,
+        "iterations": 250,
+        "excess": 0.0
+      }
+    ],
+    "search_reported_capacity_excess": 0.0,
+    "path_allocations": {
+      "Xi'an->Berlin (batch 1)": {
+        "path_nodes": [
+          "Xi'an",
+          "Ningbo",
+          "Hamburg",
+          "Berlin"
+        ],
+        "path_modes": [
+          "rail",
+          "water",
+          "rail"
+        ],
+        "share": 1.0
+      },
+      "Xi'an->Duisburg (batch 2)": {
+        "path_nodes": [
+          "Xi'an",
+          "Ningbo",
+          "Hamburg",
+          "Duisburg"
+        ],
+        "path_modes": [
+          "rail",
+          "water",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Chongqing->Duisburg (batch 3)": {
+        "path_nodes": [
+          "Chongqing",
+          "Erenhot",
+          "Novosibirsk",
+          "Omsk",
+          "Yekaterinburg",
+          "Prague",
+          "Duisburg"
+        ],
+        "path_modes": [
+          "road",
+          "rail",
+          "rail",
+          "road",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Chongqing->Hamburg (batch 4)": {
+        "path_nodes": [
+          "Chongqing",
+          "Erenhot",
+          "Novosibirsk",
+          "Omsk",
+          "Yekaterinburg",
+          "Kazan",
+          "Volgograd",
+          "Lodz",
+          "Hamburg"
+        ],
+        "path_modes": [
+          "road",
+          "rail",
+          "rail",
+          "road",
+          "road",
+          "rail",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Chengdu->Lodz (batch 5)": {
+        "path_nodes": [
+          "Chengdu",
+          "Khorgos",
+          "Novosibirsk",
+          "Yekaterinburg",
+          "Minsk",
+          "Lodz"
+        ],
+        "path_modes": [
+          "rail",
+          "road",
+          "rail",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Zhengzhou->Hamburg (batch 6)": {
+        "path_nodes": [
+          "Zhengzhou",
+          "Lianyungang",
+          "Rotterdam",
+          "Antwerp",
+          "Hamburg"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Wuhan->Warsaw (batch 7)": {
+        "path_nodes": [
+          "Wuhan",
+          "Erenhot",
+          "Zabaykalsk",
+          "Novosibirsk",
+          "Yekaterinburg",
+          "Warsaw"
+        ],
+        "path_modes": [
+          "rail",
+          "road",
+          "rail",
+          "rail",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Yiwu->Rotterdam (batch 8)": {
+        "path_nodes": [
+          "Yiwu",
+          "Lianyungang",
+          "Hamburg",
+          "Rotterdam"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Suzhou->Prague (batch 9)": {
+        "path_nodes": [
+          "Suzhou",
+          "Lianyungang",
+          "Rotterdam",
+          "Antwerp",
+          "Nuremberg",
+          "Berlin",
+          "Prague"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water",
+          "road",
+          "rail",
+          "rail"
+        ],
+        "share": 1.0
+      },
+      "Hefei->Budapest (batch 10)": {
+        "path_nodes": [
+          "Hefei",
+          "Erenhot",
+          "Zabaykalsk",
+          "Novosibirsk",
+          "Yekaterinburg",
+          "Budapest"
+        ],
+        "path_modes": [
+          "road",
+          "road",
+          "rail",
+          "rail",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Guangzhou->Lodz (batch 11)": {
+        "path_nodes": [
+          "Guangzhou",
+          "Changsha",
+          "Xiangyang",
+          "Zhengzhou",
+          "Manzhouli",
+          "Yekaterinburg",
+          "Moscow",
+          "Lodz"
+        ],
+        "path_modes": [
+          "road",
+          "road",
+          "rail",
+          "rail",
+          "rail",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Xi'an->Berlin (batch 12)": {
+        "path_nodes": [
+          "Xi'an",
+          "Ningbo",
+          "Rotterdam",
+          "Prague",
+          "Berlin"
+        ],
+        "path_modes": [
+          "rail",
+          "water",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Xiangyang->Bratislava (batch 13)": {
+        "path_nodes": [
+          "Xiangyang",
+          "Erenhot",
+          "Moscow",
+          "Berlin",
+          "Bratislava"
+        ],
+        "path_modes": [
+          "road",
+          "rail",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Xi'an->Warsaw (batch 14)": {
+        "path_nodes": [
+          "Xi'an",
+          "Urumqi",
+          "Dostyk",
+          "Novosibirsk",
+          "Yekaterinburg",
+          "Warsaw"
+        ],
+        "path_modes": [
+          "rail",
+          "road",
+          "road",
+          "rail",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Wuhan->Rotterdam (batch 15)": {
+        "path_nodes": [
+          "Wuhan",
+          "Hefei",
+          "Shanghai",
+          "Rotterdam"
+        ],
+        "path_modes": [
+          "road",
+          "road",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Nanjing->Budapest (batch 16)": {
+        "path_nodes": [
+          "Nanjing",
+          "Shanghai",
+          "Rotterdam",
+          "Duisburg",
+          "Prague",
+          "Budapest"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water",
+          "road",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Chengdu->Warsaw (batch 17)": {
+        "path_nodes": [
+          "Chengdu",
+          "Khorgos",
+          "Altynkol",
+          "Bishkek",
+          "Lodz",
+          "Warsaw"
+        ],
+        "path_modes": [
+          "rail",
+          "rail",
+          "road",
+          "road",
+          "rail"
+        ],
+        "share": 1.0
+      },
+      "Xi'an->Hamburg (batch 18)": {
+        "path_nodes": [
+          "Xi'an",
+          "Lianyungang",
+          "Rotterdam",
+          "Antwerp",
+          "Hamburg"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "road",
+          "water"
+        ],
+        "share": 1.0
+      },
+      "Suzhou->Hamburg (batch 19)": {
+        "path_nodes": [
+          "Suzhou",
+          "Erenhot",
+          "Moscow",
+          "Minsk",
+          "Warsaw",
+          "Lodz",
+          "Budapest",
+          "Bratislava",
+          "Hamburg"
+        ],
+        "path_modes": [
+          "road",
+          "rail",
+          "road",
+          "road",
+          "road",
+          "road",
+          "rail",
+          "road"
+        ],
+        "share": 1.0
+      },
+      "Suzhou->Duisburg (batch 20)": {
+        "path_nodes": [
+          "Suzhou",
+          "Lianyungang",
+          "Rotterdam",
+          "Duisburg"
+        ],
+        "path_modes": [
+          "road",
+          "water",
+          "water"
+        ],
+        "share": 1.0
+      }
+    },
+    "independent_reevaluation_via_real_evaluate_individual": {
+      "feasible": true,
+      "feasible_hard": true,
+      "vio_breakdown": {
+        "miss_alloc": 0.0,
+        "miss_tt": 0.0,
+        "cap_excess": 0.0,
+        "border_cap_excess": 0.0,
+        "max_border_util": 0.85,
+        "late_teu_h": 68595.35607142857,
+        "max_late_excess_h": 0.0,
+        "max_observed_late_h": 112.12583333333333,
+        "chance_vio": 7.200000000000001,
+        "normalized_violation": 0.0,
+        "min_on_time_prob": 0.0,
+        "mean_arrival_h_sum": 6802.578690476191,
+        "wait_teu_h": 264723.3603571428,
+        "trans_teu_h": 24069.0,
+        "trans_cost": 851000.0,
+        "carbon_cost": 62894.63587602,
+        "scenario_cost_mean": 11742998.22436067,
+        "scenario_emission_mean": 7820945139.459999,
+        "scenario_time_mean": 525.12,
+        "risk_metric": "deterministic"
+      }
+    },
+    "genuinely_deterministic_feasible": true
+  },
+  "A_deterministic": {
+    "objectives_cost_emission_makespan": [
+      11742998.22436067,
+      7820945139.459999,
+      525.12
+    ],
+    "feasible": true,
+    "feasible_hard": true,
+    "vio_breakdown": {
+      "miss_alloc": 0.0,
+      "miss_tt": 0.0,
+      "cap_excess": 0.0,
+      "border_cap_excess": 0.0,
+      "max_border_util": 0.85,
+      "late_teu_h": 68595.35607142857,
+      "max_late_excess_h": 0.0,
+      "max_observed_late_h": 112.12583333333333,
+      "chance_vio": 7.200000000000001,
+      "normalized_violation": 0.0,
+      "min_on_time_prob": 0.0,
+      "mean_arrival_h_sum": 6802.578690476191,
+      "wait_teu_h": 264723.3603571428,
+      "trans_teu_h": 24069.0,
+      "trans_cost": 851000.0,
+      "carbon_cost": 62894.63587602,
+      "scenario_cost_mean": 11742998.22436067,
+      "scenario_emission_mean": 7820945139.459999,
+      "scenario_time_mean": 525.12,
+      "risk_metric": "deterministic"
+    }
+  },
+  "B_expected_value": {
+    "mean_cost": 12042789.7713402,
+    "mean_emissions": 7820945139.46,
+    "mean_makespan": 564.7016185878351,
+    "mean_total_lateness_h": 636.0337340837477,
+    "distributions": {
+      "total_lateness_h": {
+        "mean": 636.0337340837477,
+        "std": 194.24890958321538,
+        "min": 213.238027408474,
+        "max": 1262.641585648332,
+        "p5": 316.353207170819,
+        "p50": 639.3707157359358,
+        "p95": 871.3066550437213,
+        "n_finite": 50,
+        "n_total": 50
+      },
+      "full_solution_cost": {
+        "mean": 12042789.7713402,
+        "std": 1415244.2202926374,
+        "min": 9088030.887225743,
+        "max": 15609492.122146381,
+        "p5": 9629335.626648245,
+        "p50": 12013662.381486617,
+        "p95": 14028401.377649937,
+        "n_finite": 50,
+        "n_total": 50
+      },
+      "full_solution_emissions": {
+        "mean": 7820945139.46,
+        "std": 9.5367431640625e-07,
+        "min": 7820945139.459999,
+        "max": 7820945139.459999,
+        "p5": 7820945139.459999,
+        "p50": 7820945139.459999,
+        "p95": 7820945139.459999,
+        "n_finite": 50,
+        "n_total": 50
+      },
+      "full_solution_makespan": {
+        "mean": 564.7016185878351,
+        "std": 46.02151453294955,
+        "min": 468.1902668420719,
+        "max": 696.7172180683741,
+        "p5": 520.7945146510405,
+        "p50": 548.2383712340511,
+        "p95": 611.5303167330476,
+        "n_finite": 50,
+        "n_total": 50
+      }
+    }
+  },
+  "C_ccp": {
+    "objectives_cost_emission_makespan": [
+      13736507.244926987,
+      7820945139.459999,
+      609.1410229258345
+    ],
+    "confidence_ontime": 0.9,
+    "epsilon_ontime": 0.09999999999999998,
+    "min_on_time_prob": 0.0,
+    "chance_vio": 6.5,
+    "max_late_excess_h_raw": 83.11650043054942,
+    "penalty": 89616500430.54942,
+    "normalized_violation": 0.34506917793807784,
+    "feasible": false,
+    "feasible_hard": false,
+    "batch_on_time_prob": {
+      "1": 0.0,
+      "2": 0.02,
+      "3": 1.0,
+      "4": 1.0,
+      "5": 1.0,
+      "6": 0.0,
+      "7": 1.0,
+      "8": 0.56,
+      "9": 0.08,
+      "10": 1.0,
+      "11": 0.94,
+      "12": 0.16,
+      "13": 1.0,
+      "14": 1.0,
+      "15": 0.52,
+      "16": 0.8,
+      "17": 0.92,
+      "18": 0.0,
+      "19": 1.0,
+      "20": 0.36
+    },
+    "batch_max_lateness_h": {
+      "1": 196.3992823621753,
+      "2": 154.09774852141481,
+      "3": 0.0,
+      "4": 0.0,
+      "5": 0.0,
+      "6": 276.7172180683741,
+      "7": 0.0,
+      "8": 85.54676426176889,
+      "9": 226.08820931406262,
+      "10": 0.0,
+      "11": 68.69164130336162,
+      "12": 188.7246252596526,
+      "13": 0.0,
+      "14": 0.0,
+      "15": 164.24325858804923,
+      "16": 194.72019022968107,
+      "17": 45.00672832878581,
+      "18": 180.7172180683741,
+      "19": 0.0,
+      "20": 166.22634481863201
+    }
+  },
+  "step3_max_late_excess_h_semantics": {
+    "raw_value_this_run": 83.11650043054942,
+    "source_lines": "baseline_uncertainty.py evaluate_individual(), inside the per-batch loop (approx. lines 2314-2320)",
+    "verbatim_code": "batch_lateness = np.maximum(0.0, batch_arrival_s - batch.LT)\nlate_limit = batch_max_lateness_h(batch)\nbatch_excess = np.maximum(0.0, batch_lateness - late_limit)\nif np.any(np.isfinite(batch_excess)):\n    max_late_excess_h += float(np.max(batch_excess))\nelse:\n    max_late_excess_h = float(\"inf\")",
+    "interpretation": "NEITHER a single global maximum NOR a plain sum-across-scenarios. For EACH batch: batch_excess[s] = max(0, lateness_h[s] - batch's own max-allowed-lateness). Then np.max(batch_excess) takes the WORST-CASE SCENARIO for that one batch (a max over the S=50 scenario axis). That per-batch worst-case value is then ACCUMULATED WITH += ACROSS BATCHES. So the final max_late_excess_h is a SUM ACROSS BATCHES of each batch's own MAXIMUM-OVER-SCENARIOS lateness-excess-beyond-its-own-limit. It is a sum-of-per-batch-maxima, not a true single maximum, not a sum-across-scenarios, and (as stored in vio_breakdown) NOT yet penalty-scaled -- the USD scaling by PEN_MAX_LATE_EXCESS_PER_H happens separately when building `penalty`, only under CCP mode.",
+    "edge_case": "If a batch's arrival is np.inf in EVERY scenario (e.g. that batch's allocation missed its timetable entirely), np.any(np.isfinite(batch_excess)) is False and the ENTIRE accumulator is reassigned to float('inf'), discarding whatever finite contributions had already been summed from other batches processed earlier in the loop.",
+    "name_assessment": "The name 'max_late_excess_h' is misleading on its own: a reader would reasonably expect a single global maximum (e.g. the worst lateness-excess across the whole solution), but the quantity is actually a SUM of per-batch maxima. No production code renamed in this check, per instructions."
+  },
+  "reproducibility": {
+    "repeat_used_independently_rebuilt_object": true,
+    "aggregate_results_identical": {
+      "ev": true,
+      "ccp": true
+    }
+  },
+  "shared_scenario_check": {
+    "ev_active_scenario_set_id": 127822541501584,
+    "ccp_active_scenario_set_id": 127822541501584,
+    "same_object_identity": true
+  }
+}

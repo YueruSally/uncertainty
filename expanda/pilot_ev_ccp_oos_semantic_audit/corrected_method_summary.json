@@ -1,0 +1,815 @@
+{
+  "status": "semantic correction supplement; frozen pilot not modified",
+  "alpha": 0.9,
+  "q90_definition": "sorted(values)[ceil(alpha*S)-1]",
+  "ccp_semantics": "quantile-based objective optimisation; no punctuality chance constraint in the current executable model",
+  "method_summary": {
+    "EV": {
+      "candidate_count": 7,
+      "unique_decision_fingerprints": 7,
+      "candidates": [
+        {
+          "source_solution_id": "pilot-EV-run-1-solution-0000",
+          "decision_fingerprint": "52659aeb2ef8f491af0c6a9995944bb9b8f81af1670896154cda666d54ec43b1",
+          "training_objectives": {
+            "cost": 14803739.154791549,
+            "emission": 16195716293.720001,
+            "makespan": 555.2516666666667
+          },
+          "oos_mean": {
+            "cost": 14833264.417423349,
+            "emission": 16195716293.72,
+            "makespan": 559.597225788197
+          },
+          "oos_q90": {
+            "cost": 15221279.718911408,
+            "emission": 16195716293.720001,
+            "makespan": 616.3893030861032
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 29525.262631800026,
+              "relative_fraction": 0.0019944462897567026
+            },
+            "emission": {
+              "absolute": -1.9073486328125e-06,
+              "relative_fraction": -1.177687110728216e-16
+            },
+            "makespan": {
+              "absolute": 4.3455591215303,
+              "relative_fraction": 0.007826287397961226
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-EV-run-1-solution-0001",
+          "decision_fingerprint": "5df4d3623819d385d6ddb9ed90e422ca4dc629979b7c46020b13631b72d77de4",
+          "training_objectives": {
+            "cost": 14774413.052023048,
+            "emission": 15573266831.149998,
+            "makespan": 627.6933333333334
+          },
+          "oos_mean": {
+            "cost": 14887090.36396196,
+            "emission": 15573266831.149998,
+            "makespan": 653.7679409329385
+          },
+          "oos_q90": {
+            "cost": 15172770.257308893,
+            "emission": 15573266831.149998,
+            "makespan": 684.0838971772959
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 112677.31193891168,
+              "relative_fraction": 0.007626516975135122
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 26.074607599605088,
+              "relative_fraction": 0.041540360897473955
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-EV-run-1-solution-0002",
+          "decision_fingerprint": "4468c4f4b5ba9a9437ebff335f1f23853dbe941b850fc4bba9d19ba3eb002472",
+          "training_objectives": {
+            "cost": 15017351.350677084,
+            "emission": 15578316821.850002,
+            "makespan": 571.6933333333334
+          },
+          "oos_mean": {
+            "cost": 15043159.763112038,
+            "emission": 15578316821.850002,
+            "makespan": 605.6058706139878
+          },
+          "oos_q90": {
+            "cost": 15340725.51269842,
+            "emission": 15578316821.850002,
+            "makespan": 681.4247665957112
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 25808.412434954196,
+              "relative_fraction": 0.0017185728583083712
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 33.91253728065442,
+              "relative_fraction": 0.05931945556006906
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-EV-run-1-solution-0004",
+          "decision_fingerprint": "f7c01d814a3f137da83086d2b38459feceb157d49141835f0cbd7db3d507cc1f",
+          "training_objectives": {
+            "cost": 14919890.618203484,
+            "emission": 15226399397.88,
+            "makespan": 599.9208333333333
+          },
+          "oos_mean": {
+            "cost": 15051328.473111141,
+            "emission": 15226399397.88,
+            "makespan": 636.7597091105234
+          },
+          "oos_q90": {
+            "cost": 15355546.897339111,
+            "emission": 15226399397.88,
+            "makespan": 684.321725210881
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 131437.85490765795,
+              "relative_fraction": 0.008809572286494718
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 36.83887577719008,
+              "relative_fraction": 0.06140622850602246
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-EV-run-1-solution-0008",
+          "decision_fingerprint": "d44dce0dbe6599235a37c884772d02069a3a6623b540c1c298f59790c06a3290",
+          "training_objectives": {
+            "cost": 14636267.156372923,
+            "emission": 16306922158.95,
+            "makespan": 627.6933333333334
+          },
+          "oos_mean": {
+            "cost": 14696775.447531568,
+            "emission": 16306922158.95,
+            "makespan": 597.9841510961581
+          },
+          "oos_q90": {
+            "cost": 15017642.625155509,
+            "emission": 16306922158.95,
+            "makespan": 628.2633609100749
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 60508.29115864448,
+              "relative_fraction": 0.004134134100736059
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": -29.70918223717524,
+              "relative_fraction": -0.0473307276969251
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-EV-run-1-solution-0013",
+          "decision_fingerprint": "1f002065240d35f7b6e3868aac6fe999f1d80e1bd0b778377eb9b53019b3b2d5",
+          "training_objectives": {
+            "cost": 15108572.143281851,
+            "emission": 15666665646.76,
+            "makespan": 556.1258333333334
+          },
+          "oos_mean": {
+            "cost": 15192406.014748333,
+            "emission": 15666665646.76,
+            "makespan": 585.291710654009
+          },
+          "oos_q90": {
+            "cost": 15521390.601405352,
+            "emission": 15666665646.76,
+            "makespan": 640.1453396086722
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 83833.87146648206,
+              "relative_fraction": 0.005548762032007073
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 29.165877320675577,
+              "relative_fraction": 0.05244474464683606
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-EV-run-1-solution-0014",
+          "decision_fingerprint": "9acbbef3fc732cae210728fa13b1f7c597d3a9cedbe3fd68eab65bdbb6c26a48",
+          "training_objectives": {
+            "cost": 14867776.547234552,
+            "emission": 15585933989.400002,
+            "makespan": 569.3483333333334
+          },
+          "oos_mean": {
+            "cost": 14904140.107995452,
+            "emission": 15585933989.399998,
+            "makespan": 597.3769160353646
+          },
+          "oos_q90": {
+            "cost": 15183573.179775188,
+            "emission": 15585933989.400002,
+            "makespan": 681.3440055434953
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 36363.56076090038,
+              "relative_fraction": 0.0024457968308424774
+            },
+            "emission": {
+              "absolute": -3.814697265625e-06,
+              "relative_fraction": -2.447525613940991e-16
+            },
+            "makespan": {
+              "absolute": 28.028582702031258,
+              "relative_fraction": 0.04922923465487957
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        }
+      ]
+    },
+    "CCP30": {
+      "candidate_count": 9,
+      "unique_decision_fingerprints": 9,
+      "candidates": [
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0000",
+          "decision_fingerprint": "392076ab11bc43ccfb1f174a9cf3589d27adb63205f2ce4212b71486b3f58d8b",
+          "training_objectives": {
+            "cost": 15247546.916647907,
+            "emission": 16171428172.99,
+            "makespan": 569.5989318872306
+          },
+          "oos_mean": {
+            "cost": 14901080.50398588,
+            "emission": 16171428172.99,
+            "makespan": 555.117881055727
+          },
+          "oos_q90": {
+            "cost": 15225274.61727161,
+            "emission": 16171428172.99,
+            "makespan": 603.3262722287897
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -22272.299376297742,
+              "relative_fraction": -0.0014607136149868093
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 33.72734034155906,
+              "relative_fraction": 0.05921243607288998
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0001",
+          "decision_fingerprint": "cbaa6f8c87feff349db292d3da2feef7d76050a4b286aa6a7a5d840407681c34",
+          "training_objectives": {
+            "cost": 14678567.501078764,
+            "emission": 15522379260.440002,
+            "makespan": 597.9607091086106
+          },
+          "oos_mean": {
+            "cost": 14382265.897398692,
+            "emission": 15522379260.440002,
+            "makespan": 570.5004495840683
+          },
+          "oos_q90": {
+            "cost": 14655847.87798144,
+            "emission": 15522379260.440002,
+            "makespan": 627.1727148551882
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -22719.623097324744,
+              "relative_fraction": -0.0015478092869522194
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 29.212005746577688,
+              "relative_fraction": 0.04885271774816858
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0164
+        },
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0002",
+          "decision_fingerprint": "e20770aff8aee41f4245628bcdeefcae0dff6770dc5f028e18c8907ed7571d6b",
+          "training_objectives": {
+            "cost": 14675880.017073592,
+            "emission": 15029205572.699999,
+            "makespan": 600.1763004810045
+          },
+          "oos_mean": {
+            "cost": 14283684.991212152,
+            "emission": 15029205572.7,
+            "makespan": 556.4462826477492
+          },
+          "oos_q90": {
+            "cost": 14602246.443687497,
+            "emission": 15029205572.699999,
+            "makespan": 625.2166759671325
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -73633.57338609546,
+              "relative_fraction": -0.005017319118201553
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 25.040375486127914,
+              "relative_fraction": 0.041721699883950074
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0003",
+          "decision_fingerprint": "c33c72020f707c03bbf6cf43d176cb7979043d0043cd05c059a23573eaa2ace8",
+          "training_objectives": {
+            "cost": 14991360.716443561,
+            "emission": 14736707701.229998,
+            "makespan": 598.7396834885983
+          },
+          "oos_mean": {
+            "cost": 14579755.317827197,
+            "emission": 14736707701.23,
+            "makespan": 574.9117355769755
+          },
+          "oos_q90": {
+            "cost": 14918537.056865865,
+            "emission": 14736707701.229998,
+            "makespan": 627.6141336317587
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -72823.65957769565,
+              "relative_fraction": -0.0048577084465599996
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 28.874450143160402,
+              "relative_fraction": 0.04822538231460025
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0022
+        },
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0004",
+          "decision_fingerprint": "8aa02af8b0e9838d8cf5ab6518662a64d0e307fa5cf16701b7caae29408c1020",
+          "training_objectives": {
+            "cost": 14325871.059754731,
+            "emission": 14621292320.119999,
+            "makespan": 684.2153515548084
+          },
+          "oos_mean": {
+            "cost": 14000639.749531848,
+            "emission": 14621292320.12,
+            "makespan": 636.0512844330441
+          },
+          "oos_q90": {
+            "cost": 14278588.660464745,
+            "emission": 14621292320.119999,
+            "makespan": 684.3209443483101
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -47282.39928998612,
+              "relative_fraction": -0.003300490357114496
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 0.10559279350172801,
+              "relative_fraction": 0.0001543268406091435
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0005",
+          "decision_fingerprint": "f898905d825779334360ac5b2ff0b56ef1cc1cf553b114ef659df6c72cbbf3fc",
+          "training_objectives": {
+            "cost": 14700978.40767811,
+            "emission": 15183156242.919994,
+            "makespan": 597.8945897981082
+          },
+          "oos_mean": {
+            "cost": 14444027.257944414,
+            "emission": 15183156242.919996,
+            "makespan": 561.232423180957
+          },
+          "oos_q90": {
+            "cost": 14777241.263019757,
+            "emission": 15183156242.919994,
+            "makespan": 598.6059256888418
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 76262.85534164682,
+              "relative_fraction": 0.0051876040646257815
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 0.7113358907336078,
+              "relative_fraction": 0.0011897346168892504
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0286
+        },
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0006",
+          "decision_fingerprint": "aea9350ec7bd6cd005133783081aeb75000e86e01e208e9f4eac5d154d50ec28",
+          "training_objectives": {
+            "cost": 14529620.802064713,
+            "emission": 15040487205.499994,
+            "makespan": 627.5336513102328
+          },
+          "oos_mean": {
+            "cost": 14243688.431871131,
+            "emission": 15040487205.499996,
+            "makespan": 550.3758523743643
+          },
+          "oos_q90": {
+            "cost": 14504350.104370581,
+            "emission": 15040487205.499994,
+            "makespan": 609.388649808635
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -25270.697694132105,
+              "relative_fraction": -0.001739253765696421
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": -18.14500150159779,
+              "relative_fraction": -0.028914786424142653
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0022
+        },
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0007",
+          "decision_fingerprint": "3552066e4b46866850b558dbfc434e2bba88d55320bbe5e35c785e7289161163",
+          "training_objectives": {
+            "cost": 14673368.460438862,
+            "emission": 15053479140.38,
+            "makespan": 625.3008555481745
+          },
+          "oos_mean": {
+            "cost": 14279739.492624423,
+            "emission": 15053479140.38,
+            "makespan": 556.7376057372322
+          },
+          "oos_q90": {
+            "cost": 14609994.200377269,
+            "emission": 15053479140.38,
+            "makespan": 625.2270448390947
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -63374.260061593726,
+              "relative_fraction": -0.004318998751544898
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": -0.07381070907979392,
+              "relative_fraction": -0.00011804031359446524
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP30-run-1-solution-0008",
+          "decision_fingerprint": "a187df6dc69c09bbf8644d8024dea113f697be26cbf44f7b23b87791cc658fec",
+          "training_objectives": {
+            "cost": 14864326.59303331,
+            "emission": 14880822817.480003,
+            "makespan": 599.2534992729875
+          },
+          "oos_mean": {
+            "cost": 14571793.293293396,
+            "emission": 14880822817.480007,
+            "makespan": 560.2122582891383
+          },
+          "oos_q90": {
+            "cost": 14928383.713879827,
+            "emission": 14880822817.480003,
+            "makespan": 600.041377160343
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 64057.120846517384,
+              "relative_fraction": 0.004309453270257128
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 0.7878778873555348,
+              "relative_fraction": 0.0013147656013880367
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        }
+      ]
+    },
+    "CCP50": {
+      "candidate_count": 7,
+      "unique_decision_fingerprints": 7,
+      "candidates": [
+        {
+          "source_solution_id": "pilot-CCP50-run-1-solution-0000",
+          "decision_fingerprint": "121df0ef2217314599b2cfbf6aad143803f3c97f43b4b46bf522d728c48f0cf7",
+          "training_objectives": {
+            "cost": 15002054.128989585,
+            "emission": 15541040393.710001,
+            "makespan": 606.2172346341855
+          },
+          "oos_mean": {
+            "cost": 14787765.405593576,
+            "emission": 15541040393.71,
+            "makespan": 554.0222581969241
+          },
+          "oos_q90": {
+            "cost": 15049241.773672843,
+            "emission": 15541040393.710001,
+            "makespan": 607.0922315341041
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 47187.64468325861,
+              "relative_fraction": 0.003145412240052808
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 0.8749968999186422,
+              "relative_fraction": 0.001443371863960035
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP50-run-1-solution-0002",
+          "decision_fingerprint": "16e98f3d2f87656b7869eee1a872b734c1347cc0e7f264587b13df85dfc1a086",
+          "training_objectives": {
+            "cost": 14961779.452483058,
+            "emission": 15834046771.86,
+            "makespan": 586.2782379692012
+          },
+          "oos_mean": {
+            "cost": 14749226.868711147,
+            "emission": 15834046771.86,
+            "makespan": 547.0946238725245
+          },
+          "oos_q90": {
+            "cost": 14999225.42008222,
+            "emission": 15834046771.86,
+            "makespan": 606.5033770731725
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 37445.96759916283,
+              "relative_fraction": 0.002502775002003408
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 20.225139103971287,
+              "relative_fraction": 0.034497509534088776
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP50-run-1-solution-0003",
+          "decision_fingerprint": "2db189651cf8fd5ced5c264119494344691ef7da9973cedf790b839165089be7",
+          "training_objectives": {
+            "cost": 14709285.562590117,
+            "emission": 14327838465.33,
+            "makespan": 639.8945897981082
+          },
+          "oos_mean": {
+            "cost": 14447056.048391443,
+            "emission": 14327838465.33,
+            "makespan": 605.7811482213701
+          },
+          "oos_q90": {
+            "cost": 14696787.587181576,
+            "emission": 14327838465.33,
+            "makespan": 681.6143521458131
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -12497.975408541039,
+              "relative_fraction": -0.0008496656996262914
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 41.71976234770489,
+              "relative_fraction": 0.0651978669812911
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP50-run-1-solution-0004",
+          "decision_fingerprint": "11cb811fddc82fb7bc64a668111b959b77880fa8350f537265fd967e102afb51",
+          "training_objectives": {
+            "cost": 14834076.149949612,
+            "emission": 15939745772.060001,
+            "makespan": 599.4812669948233
+          },
+          "oos_mean": {
+            "cost": 14690655.670118853,
+            "emission": 15939745772.060003,
+            "makespan": 559.7296203773943
+          },
+          "oos_q90": {
+            "cost": 14910126.280144699,
+            "emission": 15939745772.060001,
+            "makespan": 603.6680903853483
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 76050.13019508682,
+              "relative_fraction": 0.005126718335967633
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 4.186823390524978,
+              "relative_fraction": 0.006984077103048381
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0028
+        },
+        {
+          "source_solution_id": "pilot-CCP50-run-1-solution-0005",
+          "decision_fingerprint": "ba5318be120bdca4f8e1e2a7abff4fe57bbe475ad94c2f0f96ef76a7d6c7a299",
+          "training_objectives": {
+            "cost": 14361525.840383613,
+            "emission": 14331225912.08,
+            "makespan": 624.2303189418609
+          },
+          "oos_mean": {
+            "cost": 14075035.931633526,
+            "emission": 14331225912.08,
+            "makespan": 588.1334050178908
+          },
+          "oos_q90": {
+            "cost": 14326507.818871845,
+            "emission": 14331225912.08,
+            "makespan": 625.4109387897965
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": -35018.02151176892,
+              "relative_fraction": -0.0024383217981825216
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 1.1806198479356453,
+              "relative_fraction": 0.001891320898890214
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP50-run-1-solution-0006",
+          "decision_fingerprint": "0a151736559ba099ad81d51e207d1aaad8b6756272323f927231c477f5a15f8a",
+          "training_objectives": {
+            "cost": 14848638.368135586,
+            "emission": 16325286287.390003,
+            "makespan": 598.7396834885983
+          },
+          "oos_mean": {
+            "cost": 14646252.739038983,
+            "emission": 16325286287.39,
+            "makespan": 554.7366116415945
+          },
+          "oos_q90": {
+            "cost": 14878612.946582833,
+            "emission": 16325286287.390003,
+            "makespan": 613.8533949106842
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 29974.578447246924,
+              "relative_fraction": 0.0020186752282667767
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 15.113711422085885,
+              "relative_fraction": 0.025242541690279816
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        },
+        {
+          "source_solution_id": "pilot-CCP50-run-1-solution-0007",
+          "decision_fingerprint": "4f8e6d0d1a551c5ab3f610d56d06b52f8d974f37c505772d0a184d9fbdf998dd",
+          "training_objectives": {
+            "cost": 14775297.01726856,
+            "emission": 13957202202.930002,
+            "makespan": 639.8945897981082
+          },
+          "oos_mean": {
+            "cost": 14564449.53472161,
+            "emission": 13957202202.930006,
+            "makespan": 601.8823165820257
+          },
+          "oos_q90": {
+            "cost": 14861742.015912162,
+            "emission": 13957202202.930002,
+            "makespan": 654.2040317003433
+          },
+          "primary_generalisation_delta": {
+            "cost": {
+              "absolute": 86444.99864360131,
+              "relative_fraction": 0.005850643715829815
+            },
+            "emission": {
+              "absolute": 0.0,
+              "relative_fraction": 0.0
+            },
+            "makespan": {
+              "absolute": 14.309441902235108,
+              "relative_fraction": 0.022362186101229344
+            }
+          },
+          "punctuality_diagnostic_minimum": 0.0
+        }
+      ]
+    }
+  },
+  "cross_method_decision_comparison": {
+    "EV_vs_CCP30_fingerprint_sets_differ": true,
+    "EV_vs_CCP50_fingerprint_sets_differ": true,
+    "CCP30_vs_CCP50_fingerprint_sets_differ": true
+  },
+  "punctuality_is_diagnostic_not_feasibility": true,
+  "all_candidates_have_constant_emission": true
+}
