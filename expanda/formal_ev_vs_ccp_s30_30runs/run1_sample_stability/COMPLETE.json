@@ -1,0 +1,9 @@
+{
+  "solution_count": 263,
+  "rows": 24459,
+  "oos_digest": "9219266ad001420fffdcb93b3d135774ab893c9c8357fcdfbcf11520e29788cb",
+  "training_digest": "c964ee7ade9ea52426a5594042084f74f55405445d3d0dad24edb6b3bc279811",
+  "training_replay_passed": true,
+  "decision_fingerprints_unchanged": true,
+  "smoke_test": false
+}

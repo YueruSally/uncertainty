@@ -15,3 +15,9 @@ __pycache__/
 .cache/
 *.pid
 expanda/outputs/.matplotlib/
+
+# CCP30 sample-stability local caches
+expanda/ccp30_sample_stability.log
+expanda/formal_ev_vs_ccp_s30_30runs/run1_sample_stability/oos_sorted.npz
+expanda/formal_ev_vs_ccp_s30_30runs/run1_sample_stability/seed_*.json
+expanda/formal_ev_vs_ccp_s30_30runs/run1_sample_stability_smoke/
