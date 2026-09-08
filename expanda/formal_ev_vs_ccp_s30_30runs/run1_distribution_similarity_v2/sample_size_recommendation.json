@@ -1,0 +1,21 @@
+{
+  "candidate": "S=100",
+  "reason": "S=100 meets the declared coverage-gap tolerance and captures the required share of the distribution-distance improvement from S=30 to S=300.",
+  "coverage_tolerance_pp": 2.5,
+  "minimum_gain_captured": 0.6,
+  "plateau_comparisons_passed": 9,
+  "plateau_comparisons_required": 6,
+  "mean_absolute_coverage_gap_pp": {
+    "30": {
+      "cost": 5.246114068441065,
+      "emission": 3.4058174904942975,
+      "makespan": 3.947977186311787
+    },
+    "100": {
+      "cost": 2.305939163498099,
+      "emission": 2.1083193916349816,
+      "makespan": 1.6185095057034222
+    }
+  },
+  "scope": "fixed-decision diagnostic; requires re-optimisation before a final CCP training-size choice"
+}

@@ -27,7 +27,7 @@ import run_ccp30_sample_stability as stability
 
 ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT / "formal_ev_vs_ccp_s30_30runs/run_01/CCP30/final_feasible_nondominated.json"
-DEFAULT_OUT = ROOT / "formal_ev_vs_ccp_s30_30runs/run1_distribution_similarity"
+DEFAULT_OUT = ROOT / "formal_ev_vs_ccp_s30_30runs/run1_distribution_similarity_v2"
 DEFAULT_OOS_CACHE = ROOT / "formal_ev_vs_ccp_s30_30runs/run1_sample_stability/oos_sorted.npz"
 OBJECTIVES = ("cost", "emission", "makespan")
 PRIMARY_METRICS = ("js_distance", "wasserstein_normalized", "ks_statistic")
@@ -99,6 +99,36 @@ def empirical_cdf_distances(sample: np.ndarray, reference: np.ndarray) -> tuple[
     return wasserstein, ks
 
 
+def ks_two_sample_pvalue(ks_statistic: float, n_sample: int, n_reference: int) -> float:
+    """Asymptotic two-sided two-sample KS p-value.
+
+    This avoids adding SciPy as a runtime dependency. The statistic remains the
+    primary KS result; the p-value is supplementary because non-rejection is not
+    evidence that two distributions are equivalent.
+    """
+    if n_sample < 1 or n_reference < 1:
+        raise ValueError("KS sample sizes must be positive")
+    d = float(ks_statistic)
+    if not 0.0 <= d <= 1.0:
+        raise ValueError("KS statistic must lie in [0, 1]")
+    if d == 0.0:
+        return 1.0
+    effective_n = math.sqrt(n_sample * n_reference / (n_sample + n_reference))
+    lam = (effective_n + 0.12 + 0.11 / effective_n) * d
+    if lam < 1.18:
+        terms = [
+            math.exp(-((2 * k - 1) ** 2) * math.pi**2 / (8.0 * lam**2))
+            for k in range(1, 1000)
+        ]
+        cdf = math.sqrt(2.0 * math.pi) * sum(terms) / lam
+        return float(min(1.0, max(0.0, 1.0 - cdf)))
+    survival = 2.0 * sum(
+        (-1.0) ** (k - 1) * math.exp(-2.0 * k * k * lam * lam)
+        for k in range(1, 1000)
+    )
+    return float(min(1.0, max(0.0, survival)))
+
+
 def distribution_metrics(
     sample, reference, *, bins: int = 20, smoothing: float = 0.5
 ) -> dict:
@@ -124,6 +154,7 @@ def distribution_metrics(
     )
     js_distance = math.sqrt(max(js_divergence, 0.0))
     wasserstein, ks = empirical_cdf_distances(sample, reference)
+    ks_pvalue = ks_two_sample_pvalue(ks, sample.size, reference.size)
     q25, q75 = np.quantile(reference, [0.25, 0.75])
     scale = float(q75 - q25)
     scale_basis = "oos_iqr"
@@ -144,6 +175,7 @@ def distribution_metrics(
         "wasserstein_scale": scale,
         "wasserstein_scale_basis": scale_basis,
         "ks_statistic": ks,
+        "ks_pvalue": ks_pvalue,
         "kl_sample_to_oos": kl_sample_to_oos,
         "kl_oos_to_sample": kl_oos_to_sample,
         "symmetric_kl": 0.5 * (kl_sample_to_oos + kl_oos_to_sample),
@@ -151,6 +183,9 @@ def distribution_metrics(
         "oos_mean": oos_mean,
         "mean_signed_error_pct": (
             100.0 * (sample_mean - oos_mean) / oos_mean if oos_mean != 0 else None
+        ),
+        "mean_absolute_error_pct": (
+            100.0 * abs(sample_mean - oos_mean) / abs(oos_mean) if oos_mean != 0 else None
         ),
         **q90,
     }
@@ -190,14 +225,65 @@ def build_records(
     return rows
 
 
+def build_oos_baseline_records(
+    comparison_oos: np.ndarray,
+    reference_oos: np.ndarray,
+    sources: list[dict],
+    comparison_seed: int,
+    reference_seed: int,
+    oos_size: int,
+    bins: int,
+    smoothing: float,
+) -> list[dict]:
+    """Compare two independent OOS samples to estimate the distance noise floor."""
+    rows = []
+    for index, source in enumerate(sources):
+        for objective_index, objective in enumerate(OBJECTIVES):
+            metrics = distribution_metrics(
+                comparison_oos[index, objective_index],
+                reference_oos[index, objective_index],
+                bins=bins,
+                smoothing=smoothing,
+            )
+            rows.append(
+                {
+                    "solution_id": source["source_solution_id"],
+                    "decision_fingerprint": source["decision_fingerprint"],
+                    "seed": comparison_seed,
+                    "S": oos_size,
+                    "objective": objective,
+                    "comparison": "independent_oos_baseline",
+                    "reference_oos_seed": reference_seed,
+                    "comparison_oos_seed": comparison_seed,
+                    "histogram_bins": bins,
+                    "histogram_smoothing": smoothing,
+                    **metrics,
+                }
+            )
+    return rows
+
+
 def _metric_summary(values: np.ndarray, prefix: str) -> dict:
+    numeric = np.array(
+        [float(value) for value in values if value is not None and np.isfinite(float(value))],
+        dtype=float,
+    )
+    if numeric.size == 0:
+        return {
+            f"{prefix}_mean": None,
+            f"{prefix}_median": None,
+            f"{prefix}_p25": None,
+            f"{prefix}_p75": None,
+            f"{prefix}_p90": None,
+            f"{prefix}_max": None,
+        }
     return {
-        f"{prefix}_mean": float(np.mean(values)),
-        f"{prefix}_median": float(np.median(values)),
-        f"{prefix}_p25": float(np.quantile(values, 0.25)),
-        f"{prefix}_p75": float(np.quantile(values, 0.75)),
-        f"{prefix}_p90": float(np.quantile(values, 0.90)),
-        f"{prefix}_max": float(np.max(values)),
+        f"{prefix}_mean": float(np.mean(numeric)),
+        f"{prefix}_median": float(np.median(numeric)),
+        f"{prefix}_p25": float(np.quantile(numeric, 0.25)),
+        f"{prefix}_p75": float(np.quantile(numeric, 0.75)),
+        f"{prefix}_p90": float(np.quantile(numeric, 0.90)),
+        f"{prefix}_max": float(np.max(numeric)),
     }
 
 
@@ -206,6 +292,9 @@ def summarize_records(rows: list[dict]) -> tuple[list[dict], list[dict]]:
         "js_distance",
         "wasserstein_normalized",
         "ks_statistic",
+        "ks_pvalue",
+        "mean_signed_error_pct",
+        "mean_absolute_error_pct",
         "kl_sample_to_oos",
         "kl_oos_to_sample",
         "symmetric_kl",
@@ -225,6 +314,9 @@ def summarize_records(rows: list[dict]) -> tuple[list[dict], list[dict]]:
         }
         for metric in metric_names:
             summary.update(_metric_summary(np.array([r[metric] for r in group]), metric))
+        summary["ks_pvalue_gt_0_05_fraction"] = float(
+            np.mean([r["ks_pvalue"] > 0.05 for r in group])
+        )
         per_seed.append(summary)
 
     aggregate = []
@@ -241,6 +333,9 @@ def summarize_records(rows: list[dict]) -> tuple[list[dict], list[dict]]:
         }
         for metric in metric_names:
             summary.update(_metric_summary(np.array([r[metric] for r in group]), metric))
+        summary["ks_pvalue_gt_0_05_fraction"] = float(
+            np.mean([r["ks_pvalue"] > 0.05 for r in group])
+        )
         aggregate.append(summary)
     return per_seed, aggregate
 
@@ -415,18 +510,24 @@ def make_recommendation(
     }
 
 
-def write_report(out: Path, aggregate: list[dict], recommendation: dict) -> None:
+def write_report(
+    out: Path,
+    aggregate: list[dict],
+    baseline_aggregate: list[dict],
+    recommendation: dict,
+) -> None:
     lookup = {(r["S"], r["objective"]): r for r in aggregate}
+    baseline_lookup = {r["objective"]: r for r in baseline_aggregate}
     sizes = sorted({r["S"] for r in aggregate})
     lines = [
         "# CCP30 fixed-decision distribution similarity",
         "",
         "This experiment compares nested training-sample objective distributions with one common OOS-5000 reference. It does not re-optimise decisions or filter solutions.",
         "",
-        "Primary metrics are Jensen-Shannon distance, normalised Wasserstein distance and the KS statistic. KL is supplementary because it is directional and sensitive to histogram construction; the program uses OOS-defined common bins and Jeffreys smoothing.",
+        "Primary metrics are Jensen-Shannon distance, normalised Wasserstein distance and the KS statistic. KL and the asymptotic two-sided KS p-value are supplementary. A p-value above 0.05 means that this test did not detect a difference; it does not prove equivalence.",
         "",
-        "| S | Objective | Median JS | Median normalised W1 | Median KS | Mean absolute coverage gap (pp) |",
-        "|---|---|---:|---:|---:|---:|",
+        "| S | Objective | Median JS | Median normalised W1 | Median KS | Mean absolute mean difference (%) | KS p>0.05 | Mean absolute coverage gap (pp) |",
+        "|---|---|---:|---:|---:|---:|---:|---:|",
     ]
     for size in sizes:
         for objective in OBJECTIVES:
@@ -434,8 +535,27 @@ def write_report(out: Path, aggregate: list[dict], recommendation: dict) -> None
             lines.append(
                 f"| {size} | {objective} | {row['js_distance_median']:.6f} | "
                 f"{row['wasserstein_normalized_median']:.6f} | {row['ks_statistic_median']:.6f} | "
+                f"{row['mean_absolute_error_pct_mean']:.3f} | "
+                f"{100.0 * row['ks_pvalue_gt_0_05_fraction']:.1f}% | "
                 f"{row['absolute_coverage_gap_pp_mean']:.3f} |"
             )
+    lines += [
+        "",
+        "## Independent OOS-5000 reference baseline",
+        "",
+        "The table below compares a second independent OOS sample with the common OOS reference. It estimates the non-zero distance expected from Monte Carlo sampling even when both samples use the same uncertainty model.",
+        "",
+        "| Objective | Median JS | Median normalised W1 | Median KS | Mean absolute mean difference (%) | KS p>0.05 |",
+        "|---|---:|---:|---:|---:|---:|",
+    ]
+    for objective in OBJECTIVES:
+        row = baseline_lookup[objective]
+        lines.append(
+            f"| {objective} | {row['js_distance_median']:.6f} | "
+            f"{row['wasserstein_normalized_median']:.6f} | {row['ks_statistic_median']:.6f} | "
+            f"{row['mean_absolute_error_pct_mean']:.3f} | "
+            f"{100.0 * row['ks_pvalue_gt_0_05_fraction']:.1f}% |"
+        )
     lines += [
         "",
         "## Pre-declared practical assessment",
@@ -559,6 +679,12 @@ def run(args) -> None:
         raise ValueError("Seeds must be unique nonnegative integers")
     if args.oos_size < 2 or args.oos_seed < 0 or args.oos_seed in seeds:
         raise ValueError("OOS seed must be distinct from the re-estimation seeds")
+    if (
+        args.oos_baseline_seed < 0
+        or args.oos_baseline_seed == args.oos_seed
+        or args.oos_baseline_seed in seeds
+    ):
+        raise ValueError("Second OOS seed must be distinct from the first OOS and training seeds")
     if args.limit is not None and args.limit < 1:
         raise ValueError("Limit must be positive")
     if args.coverage_tolerance_pp <= 0 or not 0 < args.minimum_gain_captured <= 1:
@@ -586,6 +712,7 @@ def run(args) -> None:
         "master_size": max(sizes),
         "oos_size": args.oos_size,
         "oos_seed": args.oos_seed,
+        "oos_baseline_seed": args.oos_baseline_seed,
         "solution_count": len(sources),
         "histogram_bins": args.histogram_bins,
         "histogram_smoothing": args.histogram_smoothing,
@@ -602,6 +729,8 @@ def run(args) -> None:
         "post_validation_pareto_filtering": False,
         "new_optimisation": False,
         "common_oos_reference": True,
+        "independent_oos_reference_baseline": True,
+        "ks_pvalue_method": "asymptotic_two_sided",
         "nested_training_prefixes": True,
         "smoke_test": args.limit is not None or args.oos_size != 5000,
     }
@@ -638,10 +767,65 @@ def run(args) -> None:
             oos.sort(axis=2)
             save_array_cache(local_oos, oos, oos_digest_value)
 
+    baseline_oos_cache = args.oos_baseline_cache
+    baseline_expected_shape = (len(sources), 3, args.oos_size)
+    if baseline_oos_cache is not None and baseline_oos_cache.exists():
+        oos_baseline, oos_baseline_digest = load_array_cache(
+            baseline_oos_cache, baseline_expected_shape
+        )
+        verify_cached_scenario_digest(
+            oos_baseline_digest,
+            args.oos_size,
+            args.oos_baseline_seed,
+            problem,
+            baseline_oos_cache,
+        )
+        if np.any(np.diff(oos_baseline, axis=2) < 0):
+            raise RuntimeError(f"Second OOS cache is not sorted: {baseline_oos_cache}")
+        print(f"Reused second OOS cache: {baseline_oos_cache}", flush=True)
+    else:
+        local_oos_baseline = args.out / "cache/oos_baseline_sorted.npz"
+        if local_oos_baseline.exists():
+            oos_baseline, oos_baseline_digest = load_array_cache(
+                local_oos_baseline, baseline_expected_shape
+            )
+            verify_cached_scenario_digest(
+                oos_baseline_digest,
+                args.oos_size,
+                args.oos_baseline_seed,
+                problem,
+                local_oos_baseline,
+            )
+        else:
+            oos_baseline, oos_baseline_digest = evaluate_scenarios(
+                args.oos_size,
+                args.oos_baseline_seed,
+                "Independent OOS baseline",
+                sources,
+                individuals,
+                problem,
+            )
+            oos_baseline.sort(axis=2)
+            save_array_cache(local_oos_baseline, oos_baseline, oos_baseline_digest)
+
+    baseline_rows = build_oos_baseline_records(
+        oos_baseline,
+        oos,
+        sources,
+        args.oos_baseline_seed,
+        args.oos_seed,
+        args.oos_size,
+        args.histogram_bins,
+        args.histogram_smoothing,
+    )
+    write_csv(args.out / "oos_reference_baseline_per_solution.csv", baseline_rows)
+    _, baseline_aggregate = summarize_records(baseline_rows)
+    write_csv(args.out / "oos_reference_baseline_summary.csv", baseline_aggregate)
+
     all_rows = []
     arrays_by_seed = {}
-    cache_dir = args.out / "cache"
-    cache_dir.mkdir(exist_ok=True)
+    cache_dir = args.training_cache_dir or (args.out / "cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
     for seed in seeds:
         cache_path = cache_dir / f"training_seed_{seed}_S{max(sizes)}.npz"
         expected_shape = (len(sources), 3, max(sizes))
@@ -687,7 +871,7 @@ def run(args) -> None:
     representative = plot_representative_ecdfs(
         args.out, all_rows, sources, arrays_by_seed, oos, sizes
     )
-    write_report(args.out, aggregate, recommendation)
+    write_report(args.out, aggregate, baseline_aggregate, recommendation)
     atomic_json(
         args.out / "COMPLETE.json",
         {
@@ -697,6 +881,9 @@ def run(args) -> None:
             "objectives": list(OBJECTIVES),
             "records": len(all_rows),
             "oos_digest": oos_digest_value,
+            "oos_baseline_digest": oos_baseline_digest,
+            "oos_seed": args.oos_seed,
+            "oos_baseline_seed": args.oos_baseline_seed,
             "representative": representative,
             "candidate": recommendation["candidate"],
             "decision_fingerprints_unchanged": True,
@@ -714,6 +901,15 @@ def main() -> None:
     parser.add_argument("--oos-size", type=int, default=5000)
     parser.add_argument("--oos-seed", type=int, default=930001)
     parser.add_argument("--oos-cache", type=Path, help="Optional existing sorted OOS NPZ")
+    parser.add_argument("--oos-baseline-seed", type=int, default=930002)
+    parser.add_argument(
+        "--oos-baseline-cache", type=Path, help="Optional existing sorted second OOS NPZ"
+    )
+    parser.add_argument(
+        "--training-cache-dir",
+        type=Path,
+        help="Optional directory containing existing training_seed_<seed>_S<max>.npz caches",
+    )
     parser.add_argument("--histogram-bins", type=int, default=20)
     parser.add_argument("--histogram-smoothing", type=float, default=0.5)
     parser.add_argument("--coverage-tolerance-pp", type=float, default=2.5)

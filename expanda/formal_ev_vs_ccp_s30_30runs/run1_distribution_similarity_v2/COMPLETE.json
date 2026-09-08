@@ -1,0 +1,28 @@
+{
+  "solution_count": 263,
+  "seeds": 10,
+  "sizes": [
+    30,
+    100,
+    300
+  ],
+  "objectives": [
+    "cost",
+    "emission",
+    "makespan"
+  ],
+  "records": 23670,
+  "oos_digest": "9219266ad001420fffdcb93b3d135774ab893c9c8357fcdfbcf11520e29788cb",
+  "oos_baseline_digest": "e808205c2ff1d773fd1ca6f2f123fc8052fb124fcedbbcd83c20ee20835ece4a",
+  "oos_seed": 930001,
+  "oos_baseline_seed": 930002,
+  "representative": {
+    "solution_id": "formal-run-01-CCP30-solution-0081",
+    "seed": 940001,
+    "selection_basis": "median S-min composite JS distance"
+  },
+  "candidate": "S=100",
+  "decision_fingerprints_unchanged": true,
+  "new_optimisation": false,
+  "smoke_test": false
+}
