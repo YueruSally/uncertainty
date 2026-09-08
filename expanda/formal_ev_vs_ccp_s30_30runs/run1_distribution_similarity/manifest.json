@@ -1,0 +1,54 @@
+{
+  "purpose": "fixed-decision objective-distribution similarity",
+  "sizes": [
+    30,
+    100,
+    300
+  ],
+  "seeds": [
+    940001,
+    940002,
+    940003,
+    940004,
+    940005,
+    940006,
+    940007,
+    940008,
+    940009,
+    940010
+  ],
+  "master_size": 300,
+  "oos_size": 5000,
+  "oos_seed": 930001,
+  "solution_count": 263,
+  "histogram_bins": 20,
+  "histogram_smoothing": 0.5,
+  "coverage_tolerance_pp": 2.5,
+  "minimum_gain_captured": 0.6,
+  "limit": null,
+  "numpy_version": "1.23.5",
+  "python_version": "3.10.9 (main, Mar  1 2023, 18:23:06) [GCC 11.2.0]",
+  "input_sha256": {
+    "formal_ev_vs_ccp_s30_30runs/run_01/CCP30/final_feasible_nondominated.json": "c9bd6e68beae711d663eafdb13bcbc585be80050945371adee812461d986e007",
+    "formal_ev_vs_ccp_s30_30runs/run_01/CCP30/configuration.json": "2b92ae845d3c1ad095d0cec1b4347a44bb25f226bc77da3707e6c35ce10e9684",
+    "data/data_expanded.xlsx": "62515c3bb4aca8b88fd1bd287ef8eb804494dfff23d04f4e798efecab09d4b83",
+    "data/border_crossing_events.csv": "ba7c802ceacd2d37c9be722cfa49d0bb6b57d63a895fb7e6905de6e5fbc7ea8c",
+    "baseline_uncertainty.py": "9748d95e6f81ec93282476496a06fc9df3aacacec703789055ecaf639a946794",
+    "run_ccp30_sample_stability.py": "be4c24259229d0ae49b08260f0852f73b533f92bd3911c86d0b36649f705b22e",
+    "run_ccp30_distribution_similarity.py": "6491eb9aafb725fd8fbb8f66f0c9baee2bb09711e2ee682481d121a9d623dd84"
+  },
+  "waiting": {
+    "waiting_emission_gCO2_per_TEU_h": 320.5,
+    "waiting_emission_scope": "timetable-induced schedule waiting",
+    "waiting_emission_parameterisation": "common across road/rail/water",
+    "waiting_emission_source_note": "literature-informed common modelling assumption based on Lomotko et al. (2023)",
+    "carbon_cost_waiting_emission": true,
+    "waiting_carbon_region_basis": "waiting-node region",
+    "waiting_carbon_mode_basis": "outgoing scheduled mode"
+  },
+  "post_validation_pareto_filtering": false,
+  "new_optimisation": false,
+  "common_oos_reference": true,
+  "nested_training_prefixes": true,
+  "smoke_test": false
+}
