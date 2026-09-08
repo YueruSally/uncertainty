@@ -1,0 +1,16 @@
+{
+  "replicate": 3,
+  "method": "CCP100",
+  "sample_size": 100,
+  "algorithm_seed": 980103,
+  "training_master_seed": 980203,
+  "population": 100,
+  "generations": 100,
+  "alpha": 0.9,
+  "formulation": "separate marginal empirical q90 objectives",
+  "candidate_count": 53,
+  "runtime_seconds": 69.33397848112509,
+  "candidate_sha256": "1908263c1feb4be29efc28b11e519a9349637ad99ce884d04ab90ca5ebaaae91",
+  "configuration_sha256": "fc399de1ede0c124ba9b7db8ba738f49514cddab704d634cb38751a8e20e8f2d",
+  "completed": true
+}

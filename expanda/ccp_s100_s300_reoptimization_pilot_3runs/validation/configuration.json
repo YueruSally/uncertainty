@@ -1,0 +1,9 @@
+{
+  "size": 5000,
+  "seed": 980999,
+  "digest": "8759b66dcdb14c2fbca05f8ac721f2e8c1df048461bed6a47fc643987bec5665",
+  "candidate_count": 298,
+  "one_common_scenario_set": true,
+  "post_oos_candidate_filtering": false,
+  "scenario_level_results_written": false
+}

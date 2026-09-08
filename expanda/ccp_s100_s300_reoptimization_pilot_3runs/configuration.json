@@ -1,0 +1,79 @@
+{
+  "label": "paired CCP100/CCP300 small-budget re-optimisation pilot",
+  "scope": "sample-size selection pilot; not formal inferential experiment",
+  "population": 100,
+  "generations": 100,
+  "alpha": 0.9,
+  "replicates": 3,
+  "training_sizes": [
+    100,
+    300
+  ],
+  "validation_size": 5000,
+  "validation_seed": 980999,
+  "validation_digest": "8759b66dcdb14c2fbca05f8ac721f2e8c1df048461bed6a47fc643987bec5665",
+  "replicate_seeds": [
+    {
+      "replicate": 1,
+      "algorithm_seed": 980101,
+      "training_master_seed": 980201
+    },
+    {
+      "replicate": 2,
+      "algorithm_seed": 980102,
+      "training_master_seed": 980202
+    },
+    {
+      "replicate": 3,
+      "algorithm_seed": 980103,
+      "training_master_seed": 980203
+    }
+  ],
+  "training_scenario_digests": [
+    {
+      "replicate": 1,
+      "S100": "4dada0b65e182a489da837c2a238bbb1b369485fdddda01121980975bb42eefe",
+      "S300": "0f487c9701150a0455ee16a9321a1668df65c14da788a6afdc568887ceafe906",
+      "S100_exact_S300_prefix": true
+    },
+    {
+      "replicate": 2,
+      "S100": "c80e6efc0cc7f47bbc6fcbf657920621cb3fa88a6fd521f1efc7ad5ed52782cc",
+      "S300": "3536288147519049855f868c3bf55c14c24de8b4aedbefd625e6d6d7b007d6b5",
+      "S100_exact_S300_prefix": true
+    },
+    {
+      "replicate": 3,
+      "S100": "591204d3ce35d8acf931c25c20ab4e5fad4c416af01eaca82b35080ae52b8aa0",
+      "S300": "4ff0bf66c1b11f7fe1c9248447c2f4e1fed0211a8695e9f7f0d2dbae0ece0920",
+      "S100_exact_S300_prefix": true
+    }
+  ],
+  "nested_training_prefixes": true,
+  "paired_algorithm_seeds": true,
+  "path_library_seed": 0,
+  "common_oos_for_all_candidates": true,
+  "new_optimisation": true,
+  "post_oos_candidate_filtering": false,
+  "scenario_level_results_written": false,
+  "metric_fronts_used_only_for_hv_igd_geometry": true,
+  "operators": {
+    "crossover_rate": 0.9,
+    "mutation_rate": 0.15
+  },
+  "waiting": {
+    "waiting_emission_gCO2_per_TEU_h": 320.5,
+    "waiting_emission_scope": "timetable-induced schedule waiting",
+    "waiting_emission_parameterisation": "common across road/rail/water",
+    "waiting_emission_source_note": "literature-informed common modelling assumption based on Lomotko et al. (2023)",
+    "carbon_cost_waiting_emission": true,
+    "waiting_carbon_region_basis": "waiting-node region",
+    "waiting_carbon_mode_basis": "outgoing scheduled mode"
+  },
+  "input_sha256": {
+    "data/data_expanded.xlsx": "62515c3bb4aca8b88fd1bd287ef8eb804494dfff23d04f4e798efecab09d4b83",
+    "/home/lunet/cokt2/uncertainty/expanda/data/border_crossing_events.csv": "ba7c802ceacd2d37c9be722cfa49d0bb6b57d63a895fb7e6905de6e5fbc7ea8c",
+    "/home/lunet/cokt2/uncertainty/expanda/baseline_uncertainty.py": "9748d95e6f81ec93282476496a06fc9df3aacacec703789055ecaf639a946794",
+    "/home/lunet/cokt2/uncertainty/expanda/run_ccp_s100_s300_reoptimization_pilot.py": "b54d4e0dcdec66bbabb8a0a2ae0d1f960f0cabab9f59c5f655066cc66d86a818"
+  }
+}

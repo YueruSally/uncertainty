@@ -1,0 +1,17 @@
+{
+  "replicate": 1,
+  "method": "CCP100",
+  "sample_size": 100,
+  "algorithm_seed": 980101,
+  "training_master_seed": 980201,
+  "population": 100,
+  "generations": 100,
+  "alpha": 0.9,
+  "formulation": "separate marginal empirical q90 objectives",
+  "training_scenario_digest": "4dada0b65e182a489da837c2a238bbb1b369485fdddda01121980975bb42eefe",
+  "seeds": {
+    "algorithm": 980101,
+    "training_master": 980201,
+    "path_library": 0
+  }
+}
