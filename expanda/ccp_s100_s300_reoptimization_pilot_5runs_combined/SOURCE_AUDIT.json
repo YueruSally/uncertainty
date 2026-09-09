@@ -1,0 +1,61 @@
+{
+  "first_source": "ccp_s100_s300_reoptimization_pilot_3runs",
+  "second_source": "ccp_s100_s300_reoptimization_additional_runs_04_05",
+  "first_complete": {
+    "replicates": 3,
+    "methods": [
+      "CCP100",
+      "CCP300"
+    ],
+    "optimisations": 6,
+    "population": 100,
+    "generations": 100,
+    "validation_scenarios": 5000,
+    "validation_seed": 980999,
+    "validation_digest": "8759b66dcdb14c2fbca05f8ac721f2e8c1df048461bed6a47fc643987bec5665",
+    "candidate_count": 298,
+    "all_original_training_pareto_candidates_retained": true,
+    "post_oos_candidate_filtering": false,
+    "all_decision_fingerprints_unchanged": true,
+    "scenario_level_results_written": false,
+    "pilot_not_formal_inference": true,
+    "completed": true
+  },
+  "second_complete": {
+    "replicates": 2,
+    "replicate_ids": [
+      4,
+      5
+    ],
+    "methods": [
+      "CCP100",
+      "CCP300"
+    ],
+    "optimisations": 4,
+    "population": 100,
+    "generations": 100,
+    "validation_scenarios": 5000,
+    "validation_seed": 980999,
+    "validation_digest": "8759b66dcdb14c2fbca05f8ac721f2e8c1df048461bed6a47fc643987bec5665",
+    "candidate_count": 176,
+    "all_original_training_pareto_candidates_retained": true,
+    "post_oos_candidate_filtering": false,
+    "all_decision_fingerprints_unchanged": true,
+    "scenario_level_results_written": false,
+    "pilot_not_formal_inference": true,
+    "completed": true
+  },
+  "replicate_ids": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "combined_candidate_count": 474,
+  "common_validation_seed": 980999,
+  "common_validation_digest": "8759b66dcdb14c2fbca05f8ac721f2e8c1df048461bed6a47fc643987bec5665",
+  "global_metrics_recomputed": true,
+  "new_optimisation": false,
+  "new_scenario_evaluation": false
+}

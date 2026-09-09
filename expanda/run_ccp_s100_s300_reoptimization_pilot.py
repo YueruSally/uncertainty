@@ -289,11 +289,11 @@ def build_run_rows(
     summaries: list[dict],
     quality: dict,
     runtimes: dict,
-    replicate_count: int,
+    replicate_ids: Sequence[int],
     alpha: float,
 ) -> list[dict]:
     rows = []
-    for replicate in range(1, replicate_count + 1):
+    for replicate in replicate_ids:
         for method in METHODS:
             group = [
                 row for row in summaries
@@ -333,7 +333,7 @@ def build_run_rows(
     return rows
 
 
-def build_paired_rows(run_rows: list[dict], replicate_count: int) -> list[dict]:
+def build_paired_rows(run_rows: list[dict], replicate_ids: Sequence[int]) -> list[dict]:
     paired = []
     metric_specs = {
         "optimisation_runtime_seconds": "S300_minus_S100",
@@ -343,7 +343,7 @@ def build_paired_rows(run_rows: list[dict], replicate_count: int) -> list[dict]:
         "oos_q90_igd_plus": "S300_minus_S100",
         "all_objectives_mean_absolute_coverage_gap_pp": "S300_minus_S100",
     }
-    for replicate in range(1, replicate_count + 1):
+    for replicate in replicate_ids:
         left = next(
             row for row in run_rows if row["replicate"] == replicate and row["method"] == "CCP100"
         )
@@ -497,10 +497,11 @@ def plot_coverage(out: Path, run_rows: list[dict], alpha: float) -> None:
 
 
 def write_report(out: Path, run_rows: list[dict], aggregate: dict, args) -> None:
+    replicate_count = len({row["replicate"] for row in run_rows})
     lines = [
         "# CCP100 versus CCP300 re-optimisation pilot",
         "",
-        f"This descriptive pilot uses {args.replicates} paired repetitions, population "
+        f"This descriptive pilot uses {replicate_count} paired repetitions, population "
         f"{args.pop}, {args.gens} generations and one fresh common OOS-{args.validation_scenarios} "
         f"sample. It is not a formal inferential experiment.",
         "",
@@ -534,7 +535,7 @@ def write_report(out: Path, run_rows: list[dict], aggregate: dict, args) -> None
         )
     lines += [
         "",
-        "With only three paired repetitions, win counts and differences are descriptive. Do not report significance tests or claim that either sample size is definitively superior.",
+        f"With only {replicate_count} paired repetitions, win counts and differences are descriptive. Do not report significance tests or claim that either sample size is definitively superior.",
     ]
     (out / "REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -544,6 +545,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data", default="data/data_expanded.xlsx")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--replicates", type=int, default=3, choices=range(1, 6))
+    parser.add_argument(
+        "--replicate-ids",
+        type=int,
+        nargs="+",
+        help="Run exact replicate IDs from 1..5, e.g. --replicate-ids 4 5. "
+             "When omitted, runs IDs 1 through --replicates.",
+    )
     parser.add_argument("--pop", type=int, default=100)
     parser.add_argument("--gens", type=int, default=100)
     parser.add_argument("--alpha", type=float, default=0.90)
@@ -559,7 +567,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise ValueError("pop>=2, gens>=1 and validation-scenarios>=2 required")
     if not 0.0 < args.alpha <= 1.0:
         raise ValueError("alpha must lie in (0, 1]")
-    seeds = list(DEFAULT_PAIRS[: args.replicates])
+    replicate_ids = (
+        list(range(1, args.replicates + 1))
+        if args.replicate_ids is None
+        else list(args.replicate_ids)
+    )
+    if (
+        not replicate_ids
+        or len(replicate_ids) != len(set(replicate_ids))
+        or any(replicate < 1 or replicate > len(DEFAULT_PAIRS) for replicate in replicate_ids)
+    ):
+        raise ValueError("Replicate IDs must be unique integers in 1..5")
+    seeds = [DEFAULT_PAIRS[replicate - 1] for replicate in replicate_ids]
     used_seeds = [
         value
         for row in seeds
@@ -681,7 +700,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "population": args.pop,
         "generations": args.gens,
         "alpha": args.alpha,
-        "replicates": args.replicates,
+        "replicates": len(replicate_ids),
+        "replicate_ids": replicate_ids,
         "training_sizes": [100, 300],
         "validation_size": args.validation_scenarios,
         "validation_seed": args.validation_seed,
@@ -983,9 +1003,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     quality, scaling = validated_quality(summaries)
     atomic_json(out / "metrics" / "normalisation.json", scaling)
     run_rows = build_run_rows(
-        summaries, quality, runtimes, args.replicates, args.alpha
+        summaries, quality, runtimes, replicate_ids, args.alpha
     )
-    paired_rows = build_paired_rows(run_rows, args.replicates)
+    paired_rows = build_paired_rows(run_rows, replicate_ids)
     aggregate = aggregate_results(run_rows, paired_rows)
     write_csv(out / "metrics" / "per_run_summary.csv", run_rows)
     write_csv(out / "metrics" / "paired_comparison.csv", paired_rows)
@@ -996,9 +1016,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     write_report(out, run_rows, aggregate, args)
 
     complete = {
-        "replicates": args.replicates,
+        "replicates": len(replicate_ids),
+        "replicate_ids": replicate_ids,
         "methods": list(METHODS),
-        "optimisations": args.replicates * len(METHODS),
+        "optimisations": len(replicate_ids) * len(METHODS),
         "population": args.pop,
         "generations": args.gens,
         "validation_scenarios": args.validation_scenarios,

@@ -1,0 +1,20 @@
+{
+  "replicates": 5,
+  "replicate_ids": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "methods": [
+    "CCP100",
+    "CCP300"
+  ],
+  "combined_candidate_count": 474,
+  "one_global_oos_reference_front_per_view": true,
+  "one_global_normalisation_per_view": true,
+  "post_oos_candidate_filtering": false,
+  "descriptive_not_inferential": true,
+  "completed": true
+}

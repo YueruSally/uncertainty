@@ -1,0 +1,8 @@
+{
+  "replicate_04_CCP100_optimisation_seconds": 69.55768791725859,
+  "replicate_04_CCP300_optimisation_seconds": 78.85374203138053,
+  "replicate_05_CCP100_optimisation_seconds": 68.42978639528155,
+  "replicate_05_CCP300_optimisation_seconds": 78.71796271437779,
+  "validation_seconds_this_invocation": 14.76943332189694,
+  "validation_candidate_count": 176
+}

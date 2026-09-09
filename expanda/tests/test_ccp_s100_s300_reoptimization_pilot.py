@@ -59,7 +59,6 @@ def test_build_paired_rows_uses_s300_minus_s100_direction():
         "optimisation_runtime_seconds": 30.0,
         "oos_mean_hypervolume": 0.8,
     }
-    row = pilot.build_paired_rows([left, right], 1)[0]
+    row = pilot.build_paired_rows([left, right], [1])[0]
     assert np.isclose(row["oos_mean_hypervolume_S300_minus_S100"], 0.3)
     assert np.isclose(row["optimisation_runtime_seconds_S300_minus_S100"], 20.0)
-
