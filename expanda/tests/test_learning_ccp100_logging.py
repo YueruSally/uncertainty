@@ -165,6 +165,46 @@ class LoggingTests(unittest.TestCase):
         self.assertEqual(result["missing_allocation_restored"], 1)
         self.assertEqual(fingerprint(self.ind), fingerprint(before))
 
+    def test_repair_is_idempotent_for_roundoff_level_share_sum(self):
+        a = deepcopy(self.arc)
+        b = deepcopy(self.arc)
+        a.to_node = "C"
+        b.from_node = "C"
+        a.distance = b.distance = 30.
+        alternative = base.path_from_arcs([a, b], "A", "B")
+        self.ind.od_allocations[self.key] = [
+            base.PathAllocation(self.path, .3),
+            base.PathAllocation(alternative, .7000000000005),
+        ]
+        before = deepcopy(self.ind)
+        lookup = {**self.lookup, ("A", "C", "road"): a, ("C", "B", "road"): b}
+        result = repair_after_mutation(
+            self.ind, before, [self.batch], self.paths, {}, lookup)
+        self.assertEqual(result["repair_action_count"], 0)
+        self.assertFalse(result["share_normalised"])
+        self.assertEqual(fingerprint(self.ind), fingerprint(before))
+
+    def test_repair_normalises_material_share_sum_error(self):
+        a = deepcopy(self.arc)
+        b = deepcopy(self.arc)
+        a.to_node = "C"
+        b.from_node = "C"
+        a.distance = b.distance = 30.
+        alternative = base.path_from_arcs([a, b], "A", "B")
+        self.ind.od_allocations[self.key] = [
+            base.PathAllocation(self.path, .3),
+            base.PathAllocation(alternative, .6),
+        ]
+        before = deepcopy(self.ind)
+        lookup = {**self.lookup, ("A", "C", "road"): a, ("C", "B", "road"): b}
+        result = repair_after_mutation(
+            self.ind, before, [self.batch], self.paths, {}, lookup)
+        self.assertEqual(result["repair_action_count"], 1)
+        self.assertTrue(result["share_normalised"])
+        self.assertAlmostEqual(
+            sum(x.share for x in self.ind.od_allocations[self.key]), 1.0)
+        self.assertNotEqual(fingerprint(self.ind), fingerprint(before))
+
 
 if __name__ == "__main__":
     unittest.main()

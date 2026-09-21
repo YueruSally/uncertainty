@@ -41,6 +41,7 @@ OOS不参与位置特征、训练标签或优化，不进行OOS后candidate过�
 - 当前容量检查是名义计划时刻下的容量，不是100场景容量均值/q90。
 - mod仍只改share，mode仍只改一条arc，replace仍替换整个batch为单路径。
 - 保留现有各算子内部merge/normalise；统一结构repair再次验证编码、补缺失分配；非法mutation回滚。
+- 统一repair对仅有浮点舍入误差（share总和与1相差不超过1e-12）的合法编码保持幂等，不重复归一化。
 - 不新增容量repair；现有road fallback仍保留在原来路径构建/重建位置。
 - 原baseline命令不启用日志；请使用新入口。该分支上的五个概率对旧入口也已改为0.2。
 

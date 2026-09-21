@@ -88,13 +88,23 @@ def repair_after_mutation(ind, before, batches, path_lib, tt_dict, arc_lookup):
             result.update(repair_success=False, invalid_path_detected=True, mutation_reverted=True)
             ind.od_allocations = before.od_allocations
             return result
-        old = [(a.path, a.share) for a in allocs]
-        merged = base.merge_and_normalize(allocs)
-        result["duplicate_paths_merged"] += len(allocs) - len({a.path for a in allocs})
-        result["shares_removed"] += max(0, len({a.path for a in allocs}) - len(merged))
-        if old != [(a.path, a.share) for a in merged]:
-            result["share_normalised"] = True
-            result["repair_action_count"] += 1
+        unique_count = len({a.path for a in allocs})
+        has_duplicates = unique_count != len(allocs)
+        has_filtered_share = any(a.share <= 0.05 for a in allocs)
+        share_total = sum(a.share for a in allocs)
+        needs_normalisation = (has_duplicates or has_filtered_share
+                               or not math.isclose(share_total, 1.0,
+                                                   rel_tol=0.0, abs_tol=1e-12))
+        merged = allocs
+        if needs_normalisation:
+            old = [(a.path, a.share) for a in allocs]
+            merged = base.merge_and_normalize(allocs)
+            result["duplicate_paths_merged"] += len(allocs) - unique_count
+            result["shares_removed"] += max(0, unique_count - len(merged))
+            if old != [(a.path, a.share) for a in merged]:
+                result["share_normalised"] = True
+                result["repair_action_count"] += 1
+                ind.od_allocations[key] = merged
         if not merged:
             options = [p for p in path_lib.get((batch.origin, batch.destination), [])
                        if valid_path(p, batch, tt_dict, arc_lookup)]
@@ -105,5 +115,5 @@ def repair_after_mutation(ind, before, batches, path_lib, tt_dict, arc_lookup):
             merged = [base.PathAllocation(options[0], 1.0)]
             result["missing_allocation_restored"] += 1
             result["repair_action_count"] += 1
-        ind.od_allocations[key] = merged
+            ind.od_allocations[key] = merged
     return result
