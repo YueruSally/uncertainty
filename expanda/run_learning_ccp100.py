@@ -10,6 +10,8 @@ import time
 import numpy as np
 
 import baseline_uncertainty as base
+from learning_policy import (EligibleRuleLocationPolicy, LearningLocationPolicy,
+                             RandomLocationPolicy)
 from mutation_logging import MutationLogger, write_json
 from run_ev_ccp_oos_pilot import candidate_rows, json_candidate, scenario_digest, summarise
 
@@ -28,6 +30,11 @@ def main(argv=None):
     parser.add_argument("--path-seed", type=int, default=0)
     parser.add_argument("--evaluation-budget", type=int, default=None,
                         help="Hard cap on actual training evaluations, including initialisation and boost.")
+    parser.add_argument("--policy", choices=("random", "rule", "learning"), default="random")
+    parser.add_argument("--model", type=Path,
+                        help="location_model.joblib; required only for --policy learning")
+    parser.add_argument("--epsilon", type=float, default=.10,
+                        help="Baseline-random exploration probability for Learning policy.")
     parser.add_argument("--validate-oos", action="store_true",
                         help="Optional final-only 5000-scenario evaluation; never used for learning.")
     parser.add_argument("--validation-seed", type=int, default=981999)
@@ -38,6 +45,12 @@ def main(argv=None):
         parser.error("evaluation-budget must be at least pop+4")
     if args.training_seed == args.validation_seed:
         parser.error("training and validation seeds must differ")
+    if args.policy == "learning" and args.model is None:
+        parser.error("--model is required for --policy learning")
+    if args.policy != "learning" and args.model is not None:
+        parser.error("--model is only valid for --policy learning")
+    if not 0.0 <= args.epsilon <= 1.0:
+        parser.error("--epsilon must be between zero and one")
     if args.out.exists() and any(args.out.iterdir()):
         parser.error("output directory must be empty; use a new --out for each run")
     args.out.mkdir(parents=True, exist_ok=True)
@@ -67,11 +80,19 @@ def main(argv=None):
     base.CONFIDENCE_COST = base.CONFIDENCE_EMISSION = base.CONFIDENCE_TIME = .90
     random.seed(args.algorithm_seed)
     np.random.seed(args.algorithm_seed)
+    if args.policy == "random":
+        policy, method = RandomLocationPolicy(), "Random-CCP100"
+    elif args.policy == "rule":
+        policy, method = EligibleRuleLocationPolicy(), "Rule-CCP100"
+    else:
+        policy = LearningLocationPolicy(args.model, epsilon=args.epsilon)
+        method = "Learning-CCP100"
     try:
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     except (OSError, subprocess.CalledProcessError):
         commit = None
-    config = dict(schema_version=1, method="Random-CCP100", stage="logging pilot; no trained model",
+    config = dict(schema_version=2, method=method,
+        stage="location-policy optimisation with attributable mutation logging",
         population=args.pop, generations=args.gens, alpha=.90, training_size=100,
         seeds=dict(algorithm=args.algorithm_seed, training=args.training_seed, path=args.path_seed,
                    validation=args.validation_seed), git_commit=commit,
@@ -81,6 +102,9 @@ def main(argv=None):
         operator_probabilities=dict(zip(base.OPS, base._FIXED_OP_PROBS)),
         crossover_rate=base.CROSSOVER_RATE, mutation_rate=base.MUTATION_RATE,
         repair="encoding only; invalid mutation rolled back; no capacity repair",
+        location_policy=dict(name=policy.name, epsilon=args.epsilon if args.policy == "learning" else None,
+            model=str(args.model) if args.model else None,
+            model_sha256=hashlib.sha256(args.model.read_bytes()).hexdigest() if args.model else None),
         capacity_semantics="nominal planning capacity, not scenario-wise capacity",
         objective_units=dict(cost="USD", emission="gCO2", makespan="h"),
         training_feature_note="No OOS features/labels; infeasible objective labels masked, violations retained",
@@ -89,11 +113,13 @@ def main(argv=None):
                          travel_caps=base.MODE_TIME_MAX_FACTOR, border_cap=base.BORDER_DELAY_MAX_FACTOR),
         input_sha256={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in
             (args.data, Path(base.DEFAULT_BORDER_EVENT_DATA_FILE), ROOT/"baseline_uncertainty.py",
-             ROOT/"learning_mutation.py", ROOT/"mutation_logging.py", Path(__file__))},
+             ROOT/"learning_mutation.py", ROOT/"learning_features.py",
+             ROOT/"learning_policy.py", ROOT/"mutation_logging.py", Path(__file__))},
         final_oos_size=5000 if args.validate_oos else 0)
     write_json(args.out / "configuration.json", config)
-    run_id = f"random-ccp100-a{args.algorithm_seed}-s{args.training_seed}"
-    logger = MutationLogger(args.out, run_id, digest, args.evaluation_budget)
+    run_id = f"{args.policy}-ccp100-a{args.algorithm_seed}-s{args.training_seed}"
+    logger = MutationLogger(args.out, run_id, digest, args.evaluation_budget,
+                            policy=policy, method=method)
     preparation_seconds = time.perf_counter() - total_started
     started = time.perf_counter()
     base.ACTIVE_MUTATION_LOGGER = logger
@@ -109,11 +135,11 @@ def main(argv=None):
     runtime = time.perf_counter() - started
     fronts = base.fast_non_dominated_sort(population)
     front = [population[i] for i in fronts[0] if population[i].feasible]
-    rows = candidate_rows("Random-CCP100", run_id, front, config)
+    rows = candidate_rows(method, run_id, front, config)
     write_json(args.out / "final_feasible_nondominated.json", [json_candidate(r) for r in rows])
     if not rows:
         write_json(args.out / "best_infeasible.json",
-                   json_candidate(candidate_rows("Random-CCP100", run_id,
+                   json_candidate(candidate_rows(method, run_id,
                         [min(population, key=base.constraint_sort_key)], config)[0]))
     oos_seconds = 0.0
     if args.validate_oos and rows:
@@ -138,7 +164,7 @@ def main(argv=None):
         write_json(args.out / "oos_summary.json", dict(size=5000, seed=args.validation_seed,
             scenario_digest=scenario_digest(oos), post_oos_filtering=False, candidates=summaries))
         oos_seconds = time.perf_counter() - oos_start
-    summary = dict(completed=True, method="Random-CCP100", ccp_evaluation_count=logger.evaluations,
+    summary = dict(completed=True, method=method, ccp_evaluation_count=logger.evaluations,
         identical_evaluation_reuses=logger.cache_hits, mutation_attempts=logger.total_attempts,
         effective_modifications=logger.total_effective, final_pareto_size=len(rows),
         preparation_seconds=preparation_seconds, optimisation_seconds=runtime, oos_seconds=oos_seconds,

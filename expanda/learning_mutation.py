@@ -1,7 +1,6 @@
 """Position-selection interface. V1 implements Random only; no ML claims."""
 from dataclasses import dataclass
 import math
-import random
 
 import baseline_uncertainty as base
 
@@ -50,13 +49,6 @@ def enumerate_targets(ind, batches, op, path_lib, tt_dict, arc_lookup):
                                  len(allocs) > 1 if op == "mod" else
                                  bool(path_lib.get((batch.origin, batch.destination))))})
     return rows
-
-
-class RandomLocationPolicy:
-    name = "random"
-
-    def choose(self, candidates):
-        return random.choices(candidates, weights=[r["selection_probability"] for r in candidates], k=1)[0]
 
 
 def valid_path(path, batch, tt_dict, arc_lookup):

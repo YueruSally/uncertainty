@@ -6,6 +6,8 @@ __pycache__/
 
 # Local Learning-CCP100 training logs and pilot outputs
 expanda/learning_runs/
+expanda/learning_dataset*/
+expanda/learning_model*/
 
 # Large reproducible scenario-level OOS records
 expanda/ccp_s30_s50_selection_5runs/validation/scenario_level_results.csv.gz

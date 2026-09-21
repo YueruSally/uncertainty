@@ -7,7 +7,8 @@ import math
 import time
 
 import baseline_uncertainty as base
-from learning_mutation import RandomLocationPolicy, enumerate_targets, repair_after_mutation
+from learning_mutation import enumerate_targets, repair_after_mutation
+from learning_policy import RandomLocationPolicy
 
 
 def fingerprint(ind):
@@ -33,9 +34,11 @@ def write_json(path, value):
 
 
 class MutationLogger:
-    def __init__(self, out, run_id, scenario_id, budget=None):
+    def __init__(self, out, run_id, scenario_id, budget=None, policy=None,
+                 method="Random-CCP100"):
         self.out, self.run_id, self.scenario_id, self.budget = out, run_id, scenario_id, budget
-        self.policy = RandomLocationPolicy()
+        self.policy = policy or RandomLocationPolicy()
+        self.method = method
         self.evaluations = self.cache_hits = self.event_count = 0
         self.generation, self.phase = -1, "initialisation"
         self.generations_completed = 0
@@ -77,15 +80,25 @@ class MutationLogger:
         before_count = self.evaluations
         op = base.sample_operator()
         candidates = enumerate_targets(ind, batches, op, path_lib, tt_dict, arc_lookup)
-        chosen = self.policy.choose(candidates)
+        context = dict(operator=op, generation=self.generation, phase=self.phase,
+            feasible_before=bool(before.feasible), violation_before=before.normalized_violation,
+            q90_cost_before=before.objectives[0], q90_emission_before=before.objectives[1],
+            q90_makespan_before=before.objectives[2])
+        decision = self.policy.choose(candidates, context)
+        chosen = candidates[decision.chosen_index]
         target = chosen["target"]
         batch = next(b for b in batches if b.batch_id == target.batch_id)
         self.event_count += 1
         event_id = f"{self.run_id}:{self.event_count}"
-        for i, row in enumerate(candidates):
+        for i, candidate in enumerate(candidates):
+            baseline_probability = candidate["selection_probability"]
             self.append("mutation_candidates", dict(event_id=event_id, candidate_id=i,
-                **asdict(row["target"]), **{k: v for k, v in row.items() if k != "target"},
-                chosen=row is chosen))
+                **asdict(candidate["target"]),
+                **{k: v for k, v in candidate.items()
+                   if k not in ("target", "selection_probability")},
+                baseline_selection_probability=baseline_probability,
+                selection_probability=decision.probabilities[i],
+                policy_score=decision.scores[i], chosen=i == decision.chosen_index))
         ok = base.apply_mutation_op(ind, op, batch, path_lib, tt_dict, arc_lookup,
                                     reliable_options=reliable_options, target=target)
         raw_hash = fingerprint(ind)
@@ -100,9 +113,12 @@ class MutationLogger:
         base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost, waiting_emission, **kwargs)
         finite = all(math.isfinite(v) for v in (*before.objectives, *ind.objectives))
         row = dict(run_id=self.run_id, scenario_id=self.scenario_id, event_id=event_id,
-            method="Random-CCP100", generation=self.generation, phase=self.phase,
+            method=self.method, generation=self.generation, phase=self.phase,
             operator=op, operator_probability=0.2, selection_policy=self.policy.name,
-            selection_probability=chosen["selection_probability"], exploration=True,
+            baseline_selection_probability=chosen["selection_probability"],
+            selection_probability=decision.probabilities[decision.chosen_index],
+            selected_policy_score=decision.scores[decision.chosen_index],
+            exploration=decision.exploration, policy_metadata=decision.metadata,
             **asdict(target), path_id=chosen["path_id"], candidate_count=len(candidates),
             selected_target_eligible=bool(chosen["eligible"]), mutation_success=bool(ok),
             raw_mutation_changed=raw_changed, repair_changed_decision=repair_changed,

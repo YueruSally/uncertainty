@@ -64,6 +64,9 @@ class LoggingTests(unittest.TestCase):
         event = json.loads((Path(self.tmp.name)/"mutation_events.jsonl").read_text())
         self.assertFalse(event["decision_changed"])
         self.assertEqual(event["delta_cost"], 0.)
+        candidate = json.loads((Path(self.tmp.name)/"mutation_candidates.jsonl").read_text())
+        self.assertEqual(candidate["baseline_selection_probability"],
+                         candidate["selection_probability"])
 
     def test_single_path_share_mutation_is_not_effective(self):
         with patch.object(base, "sample_operator", return_value="mod"):

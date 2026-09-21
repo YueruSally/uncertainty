@@ -1,7 +1,7 @@
-# Learning-CCP100：第一阶段（Random baseline + 训练日志）
+# Learning-CCP100：位置选择学习
 
-本版本尚未训练或运行Rule/Learning模型。先验证日志与标签，再在相同target接口上实现位置策略。
-不覆盖旧CCP100/300结果。新入口不运行CCP300，不自动开始完整大规模实验。
+只运行CCP100，不覆盖旧CCP100/300结果。五个mutation算子概率固定相等；
+Random、Rule和Learning只改变算子抽中以后的位置选择。
 
 ## 在仓库根目录运行
 
@@ -86,4 +86,41 @@ survived_environmental_selection只指当代NSGA-II选择；boost另用retained_
 
 ```bash
 python -m unittest tests.test_learning_ccp100_logging tests.test_baseline_uncertainty
+```
+
+## 冻结数据与训练模型
+
+训练数据只连接每个事件中实际chosen的candidate和实际outcome，不给未选择位置伪造反事实标签。
+训练/验证必须按完整run划分；OOS不进入特征或标签。
+
+```bash
+python expanda/build_learning_dataset.py \
+  --runs-root expanda/learning_runs \
+  --pattern 'random_final_v3_run*' \
+  --train-runs 1-7 --validation-runs 8-10 \
+  --out expanda/learning_dataset_v3
+
+python expanda/train_location_model.py \
+  --dataset expanda/learning_dataset_v3/selected_mutations.csv \
+  --manifest expanda/learning_dataset_v3/dataset_manifest.json \
+  --out expanda/learning_model_v3
+```
+
+模型目标为Pareto-promising：mutation有效且repair后可行，并且child支配before，
+或在before本身可行时形成非支配trade-off。训练使用Random日志的截断逆倾向权重。
+
+## Rule与Learning运行
+
+Rule保留Random的分层概率，并在eligible集合上进行条件化；若没有eligible位置则回退Random。
+Learning只对eligible位置评分，默认90%选择最高分、10%按原Random概率探索；
+日志保存实际混合策略概率，所有候选始终保持非零探索支持。
+
+```bash
+python expanda/run_rule_ccp100.py --out RULE_OUT --pop 100 --gens 1000 \
+  --evaluation-budget 15000 --algorithm-seed 1 --training-seed 2
+
+python expanda/run_learning_policy_ccp100.py \
+  --model expanda/learning_model_v3/location_model.joblib \
+  --out LEARNING_OUT --pop 100 --gens 1000 --evaluation-budget 15000 \
+  --algorithm-seed 1 --training-seed 2 --epsilon 0.10
 ```
