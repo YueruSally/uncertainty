@@ -47,7 +47,7 @@ def enumerate_targets(ind, batches, op, path_lib, tt_dict, arc_lookup):
                     "alternative_mode_count": len(alternatives),
                     "eligible": (len(allocs) > 1 if op == "del" else
                                  bool(alternatives) if op == "mode" else
-                                 bool(allocs) if op == "mod" else
+                                 len(allocs) > 1 if op == "mod" else
                                  bool(path_lib.get((batch.origin, batch.destination))))})
     return rows
 

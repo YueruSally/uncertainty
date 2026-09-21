@@ -94,6 +94,11 @@ class LoggingTests(unittest.TestCase):
             rows = enumerate_targets(self.ind, [self.batch], op, self.paths, {}, self.lookup)
             self.assertAlmostEqual(sum(r["selection_probability"] for r in rows), 1.)
 
+    def test_single_path_mod_target_is_ineligible(self):
+        rows = enumerate_targets(self.ind, [self.batch], "mod", self.paths, {}, self.lookup)
+        self.assertEqual(len(rows), 1)
+        self.assertFalse(rows[0]["eligible"])
+
     def test_budget_guard(self):
         self.logger.budget = 0
         with self.assertRaises(RuntimeError):
@@ -125,9 +130,33 @@ class LoggingTests(unittest.TestCase):
         row = self.logger.pending[0][1]
         self.assertEqual(self.logger.evaluations, 2)
         self.assertTrue(row["decision_changed"])
+        self.assertTrue(row["raw_mutation_changed"])
+        self.assertTrue(row["effective_mutation"])
+        self.assertTrue(row["outcome_attributable_to_selected_target"])
         self.assertEqual(row["q90_cost_before"], 60.)
         self.assertEqual(row["q90_cost_after"], 30.)
         self.assertEqual(row["delta_cost"], 30.)
+
+    def test_repair_only_change_is_not_an_effective_or_eligible_label(self):
+        def repair_only(ind, before, *args):
+            ind.od_allocations[self.key][0].share = .9
+            return dict(repair_called=True, repair_success=True, repair_action_count=1,
+                        duplicate_paths_merged=0, shares_removed=0, share_normalised=True,
+                        missing_allocation_restored=0, invalid_path_detected=False,
+                        mutation_reverted=False)
+
+        with patch.object(base, "sample_operator", return_value="del"), \
+                patch("mutation_logging.repair_after_mutation", side_effect=repair_only):
+            self.logger.mutate(self.ind, [self.batch], self.paths, {}, self.lookup,
+                               [self.arc], 0., 0.)
+        row = self.logger.pending[0][1]
+        self.assertFalse(row["raw_mutation_changed"])
+        self.assertTrue(row["repair_changed_decision"])
+        self.assertTrue(row["repair_only_change"])
+        self.assertFalse(row["effective_mutation"])
+        self.assertFalse(row["outcome_attributable_to_selected_target"])
+        self.assertFalse(row["objective_label_eligible"])
+        self.assertEqual(self.logger.total_effective, 0)
 
     def test_missing_allocation_is_restored(self):
         before = deepcopy(self.ind)

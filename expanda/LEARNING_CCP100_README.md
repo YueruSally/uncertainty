@@ -49,7 +49,7 @@ OOS不参与位置特征、训练标签或优化，不进行OOS后candidate过�
 add/replace选择batch；del/mod选择batch+allocation；mode选择batch+allocation+arc。
 候选路径、新mode和share幅度仍由原算子选择。
 Random保留分层均匀概率，而非对全部arc全局均匀抽样。
-支持集中保留不可执行位置并标注eligible=false（如单路径删除、无替代mode），以保留真实失败样本。
+支持集中保留不可执行位置并标注eligible=false（如单路径删除/改单路径share、无替代mode），以保留真实失败样本。
 Rule/Learning后续不能在未声明的情况下删掉这些候选改变对照。
 
 ## 日志
@@ -67,6 +67,9 @@ Rule/Learning后续不能在未声明的情况下删掉这些候选改变对照�
 
 before是**交叉后、变异前child**，不是mating parent。delta=before-after，正值为改善。
 失败/回滚/决策不变时复用before结果；成功但不变（单路径mod）不能算有效修改。
+raw_mutation_changed记录repair前的算子变化，repair_changed_decision记录repair是否改变决策，
+decision_changed记录repair后的最终变化。effective_mutation要求算子成功、repair前确实改变且最终未回到原决策。
+repair-only变化不归因于所选mutation位置，也不能作为该位置的目标值标签。
 不可行方案仍保留，但objective_label_eligible=false，不能把少运货造成的成本下降当改善。
 非有限数保存为JSON null，并保留finite_objective_label；不能把null填成零标签。
 repair日志不谎称做过repair前完整CCP评价；目前只记录before与修复后违反情况。

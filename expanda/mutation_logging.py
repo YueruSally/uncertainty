@@ -90,7 +90,13 @@ class MutationLogger:
                                     reliable_options=reliable_options, target=target)
         raw_hash = fingerprint(ind)
         repair = repair_after_mutation(ind, before, batches, path_lib, tt_dict, arc_lookup)
-        changed = fingerprint(ind) != before_hash
+        after_hash = fingerprint(ind)
+        raw_changed = raw_hash != before_hash
+        repair_changed = after_hash != raw_hash
+        changed = after_hash != before_hash
+        repair_only_change = not raw_changed and changed
+        effective_mutation = bool(ok and raw_changed and changed)
+        outcome_attributable = not repair_only_change and (bool(ok) or not raw_changed)
         base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost, waiting_emission, **kwargs)
         finite = all(math.isfinite(v) for v in (*before.objectives, *ind.objectives))
         row = dict(run_id=self.run_id, scenario_id=self.scenario_id, event_id=event_id,
@@ -98,15 +104,20 @@ class MutationLogger:
             operator=op, operator_probability=0.2, selection_policy=self.policy.name,
             selection_probability=chosen["selection_probability"], exploration=True,
             **asdict(target), path_id=chosen["path_id"], candidate_count=len(candidates),
-            mutation_success=bool(ok), decision_changed=changed,
-            decision_before=before_hash, decision_raw_mutation=raw_hash, decision_after=fingerprint(ind),
+            selected_target_eligible=bool(chosen["eligible"]), mutation_success=bool(ok),
+            raw_mutation_changed=raw_changed, repair_changed_decision=repair_changed,
+            repair_only_change=repair_only_change, effective_mutation=effective_mutation,
+            outcome_attributable_to_selected_target=outcome_attributable,
+            decision_changed=changed, decision_before=before_hash,
+            decision_raw_mutation=raw_hash, decision_after=after_hash,
             **repair, feasible_before=bool(before.feasible), feasible_after=bool(ind.feasible),
             violation_before=before.normalized_violation, violation_after=ind.normalized_violation,
             violation_breakdown_before=before.vio_breakdown, violation_breakdown_after=ind.vio_breakdown,
             evaluation_before=before._learning_eval_id, evaluation_after=ind._learning_eval_id,
             extra_after_evaluations=self.evaluations-before_count,
             ccp_evaluation_count=self.evaluations, finite_objective_label=finite,
-            objective_label_eligible=finite and before.feasible and ind.feasible,
+            objective_label_eligible=(finite and before.feasible and ind.feasible
+                                      and outcome_attributable),
             child_dominates_before=bool(base.dominates(ind, before)),
             before_dominates_child=bool(base.dominates(before, ind)))
         deltas = []
@@ -118,7 +129,7 @@ class MutationLogger:
         row["tradeoff_move"] = finite and any(d > 0 for d in deltas) and any(d < 0 for d in deltas)
         self.pending.append((ind, row))
         self.total_attempts += 1
-        self.total_effective += int(changed)
+        self.total_effective += int(effective_mutation)
         self.total_repaired += int(repair["repair_action_count"] > 0 or repair["mutation_reverted"])
         return op, bool(ok)
 
