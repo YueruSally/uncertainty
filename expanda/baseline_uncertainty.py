@@ -123,12 +123,13 @@ def print_waiting_emission_configuration(
 CROSSOVER_RATE  = 0.90       # ← Stage 2 best (G7: pc=0.90, pm=0.15)
 MUTATION_RATE   = 0.15       # ← Stage 2 best
 
-W_ADD     = 0.10
-W_DEL     = 0.15
-W_MOD     = 0.10
-W_MODE    = 0.10
-W_REPLACE = 0.55
+W_ADD     = 0.20
+W_DEL     = 0.20
+W_MOD     = 0.20
+W_MODE    = 0.20
+W_REPLACE = 0.20
 OPS       = ["add", "del", "mod", "mode", "replace"]
+ACTIVE_MUTATION_LOGGER = None  # Enabled only by run_learning_ccp100.py.
 
 # ── Path library  [TUNED Stage 3] ────────────────────────
 PATHS_TOPK_PER_CRITERION = 15        # ← Stage 3 best
@@ -2227,7 +2228,14 @@ def capacity_aware_initial_individual(
     return ind, excess
 
 
-def evaluate_individual(
+def evaluate_individual(ind, *args, **kwargs):
+    if ACTIVE_MUTATION_LOGGER is not None:
+        return ACTIVE_MUTATION_LOGGER.evaluate(
+            _evaluate_individual_impl, ind, *args, **kwargs)
+    return _evaluate_individual_impl(ind, *args, **kwargs)
+
+
+def _evaluate_individual_impl(
     ind, batches, arcs, tt_dict,
     waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
     node_hold_cost=None, node_proc_cost=None,
@@ -2678,33 +2686,35 @@ def mutate_add(ind, batch, path_lib):
     return True
 
 
-def mutate_del(ind, batch):
+def mutate_del(ind, batch, target_index=None):
     key    = (batch.origin, batch.destination, batch.batch_id)
     allocs = ind.od_allocations.get(key, [])
     if len(allocs) <= 1: return False
-    allocs.pop(random.randrange(len(allocs)))
+    allocs.pop(random.randrange(len(allocs)) if target_index is None else target_index)
     ind.od_allocations[key] = merge_and_normalize(allocs)
     return True
 
 
-def mutate_mod(ind, batch):
+def mutate_mod(ind, batch, target_index=None):
     key    = (batch.origin, batch.destination, batch.batch_id)
     allocs = ind.od_allocations.get(key, [])
     if not allocs: return False
-    random.choice(allocs).share *= random.uniform(0.5, 1.5)
+    chosen = random.choice(allocs) if target_index is None else allocs[target_index]
+    chosen.share *= random.uniform(0.5, 1.5)
     ind.od_allocations[key] = merge_and_normalize(allocs)
     return True
 
 
-def mutate_mode(ind, batch, tt_dict, arc_lookup, max_trials=20):
+def mutate_mode(ind, batch, tt_dict, arc_lookup, max_trials=20,
+                target_index=None, target_arc=None):
     key    = (batch.origin, batch.destination, batch.batch_id)
     allocs = ind.od_allocations.get(key, [])
     if not allocs: return False
-    idx       = random.randrange(len(allocs))
+    idx       = random.randrange(len(allocs)) if target_index is None else target_index
     old_alloc = allocs[idx]
     p         = old_alloc.path
     if not p.arcs: return False
-    arc_i     = random.randrange(len(p.arcs))
+    arc_i     = random.randrange(len(p.arcs)) if target_arc is None else target_arc
     old_arc   = p.arcs[arc_i]
     u, v      = old_arc.from_node, old_arc.to_node
     for _ in range(max_trials):
@@ -2762,11 +2772,14 @@ def sample_operator() -> str:
 
 
 def apply_mutation_op(ind, op, batch, path_lib, tt_dict, arc_lookup,
-                      reliable_options=None):
+                      reliable_options=None, target=None):
+    target_index = None if target is None else target.allocation_index
+    target_arc = None if target is None else target.arc_index
     if op == "add":  return mutate_add(ind, batch, path_lib)
-    if op == "del":  return mutate_del(ind, batch)
-    if op == "mod":  return mutate_mod(ind, batch)
-    if op == "mode": return mutate_mode(ind, batch, tt_dict, arc_lookup)
+    if op == "del":  return mutate_del(ind, batch, target_index)
+    if op == "mod":  return mutate_mod(ind, batch, target_index)
+    if op == "mode": return mutate_mode(ind, batch, tt_dict, arc_lookup,
+                                         target_index=target_index, target_arc=target_arc)
     if op == "replace":
         return mutate_replace_reliable(ind, batch, reliable_options)
     return False
@@ -2780,6 +2793,15 @@ def mutate_fixed(
     carbon_tax_map=None, trans_map=None, border_delay_map=None,
     theta_rm=None, node_trans_cost=None,
 ):
+    if ACTIVE_MUTATION_LOGGER is not None:
+        return ACTIVE_MUTATION_LOGGER.mutate(
+            ind, batches, path_lib, tt_dict, arc_lookup,
+            arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
+            reliable_options=reliable_options,
+            node_hold_cost=node_hold_cost, node_proc_cost=node_proc_cost,
+            carbon_tax_map=carbon_tax_map, trans_map=trans_map,
+            border_delay_map=border_delay_map, theta_rm=theta_rm,
+            node_trans_cost=node_trans_cost)
     batch = random.choice(batches)
     op    = sample_operator()
     ok    = apply_mutation_op(
@@ -3438,6 +3460,11 @@ def run_nsga2(
     _prev_best = [float("inf")] * NUM_OBJ
 
     for gen in range(generations):
+        if ACTIVE_MUTATION_LOGGER is not None:
+            ACTIVE_MUTATION_LOGGER.generation = gen
+            ACTIVE_MUTATION_LOGGER.phase = "offspring"
+            if not ACTIVE_MUTATION_LOGGER.has_budget(4):
+                break
 
         # ── Step 1: Binary tournament → mating pool ──────
         mating_pool = [nsga2_binary_tournament(population) for _ in range(pop_size)]
@@ -3445,6 +3472,8 @@ def run_nsga2(
         # ── Step 2: Crossover + Mutation → offspring Q ───
         offspring: List[Individual] = []
         while len(offspring) < pop_size:
+            if ACTIVE_MUTATION_LOGGER is not None and not ACTIVE_MUTATION_LOGGER.has_budget(4):
+                break
             p1, p2 = random.sample(mating_pool, 2)
             if random.random() < CROSSOVER_RATE:
                 c1, c2 = crossover_hybrid(p1, p2, batches, tt_dict, arc_lookup)
@@ -3475,6 +3504,8 @@ def run_nsga2(
         # ── Step 3: Environmental selection (P ∪ Q → new P) ──
         combined   = population + offspring
         population = nsga2_environmental_selection(combined, pop_size)
+        if ACTIVE_MUTATION_LOGGER is not None:
+            ACTIVE_MUTATION_LOGGER.flush_events(population)
 
         # ── Record metrics from population ───────────────
         feas_pop     = [ind for ind in population if ind.feasible]
@@ -3521,7 +3552,11 @@ def run_nsga2(
 
         # ── Step 4: Feasibility boost ────────────────────
         boost_triggered = boost_new_feas = 0
-        if feas_total < MIN_FEASIBLE_SOLUTIONS:
+        if (feas_total < MIN_FEASIBLE_SOLUTIONS
+                and (ACTIVE_MUTATION_LOGGER is None
+                     or ACTIVE_MUTATION_LOGGER.has_budget(4 * FEASIBLE_BOOST_ROUNDS))):
+            if ACTIVE_MUTATION_LOGGER is not None:
+                ACTIVE_MUTATION_LOGGER.phase = "boost"
             boost_triggered = 1
             population, boost_new_feas = feasibility_boost(
                 population, batches, path_lib, tt_dict, arc_lookup,
@@ -3537,6 +3572,9 @@ def run_nsga2(
 
         boost_trigger_hist.append(boost_triggered)
         boost_new_feas_hist.append(boost_new_feas)
+        if ACTIVE_MUTATION_LOGGER is not None:
+            ACTIVE_MUTATION_LOGGER.flush_events(population)
+            ACTIVE_MUTATION_LOGGER.log_generation(population, boost_triggered)
 
     # ── Final Pareto: rank-0 feasible from population ────────
     fronts_final = fast_non_dominated_sort(population)
@@ -3554,7 +3592,9 @@ def run_nsga2(
 
     total_t = time.perf_counter() - _run_start
     print(f"\n{'='*72}")
-    print(f"  [NSGA-II] Run complete: {generations} gens, {total_t:.1f}s, Pareto={len(pareto)}")
+    completed_generations = (ACTIVE_MUTATION_LOGGER.generations_completed
+                             if ACTIVE_MUTATION_LOGGER is not None else generations)
+    print(f"  [NSGA-II] Run complete: {completed_generations} gens, {total_t:.1f}s, Pareto={len(pareto)}")
     print(f"  ⚡ Boost: {sum(boost_trigger_hist)} gens triggered, "
           f"{sum(boost_new_feas_hist)} new feasible")
     if not pareto and population:

@@ -1,0 +1,85 @@
+# Learning-CCP100：第一阶段（Random baseline + 训练日志）
+
+本版本尚未训练或运行Rule/Learning模型。先验证日志与标签，再在相同target接口上实现位置策略。
+不覆盖旧CCP100/300结果。新入口不运行CCP300，不自动开始完整大规模实验。
+
+## 在仓库根目录运行
+
+```bash
+python -m pip install -r requirements.txt
+python expanda/run_learning_ccp100.py --out expanda/learning_runs/random_smoke --pop 20 --gens 5 --evaluation-budget 500
+```
+
+确认小规模日志正常后，运行数据收集pilot（不是正式结论）：
+
+```bash
+python expanda/run_learning_ccp100.py --out expanda/learning_runs/random_a981101_s981201 --pop 100 --gens 100 --evaluation-budget 15000 --algorithm-seed 981101 --training-seed 981201
+```
+
+每次使用新的输出目录，程序拒绝覆盖已有内容。没有断点续跑功能。
+`--gens`和`--evaluation-budget`哪个先到就停止；想按预算比较时将`--gens`设得足够大。
+预算包含初始种群、mutation前后的真实评价、boost评价；复用同一个体相同决策的结果不计为新评价。
+每对offspring保守预留4次评价，可能剩余不足4次未使用；boost保守预留80次，剩余不足时跳过。
+因此正式比较还需同时报告实际评价数、boost次数及停止原因，不能只报告N×G。
+所有位置方法必须使用相同计数/预算规则。路径库构建、路径级仿真和日志开销不混充完整solution评价。
+
+可选：在**同一次新运行结束后**对所有最终原始Pareto方案做5000 OOS验证：
+
+```bash
+python expanda/run_learning_ccp100.py --out expanda/learning_runs/random_with_oos --pop 100 --gens 100 --evaluation-budget 15000 --validate-oos
+```
+
+OOS不参与位置特征、训练标签或优化，不进行OOS后candidate过滤。
+日志pilot阶段不必运行OOS。正式实验冻结设计前不要反复使用最终OOS调参。
+
+## 改动边界
+
+- 五个算子add/del/mod/mode/replace的**尝试概率**均为0.2；失败不重新抽算子。
+- 总mutation触发概率仍为0.15，crossover仍为0.90。
+- CCP100固定100场景、三个独立经验q90（第90个顺序统计量）。
+- 不改变两类随机源、时刻表、碳成本、等待排放或容量语义。
+- 当前容量检查是名义计划时刻下的容量，不是100场景容量均值/q90。
+- mod仍只改share，mode仍只改一条arc，replace仍替换整个batch为单路径。
+- 保留现有各算子内部merge/normalise；统一结构repair再次验证编码、补缺失分配；非法mutation回滚。
+- 不新增容量repair；现有road fallback仍保留在原来路径构建/重建位置。
+- 原baseline命令不启用日志；请使用新入口。该分支上的五个概率对旧入口也已改为0.2。
+
+## 位置与失败样本
+
+add/replace选择batch；del/mod选择batch+allocation；mode选择batch+allocation+arc。
+候选路径、新mode和share幅度仍由原算子选择。
+Random保留分层均匀概率，而非对全部arc全局均匀抽样。
+支持集中保留不可执行位置并标注eligible=false（如单路径删除、无替代mode），以保留真实失败样本。
+Rule/Learning后续不能在未声明的情况下删掉这些候选改变对照。
+
+## 日志
+
+| 文件 | 内容 |
+|---|---|
+| configuration.json | 场景digest、seeds、代码/输入SHA256、预算、单位、概率 |
+| mutation_events.jsonl | 每次尝试、before/after q90、可行性、违反、repair、存活标记 |
+| mutation_candidates.jsonl | 当次全部位置、特征、抽样概率、是否被选中 |
+| generation_summary.jsonl | 真实评价数、复用次数、累计有效修改率、repair率、训练front、boost |
+| final_feasible_nondominated.json | 原始训练非支配可行决策（只按决策去重） |
+| best_infeasible.json | 无可行解时的诊断，不伪装成可行Pareto结果 |
+| COMPLETE.json | 成功完成标记、实际评价数、事件数、运行时间 |
+| oos_summary.json | 仅指定--validate-oos时输出，Median/q90/coverage等 |
+
+before是**交叉后、变异前child**，不是mating parent。delta=before-after，正值为改善。
+失败/回滚/决策不变时复用before结果；成功但不变（单路径mod）不能算有效修改。
+不可行方案仍保留，但objective_label_eligible=false，不能把少运货造成的成本下降当改善。
+非有限数保存为JSON null，并保留finite_objective_label；不能把null填成零标签。
+repair日志不谎称做过repair前完整CCP评价；目前只记录before与修复后违反情况。
+各算子内部原有归一化不计入统一repair_action_count。
+boost事件另标phase=boost，不与普通offspring成功率混用。
+survived_environmental_selection只指当代NSGA-II选择；boost另用retained_after_boost。
+训练front保留原始值；本阶段不生成动态缩放的HV伪曲线，也不宣称预测精度或Learning收益。
+未来按run/seed分割训练验证集，不能随机拆分高度相关的逐次变异样本。
+
+## 测试
+
+在expanda目录执行：
+
+```bash
+python -m unittest tests.test_learning_ccp100_logging tests.test_baseline_uncertainty
+```
