@@ -98,16 +98,17 @@ python expanda/build_learning_dataset.py \
   --runs-root expanda/learning_runs \
   --pattern 'random_final_v3_run*' \
   --train-runs 1-7 --validation-runs 8-10 \
-  --out expanda/learning_dataset_v3
+  --out expanda/learning_dataset_v4_survival
 
 python expanda/train_location_model.py \
-  --dataset expanda/learning_dataset_v3/selected_mutations.csv \
-  --manifest expanda/learning_dataset_v3/dataset_manifest.json \
-  --out expanda/learning_model_v3
+  --dataset expanda/learning_dataset_v4_survival/selected_mutations.csv \
+  --manifest expanda/learning_dataset_v4_survival/dataset_manifest.json \
+  --out expanda/learning_model_v4_survival
 ```
 
-模型目标为Pareto-promising：mutation有效且repair后可行，并且child支配before，
-或在before本身可行时形成非支配trade-off。训练使用Random日志的截断逆倾向权重。
+模型目标为selection-survivor：位置必须eligible、结果可归因、mutation有效且repair后可行，
+并且offspring在NSGA-II environmental selection后仍被保留。旧的trade-off标签只作为诊断列，
+不再作为训练目标。训练继续使用Random日志的截断逆倾向权重。
 
 ## Rule与Learning运行
 
@@ -115,13 +116,15 @@ Rule保留Random的分层概率，默认90%在eligible集合上条件随机、10
 Learning只对eligible位置评分，默认90%选择最高分、10%按原Random概率探索。
 两者若没有eligible位置都回退Random。日志保存实际混合策略概率，所有候选保持非零探索支持，
 因此Rule与Learning的唯一策略差异是eligible集合内是否使用模型排序。
+位置策略使用独立的policy RNG，避免epsilon判断改变NSGA-II主随机数流；配对方法必须共享
+algorithm、training、path和policy seeds。
 
 ```bash
 python expanda/run_rule_ccp100.py --out RULE_OUT --pop 100 --gens 1000 \
-  --evaluation-budget 15000 --algorithm-seed 1 --training-seed 2
+  --evaluation-budget 15000 --algorithm-seed 1 --training-seed 2 --policy-seed 3
 
 python expanda/run_learning_policy_ccp100.py \
-  --model expanda/learning_model_v3/location_model.joblib \
+  --model expanda/learning_model_v4_survival/location_model.joblib \
   --out LEARNING_OUT --pop 100 --gens 1000 --evaluation-budget 15000 \
-  --algorithm-seed 1 --training-seed 2 --epsilon 0.10
+  --algorithm-seed 1 --training-seed 2 --policy-seed 3 --epsilon 0.10
 ```

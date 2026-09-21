@@ -31,21 +31,26 @@ class LearningDatasetTests(unittest.TestCase):
     def test_parse_run_ranges(self):
         self.assertEqual(parse_runs("1-3,5"), {1, 2, 3, 5})
 
-    def test_feasible_tradeoff_is_pareto_promising(self):
+    def test_surviving_effective_feasible_offspring_is_positive(self):
         row = build_row(self.event, self.candidate, 1, "train", "run1")
         self.assertTrue(row["model_row_eligible"])
-        self.assertTrue(row["pareto_promising"])
+        self.assertTrue(row["selection_survivor"])
 
-    def test_infeasible_before_tradeoff_alone_is_not_positive(self):
-        self.event["feasible_before"] = False
+    def test_non_survivor_is_not_positive(self):
+        self.event["survived_environmental_selection"] = False
         row = build_row(self.event, self.candidate, 1, "train", "run1")
-        self.assertFalse(row["pareto_promising"])
+        self.assertFalse(row["selection_survivor"])
 
-    def test_constraint_dominance_can_recover_infeasible_before(self):
-        self.event["feasible_before"] = False
-        self.event["child_dominates_before"] = True
+    def test_ineffective_survivor_is_not_positive(self):
+        self.event["effective_mutation"] = False
         row = build_row(self.event, self.candidate, 1, "train", "run1")
-        self.assertTrue(row["pareto_promising"])
+        self.assertFalse(row["selection_survivor"])
+
+    def test_boost_event_is_not_a_model_row(self):
+        self.event["phase"] = "boost"
+        self.event["survived_environmental_selection"] = None
+        row = build_row(self.event, self.candidate, 1, "train", "run1")
+        self.assertFalse(row["model_row_eligible"])
 
 
 if __name__ == "__main__":

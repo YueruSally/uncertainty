@@ -26,32 +26,36 @@ def _baseline_probabilities(candidates):
     return [value / total for value in values]
 
 
-def _sample(probabilities):
-    return random.choices(range(len(probabilities)), weights=probabilities, k=1)[0]
+def _sample(probabilities, rng):
+    return rng.choices(range(len(probabilities)), weights=probabilities, k=1)[0]
 
 
 class RandomLocationPolicy:
     name = "random"
 
+    def __init__(self, rng=None):
+        self.rng = rng or random
+
     def choose(self, candidates, context=None):
         probabilities = _baseline_probabilities(candidates)
-        return PolicyDecision(_sample(probabilities), probabilities,
+        return PolicyDecision(_sample(probabilities, self.rng), probabilities,
                               [None] * len(candidates), True)
 
 
 class EligibleRuleLocationPolicy:
     name = "rule-eligible-epsilon-greedy"
 
-    def __init__(self, epsilon=.10):
+    def __init__(self, epsilon=.10, rng=None):
         if not 0.0 <= epsilon <= 1.0:
             raise ValueError("epsilon must be between zero and one")
         self.epsilon = float(epsilon)
+        self.rng = rng or random
 
     def choose(self, candidates, context=None):
         baseline = _baseline_probabilities(candidates)
         eligible = [i for i, row in enumerate(candidates) if row["eligible"]]
         if not eligible:
-            return PolicyDecision(_sample(baseline), baseline,
+            return PolicyDecision(_sample(baseline, self.rng), baseline,
                                   [None] * len(candidates), True,
                                   {"eligible_fallback": True, "epsilon": self.epsilon})
         mass = sum(baseline[i] for i in eligible)
@@ -59,8 +63,8 @@ class EligibleRuleLocationPolicy:
                    for i in range(len(candidates))]
         marginal = [self.epsilon * baseline[i] + (1.0 - self.epsilon) * exploit[i]
                     for i in range(len(candidates))]
-        exploration = random.random() < self.epsilon
-        chosen = _sample(baseline if exploration else exploit)
+        exploration = self.rng.random() < self.epsilon
+        chosen = _sample(baseline if exploration else exploit, self.rng)
         return PolicyDecision(chosen, marginal,
                               [1.0 if i in eligible else None
                                for i in range(len(candidates))], exploration,
@@ -70,11 +74,12 @@ class EligibleRuleLocationPolicy:
 class LearningLocationPolicy:
     name = "learning-epsilon-greedy"
 
-    def __init__(self, model_path, epsilon=.10):
+    def __init__(self, model_path, epsilon=.10, rng=None):
         if not 0.0 <= epsilon <= 1.0:
             raise ValueError("epsilon must be between zero and one")
         self.model_path = Path(model_path)
         self.epsilon = float(epsilon)
+        self.rng = rng or random
         artifact = joblib.load(self.model_path)
         if artifact.get("schema_version") != 1:
             raise ValueError("Unsupported learning model schema")
@@ -86,7 +91,7 @@ class LearningLocationPolicy:
         baseline = _baseline_probabilities(candidates)
         eligible = [i for i, row in enumerate(candidates) if row["eligible"]]
         if not eligible:
-            return PolicyDecision(_sample(baseline), baseline,
+            return PolicyDecision(_sample(baseline, self.rng), baseline,
                                   [None] * len(candidates), True,
                                   {"eligible_fallback": True, "epsilon": self.epsilon})
         records = [feature_record(candidates[i], context) for i in eligible]
@@ -105,8 +110,8 @@ class LearningLocationPolicy:
                    for i in range(len(candidates))]
         marginal = [self.epsilon * baseline[i] + (1.0 - self.epsilon) * exploit[i]
                     for i in range(len(candidates))]
-        exploration = random.random() < self.epsilon
-        chosen = _sample(baseline if exploration else exploit)
+        exploration = self.rng.random() < self.epsilon
+        chosen = _sample(baseline if exploration else exploit, self.rng)
         return PolicyDecision(chosen, marginal, scores, exploration,
                               {"eligible_fallback": False, "epsilon": self.epsilon,
                                "best_score": best, "winner_count": len(winners)})

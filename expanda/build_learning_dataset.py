@@ -90,11 +90,15 @@ def build_row(event, candidate, number, split, run_name):
     })
     row["model_row_eligible"] = bool(
         row["selected_target_eligible"] and row["outcome_attributable"]
-        and row["finite_objective_label"])
+        and row["finite_objective_label"] and event["phase"] == "offspring"
+        and row["survived_environmental_selection"] is not None)
     row["pareto_promising"] = bool(
         row["effective_mutation"] and row["feasible_after"]
         and (row["child_dominates_before"]
              or (event["feasible_before"] and row["tradeoff_move"])))
+    row["selection_survivor"] = bool(
+        row["effective_mutation"] and row["feasible_after"]
+        and row["survived_environmental_selection"])
     return row
 
 
@@ -157,9 +161,10 @@ def main(argv=None):
     frame = pd.DataFrame(records)
     frame.to_csv(args.out / "selected_mutations.csv", index=False)
     manifest = {
-        "schema_version": 1, "target": "pareto_promising",
-        "target_definition": ("effective AND feasible_after AND "
-                              "(dominates_before OR (feasible_before AND tradeoff_move))"),
+        "schema_version": 2, "target": "selection_survivor",
+        "target_definition": ("offspring AND selected_target_eligible AND attributable AND "
+                              "finite_objectives AND effective_mutation AND feasible_after "
+                              "AND survived_environmental_selection"),
         "counterfactuals_created": False, "oos_used": False,
         "features": FEATURES, "train_runs": sorted(train_runs),
         "validation_runs": sorted(validation_runs), "rows": len(frame),

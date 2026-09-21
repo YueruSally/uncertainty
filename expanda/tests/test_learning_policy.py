@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import numpy as np
 
@@ -37,9 +37,11 @@ class LocationPolicyTests(unittest.TestCase):
         self.assertTrue(decision.exploration)
 
     def test_rule_conditions_baseline_on_eligibility(self):
-        policy = EligibleRuleLocationPolicy(epsilon=.1)
-        with patch("learning_policy.random.random", return_value=.5):
-            decision = policy.choose(self.rows, self.context)
+        rng = Mock()
+        rng.random.return_value = .5
+        rng.choices.return_value = [1]
+        policy = EligibleRuleLocationPolicy(epsilon=.1, rng=rng)
+        decision = policy.choose(self.rows, self.context)
         for actual, expected in zip(decision.probabilities, [.05, .475, .475]):
             self.assertAlmostEqual(actual, expected)
         self.assertIn(decision.chosen_index, (1, 2))
@@ -57,11 +59,13 @@ class LocationPolicyTests(unittest.TestCase):
         policy.epsilon = .1
         policy.model_path = None
         policy.artifact = {}
+        policy.rng = Mock()
+        policy.rng.random.return_value = .5
+        policy.rng.choices.return_value = [2]
         policy.pipeline = Mock()
         policy.pipeline.classes_ = np.array([0, 1])
         policy.pipeline.predict_proba.return_value = np.array([[.8, .2], [.1, .9]])
-        with patch("learning_policy.random.random", return_value=.5):
-            decision = policy.choose(self.rows, self.context)
+        decision = policy.choose(self.rows, self.context)
         self.assertEqual(decision.chosen_index, 2)
         self.assertAlmostEqual(decision.probabilities[0], .05)
         self.assertAlmostEqual(decision.probabilities[1], .025)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train a run-split model for Pareto-promising CCP100 mutation locations."""
+"""Train a run-split model for CCP100 locations that survive selection."""
 import argparse
 import hashlib
 import json
@@ -50,13 +50,16 @@ def main(argv=None):
     args.out.mkdir(parents=True, exist_ok=True)
     frame = pd.read_csv(args.dataset)
     manifest = json.loads(args.manifest.read_text())
+    target = manifest["target"]
+    if target not in frame.columns:
+        raise ValueError(f"Dataset is missing target column {target!r}")
     usable = frame[frame["model_row_eligible"].astype(bool)].copy()
     train = usable[usable["split"] == "train"].copy()
     validation = usable[usable["split"] == "validation"].copy()
     if train.empty or validation.empty:
         raise ValueError("Both train and validation rows are required")
-    y_train = train["pareto_promising"].astype(int).to_numpy()
-    y_validation = validation["pareto_promising"].astype(int).to_numpy()
+    y_train = train[target].astype(int).to_numpy()
+    y_validation = validation[target].astype(int).to_numpy()
     if len(np.unique(y_train)) != 2:
         raise ValueError("Training target must contain both classes")
     numeric = Pipeline([("imputer", SimpleImputer(strategy="median"))])
@@ -92,7 +95,7 @@ def main(argv=None):
     }
     for operator, part in validation.assign(probability=validation_probability).groupby("operator"):
         report["validation_by_operator"][operator] = metrics(
-            part["pareto_promising"].astype(int).to_numpy(),
+            part[target].astype(int).to_numpy(),
             part["probability"].to_numpy())
     artifact = {
         "schema_version": 1, "pipeline": pipeline, "features": FEATURES,

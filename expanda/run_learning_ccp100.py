@@ -28,6 +28,8 @@ def main(argv=None):
     parser.add_argument("--algorithm-seed", type=int, default=981101)
     parser.add_argument("--training-seed", type=int, default=981201)
     parser.add_argument("--path-seed", type=int, default=0)
+    parser.add_argument("--policy-seed", type=int,
+                        help="Independent location-policy RNG seed; defaults to algorithm seed + 10000000.")
     parser.add_argument("--evaluation-budget", type=int, default=None,
                         help="Hard cap on actual training evaluations, including initialisation and boost.")
     parser.add_argument("--policy", choices=("random", "rule", "learning"), default="random")
@@ -39,6 +41,8 @@ def main(argv=None):
                         help="Optional final-only 5000-scenario evaluation; never used for learning.")
     parser.add_argument("--validation-seed", type=int, default=981999)
     args = parser.parse_args(argv)
+    if args.policy_seed is None:
+        args.policy_seed = args.algorithm_seed + 10_000_000
     if args.pop < 2 or args.pop % 2 or args.gens < 1:
         parser.error("pop must be even and >=2; gens must be >=1")
     if args.evaluation_budget is not None and args.evaluation_budget < args.pop + 4:
@@ -80,12 +84,14 @@ def main(argv=None):
     base.CONFIDENCE_COST = base.CONFIDENCE_EMISSION = base.CONFIDENCE_TIME = .90
     random.seed(args.algorithm_seed)
     np.random.seed(args.algorithm_seed)
+    policy_rng = random.Random(args.policy_seed)
     if args.policy == "random":
-        policy, method = RandomLocationPolicy(), "Random-CCP100"
+        policy, method = RandomLocationPolicy(rng=policy_rng), "Random-CCP100"
     elif args.policy == "rule":
-        policy, method = EligibleRuleLocationPolicy(epsilon=args.epsilon), "Rule-CCP100"
+        policy = EligibleRuleLocationPolicy(epsilon=args.epsilon, rng=policy_rng)
+        method = "Rule-CCP100"
     else:
-        policy = LearningLocationPolicy(args.model, epsilon=args.epsilon)
+        policy = LearningLocationPolicy(args.model, epsilon=args.epsilon, rng=policy_rng)
         method = "Learning-CCP100"
     try:
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -95,7 +101,7 @@ def main(argv=None):
         stage="location-policy optimisation with attributable mutation logging",
         population=args.pop, generations=args.gens, alpha=.90, training_size=100,
         seeds=dict(algorithm=args.algorithm_seed, training=args.training_seed, path=args.path_seed,
-                   validation=args.validation_seed), git_commit=commit,
+                   policy=args.policy_seed, validation=args.validation_seed), git_commit=commit,
         scenario_digest=digest, evaluation_budget=args.evaluation_budget,
         stopping_rule="generation cap OR insufficient budget for a worst-case four-evaluation offspring pair",
         budget_note="May leave fewer than 4 evaluations unused; boost needs a conservative reserve. No budget overrun.",
@@ -104,6 +110,7 @@ def main(argv=None):
         repair="encoding only; invalid mutation rolled back; no capacity repair",
         location_policy=dict(name=policy.name,
             epsilon=args.epsilon if args.policy in ("rule", "learning") else None,
+            rng="dedicated-python-random",
             model=str(args.model) if args.model else None,
             model_sha256=hashlib.sha256(args.model.read_bytes()).hexdigest() if args.model else None),
         capacity_semantics="nominal planning capacity, not scenario-wise capacity",
