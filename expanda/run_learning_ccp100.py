@@ -83,7 +83,7 @@ def main(argv=None):
     if args.policy == "random":
         policy, method = RandomLocationPolicy(), "Random-CCP100"
     elif args.policy == "rule":
-        policy, method = EligibleRuleLocationPolicy(), "Rule-CCP100"
+        policy, method = EligibleRuleLocationPolicy(epsilon=args.epsilon), "Rule-CCP100"
     else:
         policy = LearningLocationPolicy(args.model, epsilon=args.epsilon)
         method = "Learning-CCP100"
@@ -102,7 +102,8 @@ def main(argv=None):
         operator_probabilities=dict(zip(base.OPS, base._FIXED_OP_PROBS)),
         crossover_rate=base.CROSSOVER_RATE, mutation_rate=base.MUTATION_RATE,
         repair="encoding only; invalid mutation rolled back; no capacity repair",
-        location_policy=dict(name=policy.name, epsilon=args.epsilon if args.policy == "learning" else None,
+        location_policy=dict(name=policy.name,
+            epsilon=args.epsilon if args.policy in ("rule", "learning") else None,
             model=str(args.model) if args.model else None,
             model_sha256=hashlib.sha256(args.model.read_bytes()).hexdigest() if args.model else None),
         capacity_semantics="nominal planning capacity, not scenario-wise capacity",

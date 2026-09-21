@@ -111,9 +111,10 @@ python expanda/train_location_model.py \
 
 ## Rule与Learning运行
 
-Rule保留Random的分层概率，并在eligible集合上进行条件化；若没有eligible位置则回退Random。
-Learning只对eligible位置评分，默认90%选择最高分、10%按原Random概率探索；
-日志保存实际混合策略概率，所有候选始终保持非零探索支持。
+Rule保留Random的分层概率，默认90%在eligible集合上条件随机、10%按原Random概率探索；
+Learning只对eligible位置评分，默认90%选择最高分、10%按原Random概率探索。
+两者若没有eligible位置都回退Random。日志保存实际混合策略概率，所有候选保持非零探索支持，
+因此Rule与Learning的唯一策略差异是eligible集合内是否使用模型排序。
 
 ```bash
 python expanda/run_rule_ccp100.py --out RULE_OUT --pop 100 --gens 1000 \

@@ -40,22 +40,31 @@ class RandomLocationPolicy:
 
 
 class EligibleRuleLocationPolicy:
-    name = "rule-eligible"
+    name = "rule-eligible-epsilon-greedy"
+
+    def __init__(self, epsilon=.10):
+        if not 0.0 <= epsilon <= 1.0:
+            raise ValueError("epsilon must be between zero and one")
+        self.epsilon = float(epsilon)
 
     def choose(self, candidates, context=None):
         baseline = _baseline_probabilities(candidates)
         eligible = [i for i, row in enumerate(candidates) if row["eligible"]]
         if not eligible:
             return PolicyDecision(_sample(baseline), baseline,
-                                  [None] * len(candidates), False,
-                                  {"eligible_fallback": True})
+                                  [None] * len(candidates), True,
+                                  {"eligible_fallback": True, "epsilon": self.epsilon})
         mass = sum(baseline[i] for i in eligible)
-        probabilities = [baseline[i] / mass if i in eligible else 0.0
-                         for i in range(len(candidates))]
-        return PolicyDecision(_sample(probabilities), probabilities,
+        exploit = [baseline[i] / mass if i in eligible else 0.0
+                   for i in range(len(candidates))]
+        marginal = [self.epsilon * baseline[i] + (1.0 - self.epsilon) * exploit[i]
+                    for i in range(len(candidates))]
+        exploration = random.random() < self.epsilon
+        chosen = _sample(baseline if exploration else exploit)
+        return PolicyDecision(chosen, marginal,
                               [1.0 if i in eligible else None
-                               for i in range(len(candidates))], False,
-                              {"eligible_fallback": False})
+                               for i in range(len(candidates))], exploration,
+                              {"eligible_fallback": False, "epsilon": self.epsilon})
 
 
 class LearningLocationPolicy:

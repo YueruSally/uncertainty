@@ -37,14 +37,18 @@ class LocationPolicyTests(unittest.TestCase):
         self.assertTrue(decision.exploration)
 
     def test_rule_conditions_baseline_on_eligibility(self):
-        decision = EligibleRuleLocationPolicy().choose(self.rows, self.context)
-        self.assertEqual(decision.probabilities, [0., .5, .5])
+        policy = EligibleRuleLocationPolicy(epsilon=.1)
+        with patch("learning_policy.random.random", return_value=.5):
+            decision = policy.choose(self.rows, self.context)
+        for actual, expected in zip(decision.probabilities, [.05, .475, .475]):
+            self.assertAlmostEqual(actual, expected)
         self.assertIn(decision.chosen_index, (1, 2))
         self.assertFalse(decision.metadata["eligible_fallback"])
+        self.assertFalse(decision.exploration)
 
     def test_rule_falls_back_when_no_target_is_eligible(self):
         rows = [candidate(.75, False, 1), candidate(.25, False, 2)]
-        decision = EligibleRuleLocationPolicy().choose(rows, self.context)
+        decision = EligibleRuleLocationPolicy(epsilon=.1).choose(rows, self.context)
         self.assertEqual(decision.probabilities, [.75, .25])
         self.assertTrue(decision.metadata["eligible_fallback"])
 
