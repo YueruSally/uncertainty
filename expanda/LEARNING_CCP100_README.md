@@ -113,7 +113,8 @@ python expanda/train_location_model.py \
 ## Rule与Learning运行
 
 Rule保留Random的分层概率，默认90%在eligible集合上条件随机、10%按原Random概率探索；
-Learning只对eligible位置评分，默认90%选择最高分、10%按原Random概率探索。
+Learning只对eligible位置评分，默认90%按“原分层概率×预测存活概率”加权抽样、
+10%按原Random概率探索。Learning不再把90%概率集中到单一最高分位置，以保留搜索多样性。
 两者若没有eligible位置都回退Random。日志保存实际混合策略概率，所有候选保持非零探索支持，
 因此Rule与Learning的唯一策略差异是eligible集合内是否使用模型排序。
 位置策略使用独立的policy RNG，避免epsilon判断改变NSGA-II主随机数流；配对方法必须共享

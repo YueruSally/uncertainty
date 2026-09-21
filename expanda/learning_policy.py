@@ -72,7 +72,7 @@ class EligibleRuleLocationPolicy:
 
 
 class LearningLocationPolicy:
-    name = "learning-epsilon-greedy"
+    name = "learning-score-weighted-mixture"
 
     def __init__(self, model_path, epsilon=.10, rng=None):
         if not 0.0 <= epsilon <= 1.0:
@@ -83,6 +83,8 @@ class LearningLocationPolicy:
         artifact = joblib.load(self.model_path)
         if artifact.get("schema_version") != 1:
             raise ValueError("Unsupported learning model schema")
+        if artifact.get("target") != "selection_survivor":
+            raise ValueError("Learning policy requires a selection_survivor model")
         self.pipeline = artifact["pipeline"]
         self.artifact = artifact
 
@@ -103,15 +105,23 @@ class LearningLocationPolicy:
         scores = [None] * len(candidates)
         for index, score in zip(eligible, eligible_scores):
             scores[index] = score
-        best = max(eligible_scores)
-        winners = [index for index in eligible
-                   if math.isclose(scores[index], best, rel_tol=0.0, abs_tol=1e-12)]
-        exploit = [1.0 / len(winners) if i in winners else 0.0
-                   for i in range(len(candidates))]
+        # Reweight the original hierarchical location probabilities rather than
+        # collapsing 90% of the mass onto one argmax.  This keeps the diversity
+        # that the Rule baseline preserved in the paired screening runs.
+        weighted = [baseline[i] * max(0.0, scores[i]) if i in eligible else 0.0
+                    for i in range(len(candidates))]
+        weight_mass = sum(weighted)
+        if weight_mass <= 0.0:
+            eligible_mass = sum(baseline[i] for i in eligible)
+            exploit = [baseline[i] / eligible_mass if i in eligible else 0.0
+                       for i in range(len(candidates))]
+        else:
+            exploit = [value / weight_mass for value in weighted]
         marginal = [self.epsilon * baseline[i] + (1.0 - self.epsilon) * exploit[i]
                     for i in range(len(candidates))]
         exploration = self.rng.random() < self.epsilon
         chosen = _sample(baseline if exploration else exploit, self.rng)
         return PolicyDecision(chosen, marginal, scores, exploration,
                               {"eligible_fallback": False, "epsilon": self.epsilon,
-                               "best_score": best, "winner_count": len(winners)})
+                               "best_score": max(eligible_scores),
+                               "score_weight_mass": weight_mass})

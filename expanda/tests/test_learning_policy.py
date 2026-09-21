@@ -68,12 +68,13 @@ class LocationPolicyTests(unittest.TestCase):
         decision = policy.choose(self.rows, self.context)
         self.assertEqual(decision.chosen_index, 2)
         self.assertAlmostEqual(decision.probabilities[0], .05)
-        self.assertAlmostEqual(decision.probabilities[1], .025)
-        self.assertAlmostEqual(decision.probabilities[2], .925)
+        self.assertAlmostEqual(decision.probabilities[1], .18863636363636366)
+        self.assertAlmostEqual(decision.probabilities[2], .7613636363636364)
         self.assertAlmostEqual(sum(decision.probabilities), 1.)
         self.assertFalse(decision.exploration)
         self.assertIsNone(decision.scores[0])
         self.assertAlmostEqual(decision.scores[2], .9)
+        self.assertAlmostEqual(decision.metadata["score_weight_mass"], .275)
 
 
 if __name__ == "__main__":
