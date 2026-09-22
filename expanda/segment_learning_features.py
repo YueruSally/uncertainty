@@ -1,5 +1,7 @@
 """Pre-mutation feature schema for segment-level CCP100 learning."""
 
+import pandas as pd
+
 from learning_features import CATEGORICAL_FEATURES as V1_CATEGORICAL_FEATURES
 from learning_features import NUMERIC_FEATURES as V1_NUMERIC_FEATURES
 from learning_features import feature_record as v1_feature_record
@@ -31,3 +33,7 @@ def feature_record(candidate, context):
         "wait_teu_h_before": breakdown.get("wait_teu_h"),
     })
     return row
+
+
+def feature_frame(records):
+    return pd.DataFrame(records, columns=FEATURES)

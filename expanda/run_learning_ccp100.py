@@ -11,7 +11,7 @@ import numpy as np
 
 import baseline_uncertainty as base
 from learning_policy import (EligibleRuleLocationPolicy, LearningLocationPolicy,
-                             RandomLocationPolicy)
+                             RandomLocationPolicy, SegmentObjectiveMixturePolicy)
 from mutation_logging import MutationLogger, fingerprint, write_json
 from run_ev_ccp_oos_pilot import candidate_rows, json_candidate, scenario_digest, summarise
 
@@ -32,7 +32,8 @@ def main(argv=None):
                         help="Independent location-policy RNG seed; defaults to algorithm seed + 10000000.")
     parser.add_argument("--evaluation-budget", type=int, default=None,
                         help="Hard cap on actual training evaluations, including initialisation and boost.")
-    parser.add_argument("--policy", choices=("random", "rule", "learning"), default="random")
+    parser.add_argument("--policy", choices=("random", "rule", "learning", "learning-segment"),
+                        default="random")
     parser.add_argument("--model", type=Path,
                         help="location_model.joblib; required only for --policy learning")
     parser.add_argument("--epsilon", type=float, default=.10,
@@ -49,10 +50,10 @@ def main(argv=None):
         parser.error("evaluation-budget must be at least pop+4")
     if args.training_seed == args.validation_seed:
         parser.error("training and validation seeds must differ")
-    if args.policy == "learning" and args.model is None:
-        parser.error("--model is required for --policy learning")
-    if args.policy != "learning" and args.model is not None:
-        parser.error("--model is only valid for --policy learning")
+    if args.policy in ("learning", "learning-segment") and args.model is None:
+        parser.error("--model is required for a learning policy")
+    if args.policy not in ("learning", "learning-segment") and args.model is not None:
+        parser.error("--model is only valid for a learning policy")
     if not 0.0 <= args.epsilon <= 1.0:
         parser.error("--epsilon must be between zero and one")
     if args.out.exists() and any(args.out.iterdir()):
@@ -90,9 +91,12 @@ def main(argv=None):
     elif args.policy == "rule":
         policy = EligibleRuleLocationPolicy(epsilon=args.epsilon, rng=policy_rng)
         method = "Rule-CCP100"
-    else:
+    elif args.policy == "learning":
         policy = LearningLocationPolicy(args.model, epsilon=args.epsilon, rng=policy_rng)
         method = "Learning-CCP100"
+    else:
+        policy = SegmentObjectiveMixturePolicy(args.model, epsilon=args.epsilon, rng=policy_rng)
+        method = "LearningSegment-CCP100"
     try:
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     except (OSError, subprocess.CalledProcessError):
@@ -109,11 +113,14 @@ def main(argv=None):
         crossover_rate=base.CROSSOVER_RATE, mutation_rate=base.MUTATION_RATE,
         repair="encoding only; invalid mutation rolled back; no capacity repair",
         location_policy=dict(name=policy.name,
-            epsilon=args.epsilon if args.policy in ("rule", "learning") else None,
+            epsilon=args.epsilon if args.policy in ("rule", "learning", "learning-segment") else None,
             rng="dedicated-python-random",
             model=str(args.model) if args.model else None,
             model_sha256=hashlib.sha256(args.model.read_bytes()).hexdigest() if args.model else None,
-            model_target=(policy.artifact.get("target") if args.policy == "learning" else None)),
+            model_target=(policy.artifact.get("target") if args.policy == "learning" else None),
+            model_targets=(sorted(policy.artifact.get("pipelines", {}))
+                           if args.policy == "learning-segment" else None),
+            guided_operator=("mode" if args.policy == "learning-segment" else None)),
         capacity_semantics="nominal planning capacity, not scenario-wise capacity",
         objective_units=dict(cost="USD", emission="gCO2", makespan="h"),
         training_feature_note="No OOS features/labels; infeasible objective labels masked, violations retained",
@@ -123,7 +130,8 @@ def main(argv=None):
         input_sha256={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in
             (args.data, Path(base.DEFAULT_BORDER_EVENT_DATA_FILE), ROOT/"baseline_uncertainty.py",
              ROOT/"learning_mutation.py", ROOT/"learning_features.py",
-             ROOT/"learning_policy.py", ROOT/"mutation_logging.py", Path(__file__))},
+             ROOT/"learning_policy.py", ROOT/"mutation_logging.py", Path(__file__),
+             ROOT/"segment_learning_features.py")},
         final_oos_size=5000 if args.validate_oos else 0)
     write_json(args.out / "configuration.json", config)
     run_id = f"{args.policy}-ccp100-a{args.algorithm_seed}-s{args.training_seed}"
