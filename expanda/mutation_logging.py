@@ -6,6 +6,8 @@ import json
 import math
 import time
 
+import numpy as np
+
 import baseline_uncertainty as base
 from learning_mutation import enumerate_targets, repair_after_mutation
 from learning_policy import RandomLocationPolicy
@@ -31,6 +33,22 @@ def clean(value):
 
 def write_json(path, value):
     path.write_text(json.dumps(clean(value), indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def _scenario_improvement_rate(before, after):
+    """Fraction of paired training scenarios improved by a mutation."""
+    old = np.asarray(before, dtype=float)
+    new = np.asarray(after, dtype=float)
+    if old.shape != new.shape or old.size == 0:
+        return None
+    finite = np.isfinite(old) & np.isfinite(new)
+    if not finite.any():
+        return None
+    return float(np.mean(new[finite] < old[finite]))
+
+
+def _violation_flag(breakdown, *names):
+    return any(float(breakdown.get(name, 0.0) or 0.0) > 0.0 for name in names)
 
 
 class MutationLogger:
@@ -82,6 +100,8 @@ class MutationLogger:
         candidates = enumerate_targets(ind, batches, op, path_lib, tt_dict, arc_lookup)
         context = dict(operator=op, generation=self.generation, phase=self.phase,
             feasible_before=bool(before.feasible), violation_before=before.normalized_violation,
+            violation_breakdown_before=before.vio_breakdown,
+            candidate_count=len(candidates),
             q90_cost_before=before.objectives[0], q90_emission_before=before.objectives[1],
             q90_makespan_before=before.objectives[2])
         decision = self.policy.choose(candidates, context)
@@ -113,6 +133,7 @@ class MutationLogger:
         base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost, waiting_emission, **kwargs)
         finite = all(math.isfinite(v) for v in (*before.objectives, *ind.objectives))
         row = dict(run_id=self.run_id, scenario_id=self.scenario_id, event_id=event_id,
+            parent_id=before_hash, child_id=after_hash,
             method=self.method, generation=self.generation, phase=self.phase,
             operator=op, operator_probability=0.2, selection_policy=self.policy.name,
             baseline_selection_probability=chosen["selection_probability"],
@@ -120,6 +141,14 @@ class MutationLogger:
             selected_policy_score=decision.scores[decision.chosen_index],
             exploration=decision.exploration, policy_metadata=decision.metadata,
             **asdict(target), path_id=chosen["path_id"], candidate_count=len(candidates),
+            from_node=chosen.get("from_node"), to_node=chosen.get("to_node"),
+            current_mode=chosen.get("current_mode"),
+            batch_quantity=chosen.get("batch_quantity"),
+            path_count=chosen.get("path_count"), share=chosen.get("share"),
+            path_cost_per_teu=chosen.get("path_cost_per_teu"),
+            path_emission_per_teu=chosen.get("path_emission_per_teu"),
+            path_nominal_time_h=chosen.get("path_nominal_time_h"),
+            alternative_mode_count=chosen.get("alternative_mode_count"),
             selected_target_eligible=bool(chosen["eligible"]), mutation_success=bool(ok),
             raw_mutation_changed=raw_changed, repair_changed_decision=repair_changed,
             repair_only_change=repair_only_change, effective_mutation=effective_mutation,
@@ -129,6 +158,12 @@ class MutationLogger:
             **repair, feasible_before=bool(before.feasible), feasible_after=bool(ind.feasible),
             violation_before=before.normalized_violation, violation_after=ind.normalized_violation,
             violation_breakdown_before=before.vio_breakdown, violation_breakdown_after=ind.vio_breakdown,
+            schedule_failure_before=_violation_flag(before.vio_breakdown, "miss_tt"),
+            schedule_failure_after=_violation_flag(ind.vio_breakdown, "miss_tt"),
+            capacity_infeasible_before=_violation_flag(
+                before.vio_breakdown, "cap_excess", "border_cap_excess"),
+            capacity_infeasible_after=_violation_flag(
+                ind.vio_breakdown, "cap_excess", "border_cap_excess"),
             evaluation_before=before._learning_eval_id, evaluation_after=ind._learning_eval_id,
             extra_after_evaluations=self.evaluations-before_count,
             ccp_evaluation_count=self.evaluations, finite_objective_label=finite,
@@ -143,6 +178,11 @@ class MutationLogger:
             row[f"delta_{name}"] = delta
             deltas.append(delta)
         row["tradeoff_move"] = finite and any(d > 0 for d in deltas) and any(d < 0 for d in deltas)
+        for name, old, new in zip(
+                ("cost", "emission", "makespan"),
+                (before.cost_s, before.emission_s, before.makespan_s),
+                (ind.cost_s, ind.emission_s, ind.makespan_s)):
+            row[f"scenario_improvement_rate_{name}"] = _scenario_improvement_rate(old, new)
         self.pending.append((ind, row))
         self.total_attempts += 1
         self.total_effective += int(effective_mutation)
@@ -151,10 +191,17 @@ class MutationLogger:
 
     def flush_events(self, population):
         for ind, row in self.pending:
-            row["survived_environmental_selection"] = (any(ind is p for p in population)
-                                                       if row["phase"] == "offspring" else None)
+            survived = (any(ind is p for p in population)
+                        if row["phase"] == "offspring" else None)
+            row["survived_environmental_selection"] = survived
             row["retained_after_boost"] = (any(ind is p for p in population)
                                            if row["phase"] == "boost" else None)
+            row["rank_after_selection"] = (int(ind.rank) if survived else None)
+            crowding = getattr(ind, "crowding_distance", None)
+            row["crowding_after_selection"] = (float(crowding)
+                                                if survived and crowding is not None else None)
+            row["nondominated_after_selection"] = bool(
+                survived and ind.feasible and ind.rank == 0)
             self.append("mutation_events", row)
         self.pending.clear()
 

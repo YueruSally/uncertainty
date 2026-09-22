@@ -12,7 +12,7 @@ import numpy as np
 import baseline_uncertainty as base
 from learning_policy import (EligibleRuleLocationPolicy, LearningLocationPolicy,
                              RandomLocationPolicy)
-from mutation_logging import MutationLogger, write_json
+from mutation_logging import MutationLogger, fingerprint, write_json
 from run_ev_ccp_oos_pilot import candidate_rows, json_candidate, scenario_digest, summarise
 
 ROOT = Path(__file__).resolve().parent
@@ -146,6 +146,15 @@ def main(argv=None):
     front = [population[i] for i in fronts[0] if population[i].feasible]
     rows = candidate_rows(method, run_id, front, config)
     write_json(args.out / "final_feasible_nondominated.json", [json_candidate(r) for r in rows])
+    write_json(args.out / "final_archive_lineage.json", [
+        {
+            "source_solution_id": row["source_solution_id"],
+            "internal_decision_fingerprint": fingerprint(row["individual"]),
+            "export_decision_fingerprint": row["decision_fingerprint"],
+            "optimisation_objectives": row["optimisation_objectives"],
+        }
+        for row in rows
+    ])
     if not rows:
         write_json(args.out / "best_infeasible.json",
                    json_candidate(candidate_rows(method, run_id,

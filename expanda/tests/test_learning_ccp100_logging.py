@@ -64,6 +64,12 @@ class LoggingTests(unittest.TestCase):
         event = json.loads((Path(self.tmp.name)/"mutation_events.jsonl").read_text())
         self.assertFalse(event["decision_changed"])
         self.assertEqual(event["delta_cost"], 0.)
+        self.assertEqual(event["parent_id"], event["child_id"])
+        self.assertEqual(event["scenario_improvement_rate_cost"], 0.)
+        self.assertFalse(event["schedule_failure_before"])
+        self.assertFalse(event["schedule_failure_after"])
+        self.assertIsInstance(event["nondominated_after_selection"], bool)
+        self.assertIsNone(event["rank_after_selection"])
         candidate = json.loads((Path(self.tmp.name)/"mutation_candidates.jsonl").read_text())
         self.assertEqual(candidate["baseline_selection_probability"],
                          candidate["selection_probability"])
