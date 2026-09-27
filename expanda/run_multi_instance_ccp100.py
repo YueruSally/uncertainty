@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+"""Post-V1 fixed-instance CCP100 mutation-location experiment runner."""
+import argparse
+import hashlib
+from pathlib import Path
+import random
+import subprocess
+import time
+
+import numpy as np
+
+import baseline_uncertainty as base
+from multi_instance_catalog import read_instance
+from multi_instance_policy import LearningPolicy, RandomPolicy, RulePolicy
+from multi_instance_logging import MutationLogger, fingerprint, write_json
+from run_ev_ccp_oos_pilot import candidate_rows, json_candidate, scenario_digest, summarise
+
+ROOT = Path(__file__).resolve().parent
+
+
+def main(argv=None):
+    total_started = time.perf_counter()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data", type=Path, default=ROOT / "data/data_expanded.xlsx")
+    parser.add_argument("--instance", type=Path, required=True,
+                        help="Immutable S0-S11 or T1-T5 instance JSON.")
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--pop", type=int, default=100)
+    parser.add_argument("--gens", type=int, default=100)
+    parser.add_argument("--algorithm-seed", type=int, default=981101)
+    parser.add_argument("--training-seed", type=int, default=981201)
+    parser.add_argument("--path-seed", type=int, default=0)
+    parser.add_argument("--policy-seed", type=int,
+                        help="Independent location-policy RNG seed; defaults to algorithm seed + 10000000.")
+    parser.add_argument("--evaluation-budget", type=int, default=None,
+                        help="Hard cap on actual training evaluations, including initialisation and boost.")
+    parser.add_argument("--policy", choices=("random", "rule", "learning"),
+                        default="random")
+    parser.add_argument("--model", type=Path,
+                        help="location_model.joblib; required only for --policy learning")
+    parser.add_argument("--epsilon", type=float, default=.10,
+                        help="Rule-masked exploration mass for Learning only.")
+    parser.add_argument("--validate-oos", action="store_true",
+                        help="Optional final-only 5000-scenario evaluation; never used for learning.")
+    parser.add_argument("--validation-seed", type=int, default=981999)
+    args = parser.parse_args(argv)
+    if args.policy_seed is None:
+        args.policy_seed = args.algorithm_seed + 10_000_000
+    if args.pop < 2 or args.pop % 2 or args.gens < 1:
+        parser.error("pop must be even and >=2; gens must be >=1")
+    if args.evaluation_budget is not None and args.evaluation_budget < args.pop + 4:
+        parser.error("evaluation-budget must be at least pop+4")
+    if args.training_seed == args.validation_seed:
+        parser.error("training and validation seeds must differ")
+    if args.policy == "learning" and args.model is None:
+        parser.error("--model is required for a learning policy")
+    if args.policy != "learning" and args.model is not None:
+        parser.error("--model is only valid for a learning policy")
+    if not 0.0 <= args.epsilon <= 1.0:
+        parser.error("--epsilon must be between zero and one")
+    if args.out.exists() and any(args.out.iterdir()):
+        parser.error("output directory must be empty; use a new --out for each run")
+    args.out.mkdir(parents=True, exist_ok=True)
+    instance, fixed_batches = read_instance(args.instance)
+    if hashlib.sha256(args.data.read_bytes()).hexdigest() != instance["source_data_sha256"]:
+        raise ValueError("network workbook changed after instance generation")
+    base.BORDER_EVENT_DEFINITIONS = base.load_border_event_definitions(base.DEFAULT_BORDER_EVENT_DATA_FILE)
+    network = base.load_network_from_extended(str(args.data))
+    (nodes, regions, hold, proc, trans_cost, arcs, timetables, batches,
+     wait_cost, wait_emission, carbon, emission_factors, speeds, trans_map,
+     border_delay, theta, _) = network
+    batches = fixed_batches
+    for batch in batches:
+        batch.penalty_per_teu_h = base.DEFAULT_LATE_PENALTY_USD_PER_TEU_H
+    tt, lookup = base.build_timetable_dict(timetables), base.build_arc_lookup(arcs)
+    random.seed(args.path_seed)
+    np.random.seed(args.path_seed)
+    paths = base.build_path_library(nodes, regions, arcs, batches, tt, lookup)
+    base.sanity_check_path_lib(batches, paths)
+    ev = base.build_expected_value_scenario_set(arcs, border_delay, seed=0,
+        border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+    options = base.build_reliable_path_options(batches, paths, tt, trans_map, border_delay, ev, mode="ev")
+    scenarios = base.build_scenario_set(arcs, border_delay, 100, args.training_seed,
+        stochastic=True, border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+    digest = scenario_digest(scenarios)
+    base.ACTIVE_SCENARIO_SET = scenarios
+    base._PATH_SCENARIO_CACHE = {}
+    base.RISK_METRIC = "ccp"
+    base.CONFIDENCE_COST = base.CONFIDENCE_EMISSION = base.CONFIDENCE_TIME = .90
+    random.seed(args.algorithm_seed)
+    np.random.seed(args.algorithm_seed)
+    policy_rng = random.Random(args.policy_seed)
+    if args.policy == "random":
+        policy, method = RandomPolicy(rng=policy_rng), "Random-CCP100"
+    elif args.policy == "rule":
+        policy = RulePolicy(rng=policy_rng)
+        method = "Rule-CCP100"
+    else:
+        policy = LearningPolicy(args.model, epsilon=args.epsilon, rng=policy_rng)
+        method = "Learning-CCP100"
+    try:
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        commit = None
+    config = dict(schema_version=3, method=method,
+        stage="location-policy optimisation with attributable mutation logging",
+        instance_id=instance["instance_id"], instance_split=instance["split"],
+        instance_digest=instance["instance_digest"], K=instance["K"],
+        deadline_window_alpha=instance["deadline_window_alpha"],
+        instance_file_sha256=hashlib.sha256(args.instance.read_bytes()).hexdigest(),
+        population=args.pop, generations=args.gens, alpha=.90, training_size=100,
+        seeds=dict(algorithm=args.algorithm_seed, training=args.training_seed, path=args.path_seed,
+                   policy=args.policy_seed, validation=args.validation_seed), git_commit=commit,
+        scenario_digest=digest, evaluation_budget=args.evaluation_budget,
+        stopping_rule="generation cap OR insufficient budget for a worst-case four-evaluation offspring pair",
+        budget_note="May leave fewer than 4 evaluations unused; boost needs a conservative reserve. No budget overrun.",
+        operator_probabilities=dict(zip(base.OPS, base._FIXED_OP_PROBS)),
+        crossover_rate=base.CROSSOVER_RATE, mutation_rate=base.MUTATION_RATE,
+        repair="encoding only; invalid mutation rolled back; no capacity repair",
+        location_policy=dict(name=policy.name,
+            epsilon=args.epsilon if args.policy == "learning" else None,
+            rng="dedicated-python-random",
+            model=str(args.model) if args.model else None,
+            model_sha256=hashlib.sha256(args.model.read_bytes()).hexdigest() if args.model else None,
+            model_target=(policy.artifact.get("target") if args.policy == "learning" else None),
+            guided_operator="all-five" if args.policy == "learning" else None),
+        capacity_semantics="nominal planning capacity, not scenario-wise capacity",
+        objective_units=dict(cost="USD", emission="gCO2", makespan="h"),
+        training_feature_note="No OOS features/labels; infeasible objective labels masked, violations retained",
+        waiting=base.waiting_emission_configuration(wait_emission),
+        uncertainty=dict(travel_cv=base.MODE_TIME_CV, border_cv=base.BORDER_DELAY_CV,
+                         travel_caps=base.MODE_TIME_MAX_FACTOR, border_cap=base.BORDER_DELAY_MAX_FACTOR),
+        input_sha256={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in
+            (args.data, Path(base.DEFAULT_BORDER_EVENT_DATA_FILE), ROOT/"baseline_uncertainty.py",
+             ROOT/"learning_mutation.py", ROOT/"multi_instance_mutation.py",
+             ROOT/"multi_instance_features.py", ROOT/"multi_instance_policy.py",
+             ROOT/"multi_instance_logging.py", ROOT/"multi_instance_catalog.py",
+             Path(__file__), args.instance)},
+        final_oos_size=5000 if args.validate_oos else 0)
+    write_json(args.out / "configuration.json", config)
+    run_id = f"{instance['instance_id']}-{args.policy}-a{args.algorithm_seed}-s{args.training_seed}"
+    logger = MutationLogger(args.out, run_id, digest, args.evaluation_budget,
+                            policy=policy, method=method, instance=instance,
+                            seeds=config["seeds"])
+    preparation_seconds = time.perf_counter() - total_started
+    started = time.perf_counter()
+    base.ACTIVE_MUTATION_LOGGER = logger
+    try:
+        population = base.run_nsga2(nodes, regions, hold, proc, trans_cost,
+            arcs, timetables, batches, wait_cost, wait_emission, carbon, emission_factors,
+            speeds, trans_map, border_delay, theta, paths, options,
+            pop_size=args.pop, generations=args.gens)[0]
+        logger.flush_events(population)
+    finally:
+        base.ACTIVE_MUTATION_LOGGER = None
+        logger.close()
+    runtime = time.perf_counter() - started
+    fronts = base.fast_non_dominated_sort(population)
+    front = [population[i] for i in fronts[0] if population[i].feasible]
+    rows = candidate_rows(method, run_id, front, config)
+    write_json(args.out / "final_feasible_nondominated.json", [json_candidate(r) for r in rows])
+    write_json(args.out / "final_archive_lineage.json", [
+        {
+            "source_solution_id": row["source_solution_id"],
+            "internal_decision_fingerprint": fingerprint(row["individual"]),
+            "export_decision_fingerprint": row["decision_fingerprint"],
+            "optimisation_objectives": row["optimisation_objectives"],
+        }
+        for row in rows
+    ])
+    if not rows:
+        write_json(args.out / "best_infeasible.json",
+                   json_candidate(candidate_rows(method, run_id,
+                        [min(population, key=base.constraint_sort_key)], config)[0]))
+    oos_seconds = 0.0
+    if args.validate_oos and rows:
+        oos_start = time.perf_counter()
+        oos = base.build_scenario_set(arcs, border_delay, 5000, args.validation_seed,
+            stochastic=True, border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+        base.ACTIVE_SCENARIO_SET = oos
+        base._PATH_SCENARIO_CACHE = {}
+        summaries = []
+        for row in rows:
+            ind = row["individual"]
+            base.evaluate_individual(ind, batches, arcs, tt, wait_cost, wait_emission,
+                node_hold_cost=hold, node_proc_cost=proc, carbon_tax_map=carbon,
+                trans_map=trans_map, border_delay_map=border_delay, theta_rm=theta,
+                node_trans_cost=trans_cost)
+            result = dict(decision_fingerprint=row["decision_fingerprint"])
+            for name, values in zip(("cost", "emission", "makespan"), (ind.cost_s, ind.emission_s, ind.makespan_s)):
+                training = row["optimisation_objectives"][name]
+                result[name] = dict(**summarise(values), training_q90=training,
+                                    coverage=float(np.mean(values <= training)))
+            summaries.append(result)
+        write_json(args.out / "oos_summary.json", dict(size=5000, seed=args.validation_seed,
+            scenario_digest=scenario_digest(oos), post_oos_filtering=False, candidates=summaries))
+        oos_seconds = time.perf_counter() - oos_start
+    summary = dict(completed=True, method=method, ccp_evaluation_count=logger.evaluations,
+        identical_evaluation_reuses=logger.cache_hits, mutation_attempts=logger.total_attempts,
+        effective_modifications=logger.total_effective, final_pareto_size=len(rows),
+        no_eligible_candidate=logger.no_candidate, fallback_count=logger.fallbacks,
+        inference_seconds=logger.inference_seconds,
+        preparation_seconds=preparation_seconds, optimisation_seconds=runtime, oos_seconds=oos_seconds,
+        total_seconds=time.perf_counter()-total_started,
+        stop_reason="evaluation_budget" if not logger.has_budget(4) else "generation_limit",
+        evaluation_budget=args.evaluation_budget, generations_completed=logger.generations_completed)
+    write_json(args.out / "COMPLETE.json", summary)
+    print(summary)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
