@@ -93,8 +93,22 @@ Run predeclared training-only Rule pilots, then freeze normalized-objective
 bounds.  OOS results and test instances are rejected:
 
 ```bash
+nohup python3 -u expanda/run_transformer_ppo_rule_normalization_batch.py \
+  --instances expanda/transformer_ppo_runs/instances \
+  --catalog-digest FROZEN_CATALOG_DIGEST \
+  --evaluation-budget PREDECLARED_SHORT_EPISODE_BUDGET \
+  --workers 4 \
+  --out expanda/transformer_ppo_runs/rule_normalization \
+  > expanda/transformer_ppo_runs/logs/rule_normalization_batch.log 2>&1 < /dev/null &
+```
+
+The batch runner gives every instance fixed algorithm and policy seeds, limits
+each worker to one numerical-library thread, keeps a separate log per instance,
+and safely resumes runs that already have a validated `COMPLETE.json`.
+
+```bash
 python3 expanda/freeze_transformer_ppo_normalization.py \
-  --runs TRAINING_RULE_RUN_ROOT \
+  --runs expanda/transformer_ppo_runs/rule_normalization/runs \
   --instances expanda/transformer_ppo_runs/instances \
   --out expanda/transformer_ppo_runs/reward_normalization.json
 ```
