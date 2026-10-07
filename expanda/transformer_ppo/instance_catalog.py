@@ -123,6 +123,12 @@ def generate_catalog(data: Path, out: Path, release_time_max_h: float,
     records, signatures = [], {"train": set(), "test": set()}
     tasks = [("train", sid, train_per_config) for sid in TRAIN_CONFIGS]
     tasks += [("test", sid, test_per_config) for sid in TEST_CONFIGS]
+    total_instances = sum(count for _, _, count in tasks)
+    print(
+        f"[CATALOG] generating {total_instances} instances "
+        f"(release_max={release_time_max_h}h, step={release_time_step_h}h)",
+        flush=True,
+    )
     instance_index = 0
     for split, sid, count in tasks:
         k, alpha = SCENARIOS[sid]
@@ -168,6 +174,11 @@ def generate_catalog(data: Path, out: Path, release_time_max_h: float,
                 "deadline_window_alpha", "instance_seed", "path_seed",
                 "ccp100_seed", "oos5000_seed", "instance_digest")})
             instance_index += 1
+            print(
+                f"[CATALOG] {instance_index:03d}/{total_instances} "
+                f"wrote {instance_id} path_seed={path_seed}",
+                flush=True,
+            )
     if set(train_od) & set(test_od):
         raise AssertionError("train/test OD leakage")
     catalog = {
@@ -178,6 +189,7 @@ def generate_catalog(data: Path, out: Path, release_time_max_h: float,
     }
     catalog["catalog_digest"] = canonical_digest(catalog)
     (out / "catalog.json").write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
+    print(f"[CATALOG] complete digest={catalog['catalog_digest']}", flush=True)
     return catalog
 
 
