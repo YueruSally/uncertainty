@@ -177,20 +177,49 @@ class PPOTrainer:
         self.updates += 1
         return {name: float(np.mean(values)) for name, values in diagnostics.items() if values}
 
-    def save(self, path, metadata=None):
+    def save(self, path, metadata=None, overwrite=False):
+        """Atomically save a checkpoint at an episode boundary.
+
+        A training checkpoint is resumable only after ``finish`` has consumed
+        the rollout and cleared the pending action.  Refusing an in-flight
+        checkpoint avoids silently dropping PPO experience after a restart.
+        """
         path = Path(path)
-        if path.exists():
+        if path.exists() and not overwrite:
             raise ValueError(f"checkpoint already exists: {path}")
+        if self.pending is not None or self.buffer:
+            raise RuntimeError("checkpoint requires an empty PPO rollout boundary")
         path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save({"schema_version": 1, "architecture": self.architecture,
-                    "ppo_config": asdict(self.config), "model": self.model.state_dict(),
-                    "optimizer": self.optimizer.state_dict(), "updates": self.updates,
-                    "metadata": metadata or {}}, path)
+        artifact = {
+            "schema_version": 2,
+            "architecture": self.architecture,
+            "ppo_config": asdict(self.config),
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "updates": self.updates,
+            "metadata": metadata or {},
+            "rng": {
+                "torch": torch.get_rng_state(),
+                "cuda_all": (torch.cuda.get_rng_state_all()
+                             if self.device.type == "cuda" else None),
+                "action_generator": self.action_generator.get_state(),
+                "minibatch_numpy": self.minibatch_rng.bit_generator.state,
+            },
+        }
+        temporary = path.with_name(path.name + ".tmp")
+        if temporary.exists():
+            temporary.unlink()
+        try:
+            torch.save(artifact, temporary)
+            temporary.replace(path)
+        finally:
+            if temporary.exists():
+                temporary.unlink()
 
     @classmethod
     def load(cls, path, config_type, observation_provider, device=None, training=False):
         artifact = torch.load(path, map_location=device or "cpu")
-        if artifact.get("schema_version") != 1:
+        if artifact.get("schema_version") not in (1, 2):
             raise ValueError("unsupported checkpoint schema")
         config = config_type(**artifact["ppo_config"])
         result = cls(artifact["architecture"], config, observation_provider,
@@ -198,5 +227,20 @@ class PPOTrainer:
         result.model.load_state_dict(artifact["model"])
         if training:
             result.optimizer.load_state_dict(artifact["optimizer"])
+            if artifact.get("schema_version") < 2:
+                raise ValueError("schema-1 checkpoints cannot resume training reproducibly")
+            rng = artifact.get("rng", {})
+            required = {"torch", "cuda_all", "action_generator", "minibatch_numpy"}
+            if set(rng) != required:
+                raise ValueError("resumable checkpoint has incomplete random-number state")
+            torch.set_rng_state(rng["torch"].cpu())
+            if result.device.type == "cuda":
+                if rng["cuda_all"] is None:
+                    raise ValueError("CUDA resume requested from a CPU checkpoint")
+                if len(rng["cuda_all"]) != torch.cuda.device_count():
+                    raise ValueError("visible CUDA device count changed since checkpoint")
+                torch.cuda.set_rng_state_all([state.cpu() for state in rng["cuda_all"]])
+            result.action_generator.set_state(rng["action_generator"].cpu())
+            result.minibatch_rng.bit_generator.state = rng["minibatch_numpy"]
         result.updates = int(artifact.get("updates", 0))
         return result

@@ -135,6 +135,24 @@ Repeat with three predeclared policy seeds and with `--architecture mlp` for
 the structural ablation.  The formal inference entry point is
 `run_ppo_policy_ccp100.py`; it loads a checkpoint with `training=False`.
 
+Training commits an atomic checkpoint and `training_progress.json` after every
+instance.  If a process or server is interrupted, rerun the identical command
+with `--resume`.  All scientific arguments must remain identical; the loader
+verifies the frozen configuration, completed episode markers and checkpoint
+SHA-256 before continuing.  A partly written next episode is moved to
+`interrupted_episodes/` rather than overwritten:
+
+```bash
+nohup python3 -u expanda/train_transformer_ppo_ccp100.py \
+  --instances expanda/transformer_ppo_runs/instances \
+  --normalization expanda/transformer_ppo_runs/reward_normalization.json \
+  --architecture transformer --policy-seed 1 \
+  --evaluation-budget PREDECLARED_SHORT_EPISODE_BUDGET \
+  --out expanda/transformer_ppo_runs/training/transformer_seed1 \
+  --resume \
+  >> expanda/transformer_ppo_runs/logs/transformer_seed1.log 2>&1 < /dev/null &
+```
+
 Treat each policy seed as its own predeclared paired replication block; do not
 select the best seed using test or OOS results.  Within a block, use the same
 algorithm seed for all four methods.  The Random and Rule wrapper automatically

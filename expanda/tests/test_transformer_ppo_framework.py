@@ -1,5 +1,6 @@
 import importlib.util
 import sys
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -122,6 +123,32 @@ class ConfigTests(unittest.TestCase):
     def test_invalid_attention_width_fails(self):
         with self.assertRaises(ValueError):
             PPOConfig(hidden_dim=127, attention_heads=4).validate()
+
+
+@unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
+class CheckpointTests(unittest.TestCase):
+    def test_training_checkpoint_restores_all_owned_random_streams(self):
+        import torch
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(hidden_dim=16, attention_heads=4,
+                           transformer_layers=1)
+        trainer = PPOTrainer("mlp", config, lambda *_: None,
+                             device="cpu", policy_seed=123, training=True)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "checkpoint.pt"
+            trainer.save(path)
+            expected_torch = torch.rand(4)
+            expected_action = torch.rand(4, generator=trainer.action_generator)
+            expected_minibatch = trainer.minibatch_rng.random(4)
+
+            restored = PPOTrainer.load(
+                path, PPOConfig, lambda *_: None, device="cpu", training=True)
+            self.assertTrue(torch.equal(torch.rand(4), expected_torch))
+            self.assertTrue(torch.equal(
+                torch.rand(4, generator=restored.action_generator), expected_action))
+            np.testing.assert_array_equal(restored.minibatch_rng.random(4),
+                                          expected_minibatch)
 
 
 class StatisticsTests(unittest.TestCase):
