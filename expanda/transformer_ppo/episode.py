@@ -69,7 +69,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     )
     episode_normalizer = normalizer.with_divisor(objective_divisor)
     config = {
-        "schema_version": 1, "method": trainer.name,
+        "schema_version": 2, "method": trainer.name,
         "instance_id": instance["instance_id"], "configuration": instance["configuration"],
         "instance_digest": instance["instance_digest"], "K": instance["K"],
         "deadline_window_alpha": instance["deadline_window_alpha"],
@@ -81,6 +81,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "crossover_rate": base.CROSSOVER_RATE, "mutation_rate": base.MUTATION_RATE,
         "external_archive_role": "reward-only; excluded from environmental selection",
         "policy_training": bool(trainer.training),
+        "policy_checkpoint": getattr(trainer, "checkpoint_provenance", None),
         "normalization": {"minimum": episode_normalizer.minimum,
                           "maximum": episode_normalizer.maximum,
                           "reference": episode_normalizer.reference,

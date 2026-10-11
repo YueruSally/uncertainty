@@ -20,6 +20,7 @@ from transformer_ppo.observations import (
     build_observation, candidate_tokens,
 )
 from transformer_ppo.statistics import formal_report, holm
+from run_transformer_ppo_formal_batch import _seeds
 
 
 class ArchiveTests(unittest.TestCase):
@@ -144,11 +145,25 @@ class CheckpointTests(unittest.TestCase):
 
             restored = PPOTrainer.load(
                 path, PPOConfig, lambda *_: None, device="cpu", training=True)
+            self.assertEqual(restored.checkpoint_provenance["checkpoint_sha256"],
+                             __import__("hashlib").sha256(path.read_bytes()).hexdigest())
+            self.assertEqual(restored.checkpoint_provenance["architecture"], "mlp")
             self.assertTrue(torch.equal(torch.rand(4), expected_torch))
             self.assertTrue(torch.equal(
                 torch.rand(4, generator=restored.action_generator), expected_action))
             np.testing.assert_array_equal(restored.minibatch_rng.random(4),
                                           expected_minibatch)
+
+
+class FormalBatchTests(unittest.TestCase):
+    def test_replication_seed_namespaces_are_paired_and_disjoint(self):
+        args = SimpleNamespace(
+            replication=1, algorithm_seed_base=80_000_000,
+            policy_seed_base=90_000_000)
+        self.assertEqual(_seeds(args, 0), (80_000_000, 90_000_000))
+        self.assertEqual(_seeds(args, 119), (80_000_119, 90_000_119))
+        args.replication = 2
+        self.assertEqual(_seeds(args, 0), (81_000_000, 91_000_000))
 
 
 class StatisticsTests(unittest.TestCase):

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import hashlib
+import json
 from pathlib import Path
 
 import numpy as np
@@ -51,6 +53,7 @@ class PPOTrainer:
         self.pending = None
         self.training = bool(training)
         self.updates = 0
+        self.checkpoint_provenance = None
 
     @property
     def name(self):
@@ -218,7 +221,12 @@ class PPOTrainer:
 
     @classmethod
     def load(cls, path, config_type, observation_provider, device=None, training=False):
-        artifact = torch.load(path, map_location=device or "cpu")
+        path = Path(path)
+        try:
+            artifact = torch.load(
+                path, map_location=device or "cpu", weights_only=False)
+        except TypeError:  # PyTorch before the weights_only argument was added.
+            artifact = torch.load(path, map_location=device or "cpu")
         if artifact.get("schema_version") not in (1, 2):
             raise ValueError("unsupported checkpoint schema")
         config = config_type(**artifact["ppo_config"])
@@ -243,4 +251,20 @@ class PPOTrainer:
             result.action_generator.set_state(rng["action_generator"].cpu())
             result.minibatch_rng.bit_generator.state = rng["minibatch_numpy"]
         result.updates = int(artifact.get("updates", 0))
+        metadata = artifact.get("metadata") or {}
+        metadata_blob = json.dumps(
+            metadata, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        result.checkpoint_provenance = {
+            "checkpoint_schema_version": int(artifact["schema_version"]),
+            "checkpoint_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "training_metadata_sha256": hashlib.sha256(
+                metadata_blob.encode("utf-8")).hexdigest(),
+            "architecture": artifact["architecture"],
+            "policy_seed": metadata.get("policy_seed"),
+            "catalog_digest": metadata.get("catalog_digest"),
+            "normalization_digest": metadata.get("normalization_digest"),
+            "training_episode_count": metadata.get("episode_count"),
+            "ppo_digest": metadata.get("ppo_digest"),
+            "updates": result.updates,
+        }
         return result

@@ -197,3 +197,23 @@ python3 expanda/analyze_transformer_ppo_formal.py \
   --input-root REPLICATION_BLOCK_RESULTS \
   --out REPLICATION_BLOCK_RESULTS/formal_statistics.json
 ```
+
+The resumable formal batch driver runs exactly that frozen block end to end:
+four paired 15,000-evaluation optimizations per test instance, common OOS-5000,
+normalized OOS-HV and per-configuration statistics.  It validates checkpoint
+provenance, catalog and normalization digests, gives all four methods the same
+algorithm seed and CCP100 scenario set, and safely skips completed stages:
+
+```bash
+nohup python3 -u expanda/run_transformer_ppo_formal_batch.py \
+  --instances expanda/transformer_ppo_runs/instances \
+  --normalization expanda/transformer_ppo_runs/reward_normalization.json \
+  --transformer-checkpoint TRAINING/transformer_seed1/final_policy.pt \
+  --mlp-checkpoint TRAINING/mlp_seed1/final_policy.pt \
+  --replication 1 \
+  --catalog-digest FROZEN_CATALOG_DIGEST \
+  --normalization-digest FROZEN_NORMALIZATION_DIGEST \
+  --evaluation-budget 15000 --workers 4 --devices 0,1 \
+  --out FORMAL/seed1 \
+  > LOGS/formal_seed1.log 2>&1 < /dev/null &
+```
