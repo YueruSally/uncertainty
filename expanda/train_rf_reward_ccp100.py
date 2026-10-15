@@ -29,6 +29,8 @@ def _load(roots):
             config = json.loads(config_path.read_text(encoding="utf-8"))
             if config.get("instance_split") != "train":
                 raise ValueError(f"RF training source is not a training instance: {path}")
+            if not config.get("configuration"):
+                raise ValueError(f"RF source has no configuration: {config_path}")
             count = 0
             with path.open(encoding="utf-8") as handle:
                 for line_number, line in enumerate(handle, 1):
@@ -47,10 +49,12 @@ def _load(roots):
                     if abs(delta - float(row["reward_hv_delta"])) > 1e-10:
                         raise ValueError(f"archive reward inconsistency at {path}:{line_number}")
                     row["source_path"] = str(path)
+                    row["configuration"] = config["configuration"]
                     samples.append(row)
                     count += 1
             sources.append({"path": str(path), "sha256": _sha256(path), "samples": count,
-                            "instance_id": config["instance_id"]})
+                            "instance_id": config["instance_id"],
+                            "configuration": config["configuration"]})
     if not samples:
         raise ValueError("no RF reward samples found")
     digest = hashlib.sha256(json.dumps(
@@ -76,12 +80,45 @@ def _group_metrics(y_true, y_pred, groups):
     }
 
 
+def _fold_indices(groups, configurations, folds, balanced, seed):
+    if not balanced:
+        return list(GroupKFold(n_splits=folds).split(
+            np.zeros((len(groups), 1)), np.zeros(len(groups)), groups))
+    instance_configuration = {}
+    for instance_id, configuration in zip(groups, configurations):
+        previous = instance_configuration.setdefault(instance_id, configuration)
+        if previous != configuration:
+            raise ValueError(f"instance appears in multiple configurations: {instance_id}")
+    by_configuration = {}
+    for instance_id, configuration in instance_configuration.items():
+        by_configuration.setdefault(configuration, []).append(instance_id)
+    if any(len(values) < folds for values in by_configuration.values()):
+        raise ValueError("each configuration must contain at least one instance per fold")
+    validation_groups = [set() for _ in range(folds)]
+    for configuration in sorted(by_configuration):
+        ordered = sorted(by_configuration[configuration], key=lambda instance_id: (
+            hashlib.sha256(f"{seed}:{instance_id}".encode("utf-8")).hexdigest(),
+            instance_id,
+        ))
+        for index, instance_id in enumerate(ordered):
+            validation_groups[index % folds].add(instance_id)
+    indices = np.arange(len(groups))
+    result = []
+    for held_out in validation_groups:
+        valid_mask = np.asarray([value in held_out for value in groups], dtype=bool)
+        result.append((indices[~valid_mask], indices[valid_mask]))
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs", type=Path, action="append", required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--rf-seed", type=int, required=True)
     parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--folds", type=int, default=3)
+    parser.add_argument("--configuration-balanced-folds", action="store_true")
+    parser.add_argument("--cv-seed", type=int, default=104_000_000)
     args = parser.parse_args()
     if args.out.exists() and any(args.out.iterdir()):
         parser.error("output directory must be empty")
@@ -90,24 +127,29 @@ def main():
     X = np.asarray([row["feature_values"] for row in samples], dtype=float)
     y = np.asarray([row["reward"] for row in samples], dtype=float)
     groups = np.asarray([row["instance_id"] for row in samples], dtype=object)
+    configurations = np.asarray([row["configuration"] for row in samples], dtype=object)
     unique_groups = sorted(set(groups))
     if len(unique_groups) < 2:
         raise ValueError("instance-grouped validation requires at least two training instances")
-    folds = min(3, len(unique_groups))
+    if args.folds < 2 or args.folds > len(unique_groups):
+        parser.error("folds must be between 2 and the number of training instances")
+    folds = args.folds
+    splits = _fold_indices(
+        groups, configurations, folds,
+        args.configuration_balanced_folds, args.cv_seed)
     grid = [dict(n_estimators=200, max_depth=depth,
                  min_samples_leaf=leaf, max_features=features)
             for depth, leaf, features in itertools.product(
                 (8, None), (2, 5), (0.5, 1.0))]
     candidates = []
-    splitter = GroupKFold(n_splits=folds)
     baseline_predictions = np.full(len(y), np.nan)
-    for train, valid in splitter.split(X, y, groups):
+    for train, valid in splits:
         baseline_predictions[valid] = float(np.mean(y[train]))
     baseline_validation = _group_metrics(y, baseline_predictions, groups)
     for index, params in enumerate(grid):
         predictions = np.full(len(y), np.nan)
         fold_groups = []
-        for train, valid in splitter.split(X, y, groups):
+        for train, valid in splits:
             model = RandomForestRegressor(
                 **params, random_state=args.rf_seed + index, n_jobs=args.jobs)
             model.fit(X[train], y[train])
@@ -130,6 +172,7 @@ def main():
         "feature_names": FEATURE_NAMES,
         "model": model,
         "rf_seed": args.rf_seed,
+        "cv_seed": args.cv_seed,
         "training_data_digest": data_digest,
         "training_instance_ids": unique_groups,
         "hyperparameters": best["parameters"],
@@ -163,6 +206,9 @@ def main():
                 / np.sum((1.0 / propensities) ** 2)),
         },
         "grouped_validation_folds": folds,
+        "configuration_balanced_folds": args.configuration_balanced_folds,
+        "cv_seed": args.cv_seed,
+        "rf_seed": args.rf_seed,
         "training_fold_mean_baseline": baseline_validation,
         "best": best,
         "all_candidates": candidates,

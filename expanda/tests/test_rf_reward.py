@@ -15,6 +15,7 @@ from transformer_ppo.observations import CANDIDATE_FEATURES, GLOBAL_FEATURES, PA
 from transformer_ppo.rf_reward import (
     FEATURE_NAMES, RFRewardCollectionPolicy, RFRewardPolicy, feature_values,
 )
+from train_rf_reward_ccp100 import _fold_indices
 
 
 def observation(candidate_first=(1.0, 2.0)):
@@ -43,6 +44,30 @@ def candidates():
 class FirstColumnModel:
     def predict(self, matrix):
         return np.asarray(matrix)[:, 0]
+
+
+class RFValidationSplitTests(unittest.TestCase):
+    def test_balanced_folds_hold_out_one_instance_per_configuration(self):
+        groups = np.asarray([
+            f"train-S{configuration}-{instance:03d}"
+            for configuration in range(3)
+            for instance in range(1, 6)
+            for _ in range(2)
+        ], dtype=object)
+        configurations = np.asarray([
+            f"S{configuration}"
+            for configuration in range(3)
+            for _instance in range(1, 6)
+            for _ in range(2)
+        ], dtype=object)
+        splits = _fold_indices(groups, configurations, 5, True, 7)
+        self.assertEqual(len(splits), 5)
+        for train, valid in splits:
+            self.assertFalse(set(groups[train]) & set(groups[valid]))
+            held_out = set(groups[valid])
+            self.assertEqual(len(held_out), 3)
+            self.assertEqual({value.split("-")[1] for value in held_out},
+                             {"S0", "S1", "S2"})
 
 
 class RFFeatureTests(unittest.TestCase):
