@@ -3,6 +3,8 @@
 __pycache__/
 *.pyc
 .DS_Store
+/dev_outputs/
+/.mplconfig/
 
 # Local Learning-CCP100 training logs and pilot outputs
 expanda/learning_runs/

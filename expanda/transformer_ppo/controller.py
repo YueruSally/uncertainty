@@ -101,6 +101,9 @@ class PPOController(MutationLogger):
                    action_wall_seconds=time.perf_counter() - started)
         self.reward_total += reward
         self.positive_reward_actions += int(reward > 0)
+        record_sample = getattr(self.trainer, "record_sample", None)
+        if record_sample is not None:
+            record_sample(row)
         self.trainer.observe_outcome(reward, done=False)
         if self.phase == "offspring":
             self._record_pending_offspring(ind)

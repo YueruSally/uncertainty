@@ -19,7 +19,9 @@ from .instance_catalog import read_instance
 
 def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 algorithm_seed: int, evaluation_budget=15_000,
-                pop_size=100, generations=1_000, reward_config=None):
+                pop_size=100, generations=1_000, reward_config=None,
+                controller_class=PPOController, controller_kwargs=None,
+                configuration_extra=None):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
@@ -70,7 +72,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     episode_normalizer = normalizer.with_divisor(objective_divisor)
     config = {
         "schema_version": 2, "method": trainer.name,
-        "instance_id": instance["instance_id"], "configuration": instance["configuration"],
+        "instance_id": instance["instance_id"], "instance_split": instance["split"],
+        "configuration": instance["configuration"],
         "instance_digest": instance["instance_digest"], "K": instance["K"],
         "deadline_window_alpha": instance["deadline_window_alpha"],
         "population": pop_size, "generations": generations,
@@ -88,14 +91,19 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                           "objective_divisor": objective_divisor,
                           "definition": "cost/total_teu, emission/total_teu, makespan/instance_horizon"},
     }
+    extra = configuration_extra or {}
+    overlap = set(config) & set(extra)
+    if overlap:
+        raise ValueError(f"configuration_extra cannot replace core fields: {sorted(overlap)}")
+    config.update(extra)
     write_json(out / "configuration.json", config)
     archive = RewardArchive(episode_normalizer)
-    controller = PPOController(
+    controller = controller_class(
         out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
         trainer=trainer, archive=archive,
         reward_config=reward_config or RewardConfig(), batches=batches,
         generations=generations, pop_size=pop_size, method=trainer.name,
-        instance=instance, seeds=seeds)
+        instance=instance, seeds=seeds, **(controller_kwargs or {}))
     base.ACTIVE_MUTATION_LOGGER = controller
     try:
         population = base.run_nsga2(
