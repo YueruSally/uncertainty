@@ -161,6 +161,54 @@ normalization, 532 diagnostic trajectory evaluations, 558 counterfactual probe
 evaluations, 1,783 collection evaluations and 297 RF optimization evaluations.
 The OOS smoke additionally used 55,000 scenario-decision evaluations.
 
+### Independent server smoke verification
+
+The committed pipeline was independently rerun on `lnx-grid-41` from commit
+`77aa6b2`, using Python 3.10.22, PyTorch 2.5.1+cu121 and scikit-learn 1.5.2.
+All 48 targeted tests passed.  The training-only reward normalizer used by this
+run had SHA-256
+`de73404449c2b612609ad5248f815793f99b676e4260e2068ae403f043addbcd`.
+The background pipeline exited normally and no traceback, error or exception
+was present in its log.
+
+The server position diagnostic used one training instance, eight fixed
+child/operator events, eight eligible positions per event and three repetitions:
+
+- 192 probe evaluations and 64 distinct positions; all probes made an effective
+  modification in this sample.
+- Seven of eight events had a nonzero mean-reward range across positions.  The
+  mean and median within-event ranges were 0.02869 and 0.02369.
+- The exploratory event-grouped action-feature RF had MAE 0.007394 versus
+  0.006083 for the event-centered zero baseline, R-squared 0.0297 and
+  prediction/label correlation 0.292.  Thus the server diagnostic again found
+  position differences, but did not show useful out-of-event prediction.
+
+The server RF collection used three training instances and retained 83 executed
+actions.  Four actions were infeasible after mutation.  There were no mutation
+failures, repair failures, reverts, unchanged decisions or ineffective actions
+in this particular sample.  The maximum discrepancy between the stored archive
+HV delta and `archive_hv_after - archive_hv_before` was exactly zero.  Logged
+propensities ranged from 0.01726 to 0.5 and the diagnostic un-clipped IPS
+effective sample size was 63.82/83.
+
+The selected RF had instance-macro validation MAE/RMSE 0.03867/0.08322, while
+the corresponding training-fold mean baseline achieved 0.02462/0.06895.
+Therefore the RF was worse than the simple baseline on both selection metrics
+in this small server sample.  The serialized model hash, independently matched
+against its training summary, was
+`91f39bda2756e1b8cf96d3a01282f9ffab330c6112da860ffcb2f95b1567a811`.
+
+The independent RF policy smoke used 297/300 actual evaluations, exported six
+feasible final-population rank-0 decisions and evaluated those six decisions on
+the development manifest's common 5,000 OOS scenarios.  It computed no HV.
+
+The server gate conclusion is therefore **engineering pass, predictive-evidence
+insufficient**.  Exact-label generation, propensity logging, fitting,
+serialization, inference, budget accounting, final-front export and OOS source
+flow all passed.  Neither the one-instance diagnostic nor the three-instance RF
+validation supports a performance claim or justifies launching the full formal
+collection without the planned design confirmation.
+
 Relevant tests: 48 passed, one PyTorch-dependent test skipped because the local
 temporary environment has no PyTorch. A broad legacy test discovery produced
 352 passes, one skip, three failures and 37 setup errors in unrelated A-lite
