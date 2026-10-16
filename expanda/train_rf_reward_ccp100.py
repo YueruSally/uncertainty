@@ -80,6 +80,37 @@ def _group_metrics(y_true, y_pred, groups):
     }
 
 
+def _parse_fixed_parameters(value):
+    if value is None:
+        return None
+    try:
+        parameters = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"invalid fixed-parameters JSON: {error}") from error
+    expected = {"n_estimators", "max_depth", "min_samples_leaf", "max_features"}
+    if not isinstance(parameters, dict) or set(parameters) != expected:
+        raise ValueError(f"fixed parameters must contain exactly {sorted(expected)}")
+    if (isinstance(parameters["n_estimators"], bool)
+            or not isinstance(parameters["n_estimators"], int)
+            or parameters["n_estimators"] < 1):
+        raise ValueError("n_estimators must be a positive integer")
+    if (parameters["max_depth"] is not None
+            and (isinstance(parameters["max_depth"], bool)
+                 or not isinstance(parameters["max_depth"], int)
+                 or parameters["max_depth"] < 1)):
+        raise ValueError("max_depth must be null or a positive integer")
+    if (isinstance(parameters["min_samples_leaf"], bool)
+            or not isinstance(parameters["min_samples_leaf"], int)
+            or parameters["min_samples_leaf"] < 1):
+        raise ValueError("min_samples_leaf must be a positive integer")
+    if (isinstance(parameters["max_features"], bool)
+            or not isinstance(parameters["max_features"], (int, float))
+            or not 0.0 < float(parameters["max_features"]) <= 1.0):
+        raise ValueError("max_features must be in (0, 1]")
+    parameters["max_features"] = float(parameters["max_features"])
+    return parameters
+
+
 def _fold_indices(groups, configurations, folds, balanced, seed):
     if not balanced:
         return list(GroupKFold(n_splits=folds).split(
@@ -119,6 +150,7 @@ def main():
     parser.add_argument("--folds", type=int, default=3)
     parser.add_argument("--configuration-balanced-folds", action="store_true")
     parser.add_argument("--cv-seed", type=int, default=104_000_000)
+    parser.add_argument("--fixed-parameters-json")
     args = parser.parse_args()
     if args.out.exists() and any(args.out.iterdir()):
         parser.error("output directory must be empty")
@@ -137,10 +169,19 @@ def main():
     splits = _fold_indices(
         groups, configurations, folds,
         args.configuration_balanced_folds, args.cv_seed)
-    grid = [dict(n_estimators=200, max_depth=depth,
-                 min_samples_leaf=leaf, max_features=features)
-            for depth, leaf, features in itertools.product(
-                (8, None), (2, 5), (0.5, 1.0))]
+    try:
+        fixed_parameters = _parse_fixed_parameters(args.fixed_parameters_json)
+    except ValueError as error:
+        parser.error(str(error))
+    if fixed_parameters is None:
+        grid = [dict(n_estimators=200, max_depth=depth,
+                     min_samples_leaf=leaf, max_features=features)
+                for depth, leaf, features in itertools.product(
+                    (8, None), (2, 5), (0.5, 1.0))]
+        parameter_protocol = "training-instance grouped-CV grid selection"
+    else:
+        grid = [fixed_parameters]
+        parameter_protocol = "predeclared fixed parameters; CV is diagnostic only"
     candidates = []
     baseline_predictions = np.full(len(y), np.nan)
     for train, valid in splits:
@@ -158,14 +199,37 @@ def main():
         metrics = _group_metrics(y, predictions, groups)
         candidates.append({"parameters": params, "validation": metrics,
                            "fold_validation_instances": fold_groups})
-    best = min(candidates, key=lambda row: (
-        row["validation"]["mean_instance_rmse"],
-        row["validation"]["mean_instance_mae"],
-        json.dumps(row["parameters"], sort_keys=True)))
+    best = (candidates[0] if fixed_parameters is not None else min(
+        candidates, key=lambda row: (
+            row["validation"]["mean_instance_rmse"],
+            row["validation"]["mean_instance_mae"],
+            json.dumps(row["parameters"], sort_keys=True))))
     model = RandomForestRegressor(
         **best["parameters"], random_state=args.rf_seed, n_jobs=args.jobs)
     model.fit(X, y)
     propensities = np.asarray([row["logging_propensity"] for row in samples], dtype=float)
+    configuration_reward = {}
+    for configuration in sorted(set(configurations)):
+        values = y[configurations == configuration]
+        configuration_reward[configuration] = {
+            "samples": int(len(values)),
+            "mean": float(values.mean()),
+            "std": float(values.std()),
+            "positive_fraction": float(np.mean(values > 0)),
+            "negative_fraction": float(np.mean(values < 0)),
+        }
+    outcome_counts = {
+        "mutation_failure": sum(not row["mutation_success"] for row in samples),
+        "repair_failure": sum(not row["repair_success"] for row in samples),
+        "reverted": sum(row["mutation_reverted"] for row in samples),
+        "no_change": sum(not row["decision_changed"] for row in samples),
+        "ineffective": sum(not row["effective_mutation"] for row in samples),
+        "infeasible_after": sum(not row["feasible_after"] for row in samples),
+    }
+    maximum_archive_delta_error = max(abs(
+        (row["reward_archive_hv_after"] - row["reward_archive_hv_before"])
+        - row["reward_hv_delta"]
+    ) for row in samples)
     artifact = {
         "schema_version": 1,
         "target": "ppo_immediate_mutation_reward",
@@ -176,6 +240,7 @@ def main():
         "training_data_digest": data_digest,
         "training_instance_ids": unique_groups,
         "hyperparameters": best["parameters"],
+        "parameter_protocol": parameter_protocol,
         "sample_weighting": "none",
         "sample_weighting_reason": (
             "estimate conditional mean reward directly; logging propensities are retained "
@@ -193,6 +258,9 @@ def main():
         "instance_count": len(unique_groups),
         "operator_counts": {operator: sum(row["operator"] == operator for row in samples)
                             for operator in sorted({row["operator"] for row in samples})},
+        "outcome_counts": outcome_counts,
+        "maximum_archive_delta_error": maximum_archive_delta_error,
+        "configuration_reward": configuration_reward,
         "reward": {"mean": float(y.mean()), "std": float(y.std()),
                    "minimum": float(y.min()), "maximum": float(y.max()),
                    "positive_fraction": float(np.mean(y > 0)),
@@ -209,6 +277,8 @@ def main():
         "configuration_balanced_folds": args.configuration_balanced_folds,
         "cv_seed": args.cv_seed,
         "rf_seed": args.rf_seed,
+        "parameter_protocol": parameter_protocol,
+        "fixed_parameters": fixed_parameters,
         "training_fold_mean_baseline": baseline_validation,
         "best": best,
         "all_candidates": candidates,

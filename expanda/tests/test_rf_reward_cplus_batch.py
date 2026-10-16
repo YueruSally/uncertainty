@@ -55,6 +55,7 @@ class ResumeValidationTests(unittest.TestCase):
             evaluation_budget=1000, uniform_mixture=0.5,
             normalization_digest="normalization-sha",
             algorithm_seed_base=83_000_000, policy_seed_base=93_000_000,
+            pop=100, gens=1000,
         )
         algorithm_seed, policy_seed = _seeds(args, 0, 0)
         with tempfile.TemporaryDirectory() as directory:
@@ -66,6 +67,7 @@ class ResumeValidationTests(unittest.TestCase):
             (root / "configuration.json").write_text(json.dumps({
                 "instance_id": record["instance_id"],
                 "instance_digest": record["instance_digest"],
+                "population": 100, "generations": 1000,
             }))
             (root / "rf_collection_configuration.json").write_text(json.dumps({
                 "algorithm_seed": algorithm_seed, "policy_seed": policy_seed,

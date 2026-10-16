@@ -15,7 +15,7 @@ from transformer_ppo.observations import CANDIDATE_FEATURES, GLOBAL_FEATURES, PA
 from transformer_ppo.rf_reward import (
     FEATURE_NAMES, RFRewardCollectionPolicy, RFRewardPolicy, feature_values,
 )
-from train_rf_reward_ccp100 import _fold_indices
+from train_rf_reward_ccp100 import _fold_indices, _parse_fixed_parameters
 
 
 def observation(candidate_first=(1.0, 2.0)):
@@ -47,6 +47,25 @@ class FirstColumnModel:
 
 
 class RFValidationSplitTests(unittest.TestCase):
+    def test_fixed_parameter_schema_is_strict(self):
+        parameters = _parse_fixed_parameters(json.dumps({
+            "n_estimators": 200, "max_depth": 8,
+            "min_samples_leaf": 5, "max_features": 0.5,
+        }))
+        self.assertEqual(parameters["max_depth"], 8)
+        with self.assertRaises(ValueError):
+            _parse_fixed_parameters(json.dumps({"n_estimators": 200}))
+        with self.assertRaises(ValueError):
+            _parse_fixed_parameters(json.dumps({
+                "n_estimators": 200, "max_depth": 8,
+                "min_samples_leaf": 5, "max_features": 2.0,
+            }))
+        with self.assertRaises(ValueError):
+            _parse_fixed_parameters(json.dumps({
+                "n_estimators": True, "max_depth": 8,
+                "min_samples_leaf": 5, "max_features": 0.5,
+            }))
+
     def test_balanced_folds_hold_out_one_instance_per_configuration(self):
         groups = np.asarray([
             f"train-S{configuration}-{instance:03d}"
