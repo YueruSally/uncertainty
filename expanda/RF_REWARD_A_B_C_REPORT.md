@@ -1,7 +1,8 @@
 # CCP100 RF-Reward stages A-C report
 
-Date: 2026-10-15. This is a development report, not a frozen formal-analysis
-specification. No formal-test hypervolume was read or computed.
+Date: 2026-10-15; C+ update: 2026-10-16. This is a development report, not a
+frozen formal-analysis specification. No formal-test hypervolume was read or
+computed.
 
 ## Project state and isolation
 
@@ -208,6 +209,48 @@ serialization, inference, budget accounting, final-front export and OOS source
 flow all passed.  Neither the one-instance diagnostic nor the three-instance RF
 validation supports a performance claim or justifies launching the full formal
 collection without the planned design confirmation.
+
+### C+ medium-scale training-only evidence gate
+
+After review of the small smoke, a pre-formal C+ gate was authorized and run on
+the server.  It used the existing formal training catalog only: five
+deterministically selected instances from each S0-S8 configuration, the same 45
+instances in three independent collection trajectories, 1,000 actual CCP100
+evaluations per instance, population 100 and `rho=0.5`.  The selection digest
+was `ff5726bfce90551716c7f8fb4cea6a99e26a1f5dc57b436c83236b2d6ca8c20b`.
+No formal-test instance, OOS result or HV was read.
+
+All 135 collection runs completed without a logged traceback, error or
+exception.  They used 134,692 actual CCP100 evaluations against the 135,000
+upper bound.  Each trajectory was fitted independently with unweighted reward
+regression and evaluated using the same five configuration-balanced,
+instance-grouped folds.  Every fold held out one instance from every S0-S8
+configuration.
+
+Results were:
+
+- Trajectory 1: 4,338 labels; RF MAE/RMSE 0.009649/0.03082 versus baseline
+  0.01356/0.03501, reductions of 28.8%/12.0%.  Model SHA-256
+  `96401aca987352ff2bfaa6550eaaff399373cf06e696b874e0ca6258782e6cb2`.
+- Trajectory 2: 4,294 labels; RF MAE/RMSE 0.01386/0.04599 versus baseline
+  0.01578/0.04751, reductions of 12.2%/3.2%.  Model SHA-256
+  `da824e5bf56563466288dfbeb800a0c51345564354f729572d8db1a4d69a7a73`.
+- Trajectory 3: 4,366 labels; RF MAE/RMSE 0.01440/0.03994 versus baseline
+  0.01494/0.04208, reductions of 3.6%/5.1%.  Model SHA-256
+  `fe405437275c8503866ac0a4f8e18109dd8910792c910be50193cc3f1ad316b9`.
+
+All three fits selected 200 trees, depth 8, minimum leaf size 5 and feature
+fraction 0.5.  The batch artifact SHA-256 was
+`f133a023cb35a60e0efa8678d715c4092081efde32c85846c65c6efe6b8abcb4`.
+
+The C+ gate therefore passed: all three independent collection/model seeds
+improved both instance-macro MAE and RMSE over their training-fold mean
+predictors.  The improvement was modest and variable, especially for
+trajectories 2 and 3.  This is evidence that pre-action features contain some
+generalizable signal for immediate reward; it is not evidence that RF
+optimization outperforms Rule, Transformer-PPO or any other complete method.
+Formal stage D still requires confirmation of its resource budget and frozen
+training design, and stage E remains unstarted.
 
 Relevant tests: 48 passed, one PyTorch-dependent test skipped because the local
 temporary environment has no PyTorch. A broad legacy test discovery produced
