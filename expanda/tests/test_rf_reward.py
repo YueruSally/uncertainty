@@ -42,6 +42,8 @@ def candidates():
 
 
 class FirstColumnModel:
+    n_jobs = 4
+
     def predict(self, matrix):
         return np.asarray(matrix)[:, 0]
 
@@ -141,6 +143,21 @@ class RFFeatureTests(unittest.TestCase):
             decision = policy.choose(candidates(), {})
             self.assertEqual(decision.chosen_index, 1)
             self.assertEqual(decision.probabilities, [0.0, 1.0])
+
+    def test_formal_inference_can_limit_forest_parallelism(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "rf.joblib"
+            joblib.dump({
+                "schema_version": 1,
+                "target": "ppo_immediate_mutation_reward",
+                "feature_names": FEATURE_NAMES,
+                "model": FirstColumnModel(),
+                "training_data_digest": "d",
+                "rf_seed": 1,
+            }, path)
+            policy = RFRewardPolicy(path, predict_jobs=1)
+            self.assertEqual(policy.model.n_jobs, 1)
+            self.assertEqual(policy.checkpoint_provenance["predict_jobs"], 1)
 
 
 if __name__ == "__main__":

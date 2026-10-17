@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--evaluation-budget", type=int, default=15_000)
     parser.add_argument("--pop", type=int, default=100)
     parser.add_argument("--gens", type=int, default=1_000)
+    parser.add_argument("--predict-jobs", type=int)
     args = parser.parse_args()
     values = json.loads(args.normalization.read_text(encoding="utf-8"))
     if values.get("source") != "training-only":
@@ -28,7 +29,9 @@ def main():
     normalizer = ObjectiveNormalizer(
         tuple(values["minimum"]), tuple(values["maximum"]),
         tuple(values.get("reference", (1.1, 1.1, 1.1))))
-    policy = RFRewardPolicy(args.model)
+    if args.predict_jobs is not None and args.predict_jobs < 1:
+        parser.error("predict-jobs must be positive")
+    policy = RFRewardPolicy(args.model, predict_jobs=args.predict_jobs)
     summary = run_episode(
         args.data, args.instance, args.out, policy, normalizer,
         algorithm_seed=args.algorithm_seed, evaluation_budget=args.evaluation_budget,

@@ -170,7 +170,7 @@ class RFRewardPolicy:
     training = False
     updates = 0
 
-    def __init__(self, model_path: Path):
+    def __init__(self, model_path: Path, predict_jobs: int | None = None):
         import joblib
 
         self.model_path = Path(model_path)
@@ -183,12 +183,19 @@ class RFRewardPolicy:
             raise ValueError("RF artifact has the wrong target")
         self.artifact = artifact
         self.model = artifact["model"]
+        if predict_jobs is not None:
+            if predict_jobs < 1:
+                raise ValueError("predict_jobs must be positive")
+            if not hasattr(self.model, "n_jobs"):
+                raise ValueError("RF-Reward model does not expose n_jobs")
+            self.model.n_jobs = int(predict_jobs)
         self.observation_provider = None
         self.checkpoint_provenance = {
             "model_sha256": hashlib.sha256(self.model_path.read_bytes()).hexdigest(),
             "schema_version": artifact["schema_version"],
             "training_data_digest": artifact.get("training_data_digest"),
             "rf_seed": artifact.get("rf_seed"),
+            "predict_jobs": getattr(self.model, "n_jobs", None),
         }
 
     def choose(self, candidates, context=None):
