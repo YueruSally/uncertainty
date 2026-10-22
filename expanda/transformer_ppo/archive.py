@@ -1,4 +1,10 @@
-"""Reward-only nondominated archive and exact normalized 3-D HV."""
+"""Reward-only nondominated archive and exact normalized 3-D HV.
+
+The archive is deliberately independent from NSGA-II environmental selection.
+One policy action may produce more than one evaluated solution, so action
+rewards are settled as an atomic batch against the archive state that existed
+before any member of that batch was inserted.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +14,7 @@ import numpy as np
 
 
 Point = Tuple[float, float, float]
+ArchiveCandidate = Tuple[Sequence[float], bool, str]
 
 
 def _dominates(a: Sequence[float], b: Sequence[float]) -> bool:
@@ -86,22 +93,24 @@ class ObjectiveNormalizer:
 @dataclass(frozen=True)
 class RewardConfig:
     positive_hv_scale: float = 0.01
-    no_change_penalty: float = 0.01
-    infeasible_penalty: float = 0.05
-    repair_failure_penalty: float = 0.10
-    violation_improvement_weight: float = 0.025
-    reward_clip: float = 1.0
+    floating_tolerance: float = 1e-12
 
     def validate(self) -> None:
-        values = (
-            self.positive_hv_scale,
-            self.no_change_penalty,
-            self.infeasible_penalty,
-            self.repair_failure_penalty,
-            self.reward_clip,
-        )
-        if any(x <= 0 for x in values) or self.violation_improvement_weight < 0:
-            raise ValueError("reward scales and penalties must be positive")
+        if not np.isfinite(self.positive_hv_scale) or self.positive_hv_scale <= 0:
+            raise ValueError("positive_hv_scale must be finite and positive")
+        if not np.isfinite(self.floating_tolerance) or self.floating_tolerance < 0:
+            raise ValueError("floating_tolerance must be finite and non-negative")
+
+
+@dataclass(frozen=True)
+class ArchiveUpdate:
+    """Result of one atomic archive settlement."""
+
+    delta_hv: float
+    hv_before: float
+    hv_after: float
+    archive_size: int
+    accepted_fingerprints: int
 
 
 class RewardArchive:
@@ -120,17 +129,55 @@ class RewardArchive:
     def hypervolume(self) -> float:
         return exact_hv_3d(self._points, self.normalizer.reference)
 
-    def observe(self, objectives: Sequence[float], feasible: bool, fingerprint: str) -> float:
+    def reset(self) -> None:
+        """Start a new independent NSGA-II run."""
+        self._points.clear()
+        self._fingerprints.clear()
+
+    def observe_many(self, candidates: Iterable[ArchiveCandidate]) -> ArchiveUpdate:
+        """Atomically settle all feasible new solutions from one action.
+
+        Each candidate is ``(objectives, feasible, fingerprint)``.  No staged
+        candidate is visible to the archive until the joint HV increment has
+        been calculated, which prevents child order from affecting a single
+        action's total reward.
+        """
         before = self.hypervolume
-        if not feasible or fingerprint in self._fingerprints:
-            return 0.0
-        try:
-            point = self.normalizer.transform(objectives)
-        except ValueError:
-            return 0.0
-        self._fingerprints.add(fingerprint)
-        self._points = nondominated([*self._points, point])
-        return max(0.0, self.hypervolume - before)
+        staged_points: list[Point] = []
+        staged_fingerprints: set[str] = set()
+        for objectives, feasible, candidate_fingerprint in candidates:
+            if (not feasible or candidate_fingerprint in self._fingerprints
+                    or candidate_fingerprint in staged_fingerprints):
+                continue
+            try:
+                point = self.normalizer.transform(objectives)
+            except ValueError:
+                continue
+            staged_points.append(point)
+            staged_fingerprints.add(candidate_fingerprint)
+
+        updated_points = nondominated([*self._points, *staged_points])
+        after = exact_hv_3d(updated_points, self.normalizer.reference)
+        raw_delta = after - before
+        tolerance = max(1e-15, abs(before) * 1e-12)
+        if raw_delta < -tolerance:
+            raise RuntimeError("adding archive points reduced hypervolume")
+        delta = 0.0 if raw_delta <= tolerance else float(raw_delta)
+
+        # Commit only after the joint reward has been computed.
+        self._points = updated_points
+        self._fingerprints.update(staged_fingerprints)
+        return ArchiveUpdate(
+            delta_hv=delta,
+            hv_before=float(before),
+            hv_after=float(after),
+            archive_size=len(self._points),
+            accepted_fingerprints=len(staged_fingerprints),
+        )
+
+    def observe(self, objectives: Sequence[float], feasible: bool, fingerprint: str) -> float:
+        """Compatibility wrapper for a one-solution non-policy update."""
+        return self.observe_many([(objectives, feasible, fingerprint)]).delta_hv
 
     def summary(self) -> dict:
         if not self._points:
@@ -142,19 +189,12 @@ class RewardArchive:
                 "archive_max": values.max(axis=0).tolist()}
 
 
-def mutation_reward(row: dict, delta_hv: float, config: RewardConfig) -> float:
+def hv_reward(delta_hv: float, config: RewardConfig) -> float:
+    """Pure positively scaled HV increment, without shaping or clipping."""
     config.validate()
-    if row.get("repair_success") is False or row.get("mutation_reverted"):
-        value = -config.repair_failure_penalty
-    elif not row.get("decision_changed"):
-        value = -config.no_change_penalty
-    elif not row.get("feasible_after"):
-        old = float(row.get("violation_before") or 0.0)
-        new = float(row.get("violation_after") or old)
-        improvement = np.clip(old - new, -1.0, 1.0)
-        value = -config.infeasible_penalty + config.violation_improvement_weight * improvement
-    elif delta_hv > 0:
-        value = delta_hv / config.positive_hv_scale
-    else:
-        value = 0.0
-    return float(np.clip(value, -config.reward_clip, config.reward_clip))
+    if not np.isfinite(delta_hv):
+        raise ValueError("delta_hv must be finite")
+    if delta_hv < -config.floating_tolerance:
+        raise ValueError("delta_hv cannot be materially negative")
+    return 0.0 if delta_hv <= config.floating_tolerance else float(
+        delta_hv / config.positive_hv_scale)

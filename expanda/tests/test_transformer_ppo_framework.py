@@ -10,8 +10,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from transformer_ppo.archive import (
-    ObjectiveNormalizer, RewardArchive, RewardConfig, exact_hv_3d,
-    mutation_reward, nondominated,
+    ObjectiveNormalizer, RewardArchive, exact_hv_3d, nondominated,
 )
 from transformer_ppo.config import PPOConfig, SCENARIOS, TEST_CONFIGS, TRAIN_CONFIGS
 from transformer_ppo.instance_catalog import _draw_quantity, _draw_release_time, _split_od_pool
@@ -44,17 +43,6 @@ class ArchiveTests(unittest.TestCase):
     def test_normalization_uses_instance_divisor(self):
         normalizer = ObjectiveNormalizer((0., 0., 0.), (10., 10., 10.)).with_divisor((2., 4., 5.))
         self.assertEqual(normalizer.transform((10., 20., 25.)), (.5, .5, .5))
-
-    def test_reward_priority(self):
-        config = RewardConfig()
-        self.assertEqual(mutation_reward({"repair_success": False}, 1., config),
-                         -config.repair_failure_penalty)
-        self.assertEqual(mutation_reward({"repair_success": True,
-            "mutation_reverted": False, "decision_changed": False}, 1., config),
-            -config.no_change_penalty)
-        self.assertGreater(mutation_reward({"repair_success": True,
-            "mutation_reverted": False, "decision_changed": True,
-            "feasible_after": True}, .005, config), 0.)
 
 
 class ObservationTests(unittest.TestCase):

@@ -1,5 +1,10 @@
 # Transformer-PPO CCP100 mutation-location study
 
+> Historical pilot only.  Its pre-mutation evaluation and shaped/clipped
+> reward are not the protocol for the new I/C/M study.  New implementation
+> work and run instructions are tracked in
+> `LEARNING_COMPONENTS_EXPERIMENT.md`.
+
 This branch adds an isolated implementation for the next CCP100 study.  It
 does not modify the frozen V1/V2 NSGA-II, mutation, repair, CCP100 evaluation,
 or environmental-selection functions.  The new controller uses the existing

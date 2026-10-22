@@ -6,7 +6,7 @@ import time
 import baseline_uncertainty as base
 from multi_instance_logging import MutationLogger, fingerprint
 
-from .archive import RewardArchive, RewardConfig, mutation_reward
+from .archive import RewardArchive, RewardConfig, hv_reward
 from .observations import build_observation
 
 
@@ -72,7 +72,6 @@ class PPOController(MutationLogger):
         self._inside_mutation = True
         base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost,
                                  waiting_emission, **kwargs)
-        hv_before = self.archive.hypervolume
         pending_before = len(self.pending)
         self.current_individual = ind
         self._suppress_archive = True
@@ -91,13 +90,15 @@ class PPOController(MutationLogger):
                 self._record_pending_offspring(ind)
             return result
         row = self.pending[-1][1]
-        self.archive.observe(ind.objectives, bool(ind.feasible), fingerprint(ind))
-        delta_hv = max(0.0, self.archive.hypervolume - hv_before)
-        reward = mutation_reward(row, delta_hv, self.reward_config)
+        update = self.archive.observe_many([
+            (ind.objectives, bool(ind.feasible), fingerprint(ind)),
+        ])
+        delta_hv = update.delta_hv
+        reward = hv_reward(delta_hv, self.reward_config)
         row.update(reward=float(reward), reward_hv_delta=float(delta_hv),
-                   reward_archive_hv_before=float(hv_before),
-                   reward_archive_hv_after=float(self.archive.hypervolume),
-                   reward_archive_size=len(self.archive.points),
+                   reward_archive_hv_before=update.hv_before,
+                   reward_archive_hv_after=update.hv_after,
+                   reward_archive_size=update.archive_size,
                    action_wall_seconds=time.perf_counter() - started)
         self.reward_total += reward
         self.positive_reward_actions += int(reward > 0)

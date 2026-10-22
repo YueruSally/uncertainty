@@ -1,18 +1,24 @@
-"""Transformer-PPO mutation-location framework for the CCP100 study.
+"""Learning controllers and shared reward infrastructure for NSGA-II.
 
-The package deliberately imports the frozen NSGA-II implementation instead of
-changing it.  ``PPOController`` implements the existing mutation logger hook,
-so crossover, repair, evaluation and environmental selection keep their
-audited order.
+The original Transformer-PPO mutation-location implementation remains the
+starting point while the shared I/C/M scientific contract is implemented.
 """
 
-from .archive import ObjectiveNormalizer, RewardArchive, RewardConfig
+from .archive import (
+    ArchiveUpdate,
+    ObjectiveNormalizer,
+    RewardArchive,
+    RewardConfig,
+    hv_reward,
+)
 from .config import PPOConfig, SCENARIOS
 
 __all__ = [
+    "ArchiveUpdate",
     "ObjectiveNormalizer",
     "PPOConfig",
     "RewardArchive",
     "RewardConfig",
     "SCENARIOS",
+    "hv_reward",
 ]
