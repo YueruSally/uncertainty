@@ -74,18 +74,20 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
   are zero and the evaluated complete individual supplies one terminal HV
   reward.  I uses a separate checkpoint and a return horizon covering the
   complete construction sequence.
-- The shared `shared-network-graph-v1` definition is now implemented for all
-  three policies.  It uses one deterministic node/edge construction and
-  normalization rule, an edge-aware message-passing GNN, and candidate-path
-  links into the encoded graph.  Each component still has its own chromosome
-  and action tokens and its own model parameters.  M chromosome/action tokens
-  no longer contain decoded path cost, emission, travel time, or Rule
-  probability.  Population summaries use the same implementation wherever
-  the corresponding state exists.
-- Gate 6 still requires one server smoke for each component with the new graph
-  checkpoint before it is marked complete.  The frozen I+C+M runner and
-  five-method runner are not implemented yet.  Current code is not ready for
-  a formal experiment until those smoke checks pass.
+- The first-version shared `shared-network-tokens-v1` definition is now
+  implemented for all three policies.  Nodes, edges, Batch terminals,
+  chromosomes, candidate paths, and population state use fixed common
+  definitions; the Transformer encodes the node/edge attribute tokens and
+  links candidate paths or cut nodes to the encoded network.  A GNN is a later
+  network-encoder option and is not required for the deterministic first
+  version.  Each component still has its own chromosome/action tokens and its
+  own model parameters.  M chromosome/action tokens no longer contain decoded
+  path cost, emission, travel time, or Rule probability.  Population summaries
+  use the same implementation wherever the corresponding state exists.
+- Gate 6 still requires one server smoke for each component with the new
+  network-token checkpoint before it is marked complete.  The frozen I+C+M
+  runner and five-method runner are not implemented yet.  Current code is not
+  ready for a formal experiment until those smoke checks pass.
 
 Do not launch a formal or long training run until all gates required by that
 stage are marked complete in Git and the smoke manifest passes.

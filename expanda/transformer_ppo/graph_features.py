@@ -124,7 +124,7 @@ def build_graph_observation(nodes, regions, hold_cost, processing_cost,
         edge_index.append([node_index[arc.from_node], node_index[arc.to_node]])
 
     return {
-        "schema": "shared-network-graph-v1",
+        "schema": "shared-network-tokens-v1",
         "nodes": node_values,
         "edges": edge_values,
         "edge_index": edge_index,

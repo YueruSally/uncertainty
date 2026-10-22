@@ -46,7 +46,7 @@ class SharedGraphObservationTests(unittest.TestCase):
 
     def test_dimensions_match_shared_model_spec(self):
         graph = self._build()
-        self.assertEqual(graph["schema"], "shared-network-graph-v1")
+        self.assertEqual(graph["schema"], "shared-network-tokens-v1")
         self.assertTrue(all(
             len(row) == GRAPH_MODEL_SPEC["graph_node_dim"] == len(GRAPH_NODE_FEATURES)
             for row in graph["nodes"]))
@@ -91,8 +91,8 @@ class RawMutationCandidateTests(unittest.TestCase):
 
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
-class GraphModelTests(unittest.TestCase):
-    def test_edge_gnn_runs_with_variable_candidate_paths(self):
+class NetworkEncodingModelTests(unittest.TestCase):
+    def test_network_tokens_run_with_variable_candidate_paths(self):
         import torch
         from transformer_ppo.config import PPOConfig
         from transformer_ppo.models import build_model

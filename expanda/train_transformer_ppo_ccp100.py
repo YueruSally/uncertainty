@@ -102,7 +102,7 @@ def _run_config(args, config, manifests, records):
         "component": args.component,
         "architecture": args.architecture,
         "model_spec": _model_spec(args.component),
-        "network_encoding": "shared-network-graph-v1",
+        "network_encoding": "shared-network-tokens-v1",
         "policy_seed": args.policy_seed,
         "ppo": asdict(config),
         "ppo_digest": config.digest(),
