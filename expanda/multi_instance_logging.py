@@ -56,12 +56,17 @@ def _violation_flag(breakdown, *names):
 
 class MutationLogger:
     def __init__(self, out, run_id, scenario_id, budget=None, policy=None,
-                 method="Random-CCP100", instance=None, seeds=None):
+                 method="Random-CCP100", instance=None, seeds=None,
+                 evaluate_before_mutation=True):
         self.out, self.run_id, self.scenario_id, self.budget = out, run_id, scenario_id, budget
         self.policy = policy or RandomPolicy()
         self.method = method
         self.instance = instance or {}
         self.seeds = seeds or {}
+        # Legacy logging studies need paired before/after objective labels.
+        # New I/C/M PPO runs disable this because the original NSGA-II flow
+        # evaluates offspring only after crossover and mutation are complete.
+        self.evaluate_before_mutation = bool(evaluate_before_mutation)
         self.evaluations = self.cache_hits = self.event_count = 0
         self.generation, self.phase = -1, "initialisation"
         self.generations_completed = 0
@@ -69,6 +74,12 @@ class MutationLogger:
         self.start = time.perf_counter()
         self.total_attempts = self.total_effective = self.total_repaired = 0
         self.no_candidate = self.fallbacks = self.inference_seconds = 0
+        self.decision_counts = {
+            "model_choice": 0,
+            "single_candidate": 0,
+            "policy_choice": 0,
+            "no_candidate": 0,
+        }
         self._last_generation_time = self.start
         self.files = {name: (out / (name + ".jsonl")).open("x", encoding="utf-8")
                       for name in ("mutation_outcomes", "mutation_candidates",
@@ -85,13 +96,30 @@ class MutationLogger:
     def has_budget(self, required):
         return self.budget is None or self.evaluations + required <= self.budget
 
+    def budget_reserve(self, stage, units=1):
+        """Worst-case real evaluations needed before entering a full step."""
+        units = int(units)
+        if units < 1:
+            raise ValueError("budget reserve units must be positive")
+        if stage == "offspring_pair":
+            # New protocol: every final child is evaluated exactly once.
+            # Legacy label collection also evaluates the pre-mutation child.
+            return units * (4 if self.evaluate_before_mutation else 2)
+        if stage == "feasibility_boost":
+            if self.evaluate_before_mutation:
+                return 4 * units  # Preserve the historical conservative guard.
+            # Boost creates `units` individuals; a final crossover pair can
+            # overshoot an odd target by one child.
+            return units + (units % 2)
+        raise ValueError(f"unknown budget reserve stage: {stage}")
+
     def evaluate(self, function, ind, *args, **kwargs):
         key = (self.scenario_id, fingerprint(ind))
         if getattr(ind, "_learning_eval_key", None) == key:
             self.cache_hits += 1
             return
         if not self.has_budget(1):
-            raise RuntimeError("CCP100 evaluation budget exhausted")
+            raise RuntimeError("objective evaluation budget exhausted")
         function(ind, *args, **kwargs)
         self.evaluations += 1
         ind._learning_eval_key = key
@@ -99,8 +127,11 @@ class MutationLogger:
 
     def mutate(self, ind, batches, path_lib, tt_dict, arc_lookup,
                arcs, waiting_cost, waiting_emission, reliable_options=None, **kwargs):
-        # Evaluate the post-crossover child, NOT either mating parent.
-        base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost, waiting_emission, **kwargs)
+        before_evaluated = self.evaluate_before_mutation
+        if before_evaluated:
+            # Retained only for legacy before/after-label collection.
+            base.evaluate_individual(
+                ind, batches, arcs, tt_dict, waiting_cost, waiting_emission, **kwargs)
         before = deepcopy(ind)
         before_hash = fingerprint(before)
         before_count = self.evaluations
@@ -110,12 +141,23 @@ class MutationLogger:
         context = dict(operator=op, generation=self.generation, phase=self.phase,
             K=self.instance.get("K"),
             deadline_window_alpha=self.instance.get("deadline_window_alpha"),
-            feasible_before=bool(before.feasible), violation_before=before.normalized_violation,
-            violation_breakdown_before=before.vio_breakdown,
+            parent_objectives_available=before_evaluated,
+            feasible_before=(bool(before.feasible) if before_evaluated else None),
+            violation_before=(before.normalized_violation if before_evaluated else None),
+            violation_breakdown_before=(before.vio_breakdown if before_evaluated else None),
             candidate_count=len(candidates),
-            q90_cost_before=before.objectives[0], q90_emission_before=before.objectives[1],
-            q90_makespan_before=before.objectives[2])
+            q90_cost_before=(before.objectives[0] if before_evaluated else None),
+            q90_emission_before=(before.objectives[1] if before_evaluated else None),
+            q90_makespan_before=(before.objectives[2] if before_evaluated else None))
         decision = self.policy.choose(candidates, context)
+        decision_kind = decision.metadata.get("decision_kind")
+        if decision_kind not in self.decision_counts:
+            decision_kind = (
+                "no_candidate" if decision.chosen_index is None
+                else "single_candidate"
+                if decision.metadata.get("fallback") == "single_candidate"
+                else "policy_choice")
+        self.decision_counts[decision_kind] += 1
         self.inference_seconds += decision.metadata.get("inference_seconds", 0.0)
         self.fallbacks += int(decision.metadata.get("fallback") is not None)
         self.event_count += 1
@@ -133,6 +175,7 @@ class MutationLogger:
                 origin=next(b.origin for b in batches if b.batch_id == candidate["target"].batch_id),
                 destination=next(b.destination for b in batches if b.batch_id == candidate["target"].batch_id),
                 operator=op, phase=self.phase,
+                decision_kind=decision_kind,
                 **asdict(candidate["target"]),
                 **{k: v for k, v in candidate.items()
                    if k not in ("target", "selection_probability")},
@@ -148,7 +191,8 @@ class MutationLogger:
             self.append("mutation_skips", dict(event_id=event_id, run_id=self.run_id,
                 instance_id=self.instance.get("instance_id"), generation=self.generation,
                 evaluation=self.evaluations, operator=op, candidate_count=len(candidates),
-                reason="no_eligible_candidate", policy=self.policy.name))
+                reason="no_eligible_candidate", policy=self.policy.name,
+                decision_kind=decision_kind))
             return op, False
         chosen = candidates[decision.chosen_index]
         if self.policy.name == "rule-masked-model-reweighted-selection":
@@ -173,7 +217,9 @@ class MutationLogger:
         effective_mutation = bool(ok and raw_changed and changed)
         outcome_attributable = not repair_only_change and (bool(ok) or not raw_changed)
         base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost, waiting_emission, **kwargs)
-        finite = all(math.isfinite(v) for v in (*before.objectives, *ind.objectives))
+        finite_after = all(math.isfinite(v) for v in ind.objectives)
+        finite_pair = bool(before_evaluated and finite_after and all(
+            math.isfinite(v) for v in before.objectives))
         row = dict(run_id=self.run_id, scenario_id=self.scenario_id, event_id=event_id,
             instance_id=self.instance.get("instance_id"),
             ccp_scenario_id=self.seeds.get("training"),
@@ -181,6 +227,7 @@ class MutationLogger:
             K=context["K"], deadline_window_alpha=context["deadline_window_alpha"],
             parent_id=before_hash, child_id=after_hash,
             method=self.method, generation=self.generation, phase=self.phase,
+            decision_kind=decision_kind,
             operator=op, operator_probability=0.2, selection_policy=self.policy.name,
             baseline_selection_probability=chosen["selection_probability"],
             selection_probability=decision.probabilities[decision.chosen_index],
@@ -201,34 +248,52 @@ class MutationLogger:
             outcome_attributable_to_selected_target=outcome_attributable,
             decision_changed=changed, decision_before=before_hash,
             decision_raw_mutation=raw_hash, decision_after=after_hash,
-            **repair, feasible_before=bool(before.feasible), feasible_after=bool(ind.feasible),
-            violation_before=before.normalized_violation, violation_after=ind.normalized_violation,
-            violation_breakdown_before=before.vio_breakdown, violation_breakdown_after=ind.vio_breakdown,
-            schedule_failure_before=_violation_flag(before.vio_breakdown, "miss_tt"),
+            **repair,
+            parent_objectives_available=before_evaluated,
+            feasible_before=(bool(before.feasible) if before_evaluated else None),
+            feasible_after=bool(ind.feasible),
+            violation_before=(before.normalized_violation if before_evaluated else None),
+            violation_after=ind.normalized_violation,
+            violation_breakdown_before=(before.vio_breakdown if before_evaluated else None),
+            violation_breakdown_after=ind.vio_breakdown,
+            schedule_failure_before=(
+                _violation_flag(before.vio_breakdown, "miss_tt")
+                if before_evaluated else None),
             schedule_failure_after=_violation_flag(ind.vio_breakdown, "miss_tt"),
-            capacity_infeasible_before=_violation_flag(
-                before.vio_breakdown, "cap_excess", "border_cap_excess"),
+            capacity_infeasible_before=(
+                _violation_flag(before.vio_breakdown, "cap_excess", "border_cap_excess")
+                if before_evaluated else None),
             capacity_infeasible_after=_violation_flag(
                 ind.vio_breakdown, "cap_excess", "border_cap_excess"),
-            evaluation_before=before._learning_eval_id, evaluation_after=ind._learning_eval_id,
+            evaluation_before=(getattr(before, "_learning_eval_id", None)
+                               if before_evaluated else None),
+            evaluation_after=ind._learning_eval_id,
             extra_after_evaluations=self.evaluations-before_count,
-            ccp_evaluation_count=self.evaluations, finite_objective_label=finite,
-            objective_label_eligible=(finite and before.feasible and ind.feasible
+            ccp_evaluation_count=self.evaluations,
+            finite_after_objectives=finite_after,
+            finite_objective_label=finite_pair,
+            objective_label_eligible=(finite_pair and before.feasible and ind.feasible
                                       and outcome_attributable),
-            child_dominates_before=bool(base.dominates(ind, before)),
-            before_dominates_child=bool(base.dominates(before, ind)))
+            child_dominates_before=(bool(base.dominates(ind, before))
+                                    if finite_pair else None),
+            before_dominates_child=(bool(base.dominates(before, ind))
+                                    if finite_pair else None))
         deltas = []
         for name, old, new in zip(("cost", "emission", "makespan"), before.objectives, ind.objectives):
-            delta = old-new if math.isfinite(old) and math.isfinite(new) else None
-            row[f"q90_{name}_before"], row[f"q90_{name}_after"] = old, new
+            delta = (old-new if before_evaluated and math.isfinite(old)
+                     and math.isfinite(new) else None)
+            row[f"q90_{name}_before"] = old if before_evaluated else None
+            row[f"q90_{name}_after"] = new
             row[f"delta_{name}"] = delta
             deltas.append(delta)
-        row["tradeoff_move"] = finite and any(d > 0 for d in deltas) and any(d < 0 for d in deltas)
+        row["tradeoff_move"] = bool(
+            finite_pair and any(d > 0 for d in deltas) and any(d < 0 for d in deltas))
         for name, old, new in zip(
                 ("cost", "emission", "makespan"),
                 (before.cost_s, before.emission_s, before.makespan_s),
                 (ind.cost_s, ind.emission_s, ind.makespan_s)):
-            row[f"scenario_improvement_rate_{name}"] = _scenario_improvement_rate(old, new)
+            row[f"scenario_improvement_rate_{name}"] = (
+                _scenario_improvement_rate(old, new) if before_evaluated else None)
         self.pending.append((ind, row))
         self.total_effective += int(effective_mutation)
         self.total_repaired += int(repair["repair_action_count"] > 0 or repair["mutation_reverted"])
@@ -286,5 +351,6 @@ class MutationLogger:
             generation_seconds=now-self._last_generation_time,
             inference_seconds_cumulative=self.inference_seconds,
             no_eligible_candidate_cumulative=self.no_candidate,
+            decision_counts_cumulative=dict(self.decision_counts),
             fallback_cumulative=self.fallbacks))
         self._last_generation_time = now

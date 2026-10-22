@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a frozen Transformer-PPO or MLP-PPO checkpoint without training."""
+"""Run a frozen M-location PPO checkpoint without training."""
 import argparse
 import json
 from pathlib import Path
@@ -20,6 +20,9 @@ def main():
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--algorithm-seed", type=int, required=True)
     parser.add_argument("--evaluation-budget", type=int, default=15_000)
+    parser.add_argument(
+        "--evaluation-mode", choices=("deterministic", "ccp100"),
+        default="ccp100")
     parser.add_argument("--pop", type=int, default=100)
     parser.add_argument("--gens", type=int, default=1_000)
     parser.add_argument("--device")
@@ -36,7 +39,8 @@ def main():
     summary = run_episode(
         args.data, args.instance, args.out, trainer, normalizer,
         algorithm_seed=args.algorithm_seed, evaluation_budget=args.evaluation_budget,
-        pop_size=args.pop, generations=args.gens, reward_config=RewardConfig())
+        pop_size=args.pop, generations=args.gens, reward_config=RewardConfig(),
+        evaluation_mode=args.evaluation_mode)
     print(summary)
 
 

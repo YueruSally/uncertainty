@@ -68,7 +68,17 @@ class PPOTrainer:
         eligible = [i for i, row in enumerate(candidates) if row.get("eligible")]
         if not eligible:
             return Decision(None, [0.0] * len(candidates), [None] * len(candidates),
-                            {"no_eligible_candidate": True, "fallback": None})
+                            {"no_eligible_candidate": True, "fallback": None,
+                             "decision_kind": "no_candidate"})
+        if len(eligible) == 1:
+            probabilities = [0.0] * len(candidates)
+            probabilities[eligible[0]] = 1.0
+            # A forced move is execution logic, not a sampled policy action.
+            # Do not build an observation or create a pending PPO transition.
+            return Decision(
+                eligible[0], probabilities, [None] * len(candidates),
+                {"no_eligible_candidate": False, "fallback": None,
+                 "decision_kind": "single_candidate"})
         observation = self.observation_provider(candidates, context or {})
         if self.training and len(self.buffer) >= self.config.rollout_steps:
             self.update(self._value(observation))
@@ -86,6 +96,7 @@ class PPOTrainer:
             "old_log_probability": float(log_probability.item()), "value": float(value.item())}
         return Decision(int(action.item()), probabilities, [None] * len(probabilities), {
             "no_eligible_candidate": False, "fallback": None,
+            "decision_kind": "model_choice",
             "old_log_probability": float(log_probability.item()),
             "state_value": float(value.item()), "entropy": float(entropy),
             "policy_update": self.updates, "architecture": self.architecture,

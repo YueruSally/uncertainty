@@ -49,6 +49,20 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
 7. **Five-method smoke and deterministic formal runs**.
 8. **CCP100 retraining/OOS-5000**, followed by cross-scene evaluation.
 
+## Current implementation status
+
+- Gate 1 is implemented and covered by
+  `tests.test_learning_reward_archive`.
+- Deterministic/CCP100 evaluation modes now share the episode runner.
+  Deterministic training requires one explicit `--configuration` so the first
+  stage cannot accidentally mix scenes.
+- The M PPO controller no longer evaluates a crossed child before mutation.
+  Zero-candidate decisions create no action, and a single legal candidate is
+  executed without model inference or a PPO transition.
+- I, C, the final common feature representation, and the five-method runner
+  are not implemented yet.  Current code is for unit/development smoke tests,
+  not a formal experiment.
+
 Do not launch a formal or long training run until all gates required by that
 stage are marked complete in Git and the smoke manifest passes.
 
@@ -83,6 +97,15 @@ Run the reward/archive contract tests before any smoke run:
 ```bash
 cd /home/lunet/cokt2/uncertainty-learning-components/expanda
 python3 -m unittest tests.test_learning_reward_archive
+```
+
+On the server environment with the full scientific dependencies installed,
+also run the regression and evaluation-order tests:
+
+```bash
+python3 -m unittest \
+  tests.test_multi_instance_ccp100 \
+  tests.test_transformer_ppo_framework
 ```
 
 Every future long command documented here will use a fresh output directory

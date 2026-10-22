@@ -1,4 +1,4 @@
-"""One CCP100 PPO training or frozen-policy optimization episode."""
+"""One deterministic or CCP100 PPO training/frozen-policy episode."""
 from __future__ import annotations
 
 import hashlib
@@ -19,11 +19,14 @@ from .instance_catalog import read_instance
 
 def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 algorithm_seed: int, evaluation_budget=15_000,
-                pop_size=100, generations=1_000, reward_config=None):
+                pop_size=100, generations=1_000, reward_config=None,
+                evaluation_mode="ccp100"):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
         raise ValueError("evaluation_budget must be at least pop_size+4")
+    if evaluation_mode not in ("deterministic", "ccp100"):
+        raise ValueError("evaluation_mode must be 'deterministic' or 'ccp100'")
     if out.exists() and any(out.iterdir()):
         raise ValueError(f"episode output directory must be empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
@@ -45,22 +48,35 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     np.random.seed(instance["path_seed"] % (2**32 - 1))
     paths = base.build_path_library(nodes, regions, arcs, batches, timetable, lookup)
     base.sanity_check_path_lib(batches, paths)
-    expected = base.build_expected_value_scenario_set(
-        arcs, border_delay, seed=0,
-        border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+    if evaluation_mode == "deterministic":
+        scenario_seed = 0
+        scenarios = base.build_scenario_set(
+            arcs, border_delay, 1, scenario_seed, stochastic=False,
+            border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+        option_scenarios = scenarios
+        option_mode = "deterministic"
+        risk_metric = "deterministic"
+    else:
+        scenario_seed = instance["ccp100_seed"]
+        scenarios = base.build_scenario_set(
+            arcs, border_delay, 100, scenario_seed, stochastic=True,
+            border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+        option_scenarios = base.build_expected_value_scenario_set(
+            arcs, border_delay, seed=0,
+            border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+        option_mode = "ev"
+        risk_metric = "ccp"
     options = base.build_reliable_path_options(
-        batches, paths, timetable, trans_map, border_delay, expected, mode="ev")
-    scenarios = base.build_scenario_set(
-        arcs, border_delay, 100, instance["ccp100_seed"], stochastic=True,
-        border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+        batches, paths, timetable, trans_map, border_delay,
+        option_scenarios, mode=option_mode)
     base.ACTIVE_SCENARIO_SET = scenarios
     base._PATH_SCENARIO_CACHE = {}
-    base.RISK_METRIC = "ccp"
+    base.RISK_METRIC = risk_metric
     base.CONFIDENCE_COST = base.CONFIDENCE_EMISSION = base.CONFIDENCE_TIME = 0.90
     random.seed(algorithm_seed)
     np.random.seed(algorithm_seed % (2**32 - 1))
     seeds = {"algorithm": algorithm_seed, "path": instance["path_seed"],
-             "training": instance["ccp100_seed"]}
+             "training": scenario_seed}
     objective_divisor = (
         max(1.0, sum(float(batch.quantity) for batch in batches)),
         max(1.0, sum(float(batch.quantity) for batch in batches)),
@@ -69,17 +85,24 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     )
     episode_normalizer = normalizer.with_divisor(objective_divisor)
     config = {
-        "schema_version": 2, "method": trainer.name,
+        "schema_version": 3, "method": trainer.name,
+        "protocol": "nsga2-learning-components-v1",
+        "component": "M",
+        "evaluation_mode": evaluation_mode,
         "instance_id": instance["instance_id"], "configuration": instance["configuration"],
         "instance_digest": instance["instance_digest"], "K": instance["K"],
         "deadline_window_alpha": instance["deadline_window_alpha"],
         "population": pop_size, "generations": generations,
         "alpha": 0.90,
-        "evaluation_budget": evaluation_budget, "training_size": 100,
+        "evaluation_budget": evaluation_budget,
+        "training_size": scenarios.size,
         "scenario_digest": scenario_digest(scenarios), "seeds": seeds,
         "operator_probabilities": dict(zip(base.OPS, base._FIXED_OP_PROBS)),
         "crossover_rate": base.CROSSOVER_RATE, "mutation_rate": base.MUTATION_RATE,
         "external_archive_role": "reward-only; excluded from environmental selection",
+        "reward_definition": "scaled positive joint archive HV increment only",
+        "reward_clipping": False,
+        "intermediate_post_crossover_evaluation": False,
         "policy_training": bool(trainer.training),
         "policy_checkpoint": getattr(trainer, "checkpoint_provenance", None),
         "normalization": {"minimum": episode_normalizer.minimum,
@@ -119,13 +142,18 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     } for row in rows])
     summary = {
         "completed": True, "method": trainer.name,
+        "real_objective_evaluation_count": controller.evaluations,
         "ccp_evaluation_count": controller.evaluations,
         "mutation_attempts": controller.total_attempts,
         "effective_modifications": controller.total_effective,
         "no_eligible_candidate": controller.no_candidate,
         "inference_seconds": controller.inference_seconds,
         "optimisation_seconds": time.perf_counter() - started,
-        "stop_reason": "evaluation_budget" if not controller.has_budget(4) else "generation_limit",
+        "stop_reason": (
+            "evaluation_budget"
+            if not controller.has_budget(
+                controller.budget_reserve("offspring_pair"))
+            else "generation_limit"),
         "evaluation_budget": evaluation_budget,
         "generations_completed": controller.generations_completed,
         **controller.summary(),

@@ -124,6 +124,50 @@ class PlanTests(unittest.TestCase):
 
 
 class OutcomeLabelTests(unittest.TestCase):
+    def test_new_protocol_uses_only_final_mutated_child_evaluation(self):
+        first_arc = base.Arc("A", "B", "road", 50., 100., 1., 1., 50.)
+        second_arc = base.Arc("A", "B", "rail", 50., 80., 1., 1., 40.)
+        first = base.path_from_arcs([first_arc], "A", "B")
+        second = base.path_from_arcs([second_arc], "A", "B")
+        batch = base.Batch(0, "A", "B", 2., 0., 10.)
+        ind = base.Individual({
+            ("A", "B", 0): [base.PathAllocation(first, 1.)],
+        })
+        previous = (base.ACTIVE_MUTATION_LOGGER, base.ACTIVE_SCENARIO_SET,
+                    base.RISK_METRIC, base._PATH_SCENARIO_CACHE)
+        with tempfile.TemporaryDirectory() as tmp:
+            logger = MutationLogger(
+                Path(tmp), "r", "s", policy=RulePolicy(),
+                evaluate_before_mutation=False,
+                instance={"instance_id": "S0", "K": 1,
+                          "deadline_window_alpha": 1.},
+                seeds={"training": 1})
+            try:
+                base.ACTIVE_MUTATION_LOGGER = logger
+                base.RISK_METRIC = "ccp"
+                base.configure_scenario_set(
+                    [first_arc, second_arc], {}, size=100, seed=1,
+                    stochastic=True)
+                with patch.object(base, "sample_operator", return_value="add"):
+                    logger.mutate(
+                        ind, [batch], {("A", "B"): [first, second]}, {},
+                        {("A", "B", "road"): first_arc,
+                         ("A", "B", "rail"): second_arc},
+                        [first_arc, second_arc], 0., 0.)
+                row = logger.pending[0][1]
+                self.assertEqual(logger.evaluations, 1)
+                self.assertFalse(row["parent_objectives_available"])
+                self.assertIsNone(row["evaluation_before"])
+                self.assertEqual(row["extra_after_evaluations"], 1)
+                self.assertEqual(
+                    logger.budget_reserve("offspring_pair"), 2)
+                self.assertEqual(
+                    logger.budget_reserve("feasibility_boost", 20), 20)
+            finally:
+                logger.close()
+                (base.ACTIVE_MUTATION_LOGGER, base.ACTIVE_SCENARIO_SET,
+                 base.RISK_METRIC, base._PATH_SCENARIO_CACHE) = previous
+
     def test_rule_no_candidate_keeps_decision_and_logs_skip_only(self):
         arc = base.Arc("A", "B", "road", 50., 100., 1., 1., 50.)
         path = base.path_from_arcs([arc], "A", "B")

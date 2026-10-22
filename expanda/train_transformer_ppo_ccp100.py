@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train one Transformer-PPO or MLP-PPO seed on frozen CCP100 instances."""
+"""Train one M-location PPO seed in deterministic or CCP100 mode."""
 import argparse
 from dataclasses import asdict
 import hashlib
@@ -9,7 +9,7 @@ import random
 import time
 
 from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
-from transformer_ppo.config import PPOConfig, episode_seeds
+from transformer_ppo.config import PPOConfig, SCENARIOS, episode_seeds
 from transformer_ppo.episode import run_episode
 from transformer_ppo.ppo import PPOTrainer
 
@@ -37,16 +37,21 @@ def _read_json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _ordered_manifests(instances, policy_seed, max_instances):
+def _ordered_manifests(instances, policy_seed, max_instances, configuration=None):
     manifests = []
     records = {}
     for path in sorted(instances.glob("train-S*.json")):
         record = _read_json(path)
-        if record.get("split") == "train":
+        if (record.get("split") == "train"
+                and (configuration is None
+                     or record.get("configuration") == configuration)):
             manifests.append(path)
             records[path.stem] = record
-    if len(manifests) != 450 and max_instances is None:
-        raise ValueError(f"formal training requires exactly 450 manifests, found {len(manifests)}")
+    expected = 50 if configuration is not None else 450
+    if len(manifests) != expected and max_instances is None:
+        raise ValueError(
+            f"formal training requires exactly {expected} manifests, "
+            f"found {len(manifests)}")
     random.Random(policy_seed).shuffle(manifests)
     if max_instances is not None:
         if max_instances < 1:
@@ -78,6 +83,8 @@ def _run_config(args, config, manifests, records):
         "catalog_digest": _catalog_digest(args.instances),
         "source_data_sha256": _sha256(args.data),
         "evaluation_budget_per_episode": args.evaluation_budget,
+        "evaluation_mode": args.evaluation_mode,
+        "configuration": args.configuration,
         "population": args.pop,
         "generations": args.gens,
         "normalization_sha256": _sha256(args.normalization),
@@ -158,7 +165,12 @@ def main():
     parser.add_argument("--architecture", choices=("transformer", "mlp"), required=True)
     parser.add_argument("--policy-seed", type=int, required=True)
     parser.add_argument("--evaluation-budget", type=int, required=True,
-                        help="Predeclared short-episode CCP100 evaluation budget.")
+                        help="Predeclared real-objective evaluation budget per episode.")
+    parser.add_argument(
+        "--evaluation-mode", choices=("deterministic", "ccp100"),
+        default="ccp100")
+    parser.add_argument("--configuration", choices=tuple(SCENARIOS),
+                        help="Restrict training to one fixed configuration/scene.")
     parser.add_argument("--pop", type=int, default=100)
     parser.add_argument("--gens", type=int, default=1_000)
     parser.add_argument("--max-instances", type=int,
@@ -167,6 +179,8 @@ def main():
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
+    if args.evaluation_mode == "deterministic" and args.configuration is None:
+        parser.error("deterministic stage requires one fixed --configuration")
     if args.resume:
         if not args.out.exists() or not any(args.out.iterdir()):
             parser.error("--resume requires an existing non-empty output directory")
@@ -174,7 +188,8 @@ def main():
         parser.error("output directory must be empty unless --resume is supplied")
     try:
         manifests, records = _ordered_manifests(
-            args.instances, args.policy_seed, args.max_instances)
+            args.instances, args.policy_seed, args.max_instances,
+            args.configuration)
     except ValueError as error:
         parser.error(str(error))
     config = PPOConfig()
@@ -221,7 +236,8 @@ def main():
         summary = run_episode(
             args.data, manifest, episode_out, trainer, normalizer,
             algorithm_seed=seeds["algorithm"], evaluation_budget=args.evaluation_budget,
-            pop_size=args.pop, generations=args.gens, reward_config=RewardConfig())
+            pop_size=args.pop, generations=args.gens, reward_config=RewardConfig(),
+            evaluation_mode=args.evaluation_mode)
         summaries.append({"instance": manifest.stem, **summary})
         completed = index + 1
         previous_checkpoint = checkpoint
@@ -245,7 +261,8 @@ def main():
         "checkpoint": str(final_checkpoint.relative_to(args.out)),
         "checkpoint_sha256": _sha256(final_checkpoint),
         "elapsed_seconds": elapsed,
-        "total_actual_evaluations": sum(x["ccp_evaluation_count"] for x in summaries),
+        "total_actual_evaluations": sum(
+            x["real_objective_evaluation_count"] for x in summaries),
     }
     _atomic_json(args.out / "training_summary.json", final_summary)
     print(f"[TRAIN] complete episodes={len(summaries)} checkpoint={final_checkpoint}",

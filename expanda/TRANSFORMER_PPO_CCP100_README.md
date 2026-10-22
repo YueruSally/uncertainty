@@ -22,9 +22,9 @@ output directory; every long-running stage must use `nohup`.
   action/reward tuple.
 - The external nondominated archive is reward-only.  It is never passed to
   NSGA-II environmental selection.
-- A post-crossover child is evaluated and inserted into the reward archive
-  before the action.  Crossover improvement therefore cannot be credited to
-  mutation-location PPO.
+- Historical checkpoints evaluated the post-crossover child before mutation.
+  The new I/C/M protocol removes that intermediate evaluation, so these
+  checkpoints must not be reused as formal models.
 - OOS-5000 scenarios are used only after optimization and never for training,
   reward normalization or checkpoint selection.
 - Checkpoints are selected by a predeclared training budget, not by test/OOS

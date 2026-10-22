@@ -116,6 +116,24 @@ class ConfigTests(unittest.TestCase):
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CheckpointTests(unittest.TestCase):
+    def test_forced_single_candidate_creates_no_ppo_transition(self):
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(hidden_dim=16, attention_heads=4,
+                           transformer_layers=1)
+        trainer = PPOTrainer(
+            "mlp", config,
+            lambda *_: self.fail("forced action must not build an observation"),
+            device="cpu", policy_seed=123, training=True)
+        decision = trainer.choose([
+            {"eligible": False},
+            {"eligible": True},
+        ])
+        self.assertEqual(decision.chosen_index, 1)
+        self.assertEqual(decision.metadata["decision_kind"], "single_candidate")
+        self.assertIsNone(trainer.pending)
+        self.assertEqual(trainer.buffer, [])
+
     def test_training_checkpoint_restores_all_owned_random_streams(self):
         import torch
         from transformer_ppo.ppo import PPOTrainer

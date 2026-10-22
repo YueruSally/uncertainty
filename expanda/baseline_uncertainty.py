@@ -3376,6 +3376,17 @@ def plot_pareto_2d(pts, save):
 # Core NSGA-II runner
 # ════════════════════════════════════════════════════════
 
+def _active_logger_budget_reserve(stage, units=1):
+    """Let an attached controller declare its real-evaluation requirement.
+
+    Older loggers have no declaration and retain the historical conservative
+    four-evaluations-per-unit guard.
+    """
+    if ACTIVE_MUTATION_LOGGER is None:
+        return 0
+    reserve = getattr(ACTIVE_MUTATION_LOGGER, "budget_reserve", None)
+    return int(reserve(stage, units)) if reserve is not None else 4 * int(units)
+
 def run_nsga2(
     node_names, node_region, node_hold_cost, node_proc_cost, node_trans_cost,
     arcs, timetables, batches,
@@ -3463,7 +3474,8 @@ def run_nsga2(
         if ACTIVE_MUTATION_LOGGER is not None:
             ACTIVE_MUTATION_LOGGER.generation = gen
             ACTIVE_MUTATION_LOGGER.phase = "offspring"
-            if not ACTIVE_MUTATION_LOGGER.has_budget(4):
+            if not ACTIVE_MUTATION_LOGGER.has_budget(
+                    _active_logger_budget_reserve("offspring_pair")):
                 break
 
         # ── Step 1: Binary tournament → mating pool ──────
@@ -3472,7 +3484,9 @@ def run_nsga2(
         # ── Step 2: Crossover + Mutation → offspring Q ───
         offspring: List[Individual] = []
         while len(offspring) < pop_size:
-            if ACTIVE_MUTATION_LOGGER is not None and not ACTIVE_MUTATION_LOGGER.has_budget(4):
+            if (ACTIVE_MUTATION_LOGGER is not None
+                    and not ACTIVE_MUTATION_LOGGER.has_budget(
+                        _active_logger_budget_reserve("offspring_pair"))):
                 break
             p1, p2 = random.sample(mating_pool, 2)
             if random.random() < CROSSOVER_RATE:
@@ -3554,7 +3568,9 @@ def run_nsga2(
         boost_triggered = boost_new_feas = 0
         if (feas_total < MIN_FEASIBLE_SOLUTIONS
                 and (ACTIVE_MUTATION_LOGGER is None
-                     or ACTIVE_MUTATION_LOGGER.has_budget(4 * FEASIBLE_BOOST_ROUNDS))):
+                     or ACTIVE_MUTATION_LOGGER.has_budget(
+                         _active_logger_budget_reserve(
+                             "feasibility_boost", FEASIBLE_BOOST_ROUNDS)))):
             if ACTIVE_MUTATION_LOGGER is not None:
                 ACTIVE_MUTATION_LOGGER.phase = "boost"
             boost_triggered = 1

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import time
 
-import baseline_uncertainty as base
 from multi_instance_logging import MutationLogger, fingerprint
 
 from .archive import RewardArchive, RewardConfig, hv_reward
@@ -29,7 +28,8 @@ class PPOController(MutationLogger):
         self._inside_mutation = False
         self.reward_total = 0.0
         self.positive_reward_actions = 0
-        super().__init__(*args, policy=trainer, **kwargs)
+        super().__init__(
+            *args, policy=trainer, evaluate_before_mutation=False, **kwargs)
         trainer.observation_provider = self._observation
 
     def evaluate(self, function, ind, *args, **kwargs):
@@ -68,10 +68,9 @@ class PPOController(MutationLogger):
 
     def mutate(self, ind, batches, path_lib, tt_dict, arc_lookup,
                arcs, waiting_cost, waiting_emission, reliable_options=None, **kwargs):
-        # Freeze crossover contribution in the archive before the policy acts.
+        # Preserve the original crossover -> mutation -> repair -> evaluation
+        # order.  In particular, do not evaluate the crossed child here.
         self._inside_mutation = True
-        base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost,
-                                 waiting_emission, **kwargs)
         pending_before = len(self.pending)
         self.current_individual = ind
         self._suppress_archive = True
@@ -99,6 +98,8 @@ class PPOController(MutationLogger):
                    reward_archive_hv_before=update.hv_before,
                    reward_archive_hv_after=update.hv_after,
                    reward_archive_size=update.archive_size,
+                   reward_recorded_for_policy=(
+                       row.get("decision_kind") == "model_choice"),
                    action_wall_seconds=time.perf_counter() - started)
         self.reward_total += reward
         self.positive_reward_actions += int(reward > 0)
@@ -128,4 +129,5 @@ class PPOController(MutationLogger):
                 "positive_reward_actions": self.positive_reward_actions,
                 "reward_archive_hv": self.archive.hypervolume,
                 "reward_archive_size": len(self.archive.points),
+                "decision_counts": dict(self.decision_counts),
                 "ppo_updates": self.trainer.updates}
