@@ -2510,6 +2510,19 @@ def clone_gene(alloc):
     return PathAllocation(path=alloc.path, share=float(alloc.share))
 
 
+def clear_inherited_evaluation_cache(*individuals):
+    """A new offspring must receive its own final objective evaluation.
+
+    ``deepcopy(parent)`` also copies logger-only memoisation attributes.  They
+    are valid only for repeated calls on the same pipeline individual, not for
+    a newly created offspring that happens to have an unchanged chromosome.
+    """
+    for individual in individuals:
+        for attribute in ("_learning_eval_key", "_learning_eval_id"):
+            if hasattr(individual, attribute):
+                delattr(individual, attribute)
+
+
 def crossover_structural(ind1, ind2, batches):
     """Uniform crossover at batch-gene level.
 
@@ -3039,6 +3052,7 @@ def feasibility_boost(
         for _ in range(remaining):
             p1, p2 = random.sample(parents, 2)
             c1, c2 = crossover_hybrid(p1, p2, batches, tt_dict, arc_lookup)
+            clear_inherited_evaluation_cache(c1, c2)
             for child in (c1, c2):
                 repair_missing_allocations(child, batches, path_lib)
                 if random.random() < boost_mutation_rate:
@@ -3515,6 +3529,7 @@ def run_nsga2(
                 c1, c2 = crossover_hybrid(p1, p2, batches, tt_dict, arc_lookup)
             else:
                 c1, c2 = deepcopy(p1), deepcopy(p2)
+            clear_inherited_evaluation_cache(c1, c2)
 
             for child in (c1, c2):
                 repair_missing_allocations(child, batches, path_lib)

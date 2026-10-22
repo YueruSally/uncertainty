@@ -124,6 +124,14 @@ class PlanTests(unittest.TestCase):
 
 
 class OutcomeLabelTests(unittest.TestCase):
+    def test_new_offspring_does_not_inherit_parent_evaluation_cache(self):
+        child = base.Individual()
+        child._learning_eval_key = ("scenario", "fingerprint")
+        child._learning_eval_id = 17
+        base.clear_inherited_evaluation_cache(child)
+        self.assertFalse(hasattr(child, "_learning_eval_key"))
+        self.assertFalse(hasattr(child, "_learning_eval_id"))
+
     def test_new_protocol_uses_only_final_mutated_child_evaluation(self):
         first_arc = base.Arc("A", "B", "road", 50., 100., 1., 1., 50.)
         second_arc = base.Arc("A", "B", "rail", 50., 80., 1., 1., 40.)
