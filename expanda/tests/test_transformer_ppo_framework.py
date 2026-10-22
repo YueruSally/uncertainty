@@ -20,6 +20,7 @@ from transformer_ppo.observations import (
 )
 from transformer_ppo.statistics import formal_report, holm
 from run_transformer_ppo_formal_batch import _seeds
+from train_transformer_ppo_ccp100 import _ordered_manifests
 
 
 class ArchiveTests(unittest.TestCase):
@@ -162,6 +163,20 @@ class CheckpointTests(unittest.TestCase):
 
 
 class FormalBatchTests(unittest.TestCase):
+    def test_empty_development_manifest_directory_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "no training manifests"):
+                _ordered_manifests(Path(directory), 1, 1, "S0")
+
+    def test_development_manifest_limit_cannot_exceed_available_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "train-S0-001.json").write_text(
+                '{"split":"train","configuration":"S0"}',
+                encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "only 1 matching"):
+                _ordered_manifests(root, 1, 2, "S0")
+
     def test_replication_seed_namespaces_are_paired_and_disjoint(self):
         args = SimpleNamespace(
             replication=1, algorithm_seed_base=80_000_000,

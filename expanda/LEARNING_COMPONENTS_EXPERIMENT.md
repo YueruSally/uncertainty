@@ -77,7 +77,8 @@ and uncommitted files remain untouched:
 ```bash
 cd /home/lunet/cokt2/uncertainty
 git fetch origin --prune
-git worktree add /home/lunet/cokt2/uncertainty-learning-components \
+git worktree add -b codex/nsga2-learning-components \
+  /home/lunet/cokt2/uncertainty-learning-components \
   origin/codex/nsga2-learning-components
 cd /home/lunet/cokt2/uncertainty-learning-components
 git status --short --branch
@@ -91,6 +92,30 @@ cd /home/lunet/cokt2/uncertainty-learning-components
 git fetch origin --prune
 git pull --ff-only
 ```
+
+If the worktree was previously created directly from `origin/...` and reports
+`HEAD (no branch)`, attach it once before pulling:
+
+```bash
+cd /home/lunet/cokt2/uncertainty-learning-components
+git switch -c codex/nsga2-learning-components \
+  --track origin/codex/nsga2-learning-components
+```
+
+Generated instance catalogs and reward-normalization files are not Git
+objects.  A new worktree therefore does not inherit them from an older
+worktree.  Locate the existing artifacts and pass their absolute paths:
+
+```bash
+find /home/lunet/cokt2 -type f \
+  -path '*/transformer_ppo_runs/reward_normalization.json' -print
+find /home/lunet/cokt2 -type f \
+  -path '*/transformer_ppo_runs/instances/catalog.json' -print
+```
+
+Do not copy or regenerate these artifacts for a smoke test.  Reuse the
+existing catalog and training-only normalization by absolute path, while
+writing the new output under the learning-components worktree.
 
 Run the reward/archive contract tests before any smoke run:
 

@@ -47,6 +47,10 @@ def _ordered_manifests(instances, policy_seed, max_instances, configuration=None
                      or record.get("configuration") == configuration)):
             manifests.append(path)
             records[path.stem] = record
+    if not manifests:
+        scope = f" for configuration {configuration}" if configuration else ""
+        raise ValueError(
+            f"no training manifests found{scope} in {instances.resolve()}")
     expected = 50 if configuration is not None else 450
     if len(manifests) != expected and max_instances is None:
         raise ValueError(
@@ -56,6 +60,10 @@ def _ordered_manifests(instances, policy_seed, max_instances, configuration=None
     if max_instances is not None:
         if max_instances < 1:
             raise ValueError("--max-instances must be positive")
+        if len(manifests) < max_instances:
+            raise ValueError(
+                f"--max-instances={max_instances} requested but only "
+                f"{len(manifests)} matching manifests were found")
         manifests = manifests[:max_instances]
     return manifests, records
 
@@ -181,6 +189,12 @@ def main():
     args = parser.parse_args()
     if args.evaluation_mode == "deterministic" and args.configuration is None:
         parser.error("deterministic stage requires one fixed --configuration")
+    if not args.data.is_file():
+        parser.error(f"network workbook does not exist: {args.data}")
+    if not args.instances.is_dir():
+        parser.error(f"instance directory does not exist: {args.instances}")
+    if not args.normalization.is_file():
+        parser.error(f"normalization file does not exist: {args.normalization}")
     if args.resume:
         if not args.out.exists() or not any(args.out.iterdir()):
             parser.error("--resume requires an existing non-empty output directory")
