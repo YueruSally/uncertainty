@@ -13,7 +13,7 @@ from .archive import exact_hv_3d
 
 
 PARENT_FEATURES = (
-    "batch_quantity", "share", "path_cost", "path_emission", "path_time",
+    "batch_quantity", "share",
     "arc_distance", "arc_cost_rate", "arc_emission_rate", "arc_speed",
     "arc_position", "path_length", "is_arc", "origin_code_0", "origin_code_1",
     "destination_code_0", "destination_code_1", "from_node_code_0",
@@ -21,9 +21,9 @@ PARENT_FEATURES = (
     "mode_code_0", "mode_code_1",
 )
 CANDIDATE_FEATURES = (
-    "batch_quantity", "share", "path_count", "path_cost", "path_emission",
-    "path_time", "alternative_modes", "reliable_options", "unallocated_paths",
-    "allocation_present", "arc_present", "arc_position", "p_rule",
+    "batch_quantity", "share", "path_count", "path_length",
+    "alternative_modes", "reliable_options", "unallocated_paths",
+    "allocation_present", "arc_present", "arc_position",
     "origin_code_0", "origin_code_1", "destination_code_0", "destination_code_1",
     "from_node_code_0", "from_node_code_1", "to_node_code_0", "to_node_code_1",
     "mode_code_0", "mode_code_1",
@@ -75,8 +75,7 @@ def parent_tokens(ind, batches) -> list[list[float]]:
             destination = _category_code(key[1])
             # Allocation token has no artificial list position.
             tokens.append([
-                quantity, _finite(alloc.share), _finite(path.base_cost_per_teu),
-                _finite(path.base_emission_per_teu), _finite(path.base_travel_time_h),
+                quantity, _finite(alloc.share),
                 0.0, 0.0, 0.0, 0.0, 0.0, float(len(arcs)), 0.0,
                 *origin, *destination, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             ])
@@ -86,8 +85,7 @@ def parent_tokens(ind, batches) -> list[list[float]]:
                 to_node = _category_code(arc.to_node)
                 mode = _category_code(arc.mode)
                 tokens.append([
-                    quantity, _finite(alloc.share), _finite(path.base_cost_per_teu),
-                    _finite(path.base_emission_per_teu), _finite(path.base_travel_time_h),
+                    quantity, _finite(alloc.share),
                     _finite(arc.distance), _finite(arc.cost_per_teu_km),
                     _finite(arc.emission_per_teu_km), _finite(arc.speed_kmh),
                     position / denominator, float(len(arcs)), 1.0,
@@ -112,14 +110,13 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=()) -> t
         mode = _category_code(candidate.get("current_mode"))
         rows.append([
             _finite(candidate.get("batch_quantity")), _finite(candidate.get("share")),
-            _finite(candidate.get("path_count")), _finite(candidate.get("path_cost_per_teu")),
-            _finite(candidate.get("path_emission_per_teu")),
-            _finite(candidate.get("path_nominal_time_h")),
+            _finite(candidate.get("path_count")),
+            _finite(candidate.get("path_length")),
             _finite(candidate.get("alternative_mode_count")),
             _finite(candidate.get("available_reliable_options")),
             _finite(candidate.get("unallocated_path_count")),
             float(target.get("allocation_index") is not None),
-            float(arc_index is not None), _finite(arc_index), _finite(candidate.get("p_rule")),
+            float(arc_index is not None), _finite(arc_index),
             *origin, *destination, *from_node, *to_node, *mode,
         ])
         eligible.append(bool(candidate.get("eligible")))
@@ -128,6 +125,19 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=()) -> t
     if operator not in OPERATOR_TO_ID:
         raise ValueError(f"unknown operator: {operator}")
     return rows, eligible
+
+
+def candidate_graph_nodes(candidates, graph_observation):
+    if graph_observation is None:
+        return None
+    node_index = graph_observation["node_index"]
+    result = []
+    for candidate in candidates:
+        names = candidate.get("path_nodes") or [
+            candidate.get("from_node"), candidate.get("to_node")]
+        indices = [node_index[name] for name in names if name in node_index]
+        result.append(indices)
+    return result or [[]]
 
 
 def population_summary(population, normalizer=None) -> dict:
@@ -161,7 +171,7 @@ def population_summary(population, normalizer=None) -> dict:
 
 def build_observation(ind, batches, candidates, context, population, pending_offspring,
                       archive_summary, normalizer, evaluation_budget,
-                      evaluation_count, generations):
+                      evaluation_count, generations, graph_observation=None):
     operator = context["operator"]
     candidate_values, eligible = candidate_tokens(candidates, operator, batches)
     pop = population_summary(population, normalizer)
@@ -187,13 +197,18 @@ def build_observation(ind, batches, candidates, context, population, pending_off
         _finite(archive_summary.get("archive_size")) / max(1, budget),
         _finite(archive_summary.get("archive_hv")),
     ]
-    return {
+    observation = {
         "parent": parent_tokens(ind, batches),
         "candidates": candidate_values,
         "eligible": eligible,
         "operator_id": OPERATOR_TO_ID[operator],
         "global": global_values,
     }
+    if graph_observation is not None:
+        observation["graph"] = graph_observation
+        observation["candidate_graph_nodes"] = candidate_graph_nodes(
+            candidates, graph_observation)
+    return observation
 
 
 def pad_observations(observations, device=None):
@@ -225,7 +240,7 @@ def pad_observations(observations, device=None):
         parent_mask[row, :p] = False
         candidate_mask[row, :c] = False
         eligible[row, :c] = torch.as_tensor(item["eligible"], dtype=torch.bool, device=device)
-    return {
+    result = {
         "parent": parent, "candidates": candidates,
         "parent_padding_mask": parent_mask, "candidate_padding_mask": candidate_mask,
         "eligible_mask": eligible,
@@ -234,3 +249,76 @@ def pad_observations(observations, device=None):
         "global": torch.as_tensor([x["global"] for x in observations],
                                    dtype=torch.float32, device=device),
     }
+    graph_presence = ["graph" in item for item in observations]
+    if any(graph_presence) and not all(graph_presence):
+        raise ValueError("graph observations cannot be mixed with graph-free observations")
+    if all(graph_presence):
+        node_dim = len(observations[0]["graph"]["nodes"][0])
+        edge_rows = [item["graph"]["edges"] for item in observations]
+        nonempty_edges = [edge for rows in edge_rows for edge in rows]
+        edge_dim = (len(nonempty_edges[0]) if nonempty_edges
+                    else int(observations[0]["graph"].get("edge_dim", 0)))
+        if edge_dim < 1:
+            raise ValueError("graph observation must declare at least one edge feature")
+        if any(
+                any(len(row) != node_dim for row in item["graph"]["nodes"])
+                or any(len(row) != edge_dim for row in item["graph"]["edges"])
+                or len(item["graph"]["edges"]) != len(item["graph"]["edge_index"])
+                for item in observations):
+            raise ValueError("graph observation dimensions must be consistent")
+        max_nodes = max(len(item["graph"]["nodes"]) for item in observations)
+        max_edges = max(1, max(len(item["graph"]["edges"]) for item in observations))
+        graph_nodes = torch.zeros(
+            batch, max_nodes, node_dim, dtype=torch.float32, device=device)
+        graph_edges = torch.zeros(
+            batch, max_edges, edge_dim, dtype=torch.float32, device=device)
+        graph_node_mask = torch.ones(
+            batch, max_nodes, dtype=torch.bool, device=device)
+        graph_edge_mask = torch.ones(
+            batch, max_edges, dtype=torch.bool, device=device)
+        graph_edge_index = torch.zeros(
+            batch, max_edges, 2, dtype=torch.long, device=device)
+        for row, item in enumerate(observations):
+            graph = item["graph"]
+            n, e = len(graph["nodes"]), len(graph["edges"])
+            graph_nodes[row, :n] = torch.as_tensor(
+                graph["nodes"], dtype=torch.float32, device=device)
+            graph_node_mask[row, :n] = False
+            if e:
+                graph_edges[row, :e] = torch.as_tensor(
+                    graph["edges"], dtype=torch.float32, device=device)
+                graph_edge_index[row, :e] = torch.as_tensor(
+                    graph["edge_index"], dtype=torch.long, device=device)
+                graph_edge_mask[row, :e] = False
+        result.update({
+            "graph_nodes": graph_nodes,
+            "graph_edges": graph_edges,
+            "graph_node_padding_mask": graph_node_mask,
+            "graph_edge_padding_mask": graph_edge_mask,
+            "graph_edge_index": graph_edge_index,
+        })
+        candidate_graph_rows = [
+            item.get("candidate_graph_nodes", [[] for _ in item["candidates"]])
+            for item in observations]
+        if any(len(rows) != len(item["candidates"])
+               for rows, item in zip(candidate_graph_rows, observations)):
+            raise ValueError("candidate graph-node rows must match candidate actions")
+        max_path_nodes = max(
+            1, max((len(indices) for rows in candidate_graph_rows for indices in rows),
+                   default=0))
+        candidate_graph_index = torch.zeros(
+            batch, max_candidates, max_path_nodes, dtype=torch.long, device=device)
+        candidate_graph_mask = torch.ones(
+            batch, max_candidates, max_path_nodes, dtype=torch.bool, device=device)
+        for row, rows in enumerate(candidate_graph_rows):
+            for candidate_index, indices in enumerate(rows):
+                if indices:
+                    size = len(indices)
+                    candidate_graph_index[row, candidate_index, :size] = torch.as_tensor(
+                        indices, dtype=torch.long, device=device)
+                    candidate_graph_mask[row, candidate_index, :size] = False
+        result.update({
+            "candidate_graph_node_index": candidate_graph_index,
+            "candidate_graph_node_padding_mask": candidate_graph_mask,
+        })
+    return result

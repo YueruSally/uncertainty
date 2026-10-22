@@ -18,13 +18,15 @@ class CrossoverPPOController(MutationLogger):
     controls_crossover = True
 
     def __init__(self, *args, trainer, archive: RewardArchive,
-                 reward_config: RewardConfig, batches, generations, pop_size, **kwargs):
+                 reward_config: RewardConfig, batches, generations, pop_size,
+                 graph_observation=None, **kwargs):
         self.trainer = trainer
         self.archive = archive
         self.reward_config = reward_config
         self.batches_for_observation = batches
         self.generations = int(generations)
         self.pop_size = int(pop_size)
+        self.graph_observation = graph_observation
         self.current_population = []
         self.pending_offspring = []
         self._pending_fingerprints = set()
@@ -71,7 +73,7 @@ class CrossoverPPOController(MutationLogger):
             parent1, parent2, self.batches_for_observation, candidates, enriched,
             self.current_population, self.pending_offspring,
             self.archive.summary(), self.archive.normalizer, self.budget,
-            self.evaluations, self.generations)
+            self.evaluations, self.generations, self.graph_observation)
 
     def crossover_common_node(self, parent1, parent2, batches, tt_dict, arc_lookup):
         if self._active_event is not None:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .observations import _category_code, _finite, population_summary
+from .graph_features import GRAPH_MODEL_SPEC
 
 
 INITIALIZATION_PARENT_FEATURES = (
@@ -30,6 +31,7 @@ INITIALIZATION_MODEL_SPEC = {
     "global_dim": len(INITIALIZATION_GLOBAL_FEATURES),
     "action_count": 1,
 }
+INITIALIZATION_GRAPH_MODEL_SPEC = {**INITIALIZATION_MODEL_SPEC, **GRAPH_MODEL_SPEC}
 
 
 def _partial_tokens(individual, batches):
@@ -83,7 +85,8 @@ def _candidate_tokens(candidates, context):
 
 def build_initialization_observation(partial_individual, batches, candidates, context,
                                      population, archive_summary, normalizer,
-                                     evaluation_budget, evaluation_count, pop_size):
+                                     evaluation_budget, evaluation_count, pop_size,
+                                     graph_observation=None):
     candidate_values, eligible = _candidate_tokens(candidates, context)
     population_state = population_summary(population, normalizer)
     budget = max(1, int(evaluation_budget or 1))
@@ -98,10 +101,19 @@ def build_initialization_observation(partial_individual, batches, candidates, co
         _finite(archive_summary.get("archive_size")) / budget,
         _finite(archive_summary.get("archive_hv")),
     ]
-    return {
+    observation = {
         "parent": _partial_tokens(partial_individual, batches),
         "candidates": candidate_values,
         "eligible": eligible,
         "operator_id": 0,
         "global": global_values,
     }
+    if graph_observation is not None:
+        observation["graph"] = graph_observation
+        node_index = graph_observation["node_index"]
+        observation["candidate_graph_nodes"] = [
+            [node_index[name] for name in candidate["path"].nodes
+             if name in node_index]
+            for candidate in candidates
+        ]
+    return observation

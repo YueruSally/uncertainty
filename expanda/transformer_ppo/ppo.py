@@ -52,9 +52,12 @@ class PPOTrainer:
         }
         self.model_spec = dict(default_spec if model_spec is None else model_spec)
         required = {"parent_dim", "candidate_dim", "global_dim", "action_count"}
-        if set(self.model_spec) != required or any(
-                int(self.model_spec[name]) < 1 for name in required):
-            raise ValueError("model_spec must contain four positive dimensions")
+        graph = {"graph_node_dim", "graph_edge_dim"}
+        if (set(self.model_spec) not in (required, required | graph)
+                or any(int(self.model_spec[name]) < 1 for name in self.model_spec)):
+            raise ValueError(
+                "model_spec must contain four positive dimensions and, optionally, "
+                "both positive graph dimensions")
         self.model_spec = {name: int(value) for name, value in self.model_spec.items()}
         self.model = build_model(architecture, config, self.model_spec).to(self.device)
         critic_ids = {id(p) for p in self.model.heads.critic_head.parameters()}

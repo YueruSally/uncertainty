@@ -10,8 +10,12 @@ import time
 
 from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.config import PPOConfig, SCENARIOS, episode_seeds
-from transformer_ppo.crossover_observations import CROSSOVER_MODEL_SPEC
-from transformer_ppo.initialization_observations import INITIALIZATION_MODEL_SPEC
+from transformer_ppo.crossover_observations import CROSSOVER_GRAPH_MODEL_SPEC
+from transformer_ppo.graph_features import GRAPH_MODEL_SPEC
+from transformer_ppo.initialization_observations import INITIALIZATION_GRAPH_MODEL_SPEC
+from transformer_ppo.observations import (
+    CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
+)
 from transformer_ppo.episode import run_episode
 from transformer_ppo.ppo import PPOTrainer
 
@@ -77,12 +81,28 @@ def _catalog_digest(instances):
     return _read_json(catalog_path).get("catalog_digest")
 
 
+def _model_spec(component):
+    if component == "C":
+        return dict(CROSSOVER_GRAPH_MODEL_SPEC)
+    if component == "I":
+        return dict(INITIALIZATION_GRAPH_MODEL_SPEC)
+    return {
+        "parent_dim": len(PARENT_FEATURES),
+        "candidate_dim": len(CANDIDATE_FEATURES),
+        "global_dim": len(GLOBAL_FEATURES),
+        "action_count": 5,
+        **GRAPH_MODEL_SPEC,
+    }
+
+
 def _run_config(args, config, manifests, records):
     normalization = _read_json(args.normalization)
     return {
         "schema_version": 3,
         "component": args.component,
         "architecture": args.architecture,
+        "model_spec": _model_spec(args.component),
+        "network_encoding": "shared-network-graph-v1",
         "policy_seed": args.policy_seed,
         "ppo": asdict(config),
         "ppo_digest": config.digest(),
@@ -234,9 +254,7 @@ def main():
             args.architecture, config, lambda *_: None,
             device=args.device, policy_seed=args.policy_seed, training=True,
             component=args.component,
-            model_spec=(
-                CROSSOVER_MODEL_SPEC if args.component == "C" else
-                INITIALIZATION_MODEL_SPEC if args.component == "I" else None))
+            model_spec=_model_spec(args.component))
         completed, summaries, previous_elapsed = 0, [], 0.0
         checkpoint = _checkpoint_path(args.out, completed)
         trainer.save(checkpoint, metadata=run_config)

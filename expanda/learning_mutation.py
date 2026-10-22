@@ -37,6 +37,8 @@ def enumerate_targets(ind, batches, op, path_lib, tt_dict, arc_lookup):
                     "batch_quantity": float(batch.quantity), "path_count": len(allocs),
                     "share": None if alloc is None else float(alloc.share),
                     "path_id": None if alloc is None else alloc.path.path_id,
+                    "path_length": 0 if alloc is None else len(alloc.path.arcs),
+                    "path_nodes": [] if alloc is None else list(alloc.path.nodes),
                     "path_cost_per_teu": None if alloc is None else alloc.path.base_cost_per_teu,
                     "path_emission_per_teu": None if alloc is None else alloc.path.base_emission_per_teu,
                     "path_nominal_time_h": None if alloc is None else alloc.path.base_travel_time_h,

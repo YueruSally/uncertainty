@@ -24,13 +24,15 @@ class InitializationPPOController(MutationLogger):
     controls_initialization = True
 
     def __init__(self, *args, trainer, archive: RewardArchive,
-                 reward_config: RewardConfig, batches, generations, pop_size, **kwargs):
+                 reward_config: RewardConfig, batches, generations, pop_size,
+                 graph_observation=None, **kwargs):
         self.trainer = trainer
         self.archive = archive
         self.reward_config = reward_config
         self.batches_for_observation = batches
         self.generations = int(generations)
         self.pop_size = int(pop_size)
+        self.graph_observation = graph_observation
         self.current_population = []
         self._current_partial = None
         self._current_context = None
@@ -61,7 +63,7 @@ class InitializationPPOController(MutationLogger):
             self._current_partial, self.batches_for_observation, candidates,
             self._current_context, self.current_population,
             self.archive.summary(), self.archive.normalizer, self.budget,
-            self.evaluations, self.pop_size)
+            self.evaluations, self.pop_size, self.graph_observation)
 
     def initial_individual(self, batches, path_lib, max_paths=3):
         if self._active_event is not None:

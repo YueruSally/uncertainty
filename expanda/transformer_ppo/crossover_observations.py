@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .observations import _category_code, _finite, population_summary
+from .graph_features import GRAPH_MODEL_SPEC
 
 
 CROSSOVER_PARENT_FEATURES = (
@@ -32,6 +33,7 @@ CROSSOVER_MODEL_SPEC = {
     "global_dim": len(CROSSOVER_GLOBAL_FEATURES),
     "action_count": 1,
 }
+CROSSOVER_GRAPH_MODEL_SPEC = {**CROSSOVER_MODEL_SPEC, **GRAPH_MODEL_SPEC}
 
 
 def _parent_tokens(parent, batches, side):
@@ -76,7 +78,7 @@ def _candidate_tokens(candidates):
 def build_crossover_observation(parent1, parent2, batches, candidates, context,
                                 population, pending_offspring, archive_summary,
                                 normalizer, evaluation_budget, evaluation_count,
-                                generations):
+                                generations, graph_observation=None):
     candidate_values, eligible = _candidate_tokens(candidates)
     population_state = population_summary(population, normalizer)
     pending_state = population_summary(pending_offspring, normalizer)
@@ -106,10 +108,19 @@ def build_crossover_observation(parent1, parent2, batches, candidates, context,
         *_parent_tokens(parent1, batches, -1.0),
         *_parent_tokens(parent2, batches, 1.0),
     ]
-    return {
+    observation = {
         "parent": parent_tokens or [[0.0] * len(CROSSOVER_PARENT_FEATURES)],
         "candidates": candidate_values,
         "eligible": eligible,
         "operator_id": 0,
         "global": global_values,
     }
+    if graph_observation is not None:
+        observation["graph"] = graph_observation
+        node_index = graph_observation["node_index"]
+        observation["candidate_graph_nodes"] = [
+            ([node_index[row["join_node"]]]
+             if row["join_node"] in node_index else [])
+            for row in candidates
+        ]
+    return observation

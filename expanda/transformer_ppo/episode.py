@@ -17,6 +17,7 @@ from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
 from .initialization_controller import InitializationPPOController
 from .instance_catalog import read_instance
+from .graph_features import build_graph_observation
 
 
 def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
@@ -91,6 +92,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             - min(float(batch.ET) for batch in batches)),
     )
     episode_normalizer = normalizer.with_divisor(objective_divisor)
+    graph_observation = build_graph_observation(
+        nodes, regions, hold, proc, trans_cost, arcs, batches)
     config = {
         "schema_version": 3, "method": trainer.name,
         "protocol": "nsga2-learning-components-v1",
@@ -112,6 +115,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "intermediate_post_crossover_evaluation": False,
         "policy_training": bool(trainer.training),
         "policy_checkpoint": getattr(trainer, "checkpoint_provenance", None),
+        "network_encoding": graph_observation["schema"],
         "normalization": {"minimum": episode_normalizer.minimum,
                           "maximum": episode_normalizer.maximum,
                           "reference": episode_normalizer.reference,
@@ -131,7 +135,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         trainer=trainer, archive=archive,
         reward_config=reward_config or RewardConfig(), batches=batches,
         generations=generations, pop_size=pop_size, method=trainer.name,
-        instance=instance, seeds=seeds)
+        instance=instance, seeds=seeds, graph_observation=graph_observation)
     base.ACTIVE_MUTATION_LOGGER = controller
     try:
         population = base.run_nsga2(

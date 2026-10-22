@@ -13,13 +13,15 @@ class PPOController(MutationLogger):
     """Collect action rewards without changing environmental selection."""
 
     def __init__(self, *args, trainer, archive: RewardArchive,
-                 reward_config: RewardConfig, batches, generations, pop_size, **kwargs):
+                 reward_config: RewardConfig, batches, generations, pop_size,
+                 graph_observation=None, **kwargs):
         self.trainer = trainer
         self.archive = archive
         self.reward_config = reward_config
         self.batches_for_observation = batches
         self.generations = int(generations)
         self.pop_size = int(pop_size)
+        self.graph_observation = graph_observation
         self.current_population = []
         self.pending_offspring = []
         self._pending_fingerprints = set()
@@ -64,7 +66,7 @@ class PPOController(MutationLogger):
             self.current_individual, self.batches_for_observation, candidates, enriched,
             self.current_population, self.pending_offspring,
             self.archive.summary(), self.archive.normalizer, self.budget,
-            self.evaluations, self.generations)
+            self.evaluations, self.generations, self.graph_observation)
 
     def mutate(self, ind, batches, path_lib, tt_dict, arc_lookup,
                arcs, waiting_cost, waiting_emission, reliable_options=None, **kwargs):

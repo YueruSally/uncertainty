@@ -74,9 +74,18 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
   are zero and the evaluated complete individual supplies one terminal HV
   reward.  I uses a separate checkpoint and a return horizon covering the
   complete construction sequence.
-- The final graph/common-information representation, frozen I+C+M runner, and
-  five-method runner are not implemented yet.  Current code is for
-  unit/development smoke tests, not a formal experiment.
+- The shared `shared-network-graph-v1` definition is now implemented for all
+  three policies.  It uses one deterministic node/edge construction and
+  normalization rule, an edge-aware message-passing GNN, and candidate-path
+  links into the encoded graph.  Each component still has its own chromosome
+  and action tokens and its own model parameters.  M chromosome/action tokens
+  no longer contain decoded path cost, emission, travel time, or Rule
+  probability.  Population summaries use the same implementation wherever
+  the corresponding state exists.
+- Gate 6 still requires one server smoke for each component with the new graph
+  checkpoint before it is marked complete.  The frozen I+C+M runner and
+  five-method runner are not implemented yet.  Current code is not ready for
+  a formal experiment until those smoke checks pass.
 
 Do not launch a formal or long training run until all gates required by that
 stage are marked complete in Git and the smoke manifest passes.
