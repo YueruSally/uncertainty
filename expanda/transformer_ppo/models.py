@@ -20,9 +20,10 @@ def _masked_mean(values, padding_mask):
 
 
 class _Heads(nn.Module):
-    def __init__(self, hidden_dim):
+    def __init__(self, hidden_dim, action_count):
         super().__init__()
-        self.actor_heads = nn.ModuleList([nn.Linear(hidden_dim, 1) for _ in OPERATORS])
+        self.actor_heads = nn.ModuleList(
+            [nn.Linear(hidden_dim, 1) for _ in range(action_count)])
         self.critic_head = nn.Sequential(
             nn.Linear(hidden_dim * 3, hidden_dim), nn.Tanh(), nn.Linear(hidden_dim, 1))
 
@@ -38,15 +39,18 @@ class TransformerActorCritic(nn.Module):
 
     architecture = "transformer"
 
-    def __init__(self, hidden_dim=128, heads=4, layers=2, dropout=0.1):
+    def __init__(self, hidden_dim=128, heads=4, layers=2, dropout=0.1,
+                 parent_dim=len(PARENT_FEATURES),
+                 candidate_dim=len(CANDIDATE_FEATURES),
+                 global_dim=len(GLOBAL_FEATURES), action_count=len(OPERATORS)):
         super().__init__()
         self.parent_projection = nn.Sequential(
-            nn.Linear(len(PARENT_FEATURES), hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
+            nn.Linear(parent_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
         self.candidate_projection = nn.Sequential(
-            nn.Linear(len(CANDIDATE_FEATURES), hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
+            nn.Linear(candidate_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
         self.global_projection = nn.Sequential(
-            nn.Linear(len(GLOBAL_FEATURES), hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
-        self.operator_embedding = nn.Embedding(len(OPERATORS), hidden_dim)
+            nn.Linear(global_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
+        self.operator_embedding = nn.Embedding(action_count, hidden_dim)
         encoder_layer = lambda: nn.TransformerEncoderLayer(
             d_model=hidden_dim, nhead=heads, dim_feedforward=hidden_dim * 4,
             dropout=dropout, activation="gelu", batch_first=True, norm_first=True)
@@ -55,7 +59,7 @@ class TransformerActorCritic(nn.Module):
         self.cross_attention = nn.MultiheadAttention(
             hidden_dim, heads, dropout=dropout, batch_first=True)
         self.cross_norm = nn.LayerNorm(hidden_dim)
-        self.heads = _Heads(hidden_dim)
+        self.heads = _Heads(hidden_dim, action_count)
 
     def forward(self, batch: Dict[str, torch.Tensor]):
         parent = self.parent_projection(_signed_log1p(batch["parent"]))
@@ -85,17 +89,20 @@ class MLPActorCritic(nn.Module):
 
     architecture = "mlp"
 
-    def __init__(self, hidden_dim=128, **_):
+    def __init__(self, hidden_dim=128,
+                 parent_dim=len(PARENT_FEATURES),
+                 candidate_dim=len(CANDIDATE_FEATURES),
+                 global_dim=len(GLOBAL_FEATURES), action_count=len(OPERATORS), **_):
         super().__init__()
         self.parent_projection = nn.Sequential(
-            nn.Linear(len(PARENT_FEATURES), hidden_dim), nn.GELU(), nn.LayerNorm(hidden_dim))
+            nn.Linear(parent_dim, hidden_dim), nn.GELU(), nn.LayerNorm(hidden_dim))
         self.candidate_projection = nn.Sequential(
-            nn.Linear(len(CANDIDATE_FEATURES) + len(GLOBAL_FEATURES) + hidden_dim,
+            nn.Linear(candidate_dim + global_dim + hidden_dim,
                       hidden_dim), nn.GELU(), nn.Linear(hidden_dim, hidden_dim), nn.GELU())
         self.global_projection = nn.Sequential(
-            nn.Linear(len(GLOBAL_FEATURES), hidden_dim), nn.GELU())
-        self.operator_embedding = nn.Embedding(len(OPERATORS), hidden_dim)
-        self.heads = _Heads(hidden_dim)
+            nn.Linear(global_dim, hidden_dim), nn.GELU())
+        self.operator_embedding = nn.Embedding(action_count, hidden_dim)
+        self.heads = _Heads(hidden_dim, action_count)
 
     def forward(self, batch: Dict[str, torch.Tensor]):
         parent = self.parent_projection(_signed_log1p(batch["parent"]))
@@ -119,9 +126,11 @@ class MLPActorCritic(nn.Module):
         return logits, value
 
 
-def build_model(architecture, config):
+def build_model(architecture, config, model_spec=None):
     kwargs = dict(hidden_dim=config.hidden_dim, heads=config.attention_heads,
                   layers=config.transformer_layers, dropout=config.dropout)
+    if model_spec is not None:
+        kwargs.update(model_spec)
     if architecture == "transformer":
         return TransformerActorCritic(**kwargs)
     if architecture == "mlp":

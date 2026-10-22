@@ -201,10 +201,20 @@ def pad_observations(observations, device=None):
     import torch
 
     batch = len(observations)
+    if not batch:
+        raise ValueError("at least one observation is required")
+    parent_dim = len(observations[0]["parent"][0])
+    candidate_dim = len(observations[0]["candidates"][0])
+    global_dim = len(observations[0]["global"])
+    if any(any(len(token) != parent_dim for token in item["parent"])
+           or any(len(token) != candidate_dim for token in item["candidates"])
+           or len(item["global"]) != global_dim for item in observations):
+        raise ValueError("observation feature dimensions must be consistent")
     max_parent = max(len(item["parent"]) for item in observations)
     max_candidates = max(len(item["candidates"]) for item in observations)
-    parent = torch.zeros(batch, max_parent, len(PARENT_FEATURES), dtype=torch.float32, device=device)
-    candidates = torch.zeros(batch, max_candidates, len(CANDIDATE_FEATURES), dtype=torch.float32, device=device)
+    parent = torch.zeros(batch, max_parent, parent_dim, dtype=torch.float32, device=device)
+    candidates = torch.zeros(
+        batch, max_candidates, candidate_dim, dtype=torch.float32, device=device)
     parent_mask = torch.ones(batch, max_parent, dtype=torch.bool, device=device)
     candidate_mask = torch.ones(batch, max_candidates, dtype=torch.bool, device=device)
     eligible = torch.zeros(batch, max_candidates, dtype=torch.bool, device=device)

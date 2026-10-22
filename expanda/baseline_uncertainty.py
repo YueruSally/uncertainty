@@ -2571,7 +2571,11 @@ def rebuild_path_from_nodes_modes(origin, destination, nodes, modes,
 
 
 def find_common_internal_nodes(p1, p2):
-    return list(set(p1.nodes[1:-1]) & set(p2.nodes[1:-1]))
+    # Preserve chromosome order so a fixed RNG seed is reproducible across
+    # processes regardless of Python's per-process hash seed.
+    available = set(p2.nodes[1:-1])
+    return list(dict.fromkeys(
+        node for node in p1.nodes[1:-1] if node in available))
 
 
 def perform_single_point_crossover_paths(pA, pB, join_node, tt_dict, arc_lookup):
@@ -2619,7 +2623,12 @@ def crossover_common_node(ind1, ind2, batches, tt_dict, arc_lookup):
 
 def crossover_hybrid(p1, p2, batches, tt_dict, arc_lookup):
     if random.random() < CROSSOVER_SEGMENT_PROB:
-        c1, c2 = crossover_common_node(p1, p2, batches, tt_dict, arc_lookup)
+        if (ACTIVE_MUTATION_LOGGER is not None
+                and getattr(ACTIVE_MUTATION_LOGGER, "controls_crossover", False)):
+            c1, c2 = ACTIVE_MUTATION_LOGGER.crossover_common_node(
+                p1, p2, batches, tt_dict, arc_lookup)
+        else:
+            c1, c2 = crossover_common_node(p1, p2, batches, tt_dict, arc_lookup)
         if c1.od_allocations or c2.od_allocations: return c1, c2
     return crossover_structural(p1, p2, batches)
 
@@ -2793,7 +2802,8 @@ def mutate_fixed(
     carbon_tax_map=None, trans_map=None, border_delay_map=None,
     theta_rm=None, node_trans_cost=None,
 ):
-    if ACTIVE_MUTATION_LOGGER is not None:
+    if (ACTIVE_MUTATION_LOGGER is not None
+            and getattr(ACTIVE_MUTATION_LOGGER, "controls_mutation", True)):
         return ACTIVE_MUTATION_LOGGER.mutate(
             ind, batches, path_lib, tt_dict, arc_lookup,
             arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
@@ -3044,6 +3054,9 @@ def feasibility_boost(
                     child, batches, arcs, tt_dict,
                     waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
                 new_inds.append(child)
+            if (ACTIVE_MUTATION_LOGGER is not None
+                    and hasattr(ACTIVE_MUTATION_LOGGER, "settle_crossover")):
+                ACTIVE_MUTATION_LOGGER.settle_crossover(c1, c2)
             if len(new_inds) >= boost_rounds: break
 
     pop_id_idx     = {id(ind): idx for idx, ind in enumerate(population)}
@@ -3512,6 +3525,9 @@ def run_nsga2(
                                 waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
             evaluate_individual(c2, batches, arcs, tt_dict,
                                 waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
+            if (ACTIVE_MUTATION_LOGGER is not None
+                    and hasattr(ACTIVE_MUTATION_LOGGER, "settle_crossover")):
+                ACTIVE_MUTATION_LOGGER.settle_crossover(c1, c2)
             offspring.extend([c1, c2])
         offspring = offspring[:pop_size]
 

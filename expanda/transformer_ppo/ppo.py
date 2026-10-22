@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import json
 from pathlib import Path
+import time
 
 import numpy as np
 import torch
@@ -13,7 +14,9 @@ from torch.distributions import Categorical
 from multi_instance_policy import Decision
 
 from .models import build_model
-from .observations import pad_observations
+from .observations import (
+    CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES, pad_observations,
+)
 
 
 @dataclass
@@ -28,7 +31,7 @@ class Transition:
 
 class PPOTrainer:
     def __init__(self, architecture, config, observation_provider, device=None,
-                 policy_seed=0, training=True):
+                 policy_seed=0, training=True, component="M", model_spec=None):
         config.validate()
         self.architecture, self.config = architecture, config
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
@@ -40,7 +43,20 @@ class PPOTrainer:
         self.action_generator = torch.Generator(device=self.device.type)
         self.action_generator.manual_seed(int(policy_seed) + 1)
         self.minibatch_rng = np.random.default_rng(int(policy_seed) + 2)
-        self.model = build_model(architecture, config).to(self.device)
+        self.component = str(component).upper()
+        default_spec = {
+            "parent_dim": len(PARENT_FEATURES),
+            "candidate_dim": len(CANDIDATE_FEATURES),
+            "global_dim": len(GLOBAL_FEATURES),
+            "action_count": 5,
+        }
+        self.model_spec = dict(default_spec if model_spec is None else model_spec)
+        required = {"parent_dim", "candidate_dim", "global_dim", "action_count"}
+        if set(self.model_spec) != required or any(
+                int(self.model_spec[name]) < 1 for name in required):
+            raise ValueError("model_spec must contain four positive dimensions")
+        self.model_spec = {name: int(value) for name, value in self.model_spec.items()}
+        self.model = build_model(architecture, config, self.model_spec).to(self.device)
         critic_ids = {id(p) for p in self.model.heads.critic_head.parameters()}
         actor = [p for p in self.model.parameters() if id(p) not in critic_ids]
         critic = list(self.model.heads.critic_head.parameters())
@@ -53,11 +69,13 @@ class PPOTrainer:
         self.pending = None
         self.training = bool(training)
         self.updates = 0
+        self.sequence_depth = 0
         self.checkpoint_provenance = None
 
     @property
     def name(self):
-        return f"{self.architecture}-ppo-masked"
+        suffix = "" if self.component == "M" else f"-{self.component.lower()}"
+        return f"{self.architecture}-ppo{suffix}-masked"
 
     def _distribution(self, observation):
         batch = pad_observations([observation], self.device)
@@ -65,6 +83,8 @@ class PPOTrainer:
         return Categorical(logits=logits), value
 
     def choose(self, candidates, context=None):
+        if self.pending is not None:
+            raise RuntimeError("previous policy action has not received an outcome")
         eligible = [i for i, row in enumerate(candidates) if row.get("eligible")]
         if not eligible:
             return Decision(None, [0.0] * len(candidates), [None] * len(candidates),
@@ -80,9 +100,11 @@ class PPOTrainer:
                 {"no_eligible_candidate": False, "fallback": None,
                  "decision_kind": "single_candidate"})
         observation = self.observation_provider(candidates, context or {})
-        if self.training and len(self.buffer) >= self.config.rollout_steps:
+        if (self.training and self.sequence_depth == 0
+                and len(self.buffer) >= self.config.rollout_steps):
             self.update(self._value(observation))
         self.model.train(self.training)
+        inference_started = time.perf_counter()
         with torch.no_grad():
             distribution, value = self._distribution(observation)
             action = (torch.multinomial(
@@ -100,6 +122,7 @@ class PPOTrainer:
             "old_log_probability": float(log_probability.item()),
             "state_value": float(value.item()), "entropy": float(entropy),
             "policy_update": self.updates, "architecture": self.architecture,
+            "inference_seconds": time.perf_counter() - inference_started,
         })
 
     def observe_outcome(self, reward, done=False):
@@ -109,12 +132,26 @@ class PPOTrainer:
             self.buffer.append(Transition(reward=float(reward), done=bool(done), **self.pending))
         self.pending = None
 
+    def begin_sequence(self):
+        """Defer PPO updates while one environment action has sub-decisions."""
+        if self.pending is not None:
+            raise RuntimeError("cannot begin a sequence with a pending policy action")
+        self.sequence_depth += 1
+
+    def end_sequence(self, terminal_reward, done=False):
+        if self.sequence_depth != 1:
+            raise RuntimeError("policy decision sequences cannot be nested")
+        self.observe_outcome(terminal_reward, done=done)
+        self.sequence_depth = 0
+
     def _value(self, observation):
         with torch.no_grad():
             _, value = self._distribution(observation)
         return float(value.item())
 
     def finish(self):
+        if self.sequence_depth:
+            raise RuntimeError("episode ended inside a policy decision sequence")
         if self.pending is not None:
             raise RuntimeError("episode ended before pending action received a reward")
         if self.training and self.buffer:
@@ -201,12 +238,14 @@ class PPOTrainer:
         path = Path(path)
         if path.exists() and not overwrite:
             raise ValueError(f"checkpoint already exists: {path}")
-        if self.pending is not None or self.buffer:
+        if self.pending is not None or self.buffer or self.sequence_depth:
             raise RuntimeError("checkpoint requires an empty PPO rollout boundary")
         path.parent.mkdir(parents=True, exist_ok=True)
         artifact = {
-            "schema_version": 2,
+            "schema_version": 3,
             "architecture": self.architecture,
+            "component": self.component,
+            "model_spec": self.model_spec,
             "ppo_config": asdict(self.config),
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
@@ -238,11 +277,14 @@ class PPOTrainer:
                 path, map_location=device or "cpu", weights_only=False)
         except TypeError:  # PyTorch before the weights_only argument was added.
             artifact = torch.load(path, map_location=device or "cpu")
-        if artifact.get("schema_version") not in (1, 2):
+        if artifact.get("schema_version") not in (1, 2, 3):
             raise ValueError("unsupported checkpoint schema")
         config = config_type(**artifact["ppo_config"])
-        result = cls(artifact["architecture"], config, observation_provider,
-                     device=device, training=training)
+        result = cls(
+            artifact["architecture"], config, observation_provider,
+            device=device, training=training,
+            component=artifact.get("component", "M"),
+            model_spec=artifact.get("model_spec"))
         result.model.load_state_dict(artifact["model"])
         if training:
             result.optimizer.load_state_dict(artifact["optimizer"])
@@ -271,6 +313,8 @@ class PPOTrainer:
             "training_metadata_sha256": hashlib.sha256(
                 metadata_blob.encode("utf-8")).hexdigest(),
             "architecture": artifact["architecture"],
+            "component": result.component,
+            "model_spec": result.model_spec,
             "policy_seed": metadata.get("policy_seed"),
             "catalog_digest": metadata.get("catalog_digest"),
             "normalization_digest": metadata.get("normalization_digest"),

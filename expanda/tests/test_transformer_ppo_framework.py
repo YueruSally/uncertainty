@@ -135,6 +135,24 @@ class CheckpointTests(unittest.TestCase):
         self.assertIsNone(trainer.pending)
         self.assertEqual(trainer.buffer, [])
 
+    def test_model_choice_reports_measured_inference_time(self):
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(hidden_dim=16, attention_heads=4,
+                           transformer_layers=1)
+        observation = {
+            "parent": [[0.0] * len(PARENT_FEATURES)],
+            "candidates": [[0.0] * len(CANDIDATE_FEATURES)] * 2,
+            "eligible": [True, True], "operator_id": 0,
+            "global": [0.0] * len(GLOBAL_FEATURES),
+        }
+        trainer = PPOTrainer(
+            "mlp", config, lambda *_: observation,
+            device="cpu", policy_seed=123, training=False)
+        decision = trainer.choose([{"eligible": True}, {"eligible": True}])
+        self.assertEqual(decision.metadata["decision_kind"], "model_choice")
+        self.assertGreater(decision.metadata["inference_seconds"], 0.0)
+
     def test_training_checkpoint_restores_all_owned_random_streams(self):
         import torch
         from transformer_ppo.ppo import PPOTrainer

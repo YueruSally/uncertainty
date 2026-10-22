@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train one M-location PPO seed in deterministic or CCP100 mode."""
+"""Train one separate M-location or C-cut PPO seed."""
 import argparse
 from dataclasses import asdict
 import hashlib
@@ -10,6 +10,7 @@ import time
 
 from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.config import PPOConfig, SCENARIOS, episode_seeds
+from transformer_ppo.crossover_observations import CROSSOVER_MODEL_SPEC
 from transformer_ppo.episode import run_episode
 from transformer_ppo.ppo import PPOTrainer
 
@@ -78,7 +79,8 @@ def _catalog_digest(instances):
 def _run_config(args, config, manifests, records):
     normalization = _read_json(args.normalization)
     return {
-        "schema_version": 2,
+        "schema_version": 3,
+        "component": args.component,
         "architecture": args.architecture,
         "policy_seed": args.policy_seed,
         "ppo": asdict(config),
@@ -171,6 +173,8 @@ def main():
     parser.add_argument("--normalization", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--architecture", choices=("transformer", "mlp"), required=True)
+    parser.add_argument("--component", choices=("M", "C"), default="M",
+                        help="Train a separate mutation- or crossover-component policy.")
     parser.add_argument("--policy-seed", type=int, required=True)
     parser.add_argument("--evaluation-budget", type=int, required=True,
                         help="Predeclared real-objective evaluation budget per episode.")
@@ -224,8 +228,11 @@ def main():
               flush=True)
     else:
         _atomic_json(args.out / "training_configuration.json", run_config)
-        trainer = PPOTrainer(args.architecture, config, lambda *_: None,
-                             device=args.device, policy_seed=args.policy_seed, training=True)
+        trainer = PPOTrainer(
+            args.architecture, config, lambda *_: None,
+            device=args.device, policy_seed=args.policy_seed, training=True,
+            component=args.component,
+            model_spec=(CROSSOVER_MODEL_SPEC if args.component == "C" else None))
         completed, summaries, previous_elapsed = 0, [], 0.0
         checkpoint = _checkpoint_path(args.out, completed)
         trainer.save(checkpoint, metadata=run_config)
@@ -251,7 +258,7 @@ def main():
             args.data, manifest, episode_out, trainer, normalizer,
             algorithm_seed=seeds["algorithm"], evaluation_budget=args.evaluation_budget,
             pop_size=args.pop, generations=args.gens, reward_config=RewardConfig(),
-            evaluation_mode=args.evaluation_mode)
+            evaluation_mode=args.evaluation_mode, component=args.component)
         summaries.append({"instance": manifest.stem, **summary})
         completed = index + 1
         previous_checkpoint = checkpoint
@@ -271,7 +278,7 @@ def main():
     trainer.save(final_checkpoint, metadata=run_config, overwrite=True)
     elapsed = previous_elapsed + time.perf_counter() - session_started
     final_summary = {
-        "completed": True, "episodes": summaries,
+        "completed": True, "component": args.component, "episodes": summaries,
         "checkpoint": str(final_checkpoint.relative_to(args.out)),
         "checkpoint_sha256": _sha256(final_checkpoint),
         "elapsed_seconds": elapsed,

@@ -14,19 +14,25 @@ from run_ev_ccp_oos_pilot import candidate_rows, json_candidate, scenario_digest
 
 from .archive import RewardArchive, RewardConfig
 from .controller import PPOController
+from .crossover_controller import CrossoverPPOController
 from .instance_catalog import read_instance
 
 
 def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 algorithm_seed: int, evaluation_budget=15_000,
                 pop_size=100, generations=1_000, reward_config=None,
-                evaluation_mode="ccp100"):
+                evaluation_mode="ccp100", component="M"):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
         raise ValueError("evaluation_budget must be at least pop_size+4")
     if evaluation_mode not in ("deterministic", "ccp100"):
         raise ValueError("evaluation_mode must be 'deterministic' or 'ccp100'")
+    component = str(component).upper()
+    if component not in ("M", "C"):
+        raise ValueError("component must be 'M' or 'C'")
+    if trainer.component != component:
+        raise ValueError("trainer component does not match episode component")
     if out.exists() and any(out.iterdir()):
         raise ValueError(f"episode output directory must be empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
@@ -87,7 +93,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     config = {
         "schema_version": 3, "method": trainer.name,
         "protocol": "nsga2-learning-components-v1",
-        "component": "M",
+        "component": component,
         "evaluation_mode": evaluation_mode,
         "instance_id": instance["instance_id"], "configuration": instance["configuration"],
         "instance_digest": instance["instance_digest"], "K": instance["K"],
@@ -113,7 +119,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     }
     write_json(out / "configuration.json", config)
     archive = RewardArchive(episode_normalizer)
-    controller = PPOController(
+    controller_type = PPOController if component == "M" else CrossoverPPOController
+    controller = controller_type(
         out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
         trainer=trainer, archive=archive,
         reward_config=reward_config or RewardConfig(), batches=batches,
@@ -144,8 +151,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "completed": True, "method": trainer.name,
         "real_objective_evaluation_count": controller.evaluations,
         "ccp_evaluation_count": controller.evaluations,
-        "mutation_attempts": controller.total_attempts,
-        "effective_modifications": controller.total_effective,
+        "component": component,
+        "component_attempts": controller.total_attempts,
+        "effective_component_modifications": controller.total_effective,
         "no_eligible_candidate": controller.no_candidate,
         "inference_seconds": controller.inference_seconds,
         "optimisation_seconds": time.perf_counter() - started,
@@ -158,5 +166,11 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "generations_completed": controller.generations_completed,
         **controller.summary(),
     }
+    if component == "M":
+        summary["mutation_attempts"] = controller.total_attempts
+        summary["effective_modifications"] = controller.total_effective
+    else:
+        summary["crossover_attempts"] = controller.total_attempts
+        summary["effective_crossovers"] = controller.total_effective
     write_json(out / "COMPLETE.json", summary)
     return summary

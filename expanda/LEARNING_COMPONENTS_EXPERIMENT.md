@@ -10,9 +10,13 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
 - I preserves Base's representable initial-individual structure.  PPO chooses
   the identities of `k` distinct paths; Base still chooses `k`, generates the
   split shares, and normalizes them.
-- C is called only for common-node crossover.  Its selected cut is followed by
-  Base mutation, repair, and the original final-offspring evaluation.  There
-  is no post-crossover intermediate objective evaluation.
+- C is called only for common-node crossover.  For the allocation pair that
+  Base chooses in each Batch, the model chooses among legal common nodes.  If
+  one crossover contains several learnable Batch cuts, they form one decision
+  sequence: intermediate rewards are zero and only the final learnable cut
+  receives the joint terminal reward.  The selected cuts are followed by Base
+  mutation, repair, and the original final-offspring evaluation.  There is no
+  post-crossover intermediate objective evaluation.
 - M samples each of the five operators with probability 0.2 and learns only
   the legal target position.
 - One action reward is the joint archive increment
@@ -59,9 +63,13 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
 - The M PPO controller no longer evaluates a crossed child before mutation.
   Zero-candidate decisions create no action, and a single legal candidate is
   executed without model inference or a PPO transition.
-- I, C, the final common feature representation, and the five-method runner
-  are not implemented yet.  Current code is for unit/development smoke tests,
-  not a formal experiment.
+- The C controller now preserves the 0.5 common-node / 0.5 structural-operator
+  choice, controls only legal common-node cuts, and atomically settles the two
+  children after Base mutation, repair, and final evaluation.  C has its own
+  checkpoint/model parameters and raw two-parent chromosome tokens.
+- I, the final graph/common-information representation, and the five-method
+  runner are not implemented yet.  Current code is for unit/development smoke
+  tests, not a formal experiment.
 
 Do not launch a formal or long training run until all gates required by that
 stage are marked complete in Git and the smoke manifest passes.
@@ -129,6 +137,7 @@ also run the regression and evaluation-order tests:
 
 ```bash
 python3 -m unittest \
+  tests.test_crossover_learning \
   tests.test_multi_instance_ccp100 \
   tests.test_transformer_ppo_framework
 ```

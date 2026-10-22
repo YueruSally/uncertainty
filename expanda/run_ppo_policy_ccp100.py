@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a frozen M-location PPO checkpoint without training."""
+"""Run a frozen M-location or C-cut PPO checkpoint without training."""
 import argparse
 import json
 from pathlib import Path
@@ -40,7 +40,7 @@ def main():
         args.data, args.instance, args.out, trainer, normalizer,
         algorithm_seed=args.algorithm_seed, evaluation_budget=args.evaluation_budget,
         pop_size=args.pop, generations=args.gens, reward_config=RewardConfig(),
-        evaluation_mode=args.evaluation_mode)
+        evaluation_mode=args.evaluation_mode, component=trainer.component)
     print(summary)
 
 

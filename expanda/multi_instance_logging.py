@@ -57,7 +57,7 @@ def _violation_flag(breakdown, *names):
 class MutationLogger:
     def __init__(self, out, run_id, scenario_id, budget=None, policy=None,
                  method="Random-CCP100", instance=None, seeds=None,
-                 evaluate_before_mutation=True):
+                 evaluate_before_mutation=True, log_names=None):
         self.out, self.run_id, self.scenario_id, self.budget = out, run_id, scenario_id, budget
         self.policy = policy or RandomPolicy()
         self.method = method
@@ -81,9 +81,11 @@ class MutationLogger:
             "no_candidate": 0,
         }
         self._last_generation_time = self.start
+        names = log_names or (
+            "mutation_outcomes", "mutation_candidates",
+            "mutation_skips", "generation_summary")
         self.files = {name: (out / (name + ".jsonl")).open("x", encoding="utf-8")
-                      for name in ("mutation_outcomes", "mutation_candidates",
-                                   "mutation_skips", "generation_summary")}
+                      for name in names}
 
     def append(self, name, row):
         self.files[name].write(json.dumps(clean(row), allow_nan=False) + "\n")
