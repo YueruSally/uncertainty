@@ -57,7 +57,8 @@ def _violation_flag(breakdown, *names):
 class MutationLogger:
     def __init__(self, out, run_id, scenario_id, budget=None, policy=None,
                  method="Random-CCP100", instance=None, seeds=None,
-                 evaluate_before_mutation=True, log_names=None):
+                 evaluate_before_mutation=True, log_names=None,
+                 preserve_base_position_rng=False):
         self.out, self.run_id, self.scenario_id, self.budget = out, run_id, scenario_id, budget
         self.policy = policy or RandomPolicy()
         self.method = method
@@ -67,6 +68,7 @@ class MutationLogger:
         # New I/C/M PPO runs disable this because the original NSGA-II flow
         # evaluates offspring only after crossover and mutation are complete.
         self.evaluate_before_mutation = bool(evaluate_before_mutation)
+        self.preserve_base_position_rng = bool(preserve_base_position_rng)
         self.evaluations = self.cache_hits = self.event_count = 0
         self.generation, self.phase = -1, "initialisation"
         self.generations_completed = 0
@@ -137,6 +139,11 @@ class MutationLogger:
         before = deepcopy(ind)
         before_hash = fingerprint(before)
         before_count = self.evaluations
+        # Base draws the target Batch before drawing the mutation operator.
+        # A learned position policy replaces that target but must still consume
+        # the paired Base draw so every later Python-random decision stays aligned.
+        shadow_base_batch = (
+            random.choice(batches) if self.preserve_base_position_rng else None)
         op = base.sample_operator()
         candidates = candidates_for(ind, batches, op, path_lib, tt_dict, arc_lookup,
                                     reliable_options)
@@ -245,6 +252,11 @@ class MutationLogger:
             path_nominal_time_h=chosen.get("path_nominal_time_h"),
             alternative_mode_count=chosen.get("alternative_mode_count"),
             selected_target_eligible=bool(chosen["eligible"]), mutation_success=bool(ok),
+            shadow_base_batch_id=(
+                shadow_base_batch.batch_id if shadow_base_batch is not None else None),
+            different_from_shadow_base_batch=(
+                target.batch_id != shadow_base_batch.batch_id
+                if shadow_base_batch is not None else None),
             raw_mutation_changed=raw_changed, repair_changed_decision=repair_changed,
             repair_only_change=repair_only_change, effective_mutation=effective_mutation,
             outcome_attributable_to_selected_target=outcome_attributable,

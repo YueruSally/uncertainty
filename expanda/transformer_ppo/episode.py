@@ -13,6 +13,7 @@ from multi_instance_logging import fingerprint, write_json
 from run_ev_ccp_oos_pilot import candidate_rows, json_candidate, scenario_digest
 
 from .archive import RewardArchive, RewardConfig
+from .comparison_controllers import BaseBudgetController, CombinedPPOController
 from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
 from .initialization_controller import InitializationPPOController
@@ -31,10 +32,16 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if evaluation_mode not in ("deterministic", "ccp100"):
         raise ValueError("evaluation_mode must be 'deterministic' or 'ccp100'")
     component = str(component).upper()
-    if component not in ("M", "C", "I"):
-        raise ValueError("component must be 'M', 'C', or 'I'")
-    if trainer.component != component:
+    if component not in ("M", "C", "I", "ICM", "BASE"):
+        raise ValueError("component must be 'M', 'C', 'I', 'ICM', or 'BASE'")
+    if component in ("M", "C", "I") and trainer.component != component:
         raise ValueError("trainer component does not match episode component")
+    if component == "ICM" and (
+            not isinstance(trainer, dict) or set(trainer) != {"I", "C", "M"}
+            or any(item.component != name for name, item in trainer.items())):
+        raise ValueError("ICM requires matching I, C, and M trainers")
+    if component == "BASE" and trainer is not None:
+        raise ValueError("BASE does not accept a policy trainer")
     if out.exists() and any(out.iterdir()):
         raise ValueError(f"episode output directory must be empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
@@ -94,8 +101,20 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     episode_normalizer = normalizer.with_divisor(objective_divisor)
     graph_observation = build_graph_observation(
         nodes, regions, hold, proc, trans_cost, arcs, batches)
+    method = (
+        "base-nsga2" if component == "BASE" else
+        "transformer-ppo-i+c+m-frozen" if component == "ICM" else
+        trainer.name)
+    policy_training = (
+        False if component == "BASE" else
+        any(item.training for item in trainer.values()) if component == "ICM" else
+        bool(trainer.training))
+    policy_checkpoint = (
+        None if component == "BASE" else
+        {name: item.checkpoint_provenance for name, item in trainer.items()}
+        if component == "ICM" else trainer.checkpoint_provenance)
     config = {
-        "schema_version": 3, "method": trainer.name,
+        "schema_version": 3, "method": method,
         "protocol": "nsga2-learning-components-v1",
         "component": component,
         "evaluation_mode": evaluation_mode,
@@ -113,8 +132,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "reward_definition": "scaled positive joint archive HV increment only",
         "reward_clipping": False,
         "intermediate_post_crossover_evaluation": False,
-        "policy_training": bool(trainer.training),
-        "policy_checkpoint": getattr(trainer, "checkpoint_provenance", None),
+        "policy_training": policy_training,
+        "policy_checkpoint": policy_checkpoint,
         "network_encoding": graph_observation["schema"],
         "normalization": {"minimum": episode_normalizer.minimum,
                           "maximum": episode_normalizer.maximum,
@@ -129,13 +148,26 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "C": CrossoverPPOController,
         "I": InitializationPPOController,
     }
-    controller_type = controller_types[component]
-    controller = controller_type(
-        out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
-        trainer=trainer, archive=archive,
-        reward_config=reward_config or RewardConfig(), batches=batches,
-        generations=generations, pop_size=pop_size, method=trainer.name,
-        instance=instance, seeds=seeds, graph_observation=graph_observation)
+    if component == "BASE":
+        controller = BaseBudgetController(
+            out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
+            method=method, instance=instance, seeds=seeds)
+    elif component == "ICM":
+        controller = CombinedPPOController(
+            out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
+            trainers=trainer, normalizer=episode_normalizer,
+            reward_config=reward_config or RewardConfig(), batches=batches,
+            generations=generations, pop_size=pop_size,
+            graph_observation=graph_observation, method=method,
+            instance=instance, seeds=seeds)
+    else:
+        controller_type = controller_types[component]
+        controller = controller_type(
+            out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
+            trainer=trainer, archive=archive,
+            reward_config=reward_config or RewardConfig(), batches=batches,
+            generations=generations, pop_size=pop_size, method=method,
+            instance=instance, seeds=seeds, graph_observation=graph_observation)
     base.ACTIVE_MUTATION_LOGGER = controller
     try:
         population = base.run_nsga2(
@@ -150,7 +182,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         controller.close()
     fronts = base.fast_non_dominated_sort(population)
     front = [population[index] for index in fronts[0] if population[index].feasible]
-    rows = candidate_rows(trainer.name, instance["instance_id"], front, config)
+    rows = candidate_rows(method, instance["instance_id"], front, config)
     write_json(out / "final_feasible_nondominated.json", [json_candidate(row) for row in rows])
     write_json(out / "final_archive_lineage.json", [{
         "source_solution_id": row["source_solution_id"],
@@ -158,13 +190,14 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "optimisation_objectives": row["optimisation_objectives"],
     } for row in rows])
     summary = {
-        "completed": True, "method": trainer.name,
+        "completed": True, "method": method,
         "real_objective_evaluation_count": controller.evaluations,
         "ccp_evaluation_count": controller.evaluations,
         "component": component,
-        "component_attempts": controller.total_attempts,
-        "effective_component_modifications": controller.total_effective,
-        "no_eligible_candidate": controller.no_candidate,
+        "component_attempts": getattr(controller, "total_attempts", 0),
+        "effective_component_modifications": getattr(
+            controller, "total_effective", 0),
+        "no_eligible_candidate": getattr(controller, "no_candidate", 0),
         "inference_seconds": controller.inference_seconds,
         "optimisation_seconds": time.perf_counter() - started,
         "stop_reason": (
@@ -182,8 +215,15 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     elif component == "C":
         summary["crossover_attempts"] = controller.total_attempts
         summary["effective_crossovers"] = controller.total_effective
-    else:
+    elif component == "I":
         summary["initialization_attempts"] = controller.total_attempts
         summary["initializations_different_from_shadow_base"] = controller.total_effective
+    elif component == "ICM":
+        summary["component_attempts"] = {
+            name: item.total_attempts for name, item in controller.controllers.items()}
+        summary["effective_component_modifications"] = {
+            name: item.total_effective for name, item in controller.controllers.items()}
+        summary["no_eligible_candidate"] = {
+            name: item.no_candidate for name, item in controller.controllers.items()}
     write_json(out / "COMPLETE.json", summary)
     return summary

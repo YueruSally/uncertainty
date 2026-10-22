@@ -1,6 +1,7 @@
 """PPO controller for common-node crossover-cut selection."""
 from __future__ import annotations
 
+import random
 import time
 
 from multi_instance_logging import MutationLogger, fingerprint
@@ -92,6 +93,9 @@ class CrossoverPPOController(MutationLogger):
         changed = False
         try:
             for cut_index, cut in enumerate(cut_decisions):
+                # Base would draw one common node here.  Consume the paired
+                # draw before replacing its result with the frozen policy.
+                shadow_base_index = random.randrange(len(cut.candidates))
                 context = {
                     "component": "C", "operator": "common_node",
                     "generation": self.generation, "phase": self.phase,
@@ -148,6 +152,9 @@ class CrossoverPPOController(MutationLogger):
                     "candidate_count": len(cut.candidates),
                     "chosen_index": decision.chosen_index,
                     "join_node": chosen["join_node"], "decision_kind": kind,
+                    "shadow_base_index": shadow_base_index,
+                    "different_from_shadow_base": (
+                        decision.chosen_index != shadow_base_index),
                     "policy_metadata": decision.metadata,
                 })
         except Exception:

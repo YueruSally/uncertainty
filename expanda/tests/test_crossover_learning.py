@@ -1,5 +1,6 @@
 from pathlib import Path
 import importlib.util
+import random
 import sys
 import tempfile
 import unittest
@@ -150,6 +151,40 @@ class CrossoverPlanningTests(unittest.TestCase):
                 self.assertEqual(len(controller.archive.points), 2)
                 self.assertEqual(controller.evaluations, 0)
                 self.assertFalse(controller._pending_child_ids)
+            finally:
+                controller.close()
+
+    def test_learned_cut_consumes_the_paired_base_random_draw(self):
+        from transformer_ppo.archive import RewardArchive, RewardConfig
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        random.seed(1234)
+        base.crossover_common_node(
+            self.parent1, self.parent2, [self.batch], {}, {
+                (arc.from_node, arc.to_node, arc.mode): arc
+                for path in (self.path1, self.path2) for arc in path.arcs
+            })
+        expected_state = random.getstate()
+
+        trainer = _FakeTrainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0), reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CrossoverPPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[self.batch], generations=2, pop_size=2,
+                method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={})
+            try:
+                random.seed(1234)
+                controller.crossover_common_node(
+                    self.parent1, self.parent2, [self.batch], {}, {
+                        (arc.from_node, arc.to_node, arc.mode): arc
+                        for path in (self.path1, self.path2) for arc in path.arcs
+                    })
+                self.assertEqual(random.getstate(), expected_state)
             finally:
                 controller.close()
 

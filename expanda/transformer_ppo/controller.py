@@ -31,7 +31,8 @@ class PPOController(MutationLogger):
         self.reward_total = 0.0
         self.positive_reward_actions = 0
         super().__init__(
-            *args, policy=trainer, evaluate_before_mutation=False, **kwargs)
+            *args, policy=trainer, evaluate_before_mutation=False,
+            preserve_base_position_rng=True, **kwargs)
         trainer.observation_provider = self._observation
 
     def evaluate(self, function, ind, *args, **kwargs):

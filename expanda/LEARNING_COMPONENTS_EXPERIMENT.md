@@ -84,10 +84,15 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
   own model parameters.  M chromosome/action tokens no longer contain decoded
   path cost, emission, travel time, or Rule probability.  Population summaries
   use the same implementation wherever the corresponding state exists.
-- Gate 6 still requires one server smoke for each component with the new
-  network-token checkpoint before it is marked complete.  The frozen I+C+M
-  runner and five-method runner are not implemented yet.  Current code is not
-  ready for a formal experiment until those smoke checks pass.
+- Gate 6 is complete: server development smokes for M, C, and I each consumed
+  exactly 200 evaluations with the first-version network-token Transformer.
+- The Base budget controller, frozen I+C+M coordinator, and paired five-method
+  deterministic runner are implemented.  The learning controllers consume
+  the shadow Base position draw before replacing it, so equal algorithm seeds
+  remain paired beyond the learned decision.  Gate 7 still requires a server
+  five-method smoke.  The one-instance development checkpoints created before
+  this RNG-pairing fix may be used only for that wiring smoke; formal models
+  must be retrained from the fixed commit.
 
 Do not launch a formal or long training run until all gates required by that
 stage are marked complete in Git and the smoke manifest passes.
