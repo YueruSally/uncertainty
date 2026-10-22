@@ -10,6 +10,7 @@ from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.comparison_controllers import (
     BaseBudgetController, CombinedPPOController,
 )
+from transformer_ppo.episode import _optimisation_vector
 
 
 class _FrozenTrainer:
@@ -48,6 +49,12 @@ class ComparisonControllerTests(unittest.TestCase):
                 self.assertEqual(controller.budget_reserve("offspring_pair"), 2)
             finally:
                 controller.close()
+
+    def test_final_objectives_use_cost_emission_makespan_axis_order(self):
+        row = {"optimisation_objectives": {
+            "makespan": 30.0, "cost": 10.0, "emission": 20.0,
+        }}
+        self.assertEqual(_optimisation_vector(row), (10.0, 20.0, 30.0))
 
     def test_combined_evaluates_once_and_updates_three_archives(self):
         trainers = {name: _FrozenTrainer(name) for name in ("I", "C", "M")}

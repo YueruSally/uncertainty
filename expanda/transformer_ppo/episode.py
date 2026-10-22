@@ -21,6 +21,17 @@ from .instance_catalog import read_instance
 from .graph_features import build_graph_observation
 
 
+FINAL_OBJECTIVE_ORDER = ("cost", "emission", "makespan")
+
+
+def _optimisation_vector(row):
+    """Return stored final objectives in the normalizer's fixed axis order."""
+    objectives = row["optimisation_objectives"]
+    if not isinstance(objectives, dict):
+        raise TypeError("optimisation_objectives must be an objective-name mapping")
+    return tuple(float(objectives[name]) for name in FINAL_OBJECTIVE_ORDER)
+
+
 def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 algorithm_seed: int, evaluation_budget=15_000,
                 pop_size=100, generations=1_000, reward_config=None,
@@ -184,7 +195,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     front = [population[index] for index in fronts[0] if population[index].feasible]
     rows = candidate_rows(method, instance["instance_id"], front, config)
     final_points = [
-        episode_normalizer.transform(row["optimisation_objectives"])
+        episode_normalizer.transform(_optimisation_vector(row))
         for row in rows
     ]
     final_hypervolume = exact_hv_3d(
