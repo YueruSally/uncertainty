@@ -67,9 +67,16 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
   choice, controls only legal common-node cuts, and atomically settles the two
   children after Base mutation, repair, and final evaluation.  C has its own
   checkpoint/model parameters and raw two-parent chromosome tokens.
-- I, the final graph/common-information representation, and the five-method
-  runner are not implemented yet.  Current code is for unit/development smoke
-  tests, not a formal experiment.
+- The I controller retains capacity-aware and greedy seeds unchanged.  For
+  each remaining random individual, Base still draws `k`, consumes its paired
+  random sample, generates split shares, and normalizes the allocations; I
+  sequentially chooses `k` distinct path identities.  Intermediate rewards
+  are zero and the evaluated complete individual supplies one terminal HV
+  reward.  I uses a separate checkpoint and a return horizon covering the
+  complete construction sequence.
+- The final graph/common-information representation, frozen I+C+M runner, and
+  five-method runner are not implemented yet.  Current code is for
+  unit/development smoke tests, not a formal experiment.
 
 Do not launch a formal or long training run until all gates required by that
 stage are marked complete in Git and the smoke manifest passes.
@@ -137,6 +144,7 @@ also run the regression and evaluation-order tests:
 
 ```bash
 python3 -m unittest \
+  tests.test_initialization_learning \
   tests.test_crossover_learning \
   tests.test_multi_instance_ccp100 \
   tests.test_transformer_ppo_framework

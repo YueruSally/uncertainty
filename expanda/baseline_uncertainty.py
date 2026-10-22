@@ -3451,10 +3451,19 @@ def run_nsga2(
         elif i < n_feasibility_seeds + 3 * n_each:
             ind = greedy_initial_min_emission(batches, path_lib)
         else:
-            ind = random_initial_individual(batches, path_lib)
+            if (ACTIVE_MUTATION_LOGGER is not None
+                    and getattr(
+                        ACTIVE_MUTATION_LOGGER, "controls_initialization", False)):
+                ind = ACTIVE_MUTATION_LOGGER.initial_individual(
+                    batches, path_lib, max_paths=3)
+            else:
+                ind = random_initial_individual(batches, path_lib)
         repair_missing_allocations(ind, batches, path_lib)
         evaluate_individual(ind, batches, arcs, tt_dict,
                         waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
+        if (ACTIVE_MUTATION_LOGGER is not None
+                and hasattr(ACTIVE_MUTATION_LOGGER, "settle_initialization")):
+            ACTIVE_MUTATION_LOGGER.settle_initialization(ind)
         population.append(ind)
 
     initial_feasible = sum(1 for ind in population if ind.feasible)

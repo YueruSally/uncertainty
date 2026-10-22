@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train one separate M-location or C-cut PPO seed."""
+"""Train one separate M-location, C-cut, or I-path PPO seed."""
 import argparse
 from dataclasses import asdict
 import hashlib
@@ -11,6 +11,7 @@ import time
 from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.config import PPOConfig, SCENARIOS, episode_seeds
 from transformer_ppo.crossover_observations import CROSSOVER_MODEL_SPEC
+from transformer_ppo.initialization_observations import INITIALIZATION_MODEL_SPEC
 from transformer_ppo.episode import run_episode
 from transformer_ppo.ppo import PPOTrainer
 
@@ -173,8 +174,8 @@ def main():
     parser.add_argument("--normalization", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--architecture", choices=("transformer", "mlp"), required=True)
-    parser.add_argument("--component", choices=("M", "C"), default="M",
-                        help="Train a separate mutation- or crossover-component policy.")
+    parser.add_argument("--component", choices=("M", "C", "I"), default="M",
+                        help="Train a separate mutation, crossover, or initialization policy.")
     parser.add_argument("--policy-seed", type=int, required=True)
     parser.add_argument("--evaluation-budget", type=int, required=True,
                         help="Predeclared real-objective evaluation budget per episode.")
@@ -210,7 +211,8 @@ def main():
             args.configuration)
     except ValueError as error:
         parser.error(str(error))
-    config = PPOConfig()
+    config = (PPOConfig(rollout_steps=512, gae_horizon=256)
+              if args.component == "I" else PPOConfig())
     normalizer = _normalizer(args.normalization)
     run_config = _run_config(args, config, manifests, records)
     args.out.mkdir(parents=True, exist_ok=True)
@@ -232,7 +234,9 @@ def main():
             args.architecture, config, lambda *_: None,
             device=args.device, policy_seed=args.policy_seed, training=True,
             component=args.component,
-            model_spec=(CROSSOVER_MODEL_SPEC if args.component == "C" else None))
+            model_spec=(
+                CROSSOVER_MODEL_SPEC if args.component == "C" else
+                INITIALIZATION_MODEL_SPEC if args.component == "I" else None))
         completed, summaries, previous_elapsed = 0, [], 0.0
         checkpoint = _checkpoint_path(args.out, completed)
         trainer.save(checkpoint, metadata=run_config)

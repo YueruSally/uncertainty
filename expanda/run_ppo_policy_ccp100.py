@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a frozen M-location or C-cut PPO checkpoint without training."""
+"""Run a frozen M-location, C-cut, or I-path PPO checkpoint without training."""
 import argparse
 import json
 from pathlib import Path

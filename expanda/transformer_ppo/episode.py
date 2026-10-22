@@ -15,6 +15,7 @@ from run_ev_ccp_oos_pilot import candidate_rows, json_candidate, scenario_digest
 from .archive import RewardArchive, RewardConfig
 from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
+from .initialization_controller import InitializationPPOController
 from .instance_catalog import read_instance
 
 
@@ -29,8 +30,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if evaluation_mode not in ("deterministic", "ccp100"):
         raise ValueError("evaluation_mode must be 'deterministic' or 'ccp100'")
     component = str(component).upper()
-    if component not in ("M", "C"):
-        raise ValueError("component must be 'M' or 'C'")
+    if component not in ("M", "C", "I"):
+        raise ValueError("component must be 'M', 'C', or 'I'")
     if trainer.component != component:
         raise ValueError("trainer component does not match episode component")
     if out.exists() and any(out.iterdir()):
@@ -119,7 +120,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     }
     write_json(out / "configuration.json", config)
     archive = RewardArchive(episode_normalizer)
-    controller_type = PPOController if component == "M" else CrossoverPPOController
+    controller_types = {
+        "M": PPOController,
+        "C": CrossoverPPOController,
+        "I": InitializationPPOController,
+    }
+    controller_type = controller_types[component]
     controller = controller_type(
         out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
         trainer=trainer, archive=archive,
@@ -169,8 +175,11 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if component == "M":
         summary["mutation_attempts"] = controller.total_attempts
         summary["effective_modifications"] = controller.total_effective
-    else:
+    elif component == "C":
         summary["crossover_attempts"] = controller.total_attempts
         summary["effective_crossovers"] = controller.total_effective
+    else:
+        summary["initialization_attempts"] = controller.total_attempts
+        summary["initializations_different_from_shadow_base"] = controller.total_effective
     write_json(out / "COMPLETE.json", summary)
     return summary
