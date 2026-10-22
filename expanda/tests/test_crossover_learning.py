@@ -30,15 +30,18 @@ class _FakeTrainer:
     def __init__(self):
         self.pending = None
         self.sequence_depth = 0
+        self.sequence_policy_actions = 0
         self.rewards = []
         self.observation_provider = None
 
     def begin_sequence(self):
         self.sequence_depth = 1
+        self.sequence_policy_actions = 0
 
     def choose(self, candidates, context=None):
         self.observation_provider(candidates, context or {})
         self.pending = True
+        self.sequence_policy_actions += 1
         probabilities = [1.0] + [0.0] * (len(candidates) - 1)
         return Decision(0, probabilities, [None] * len(candidates), {
             "decision_kind": "model_choice", "inference_seconds": 0.001,
@@ -52,9 +55,10 @@ class _FakeTrainer:
     def end_sequence(self, reward, done=False):
         self.observe_outcome(reward, done=done)
         self.sequence_depth = 0
+        self.sequence_policy_actions = 0
 
     def finish(self):
-        if self.pending or self.sequence_depth:
+        if self.pending or self.sequence_depth or self.sequence_policy_actions:
             raise RuntimeError("unfinished fake policy sequence")
 
 
@@ -175,6 +179,34 @@ class CrossoverPPOSequenceTests(unittest.TestCase):
         self.assertEqual([item.reward for item in trainer.buffer], [0.0, 3.5])
         self.assertEqual(trainer.sequence_depth, 0)
         self.assertIsNone(trainer.pending)
+
+    def test_rollout_update_occurs_at_next_sequence_boundary(self):
+        from transformer_ppo.config import PPOConfig
+        from transformer_ppo.ppo import PPOTrainer
+
+        observation = {
+            "parent": [[0.0] * CROSSOVER_MODEL_SPEC["parent_dim"]],
+            "candidates": [[0.0] * CROSSOVER_MODEL_SPEC["candidate_dim"]] * 2,
+            "eligible": [True, True], "operator_id": 0,
+            "global": [0.0] * CROSSOVER_MODEL_SPEC["global_dim"],
+        }
+        trainer = PPOTrainer(
+            "mlp", PPOConfig(rollout_steps=2, gae_horizon=2, hidden_dim=16,
+                             attention_heads=4, transformer_layers=1),
+            lambda *_: observation, device="cpu", policy_seed=6, training=True,
+            component="C", model_spec=CROSSOVER_MODEL_SPEC)
+        candidates = [{"eligible": True}, {"eligible": True}]
+        trainer.begin_sequence()
+        trainer.choose(candidates)
+        trainer.observe_outcome(0.0)
+        trainer.choose(candidates)
+        trainer.end_sequence(1.0)
+        self.assertEqual(trainer.updates, 0)
+        trainer.begin_sequence()
+        trainer.choose(candidates)
+        self.assertEqual(trainer.updates, 1)
+        self.assertEqual(len(trainer.buffer), 0)
+        trainer.end_sequence(0.0)
 
     def test_controller_settles_two_final_children_as_one_archive_update(self):
         from transformer_ppo.archive import RewardArchive, RewardConfig

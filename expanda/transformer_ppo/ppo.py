@@ -70,6 +70,7 @@ class PPOTrainer:
         self.training = bool(training)
         self.updates = 0
         self.sequence_depth = 0
+        self.sequence_policy_actions = 0
         self.checkpoint_provenance = None
 
     @property
@@ -100,7 +101,12 @@ class PPOTrainer:
                 {"no_eligible_candidate": False, "fallback": None,
                  "decision_kind": "single_candidate"})
         observation = self.observation_provider(candidates, context or {})
-        if (self.training and self.sequence_depth == 0
+        # Never update in the middle of one environment action.  The first
+        # learnable sub-decision of the next sequence is a safe rollout
+        # boundary and supplies the bootstrap state for the previous rollout.
+        safe_update_boundary = (
+            self.sequence_depth == 0 or self.sequence_policy_actions == 0)
+        if (self.training and safe_update_boundary
                 and len(self.buffer) >= self.config.rollout_steps):
             self.update(self._value(observation))
         self.model.train(self.training)
@@ -116,6 +122,8 @@ class PPOTrainer:
         self.pending = {
             "observation": observation, "action": int(action.item()),
             "old_log_probability": float(log_probability.item()), "value": float(value.item())}
+        if self.sequence_depth:
+            self.sequence_policy_actions += 1
         return Decision(int(action.item()), probabilities, [None] * len(probabilities), {
             "no_eligible_candidate": False, "fallback": None,
             "decision_kind": "model_choice",
@@ -134,15 +142,17 @@ class PPOTrainer:
 
     def begin_sequence(self):
         """Defer PPO updates while one environment action has sub-decisions."""
-        if self.pending is not None:
-            raise RuntimeError("cannot begin a sequence with a pending policy action")
-        self.sequence_depth += 1
+        if self.pending is not None or self.sequence_depth:
+            raise RuntimeError("cannot begin a nested or pending policy sequence")
+        self.sequence_depth = 1
+        self.sequence_policy_actions = 0
 
     def end_sequence(self, terminal_reward, done=False):
         if self.sequence_depth != 1:
             raise RuntimeError("policy decision sequences cannot be nested")
         self.observe_outcome(terminal_reward, done=done)
         self.sequence_depth = 0
+        self.sequence_policy_actions = 0
 
     def _value(self, observation):
         with torch.no_grad():
@@ -150,7 +160,7 @@ class PPOTrainer:
         return float(value.item())
 
     def finish(self):
-        if self.sequence_depth:
+        if self.sequence_depth or self.sequence_policy_actions:
             raise RuntimeError("episode ended inside a policy decision sequence")
         if self.pending is not None:
             raise RuntimeError("episode ended before pending action received a reward")
@@ -238,7 +248,8 @@ class PPOTrainer:
         path = Path(path)
         if path.exists() and not overwrite:
             raise ValueError(f"checkpoint already exists: {path}")
-        if self.pending is not None or self.buffer or self.sequence_depth:
+        if (self.pending is not None or self.buffer or self.sequence_depth
+                or self.sequence_policy_actions):
             raise RuntimeError("checkpoint requires an empty PPO rollout boundary")
         path.parent.mkdir(parents=True, exist_ok=True)
         artifact = {

@@ -151,6 +151,7 @@ class CrossoverPPOController(MutationLogger):
         except Exception:
             if model_decisions and self.trainer.sequence_depth:
                 self.trainer.sequence_depth = 0
+                self.trainer.sequence_policy_actions = 0
                 self.trainer.pending = None
             raise
         finally:
