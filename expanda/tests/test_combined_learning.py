@@ -77,6 +77,39 @@ class ComparisonControllerTests(unittest.TestCase):
                 self.assertTrue(all(
                     child.evaluations == 1
                     for child in controller.controllers.values()))
+                summary = controller.summary()
+                self.assertEqual(
+                    summary["ppo_updates"], {"I": 0, "C": 0, "M": 0})
+                self.assertEqual(
+                    summary["ppo_updates_before_run"],
+                    {"I": 0, "C": 0, "M": 0})
+                self.assertEqual(
+                    summary["ppo_updates_total"],
+                    {"I": 0, "C": 0, "M": 0})
+            finally:
+                controller.close()
+
+    def test_frozen_summary_separates_checkpoint_and_run_updates(self):
+        trainers = {name: _FrozenTrainer(name) for name in ("I", "C", "M")}
+        for trainer, updates in zip(trainers.values(), (1, 2, 3)):
+            trainer.updates = updates
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CombinedPPOController(
+                Path(directory), "run", "scenario", 20,
+                trainers=trainers, normalizer=self.normalizer,
+                reward_config=RewardConfig(), batches=[self.batch],
+                generations=2, pop_size=2, graph_observation=None,
+                method="combined", instance={"instance_id": "toy"}, seeds={})
+            try:
+                summary = controller.summary()
+                self.assertEqual(
+                    summary["ppo_updates"], {"I": 0, "C": 0, "M": 0})
+                self.assertEqual(
+                    summary["ppo_updates_before_run"],
+                    {"I": 1, "C": 2, "M": 3})
+                self.assertEqual(
+                    summary["ppo_updates_total"],
+                    {"I": 1, "C": 2, "M": 3})
             finally:
                 controller.close()
 

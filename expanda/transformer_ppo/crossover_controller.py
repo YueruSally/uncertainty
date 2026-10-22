@@ -22,6 +22,7 @@ class CrossoverPPOController(MutationLogger):
                  reward_config: RewardConfig, batches, generations, pop_size,
                  graph_observation=None, **kwargs):
         self.trainer = trainer
+        self._ppo_updates_at_start = int(trainer.updates)
         self.archive = archive
         self.reward_config = reward_config
         self.batches_for_observation = batches
@@ -268,5 +269,7 @@ class CrossoverPPOController(MutationLogger):
             "reward_archive_hv": self.archive.hypervolume,
             "reward_archive_size": len(self.archive.points),
             "decision_counts": dict(self.decision_counts),
-            "ppo_updates": self.trainer.updates,
+            "ppo_updates": self.trainer.updates - self._ppo_updates_at_start,
+            "ppo_updates_before_run": self._ppo_updates_at_start,
+            "ppo_updates_total": self.trainer.updates,
         }

@@ -12,7 +12,7 @@ import baseline_uncertainty as base
 from multi_instance_logging import fingerprint, write_json
 from run_ev_ccp_oos_pilot import candidate_rows, json_candidate, scenario_digest
 
-from .archive import RewardArchive, RewardConfig
+from .archive import RewardArchive, RewardConfig, exact_hv_3d
 from .comparison_controllers import BaseBudgetController, CombinedPPOController
 from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
@@ -183,6 +183,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     fronts = base.fast_non_dominated_sort(population)
     front = [population[index] for index in fronts[0] if population[index].feasible]
     rows = candidate_rows(method, instance["instance_id"], front, config)
+    final_points = [
+        episode_normalizer.transform(row["optimisation_objectives"])
+        for row in rows
+    ]
+    final_hypervolume = exact_hv_3d(
+        final_points, episode_normalizer.reference)
     write_json(out / "final_feasible_nondominated.json", [json_candidate(row) for row in rows])
     write_json(out / "final_archive_lineage.json", [{
         "source_solution_id": row["source_solution_id"],
@@ -207,6 +213,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             else "generation_limit"),
         "evaluation_budget": evaluation_budget,
         "generations_completed": controller.generations_completed,
+        "final_front_size": len(rows),
+        "final_hypervolume": final_hypervolume,
         **controller.summary(),
     }
     if component == "M":

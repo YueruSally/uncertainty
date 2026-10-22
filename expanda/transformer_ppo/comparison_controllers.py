@@ -49,6 +49,8 @@ class BaseBudgetController(MutationLogger):
             "positive_reward_actions": 0,
             "decision_counts": dict(self.decision_counts),
             "ppo_updates": 0,
+            "ppo_updates_before_run": 0,
+            "ppo_updates_total": 0,
         }
 
 
@@ -244,5 +246,13 @@ class CombinedPPOController:
             },
             "ppo_updates": {
                 component: row["ppo_updates"] for component, row in summaries.items()
+            },
+            "ppo_updates_before_run": {
+                component: row["ppo_updates_before_run"]
+                for component, row in summaries.items()
+            },
+            "ppo_updates_total": {
+                component: row["ppo_updates_total"]
+                for component, row in summaries.items()
             },
         }
