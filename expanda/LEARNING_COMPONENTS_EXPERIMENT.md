@@ -89,13 +89,30 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
 - The Base budget controller, frozen I+C+M coordinator, and paired five-method
   deterministic runner are implemented.  The learning controllers consume
   the shadow Base position draw before replacing it, so equal algorithm seeds
-  remain paired beyond the learned decision.  Gate 7 still requires a server
-  five-method smoke.  The one-instance development checkpoints created before
-  this RNG-pairing fix may be used only for that wiring smoke; formal models
-  must be retrained from the fixed commit.
+  remain paired beyond the learned decision.
+- Gate 7 wiring and continuous-training smokes are complete.  The formal S0
+  protocol uses 50 `train-S0` instances, 10 disjoint `test-S0` instances,
+  population 20, and 400 real-objective evaluations per independent run.
+  `prepare_deterministic_s0_normalization.py` freezes reward/final-HV bounds
+  from deterministic Base fronts on the 50 training instances only.  It does
+  not read validation or test instances and does not clip transformed values.
+- The three formal policies are trained separately with policy seed 301 and
+  the same shuffled 50-instance order, with the last checkpoint used directly.
+  The server completion artifacts reported 20,000 evaluations per component
+  and final checkpoint SHA-256 values beginning `f44c670d` (M), `57e3e8ba`
+  (I), and `2e9297b0` (C).
+- `run_five_method_deterministic_batch.py` is the fail-closed, resumable
+  ten-instance test entry point.  It verifies checkpoint provenance and the
+  common training order, runs Base/I/C/M/frozen-I+C+M with paired seeds, checks
+  zero policy updates during inference, and writes `results.json`,
+  `results.csv`, and `analysis.json`.  The analysis uses final-population HV,
+  paired bootstrap intervals, an exact paired sign-flip test, and one Holm
+  family for the four comparisons against Base.  Run its `--preflight-only`
+  mode before the long command to validate all frozen inputs without creating
+  result files.
 
-Do not launch a formal or long training run until all gates required by that
-stage are marked complete in Git and the smoke manifest passes.
+Do not launch CCP or cross-scene work until the S0 deterministic batch has a
+valid `BATCH_COMPLETE.json` and its results have been inspected.
 
 ## GitHub and VS Code workflow
 
