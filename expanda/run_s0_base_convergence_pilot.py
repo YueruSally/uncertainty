@@ -170,12 +170,40 @@ def _run(instance: Path, out: Path, log: Path, seed: int, args):
     ]
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("w", encoding="utf-8") as handle:
-        result = subprocess.run(
+        process = subprocess.Popen(
             command, cwd=ROOT, stdout=handle, stderr=subprocess.STDOUT,
-            check=False)
-    if result.returncode:
+            text=True)
+        run_started = time.perf_counter()
+        while True:
+            try:
+                returncode = process.wait(timeout=args.heartbeat_seconds)
+                break
+            except subprocess.TimeoutExpired:
+                progress_path = out / "search_progress.jsonl"
+                if progress_path.is_file():
+                    rows = _progress(progress_path)
+                    if rows:
+                        last = rows[-1]
+                        done = int(last["real_objective_evaluation_count"])
+                        elapsed = time.perf_counter() - run_started
+                        remaining = (
+                            elapsed / max(done, 1)
+                            * max(0, args.evaluation_budget - done))
+                        print(
+                            f"[HEARTBEAT] evaluations={done}/"
+                            f"{args.evaluation_budget} "
+                            f"percent={100.0 * done / args.evaluation_budget:.1f} "
+                            f"elapsed_minutes={elapsed / 60.0:.1f} "
+                            f"eta_minutes={remaining / 60.0:.1f}",
+                            flush=True)
+                        continue
+                print(
+                    f"[HEARTBEAT] preparing initial population "
+                    f"elapsed_minutes={(time.perf_counter() - run_started) / 60.0:.1f}",
+                    flush=True)
+    if returncode:
         raise RuntimeError(
-            f"Base convergence run failed with exit {result.returncode}; "
+            f"Base convergence run failed with exit {returncode}; "
             f"inspect {log}")
 
 
@@ -220,6 +248,7 @@ def main():
     parser.add_argument("--evaluation-budget", type=int, default=50_000)
     parser.add_argument("--pop", type=int, default=250)
     parser.add_argument("--gens", type=int, default=250)
+    parser.add_argument("--heartbeat-seconds", type=float, default=60.0)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     args.data = args.data.resolve()
@@ -229,6 +258,8 @@ def main():
     args.out = args.out.resolve()
     if args.repeats < 1:
         parser.error("--repeats must be positive")
+    if args.heartbeat_seconds <= 0:
+        parser.error("--heartbeat-seconds must be positive")
     if args.pop < 2 or args.pop % 2:
         parser.error("--pop must be even and at least two")
     if args.evaluation_budget < args.pop + 4:
@@ -287,6 +318,7 @@ def main():
         "repeats": args.repeats,
         "algorithm_seed_base": args.algorithm_seed_base,
         "seed_formula": "base + selected_instance_index*100 + repeat_index",
+        "heartbeat_seconds": args.heartbeat_seconds,
         "git_commit": _git_commit(),
         "runtime_environment": _runtime_environment(),
         "implementation_sha256": {
