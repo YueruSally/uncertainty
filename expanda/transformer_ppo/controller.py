@@ -33,7 +33,7 @@ class PPOController(MutationLogger):
         self.positive_reward_actions = 0
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
-            preserve_base_position_rng=True, **kwargs)
+            preserve_base_position_rng=True, normalizer=archive.normalizer, **kwargs)
         trainer.observation_provider = self._observation
 
     def evaluate(self, function, ind, *args, **kwargs):
@@ -124,9 +124,11 @@ class PPOController(MutationLogger):
     def log_generation(self, population, boost):
         self.current_population = list(population)
         super().log_generation(population, boost)
+        self.log_search_progress(population, "environmental_selection")
 
     def finish_episode(self):
         self.trainer.finish()
+        self.log_policy_updates()
 
     def summary(self):
         return {"reward_total": self.reward_total,
@@ -136,4 +138,6 @@ class PPOController(MutationLogger):
                 "decision_counts": dict(self.decision_counts),
                 "ppo_updates": self.trainer.updates - self._ppo_updates_at_start,
                 "ppo_updates_before_run": self._ppo_updates_at_start,
-                "ppo_updates_total": self.trainer.updates}
+                "ppo_updates_total": self.trainer.updates,
+                "feature_construction_seconds": self.feature_construction_seconds,
+                "ppo_update_seconds": self.ppo_update_seconds}

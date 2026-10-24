@@ -58,7 +58,7 @@ class MutationLogger:
     def __init__(self, out, run_id, scenario_id, budget=None, policy=None,
                  method="Random-CCP100", instance=None, seeds=None,
                  evaluate_before_mutation=True, log_names=None,
-                 preserve_base_position_rng=False):
+                 preserve_base_position_rng=False, normalizer=None):
         self.out, self.run_id, self.scenario_id, self.budget = out, run_id, scenario_id, budget
         self.policy = policy or RandomPolicy()
         self.method = method
@@ -69,6 +69,7 @@ class MutationLogger:
         # evaluates offspring only after crossover and mutation are complete.
         self.evaluate_before_mutation = bool(evaluate_before_mutation)
         self.preserve_base_position_rng = bool(preserve_base_position_rng)
+        self.normalizer = normalizer
         self.evaluations = self.cache_hits = self.event_count = 0
         self.generation, self.phase = -1, "initialisation"
         self.generations_completed = 0
@@ -76,6 +77,13 @@ class MutationLogger:
         self.start = time.perf_counter()
         self.total_attempts = self.total_effective = self.total_repaired = 0
         self.no_candidate = self.fallbacks = self.inference_seconds = 0
+        self.objective_evaluation_seconds = 0.0
+        self._feature_seconds_at_start = float(getattr(
+            self.policy, "feature_construction_seconds", 0.0))
+        self._ppo_update_seconds_at_start = float(getattr(
+            self.policy, "ppo_update_seconds", 0.0))
+        self._update_record_start = len(getattr(
+            self.policy, "update_records", ()))
         self.decision_counts = {
             "model_choice": 0,
             "single_candidate": 0,
@@ -83,9 +91,13 @@ class MutationLogger:
             "no_candidate": 0,
         }
         self._last_generation_time = self.start
-        names = log_names or (
+        names = tuple(log_names or (
             "mutation_outcomes", "mutation_candidates",
-            "mutation_skips", "generation_summary")
+            "mutation_skips", "generation_summary"))
+        if self.normalizer is not None and "search_progress" not in names:
+            names += ("search_progress",)
+        if hasattr(self.policy, "update_records") and "ppo_updates" not in names:
+            names += ("ppo_updates",)
         self.files = {name: (out / (name + ".jsonl")).open("x", encoding="utf-8")
                       for name in names}
 
@@ -99,6 +111,67 @@ class MutationLogger:
 
     def has_budget(self, required):
         return self.budget is None or self.evaluations + required <= self.budget
+
+    @property
+    def feature_construction_seconds(self):
+        return max(0.0, float(getattr(
+            self.policy, "feature_construction_seconds", 0.0))
+            - self._feature_seconds_at_start)
+
+    @property
+    def ppo_update_seconds(self):
+        return max(0.0, float(getattr(
+            self.policy, "ppo_update_seconds", 0.0))
+            - self._ppo_update_seconds_at_start)
+
+    def log_policy_updates(self):
+        records = getattr(self.policy, "update_records", ())
+        if "ppo_updates" not in self.files:
+            return
+        for row in records[self._update_record_start:]:
+            self.append("ppo_updates", {
+                "run_id": self.run_id,
+                "instance_id": self.instance.get("instance_id"),
+                **row,
+            })
+        self._update_record_start = len(records)
+
+    def log_search_progress(self, population, checkpoint):
+        """Record comparable population/archive HV at a selection boundary."""
+        if "search_progress" not in self.files or self.normalizer is None:
+            return
+        # Import lazily so legacy non-PPO loggers do not acquire a package
+        # dependency merely by importing this module.
+        from transformer_ppo.archive import exact_hv_3d
+
+        feasible = [item for item in population if item.feasible]
+        points = [self.normalizer.transform(item.objectives) for item in feasible]
+        archive = getattr(self, "archive", None)
+        now = time.perf_counter()
+        self.append("search_progress", {
+            "run_id": self.run_id,
+            "instance_id": self.instance.get("instance_id"),
+            "checkpoint": checkpoint,
+            "generation": self.generation,
+            "real_objective_evaluation_count": self.evaluations,
+            "population_size": len(population),
+            "feasible_count": len(feasible),
+            "front_size": sum(
+                bool(item.feasible and getattr(item, "rank", None) == 0)
+                for item in population),
+            "population_hv": exact_hv_3d(points, self.normalizer.reference),
+            "archive_hv": (archive.hypervolume if archive is not None else None),
+            "runtime_seconds": now - self.start,
+            "objective_evaluation_seconds_cumulative": (
+                self.objective_evaluation_seconds),
+            "feature_construction_seconds_cumulative": (
+                self.feature_construction_seconds),
+            "inference_seconds_cumulative": self.inference_seconds,
+            "ppo_update_seconds_cumulative": self.ppo_update_seconds,
+        })
+
+    def log_initial_population(self, population):
+        self.log_search_progress(population, "initial_population")
 
     def budget_reserve(self, stage, units=1):
         """Worst-case real evaluations needed before entering a full step."""
@@ -124,7 +197,9 @@ class MutationLogger:
             return
         if not self.has_budget(1):
             raise RuntimeError("objective evaluation budget exhausted")
+        evaluation_started = time.perf_counter()
         function(ind, *args, **kwargs)
+        self.objective_evaluation_seconds += time.perf_counter() - evaluation_started
         self.evaluations += 1
         ind._learning_eval_key = key
         ind._learning_eval_id = self.evaluations

@@ -18,10 +18,18 @@ class BaseBudgetController(MutationLogger):
     controls_crossover = False
     controls_mutation = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, normalizer=None, **kwargs):
+        self.archive = RewardArchive(normalizer) if normalizer is not None else None
         super().__init__(
             *args, evaluate_before_mutation=False,
-            log_names=("generation_summary",), **kwargs)
+            log_names=("generation_summary",), normalizer=normalizer, **kwargs)
+
+    def evaluate(self, function, ind, *args, **kwargs):
+        previous = self.evaluations
+        result = super().evaluate(function, ind, *args, **kwargs)
+        if self.archive is not None and self.evaluations > previous:
+            self.archive.observe(ind.objectives, bool(ind.feasible), fingerprint(ind))
+        return result
 
     def flush_events(self, population):
         return None
@@ -39,6 +47,7 @@ class BaseBudgetController(MutationLogger):
             "generation_seconds": now - self._last_generation_time,
         })
         self._last_generation_time = now
+        self.log_search_progress(population, "environmental_selection")
 
     def finish_episode(self):
         return None
@@ -51,6 +60,8 @@ class BaseBudgetController(MutationLogger):
             "ppo_updates": 0,
             "ppo_updates_before_run": 0,
             "ppo_updates_total": 0,
+            "feature_construction_seconds": 0.0,
+            "ppo_update_seconds": 0.0,
         }
 
 
@@ -81,6 +92,7 @@ class CombinedPPOController:
         self._generation = -1
         self._phase = "initialisation"
         self.start = time.perf_counter()
+        self.objective_evaluation_seconds = 0.0
 
         controller_types = {
             "I": InitializationPPOController,
@@ -124,12 +136,23 @@ class CombinedPPOController:
     def inference_seconds(self):
         return sum(item.inference_seconds for item in self.controllers.values())
 
+    @property
+    def feature_construction_seconds(self):
+        return sum(item.feature_construction_seconds
+                   for item in self.controllers.values())
+
+    @property
+    def ppo_update_seconds(self):
+        return sum(item.ppo_update_seconds for item in self.controllers.values())
+
     def _sync_children(self):
         for controller in self.controllers.values():
             controller.generation = self._generation
             controller.phase = self._phase
             controller.evaluations = self.evaluations
             controller.cache_hits = self.cache_hits
+            controller.objective_evaluation_seconds = (
+                self.objective_evaluation_seconds)
 
     def has_budget(self, required):
         return self.budget is None or self.evaluations + int(required) <= self.budget
@@ -152,7 +175,9 @@ class CombinedPPOController:
             return
         if not self.has_budget(1):
             raise RuntimeError("objective evaluation budget exhausted")
+        evaluation_started = time.perf_counter()
         function(ind, *args, **kwargs)
+        self.objective_evaluation_seconds += time.perf_counter() - evaluation_started
         self.evaluations += 1
         ind._learning_eval_key = key
         ind._learning_eval_id = self.evaluations
@@ -220,6 +245,11 @@ class CombinedPPOController:
         self.generations_completed = max(
             controller.generations_completed
             for controller in self.controllers.values())
+
+    def log_initial_population(self, population):
+        self._sync_children()
+        for controller in self.controllers.values():
+            controller.log_initial_population(population)
 
     def finish_episode(self):
         self._sync_children()

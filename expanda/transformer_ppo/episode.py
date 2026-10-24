@@ -162,7 +162,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if component == "BASE":
         controller = BaseBudgetController(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
-            method=method, instance=instance, seeds=seeds)
+            method=method, instance=instance, seeds=seeds,
+            normalizer=episode_normalizer)
     elif component == "ICM":
         controller = CombinedPPOController(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
@@ -206,6 +207,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "decision_fingerprint": fingerprint(row["individual"]),
         "optimisation_objectives": row["optimisation_objectives"],
     } for row in rows])
+    optimisation_seconds = time.perf_counter() - started
+    measured_seconds = (
+        controller.objective_evaluation_seconds
+        + controller.feature_construction_seconds
+        + controller.inference_seconds
+        + controller.ppo_update_seconds)
     summary = {
         "completed": True, "method": method,
         "real_objective_evaluation_count": controller.evaluations,
@@ -216,7 +223,11 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             controller, "total_effective", 0),
         "no_eligible_candidate": getattr(controller, "no_candidate", 0),
         "inference_seconds": controller.inference_seconds,
-        "optimisation_seconds": time.perf_counter() - started,
+        "feature_construction_seconds": controller.feature_construction_seconds,
+        "objective_evaluation_seconds": controller.objective_evaluation_seconds,
+        "ppo_update_seconds": controller.ppo_update_seconds,
+        "other_optimisation_seconds": max(0.0, optimisation_seconds - measured_seconds),
+        "optimisation_seconds": optimisation_seconds,
         "stop_reason": (
             "evaluation_budget"
             if not controller.has_budget(

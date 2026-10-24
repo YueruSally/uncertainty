@@ -113,6 +113,13 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
   family for the four comparisons against Base.  Run its `--preflight-only`
   mode before the long command to validate all frozen inputs without creating
   result files.
+- The post-screening instrumentation records comparable population HV and
+  read-only archive HV after the initial population and every environmental
+  selection.  It separately times objective evaluation, observation/feature
+  construction, policy inference, and PPO updates, and persists every PPO
+  update's transition count, reward count, loss, entropy, KL, and duration.
+  These fields are for the forthcoming training-only budget pilot; they do not
+  retroactively change or reconstruct the completed 20/400 screening runs.
 
 Do not launch CCP or cross-scene work until the S0 deterministic batch has a
 valid `BATCH_COMPLETE.json` and its results have been inspected.

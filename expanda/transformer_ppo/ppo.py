@@ -75,6 +75,9 @@ class PPOTrainer:
         self.sequence_depth = 0
         self.sequence_policy_actions = 0
         self.checkpoint_provenance = None
+        self.feature_construction_seconds = 0.0
+        self.ppo_update_seconds = 0.0
+        self.update_records = []
 
     @property
     def name(self):
@@ -103,7 +106,9 @@ class PPOTrainer:
                 eligible[0], probabilities, [None] * len(candidates),
                 {"no_eligible_candidate": False, "fallback": None,
                  "decision_kind": "single_candidate"})
+        feature_started = time.perf_counter()
         observation = self.observation_provider(candidates, context or {})
+        self.feature_construction_seconds += time.perf_counter() - feature_started
         # Never update in the middle of one environment action.  The first
         # learnable sub-decision of the next sequence is a safe rollout
         # boundary and supplies the bootstrap state for the previous rollout.
@@ -194,6 +199,10 @@ class PPOTrainer:
     def update(self, bootstrap_value=0.0):
         if not self.training or not self.buffer:
             return {}
+        update_started = time.perf_counter()
+        transition_count = len(self.buffer)
+        positive_reward_count = sum(item.reward > 0.0 for item in self.buffer)
+        reward_total = float(sum(item.reward for item in self.buffer))
         advantages, returns = self._advantages(float(bootstrap_value))
         old_logp = torch.as_tensor([x.old_log_probability for x in self.buffer],
                                    dtype=torch.float32, device=self.device)
@@ -239,7 +248,21 @@ class PPOTrainer:
                 break
         self.buffer.clear()
         self.updates += 1
-        return {name: float(np.mean(values)) for name, values in diagnostics.items() if values}
+        means = {
+            name: float(np.mean(values))
+            for name, values in diagnostics.items() if values
+        }
+        elapsed = time.perf_counter() - update_started
+        self.ppo_update_seconds += elapsed
+        self.update_records.append({
+            "update": self.updates,
+            "transition_count": transition_count,
+            "positive_reward_transition_count": positive_reward_count,
+            "reward_total": reward_total,
+            "update_seconds": elapsed,
+            **means,
+        })
+        return means
 
     def save(self, path, metadata=None, overwrite=False):
         """Atomically save a checkpoint at an episode boundary.

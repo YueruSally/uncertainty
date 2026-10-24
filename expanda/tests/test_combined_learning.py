@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import tempfile
 import unittest
 
@@ -49,6 +50,33 @@ class ComparisonControllerTests(unittest.TestCase):
                 self.assertEqual(controller.budget_reserve("offspring_pair"), 2)
             finally:
                 controller.close()
+
+    def test_base_records_initial_population_hv_and_evaluation_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            controller = BaseBudgetController(
+                root, "run", "scenario", 20,
+                method="base-nsga2", instance={"instance_id": "toy"}, seeds={},
+                normalizer=self.normalizer)
+            individual = base.Individual()
+            individual.rank = 0
+            try:
+                def evaluate(item):
+                    item.objectives = (2.0, 3.0, 4.0)
+                    item.feasible = True
+
+                controller.evaluate(evaluate, individual)
+                controller.log_initial_population([individual])
+            finally:
+                controller.close()
+            row = json.loads(
+                (root / "search_progress.jsonl").read_text().strip())
+            self.assertEqual(row["checkpoint"], "initial_population")
+            self.assertEqual(row["real_objective_evaluation_count"], 1)
+            self.assertGreater(row["population_hv"], 0.0)
+            self.assertEqual(row["population_hv"], row["archive_hv"])
+            self.assertGreaterEqual(
+                row["objective_evaluation_seconds_cumulative"], 0.0)
 
     def test_final_objectives_use_cost_emission_makespan_axis_order(self):
         row = {"optimisation_objectives": {

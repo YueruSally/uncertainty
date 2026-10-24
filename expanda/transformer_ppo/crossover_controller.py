@@ -42,7 +42,8 @@ class CrossoverPPOController(MutationLogger):
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
             log_names=("crossover_outcomes", "crossover_candidates",
-                       "crossover_skips", "generation_summary"), **kwargs)
+                       "crossover_skips", "generation_summary"),
+            normalizer=archive.normalizer, **kwargs)
         trainer.observation_provider = self._observation
 
     def evaluate(self, function, ind, *args, **kwargs):
@@ -212,6 +213,7 @@ class CrossoverPPOController(MutationLogger):
             "reward_archive_hv_after": update.hv_after,
             "reward_archive_size": update.archive_size,
             "reward_recorded_for_policy": bool(event["model_decisions"]),
+            "evaluation": self.evaluations,
             "child_1": child1, "child_2": child2,
             "child_1_fingerprint": fingerprint(child1),
             "child_2_fingerprint": fingerprint(child2),
@@ -256,11 +258,13 @@ class CrossoverPPOController(MutationLogger):
             "decision_counts_cumulative": dict(self.decision_counts),
         })
         self._last_generation_time = now
+        self.log_search_progress(population, "environmental_selection")
 
     def finish_episode(self):
         if self._active_event is not None:
             raise RuntimeError("episode ended before a crossover reward was settled")
         self.trainer.finish()
+        self.log_policy_updates()
 
     def summary(self):
         return {
@@ -272,4 +276,6 @@ class CrossoverPPOController(MutationLogger):
             "ppo_updates": self.trainer.updates - self._ppo_updates_at_start,
             "ppo_updates_before_run": self._ppo_updates_at_start,
             "ppo_updates_total": self.trainer.updates,
+            "feature_construction_seconds": self.feature_construction_seconds,
+            "ppo_update_seconds": self.ppo_update_seconds,
         }

@@ -371,6 +371,9 @@ def _markdown(audit: dict):
             f"{row['different_from_shadow_random_fraction']:.4f} |")
     lines.extend([
         "",
+        "The shadow-random mismatch is diagnostic only. Its chance expectation "
+        "increases with candidate-set size, so it is not evidence of learning by itself.",
+        "",
         "## Runtime and equal-budget check",
         "",
         "| Method | Runs | Evaluation range | Mean seconds | Mean inference | Ratio vs Base |",

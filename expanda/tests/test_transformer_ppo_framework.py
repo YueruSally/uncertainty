@@ -152,6 +152,36 @@ class CheckpointTests(unittest.TestCase):
         decision = trainer.choose([{"eligible": True}, {"eligible": True}])
         self.assertEqual(decision.metadata["decision_kind"], "model_choice")
         self.assertGreater(decision.metadata["inference_seconds"], 0.0)
+        self.assertGreater(trainer.feature_construction_seconds, 0.0)
+
+    def test_update_records_transition_count_and_diagnostics(self):
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(
+            rollout_steps=2, gae_horizon=1, hidden_dim=16,
+            attention_heads=4, transformer_layers=1, update_epochs=1)
+        observation = {
+            "parent": [[0.0] * len(PARENT_FEATURES)],
+            "candidates": [[0.0] * len(CANDIDATE_FEATURES)] * 2,
+            "eligible": [True, True], "operator_id": 0,
+            "global": [0.0] * len(GLOBAL_FEATURES),
+        }
+        trainer = PPOTrainer(
+            "mlp", config, lambda *_: observation,
+            device="cpu", policy_seed=123, training=True)
+        for reward in (0.0, 1.0):
+            trainer.choose([{"eligible": True}, {"eligible": True}])
+            trainer.observe_outcome(reward)
+        trainer.finish()
+        self.assertEqual(trainer.updates, 1)
+        self.assertEqual(len(trainer.update_records), 1)
+        record = trainer.update_records[0]
+        self.assertEqual(record["transition_count"], 2)
+        self.assertEqual(record["positive_reward_transition_count"], 1)
+        self.assertAlmostEqual(record["reward_total"], 1.0)
+        self.assertGreater(record["update_seconds"], 0.0)
+        self.assertIn("policy_loss", record)
+        self.assertIn("value_loss", record)
 
     def test_training_checkpoint_restores_all_owned_random_streams(self):
         import torch

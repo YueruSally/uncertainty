@@ -3489,6 +3489,9 @@ def run_nsga2(
     fronts0 = fast_non_dominated_sort(population)
     for front in fronts0:
         crowding_distance_assignment(population, front)
+    if (ACTIVE_MUTATION_LOGGER is not None
+            and hasattr(ACTIVE_MUTATION_LOGGER, "log_initial_population")):
+        ACTIVE_MUTATION_LOGGER.log_initial_population(population)
 
     front_hist_objs:            List[List[Tuple]] = []
     feasible_ratio_hist:        List[float]       = []
