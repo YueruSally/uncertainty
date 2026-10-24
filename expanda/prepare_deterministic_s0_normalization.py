@@ -6,6 +6,10 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import platform
+import shutil
+import subprocess
+import sys
 import time
 
 import numpy as np
@@ -34,6 +38,53 @@ def _atomic_json(path: Path, value):
     temporary.write_text(
         json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     temporary.replace(path)
+
+
+def _git_commit():
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=Path(__file__).parent,
+            text=True, stderr=subprocess.DEVNULL).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def _runtime_environment():
+    result = {
+        "python": platform.python_version(),
+        "python_executable": str(Path(sys.executable).resolve()),
+        "platform": platform.platform(),
+        "numpy": np.__version__,
+    }
+    try:
+        import torch
+        result.update({
+            "torch": torch.__version__,
+            "torch_cuda_build": torch.version.cuda,
+            "torch_cuda_available": torch.cuda.is_available(),
+        })
+    except ImportError:
+        result.update({
+            "torch": None,
+            "torch_cuda_build": None,
+            "torch_cuda_available": False,
+        })
+    return result
+
+
+def _quarantine(path: Path, root: Path):
+    if not path.exists() or not any(path.iterdir()):
+        return None
+    destination_root = root / "interrupted_runs"
+    destination_root.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    destination = destination_root / f"{path.name}_{stamp}"
+    suffix = 1
+    while destination.exists():
+        destination = destination_root / f"{path.name}_{stamp}_{suffix}"
+        suffix += 1
+    shutil.move(str(path), str(destination))
+    return destination
 
 
 def _manifests(instances: Path, configuration: str, max_instances):
@@ -161,6 +212,15 @@ def main():
         "pad_fraction": args.pad_fraction,
         "test_instances_used": False,
         "validation_instances_used": False,
+        "git_commit": _git_commit(),
+        "runtime_environment": _runtime_environment(),
+        "implementation_sha256": {
+            Path(__file__).name: _sha256(Path(__file__)),
+            "episode.py": _sha256(
+                Path(__file__).parent / "transformer_ppo/episode.py"),
+            "archive.py": _sha256(
+                Path(__file__).parent / "transformer_ppo/archive.py"),
+        },
     }
     config_path = args.out / "preparation_configuration.json"
     if config_path.exists():
@@ -179,6 +239,7 @@ def main():
         (0.0, 0.0, 0.0), (1.0, 1.0, 1.0), reference=(1.1, 1.1, 1.1))
     started = time.perf_counter()
     source_files, points = [], []
+    newly_completed = 0
     for index, manifest in enumerate(manifests):
         instance, batches = read_instance(manifest)
         run = args.out / "base_runs" / manifest.stem
@@ -187,14 +248,32 @@ def main():
             print(f"[RESUME] {index + 1}/{len(manifests)} {manifest.stem}", flush=True)
         else:
             if run.exists() and any(run.iterdir()):
-                parser.error(f"incomplete non-empty Base run requires inspection: {run}")
+                destination = _quarantine(run, args.out)
+                print(
+                    f"[RESUME] moved incomplete output to {destination}",
+                    flush=True)
             print(f"[BASE] {index + 1}/{len(manifests)} {manifest.stem}", flush=True)
+            run_started = time.perf_counter()
             run_episode(
                 args.data, manifest, run, None, placeholder,
                 algorithm_seed=algorithm_seed,
                 evaluation_budget=args.evaluation_budget, pop_size=args.pop,
                 generations=args.gens, evaluation_mode="deterministic",
                 component="BASE")
+            if not _run_complete(run, instance, args, algorithm_seed):
+                parser.error(
+                    f"Base run exited without valid completion: {manifest.stem}")
+            newly_completed += 1
+            elapsed = time.perf_counter() - started
+            remaining = len(manifests) - index - 1
+            eta_minutes = (
+                elapsed / newly_completed * remaining / 60.0
+                if newly_completed else 0.0)
+            print(
+                f"[BASE] completed seconds="
+                f"{time.perf_counter() - run_started:.1f} "
+                f"eta_minutes={eta_minutes:.1f}",
+                flush=True)
         front_path = run / "final_feasible_nondominated.json"
         front = _read(front_path)
         if not front:
@@ -246,6 +325,12 @@ def main():
         "instance_count": len(manifests),
         "point_count": len(points),
         "elapsed_seconds": time.perf_counter() - started,
+        "total_actual_evaluations": sum(
+            _read(
+                args.out / Path(source["front"]).parent / "COMPLETE.json"
+            ).get("real_objective_evaluation_count", 0)
+            for source in source_files
+        ),
     }
     write_json(args.out / "COMPLETE.json", complete)
     print(json.dumps(complete, indent=2, allow_nan=False))
