@@ -4,7 +4,11 @@ import unittest
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from prepare_deterministic_s0_normalization import _freeze, _scaled_front
+from prepare_deterministic_s0_normalization import (
+    _freeze,
+    _scaled_front,
+    _scaled_initial_population,
+)
 
 
 class _Batch:
@@ -21,6 +25,13 @@ class DeterministicNormalizationTests(unittest.TestCase):
         }}]
         batches = [_Batch(10.0, 0.0, 40.0), _Batch(10.0, 10.0, 80.0)]
         self.assertEqual(_scaled_front(front, batches), [(20.0, 30.0, 1.0)])
+
+    def test_scaled_initial_population_uses_same_instance_divisors(self):
+        rows = [{"objectives": [400.0, 600.0, 80.0]}]
+        batches = [_Batch(10.0, 0.0, 40.0), _Batch(10.0, 10.0, 80.0)]
+        self.assertEqual(
+            _scaled_initial_population(rows, batches),
+            [(20.0, 30.0, 1.0)])
 
     def test_freeze_adds_padding_and_positive_ranges(self):
         minimum, maximum = _freeze(

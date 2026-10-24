@@ -79,6 +79,10 @@ class ComparisonControllerTests(unittest.TestCase):
             self.assertEqual(row["population_hv"], row["archive_hv"])
             self.assertGreaterEqual(
                 row["objective_evaluation_seconds_cumulative"], 0.0)
+            initial = json.loads(
+                (root / "initial_feasible_objectives.json").read_text())
+            self.assertEqual(len(initial), 1)
+            self.assertEqual(initial[0]["objectives"], [2.0, 3.0, 4.0])
 
     def test_final_objectives_use_cost_emission_makespan_axis_order(self):
         row = {"optimisation_objectives": {

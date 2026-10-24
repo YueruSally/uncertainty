@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 
-from multi_instance_logging import MutationLogger, fingerprint
+from multi_instance_logging import MutationLogger, fingerprint, write_json
 
 from .archive import RewardArchive, RewardConfig
 from .controller import PPOController
@@ -45,6 +45,10 @@ class BaseBudgetController(MutationLogger):
 
     def log_initial_population(self, population):
         self._flush_archive()
+        write_json(self.out / "initial_feasible_objectives.json", [{
+            "decision_fingerprint": fingerprint(individual),
+            "objectives": [float(value) for value in individual.objectives],
+        } for individual in population if individual.feasible])
         super().log_initial_population(population)
 
     def flush_events(self, population):

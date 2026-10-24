@@ -148,6 +148,53 @@ def _scaled_front(front, batches):
     return points
 
 
+def _scaled_initial_population(rows, batches):
+    total_teu = max(1.0, sum(float(batch.quantity) for batch in batches))
+    horizon = max(
+        1.0,
+        max(float(batch.LT) for batch in batches)
+        - min(float(batch.ET) for batch in batches),
+    )
+    divisor = (total_teu, total_teu, horizon)
+    points = []
+    for row in rows:
+        values = row.get("objectives")
+        if not isinstance(values, list) or len(values) != 3:
+            raise ValueError("initial population row lacks three objectives")
+        points.append(tuple(
+            float(value) / divisor[index]
+            for index, value in enumerate(values)
+        ))
+    return points
+
+
+def _optimized_source(root: Path, manifests, configuration: str, population: int,
+                      minimum_budget: int):
+    config_path = root / "preparation_configuration.json"
+    complete_path = root / "COMPLETE.json"
+    if not config_path.is_file() or not complete_path.is_file():
+        raise ValueError("optimized-front source lacks preparation metadata")
+    config, complete = _read(config_path), _read(complete_path)
+    expected_instances = [path.stem for path in manifests]
+    if (complete.get("completed") is not True
+            or config.get("configuration") != configuration
+            or config.get("instances") != expected_instances
+            or config.get("instance_count") != len(manifests)
+            or config.get("population") != population
+            or int(config.get("evaluation_budget", -1)) < minimum_budget
+            or config.get("test_instances_used") is not False
+            or config.get("validation_instances_used") is not False):
+        raise ValueError(
+            "optimized-front source does not match the training-only setup")
+    return {
+        "root": root,
+        "preparation_configuration_sha256": _sha256(config_path),
+        "complete_sha256": _sha256(complete_path),
+        "evaluation_budget": config["evaluation_budget"],
+        "population": config["population"],
+    }
+
+
 def _freeze(points, lower_percentile, upper_percentile, pad_fraction):
     values = np.asarray(points, dtype=float)
     if values.ndim != 2 or values.shape[1] != 3 or not len(values):
@@ -181,6 +228,10 @@ def main():
     parser.add_argument("--pad-fraction", type=float, default=0.10)
     parser.add_argument("--max-instances", type=int,
                         help="Development only; omit for the formal 50-instance pass.")
+    parser.add_argument(
+        "--optimized-fronts-from", type=Path,
+        help=("Reuse final Base fronts from a completed, matching training-only "
+              "normalization preparation while collecting fresh initial populations."))
     args = parser.parse_args()
     if not args.data.is_file():
         parser.error(f"network workbook does not exist: {args.data}")
@@ -193,6 +244,11 @@ def main():
     try:
         manifests = _manifests(
             args.instances, args.configuration, args.max_instances)
+        optimized_source = (
+            _optimized_source(
+                args.optimized_fronts_from.resolve(), manifests,
+                args.configuration, args.pop, args.evaluation_budget)
+            if args.optimized_fronts_from is not None else None)
     except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
 
@@ -221,6 +277,12 @@ def main():
             "archive.py": _sha256(
                 Path(__file__).parent / "transformer_ppo/archive.py"),
         },
+        "optimized_fronts_source": (
+            None if optimized_source is None else {
+                **{key: value for key, value in optimized_source.items()
+                   if key != "root"},
+                "root": str(optimized_source["root"]),
+            }),
     }
     config_path = args.out / "preparation_configuration.json"
     if config_path.exists():
@@ -275,16 +337,34 @@ def main():
                 f"eta_minutes={eta_minutes:.1f}",
                 flush=True)
         front_path = run / "final_feasible_nondominated.json"
-        front = _read(front_path)
+        initial_path = run / "initial_feasible_objectives.json"
+        initial_rows = _read(initial_path) if initial_path.is_file() else []
+        if not initial_rows:
+            parser.error(
+                f"Base produced no feasible initial solutions: {manifest.stem}")
+        initial_points = _scaled_initial_population(initial_rows, batches)
+        points.extend(initial_points)
+
+        source_front_path = (
+            optimized_source["root"] / "base_runs" / manifest.stem
+            / "final_feasible_nondominated.json"
+            if optimized_source is not None else front_path)
+        front = _read(source_front_path)
         if not front:
             parser.error(
                 f"Base produced no feasible final nondominated solutions: {manifest.stem}")
-        points.extend(_scaled_front(front, batches))
+        front_points = _scaled_front(front, batches)
+        points.extend(front_points)
         source_files.append({
             "instance_id": instance["instance_id"],
             "instance_digest": instance["instance_digest"],
-            "front": str(front_path.relative_to(args.out)),
-            "front_sha256": _sha256(front_path),
+            "initial_population": str(initial_path.relative_to(args.out)),
+            "initial_population_sha256": _sha256(initial_path),
+            "initial_feasible_count": len(initial_points),
+            "front": (
+                str(source_front_path.relative_to(args.out))
+                if optimized_source is None else str(source_front_path)),
+            "front_sha256": _sha256(source_front_path),
             "front_size": len(front),
         })
 
@@ -300,6 +380,10 @@ def main():
         "source_method": "base-nsga2-deterministic",
         "configuration": args.configuration,
         "definition": "cost/total_teu, emission/total_teu, makespan/instance_horizon",
+        "range_sources": [
+            "training Base initial feasible populations",
+            "training Base optimized final nondominated fronts",
+        ],
         "minimum": minimum,
         "maximum": maximum,
         "reference": [1.1, 1.1, 1.1],
@@ -327,7 +411,8 @@ def main():
         "elapsed_seconds": time.perf_counter() - started,
         "total_actual_evaluations": sum(
             _read(
-                args.out / Path(source["front"]).parent / "COMPLETE.json"
+                args.out / "base_runs" / source["instance_id"]
+                / "COMPLETE.json"
             ).get("real_objective_evaluation_count", 0)
             for source in source_files
         ),
