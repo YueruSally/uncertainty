@@ -9,7 +9,10 @@ from multi_instance_policy import Decision
 
 from .archive import RewardArchive, RewardConfig, hv_reward
 from .crossover import apply_cut, finalize_children, prepare_common_node_crossover
-from .crossover_observations import build_crossover_observation
+from .crossover_observations import (
+    build_crossover_observation,
+    build_crossover_shared_observation,
+)
 
 
 class CrossoverPPOController(MutationLogger):
@@ -34,6 +37,8 @@ class CrossoverPPOController(MutationLogger):
         self._pending_fingerprints = set()
         self._current_parents = None
         self._current_candidates = None
+        self._shared_observation = None
+        self.shared_observation_builds = 0
         self._active_event = None
         self._pending_child_ids = set()
         self._settled_outcomes = []
@@ -72,11 +77,19 @@ class CrossoverPPOController(MutationLogger):
         enriched = dict(context)
         enriched["offspring_fraction"] = (
             len(self.pending_offspring) / max(1, self.pop_size))
+        if self._shared_observation is None:
+            self._shared_observation = build_crossover_shared_observation(
+                parent1, parent2, self.batches_for_observation, enriched,
+                self.current_population, self.pending_offspring,
+                self.archive.summary(), self.archive.normalizer, self.budget,
+                self.evaluations, self.generations, self.graph_observation)
+            self.shared_observation_builds += 1
         return build_crossover_observation(
             parent1, parent2, self.batches_for_observation, candidates, enriched,
             self.current_population, self.pending_offspring,
             self.archive.summary(), self.archive.normalizer, self.budget,
-            self.evaluations, self.generations, self.graph_observation)
+            self.evaluations, self.generations, self.graph_observation,
+            shared_observation=self._shared_observation)
 
     def crossover_common_node(self, parent1, parent2, batches, tt_dict, arc_lookup):
         if self._active_event is not None:
@@ -87,6 +100,7 @@ class CrossoverPPOController(MutationLogger):
         event_id = f"{self.run_id}:C:{self.event_count + 1}"
         self.event_count += 1
         self.total_attempts += 1
+        self._shared_observation = None
         model_decisions = sum(len(item.candidates) >= 2 for item in cut_decisions)
         if model_decisions:
             self.trainer.begin_sequence()
@@ -168,6 +182,7 @@ class CrossoverPPOController(MutationLogger):
         finally:
             self._current_parents = None
             self._current_candidates = None
+            self._shared_observation = None
 
         finalize_children(child1, child2)
 
@@ -276,6 +291,7 @@ class CrossoverPPOController(MutationLogger):
             "ppo_updates": self.trainer.updates - self._ppo_updates_at_start,
             "ppo_updates_before_run": self._ppo_updates_at_start,
             "ppo_updates_total": self.trainer.updates,
+            "shared_observation_builds": self.shared_observation_builds,
             "feature_construction_seconds": self.feature_construction_seconds,
             "ppo_update_seconds": self.ppo_update_seconds,
         }

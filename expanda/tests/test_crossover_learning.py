@@ -14,6 +14,7 @@ from transformer_ppo.crossover import (
 )
 from transformer_ppo.crossover_observations import (
     CROSSOVER_MODEL_SPEC, build_crossover_observation,
+    build_crossover_shared_observation,
 )
 from multi_instance_policy import Decision
 
@@ -120,6 +121,33 @@ class CrossoverPlanningTests(unittest.TestCase):
             len(observation["candidates"][0]), CROSSOVER_MODEL_SPEC["candidate_dim"])
         self.assertEqual(len(observation["global"]), CROSSOVER_MODEL_SPEC["global_dim"])
         self.assertEqual(observation["operator_id"], 0)
+
+    def test_cached_shared_observation_is_exactly_equivalent(self):
+        _, _, decisions = prepare_common_node_crossover(
+            self.parent1, self.parent2, [self.batch], _FixedRng())
+        for parent in (self.parent1, self.parent2):
+            parent.objectives = (1.0, 2.0, 3.0)
+            parent.feasible = True
+            parent.normalized_violation = 0.0
+        context = {
+            "K": 1, "deadline_window_alpha": 1.0, "generation": 0,
+        }
+        population = [self.parent1, self.parent2]
+        archive = {"archive_size": 0, "archive_hv": 0.0}
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0))
+        arguments = (
+            self.parent1, self.parent2, [self.batch],
+            decisions[0].candidates, context, population, [], archive,
+            normalizer, 200, 20, 10,
+        )
+        rebuilt = build_crossover_observation(*arguments)
+        shared = build_crossover_shared_observation(
+            self.parent1, self.parent2, [self.batch], context, population, [],
+            archive, normalizer, 200, 20, 10)
+        cached = build_crossover_observation(
+            *arguments, shared_observation=shared)
+        self.assertEqual(cached, rebuilt)
 
     def test_controller_settles_final_children_jointly_without_extra_evaluation(self):
         from transformer_ppo.archive import RewardArchive, RewardConfig

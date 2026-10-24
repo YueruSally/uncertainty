@@ -75,11 +75,18 @@ def _candidate_tokens(candidates):
     return values, [bool(row["eligible"]) for row in candidates]
 
 
-def build_crossover_observation(parent1, parent2, batches, candidates, context,
-                                population, pending_offspring, archive_summary,
-                                normalizer, evaluation_budget, evaluation_count,
-                                generations, graph_observation=None):
-    candidate_values, eligible = _candidate_tokens(candidates)
+def build_crossover_shared_observation(
+        parent1, parent2, batches, context, population, pending_offspring,
+        archive_summary, normalizer, evaluation_budget, evaluation_count,
+        generations, graph_observation=None):
+    """Build features that stay fixed across all cuts of one crossover.
+
+    One common-node crossover can request many Batch-level cut decisions.  The
+    parents, population, pending offspring, archive, evaluation counter, and
+    network graph cannot change until both children have been finalized and
+    evaluated.  Computing these values once is therefore exactly equivalent to
+    rebuilding them before every cut.
+    """
     population_state = population_summary(population, normalizer)
     pending_state = population_summary(pending_offspring, normalizer)
     budget = max(1, int(evaluation_budget or 1))
@@ -108,15 +115,31 @@ def build_crossover_observation(parent1, parent2, batches, candidates, context,
         *_parent_tokens(parent1, batches, -1.0),
         *_parent_tokens(parent2, batches, 1.0),
     ]
-    observation = {
+    shared = {
         "parent": parent_tokens or [[0.0] * len(CROSSOVER_PARENT_FEATURES)],
-        "candidates": candidate_values,
-        "eligible": eligible,
         "operator_id": 0,
         "global": global_values,
     }
     if graph_observation is not None:
-        observation["graph"] = graph_observation
+        shared["graph"] = graph_observation
+    return shared
+
+
+def build_crossover_observation(parent1, parent2, batches, candidates, context,
+                                population, pending_offspring, archive_summary,
+                                normalizer, evaluation_budget, evaluation_count,
+                                generations, graph_observation=None,
+                                shared_observation=None):
+    candidate_values, eligible = _candidate_tokens(candidates)
+    shared = shared_observation or build_crossover_shared_observation(
+        parent1, parent2, batches, context, population, pending_offspring,
+        archive_summary, normalizer, evaluation_budget, evaluation_count,
+        generations, graph_observation)
+    observation = dict(shared)
+    observation["candidates"] = candidate_values
+    observation["eligible"] = eligible
+    if "graph" in observation:
+        graph_observation = observation["graph"]
         node_index = graph_observation["node_index"]
         observation["candidate_graph_nodes"] = [
             ([node_index[row["join_node"]]]
