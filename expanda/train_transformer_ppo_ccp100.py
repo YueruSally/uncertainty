@@ -43,7 +43,8 @@ def _read_json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _ordered_manifests(instances, policy_seed, max_instances, configuration=None):
+def _ordered_manifests(instances, policy_seed, max_instances, configuration=None,
+                       instance_ids=None):
     manifests = []
     records = {}
     for path in sorted(instances.glob("train-S*.json")):
@@ -58,11 +59,25 @@ def _ordered_manifests(instances, policy_seed, max_instances, configuration=None
         raise ValueError(
             f"no training manifests found{scope} in {instances.resolve()}")
     expected = 50 if configuration is not None else 450
-    if len(manifests) != expected and max_instances is None:
+    if (len(manifests) != expected and max_instances is None
+            and instance_ids is None):
         raise ValueError(
             f"formal training requires exactly {expected} manifests, "
             f"found {len(manifests)}")
-    random.Random(policy_seed).shuffle(manifests)
+    if instance_ids is not None:
+        if max_instances is not None:
+            raise ValueError("--instance-ids and --max-instances are mutually exclusive")
+        if not instance_ids or len(set(instance_ids)) != len(instance_ids):
+            raise ValueError("--instance-ids must be a non-empty list of unique IDs")
+        available = {path.stem: path for path in manifests}
+        missing = [instance_id for instance_id in instance_ids
+                   if instance_id not in available]
+        if missing:
+            raise ValueError(
+                f"requested training manifests are unavailable: {missing}")
+        manifests = [available[instance_id] for instance_id in instance_ids]
+    else:
+        random.Random(policy_seed).shuffle(manifests)
     if max_instances is not None:
         if max_instances < 1:
             raise ValueError("--max-instances must be positive")
@@ -123,6 +138,10 @@ def _run_config(args, config, manifests, records):
         "reward": asdict(RewardConfig()),
         "oos_used_for_training": False,
         "checkpoint_rule": "episode-boundary checkpoint after every predeclared instance",
+        "instance_selection": (
+            "explicit development subset"
+            if args.instance_ids is not None
+            else "policy-seed shuffled training manifests"),
     }
 
 
@@ -208,6 +227,10 @@ def main():
     parser.add_argument("--gens", type=int, default=1_000)
     parser.add_argument("--max-instances", type=int,
                         help="Development-only cap; omit for the frozen formal training pass.")
+    parser.add_argument(
+        "--instance-ids", nargs="+",
+        help=("Development-only explicit ordered training subset. Mutually "
+              "exclusive with --max-instances."))
     parser.add_argument("--device")
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
@@ -228,7 +251,7 @@ def main():
     try:
         manifests, records = _ordered_manifests(
             args.instances, args.policy_seed, args.max_instances,
-            args.configuration)
+            args.configuration, args.instance_ids)
     except ValueError as error:
         parser.error(str(error))
     config = (PPOConfig(rollout_steps=512, gae_horizon=256)

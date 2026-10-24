@@ -225,6 +225,30 @@ class FormalBatchTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "only 1 matching"):
                 _ordered_manifests(root, 1, 2, "S0")
 
+    def test_explicit_training_subset_preserves_declared_order(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for instance_id in ("train-S0-001", "train-S0-002"):
+                (root / f"{instance_id}.json").write_text(
+                    '{"split":"train","configuration":"S0"}',
+                    encoding="utf-8")
+            manifests, _ = _ordered_manifests(
+                root, 1, None, "S0",
+                ["train-S0-002", "train-S0-001"])
+            self.assertEqual(
+                [path.stem for path in manifests],
+                ["train-S0-002", "train-S0-001"])
+
+    def test_explicit_training_subset_rejects_missing_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "train-S0-001.json").write_text(
+                '{"split":"train","configuration":"S0"}',
+                encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unavailable"):
+                _ordered_manifests(
+                    root, 1, None, "S0", ["train-S0-999"])
+
     def test_replication_seed_namespaces_are_paired_and_disjoint(self):
         args = SimpleNamespace(
             replication=1, algorithm_seed_base=80_000_000,
