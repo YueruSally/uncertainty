@@ -90,9 +90,12 @@ study: `Base`, `I`, `C`, `M`, and frozen `I+C+M`.
   deterministic runner are implemented.  The learning controllers consume
   the shadow Base position draw before replacing it, so equal algorithm seeds
   remain paired beyond the learned decision.
-- Gate 7 wiring and continuous-training smokes are complete.  The formal S0
-  protocol uses 50 `train-S0` instances, 10 disjoint `test-S0` instances,
-  population 20, and 400 real-objective evaluations per independent run.
+- Gate 7 wiring and continuous-training smokes are complete.  The completed
+  small-budget S0 screening protocol used 50 `train-S0` instances, 10 disjoint
+  `test-S0` instances, population 20, and 400 real-objective evaluations per
+  independent run.  These results must not be described as the final
+  full-scale experiment until the budget audit and training-only convergence
+  pilot in `STAGE1_AUDIT_PLAN.md` are complete.
   `prepare_deterministic_s0_normalization.py` freezes reward/final-HV bounds
   from deterministic Base fronts on the 50 training instances only.  It does
   not read validation or test instances and does not clip transformed values.
