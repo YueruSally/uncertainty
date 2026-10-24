@@ -120,6 +120,7 @@ class RewardArchive:
         self.normalizer = normalizer
         self._points: list[Point] = []
         self._fingerprints: set[str] = set()
+        self._hypervolume = 0.0
 
     @property
     def points(self) -> tuple[Point, ...]:
@@ -127,12 +128,16 @@ class RewardArchive:
 
     @property
     def hypervolume(self) -> float:
-        return exact_hv_3d(self._points, self.normalizer.reference)
+        # The archive changes only through observe_many/reset.  Caching avoids
+        # recomputing the same exact 3-D HV for reward-before, summaries, and
+        # progress logs while preserving the exact value after every commit.
+        return self._hypervolume
 
     def reset(self) -> None:
         """Start a new independent NSGA-II run."""
         self._points.clear()
         self._fingerprints.clear()
+        self._hypervolume = 0.0
 
     def observe_many(self, candidates: Iterable[ArchiveCandidate]) -> ArchiveUpdate:
         """Atomically settle all feasible new solutions from one action.
@@ -167,6 +172,7 @@ class RewardArchive:
         # Commit only after the joint reward has been computed.
         self._points = updated_points
         self._fingerprints.update(staged_fingerprints)
+        self._hypervolume = float(after)
         return ArchiveUpdate(
             delta_hv=delta,
             hv_before=float(before),

@@ -20,6 +20,7 @@ class BaseBudgetController(MutationLogger):
 
     def __init__(self, *args, normalizer=None, **kwargs):
         self.archive = RewardArchive(normalizer) if normalizer is not None else None
+        self._archive_pending = []
         super().__init__(
             *args, evaluate_before_mutation=False,
             log_names=("generation_summary",), normalizer=normalizer, **kwargs)
@@ -28,13 +29,29 @@ class BaseBudgetController(MutationLogger):
         previous = self.evaluations
         result = super().evaluate(function, ind, *args, **kwargs)
         if self.archive is not None and self.evaluations > previous:
-            self.archive.observe(ind.objectives, bool(ind.feasible), fingerprint(ind))
+            # Base has no policy reward to settle after each solution.  Delay
+            # the read-only archive update until the next logged selection
+            # boundary, where the visible set and HV are exactly the same as
+            # under sequential insertion but avoid hundreds of intermediate
+            # exact-HV calculations.
+            self._archive_pending.append(
+                (ind.objectives, bool(ind.feasible), fingerprint(ind)))
         return result
+
+    def _flush_archive(self):
+        if self.archive is not None and self._archive_pending:
+            self.archive.observe_many(self._archive_pending)
+            self._archive_pending.clear()
+
+    def log_initial_population(self, population):
+        self._flush_archive()
+        super().log_initial_population(population)
 
     def flush_events(self, population):
         return None
 
     def log_generation(self, population, boost):
+        self._flush_archive()
         self.generations_completed += 1
         now = time.perf_counter()
         self.append("generation_summary", {
@@ -50,7 +67,7 @@ class BaseBudgetController(MutationLogger):
         self.log_search_progress(population, "environmental_selection")
 
     def finish_episode(self):
-        return None
+        self._flush_archive()
 
     def summary(self):
         return {

@@ -66,7 +66,9 @@ class ComparisonControllerTests(unittest.TestCase):
                     item.feasible = True
 
                 controller.evaluate(evaluate, individual)
+                self.assertEqual(controller.archive.points, ())
                 controller.log_initial_population([individual])
+                self.assertEqual(len(controller.archive.points), 1)
             finally:
                 controller.close()
             row = json.loads(

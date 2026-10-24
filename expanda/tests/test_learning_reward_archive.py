@@ -61,6 +61,18 @@ class LearningRewardArchiveTests(unittest.TestCase):
         self.assertEqual(archive.hypervolume, 0.)
         self.assertGreater(archive.observe((2., 2., 2.), True, "a"), 0.)
 
+    def test_cached_hypervolume_matches_exact_recomputation(self):
+        archive = RewardArchive(self.normalizer)
+        archive.observe_many([
+            ((2., 8., 5.), True, "left"),
+            ((8., 2., 5.), True, "right"),
+        ])
+        from transformer_ppo.archive import exact_hv_3d
+        self.assertAlmostEqual(
+            archive.hypervolume,
+            exact_hv_3d(archive.points, self.normalizer.reference),
+        )
+
     def test_normalization_does_not_clip_values_outside_frozen_bounds(self):
         self.assertEqual(self.normalizer.transform((12., -2., 5.)), (1.2, -.2, .5))
 
