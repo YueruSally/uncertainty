@@ -139,7 +139,7 @@ def _run_config(args, config, manifests, records):
         "oos_used_for_training": False,
         "checkpoint_rule": "episode-boundary checkpoint after every predeclared instance",
         "instance_selection": (
-            "explicit development subset"
+            "explicit predeclared training subset"
             if args.instance_ids is not None
             else "policy-seed shuffled training manifests"),
     }
@@ -229,7 +229,7 @@ def main():
                         help="Development-only cap; omit for the frozen formal training pass.")
     parser.add_argument(
         "--instance-ids", nargs="+",
-        help=("Development-only explicit ordered training subset. Mutually "
+        help=("Explicit predeclared ordered training subset. Mutually "
               "exclusive with --max-instances."))
     parser.add_argument("--device")
     parser.add_argument("--resume", action="store_true",
