@@ -9,8 +9,10 @@ class AnalyzeS0BaseIConvergenceTests(unittest.TestCase):
             "role": role, "instance_id": f"train-S0-00{index}", "repeat": "1",
             "algorithm_seed": str(6 + index),
             "real_objective_evaluation_count": "250", "archive_hv": "0.4",
+            "runtime_seconds": "10.0",
         } for index, role in enumerate(("low", "median", "high"), 1)]
-        learned = [{**row, "archive_hv": "0.5"} for row in base]
+        learned = [{**row, "archive_hv": "0.5", "runtime_seconds": "12.0"}
+                   for row in base]
         pairs = pair_curves(base, learned, (250,))
         self.assertEqual(pairs[0]["outcome"], "win")
         self.assertAlmostEqual(pairs[0]["percent_delta_vs_base"], 25.0)
@@ -22,7 +24,7 @@ class AnalyzeS0BaseIConvergenceTests(unittest.TestCase):
         base = [{
             "role": "low", "instance_id": "train-S0-001", "repeat": "1",
             "algorithm_seed": "7", "real_objective_evaluation_count": "250",
-            "archive_hv": "0.4",
+            "archive_hv": "0.4", "runtime_seconds": "10.0",
         }]
         learned = [{**base[0], "algorithm_seed": "8", "archive_hv": "0.5"}]
         with self.assertRaisesRegex(ValueError, "unpaired"):

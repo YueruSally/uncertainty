@@ -94,6 +94,8 @@ def pair_curves(base_rows, learned_rows, budgets):
             "delta_i_minus_base": delta,
             "percent_delta_vs_base": 100.0 * delta / base_hv if base_hv else None,
             "outcome": outcome,
+            "base_runtime_seconds": float(base[key]["runtime_seconds"]),
+            "i_runtime_seconds": float(learned[key]["runtime_seconds"]),
         })
     return pairs
 
@@ -124,19 +126,16 @@ def summarise(pairs, budgets):
     return result
 
 
-def _runtime_pairs(base_complete, learned_complete):
-    def index(complete):
-        return {(row["role"], row["instance_id"], int(row["repeat"]),
-                 int(row["algorithm_seed"])): float(row["optimisation_seconds"])
-                for row in complete["runs"]}
-    base, learned = index(base_complete), index(learned_complete)
-    if set(base) != set(learned):
-        raise ValueError("runtime summaries are not paired")
-    ratios = [learned[key] / base[key] for key in sorted(base)]
+def _runtime_pairs(pairs, comparison_budget):
+    rows = [row for row in pairs if row["evaluation_budget"] == comparison_budget]
+    ratios = [row["i_runtime_seconds"] / row["base_runtime_seconds"] for row in rows]
     return {
         "pair_count": len(ratios),
-        "mean_base_seconds": statistics.fmean(base.values()),
-        "mean_i_seconds": statistics.fmean(learned.values()),
+        "comparison_evaluation_budget": comparison_budget,
+        "mean_base_seconds": statistics.fmean(
+            row["base_runtime_seconds"] for row in rows),
+        "mean_i_seconds": statistics.fmean(
+            row["i_runtime_seconds"] for row in rows),
         "mean_paired_i_over_base_ratio": statistics.fmean(ratios),
         "median_paired_i_over_base_ratio": statistics.median(ratios),
     }
@@ -187,7 +186,7 @@ def analyze(base: Path, learned: Path, out: Path, budgets=DEFAULT_BUDGETS):
         _csv(base / "convergence_progress.csv"),
         _csv(learned / "convergence_progress.csv"), budgets)
     summary = summarise(pairs, budgets)
-    runtime = _runtime_pairs(base_complete, learned_complete)
+    runtime = _runtime_pairs(pairs, budgets[-1])
     out.mkdir(parents=True, exist_ok=False)
     _write_csv(out / "paired_checkpoints.csv", pairs)
     _write_csv(out / "checkpoint_summary.csv", summary)
@@ -231,6 +230,7 @@ def analyze(base: Path, learned: Path, out: Path, budgets=DEFAULT_BUDGETS):
             f"{row['mean_percent_delta_vs_base']:+.3f}% | "
             f"{row['wins']}-{row['ties']}-{row['losses']} |")
     lines.extend(["", "## Runtime", "",
+                  f"Both methods are compared at {runtime['comparison_evaluation_budget']:,} evaluations.", "",
                   f"- Base mean: {runtime['mean_base_seconds'] / 60:.2f} minutes.",
                   f"- I mean: {runtime['mean_i_seconds'] / 60:.2f} minutes.",
                   f"- Mean paired I/Base ratio: {runtime['mean_paired_i_over_base_ratio']:.2f}.",
