@@ -1,4 +1,5 @@
 """Scientific-contract tests for the shared I/C/M reward archive."""
+import random
 import sys
 from pathlib import Path
 import unittest
@@ -9,8 +10,34 @@ from transformer_ppo.archive import (  # noqa: E402
     ObjectiveNormalizer,
     RewardArchive,
     RewardConfig,
+    exact_hv_3d,
     hv_reward,
 )
+
+
+def slow_exact_hv_3d(points, reference):
+    """Original slab implementation retained as an independent oracle."""
+    from transformer_ppo.archive import nondominated
+
+    clipped = nondominated(
+        point for point in points
+        if len(point) == 3
+        and all(point[index] < reference[index] for index in range(3))
+    )
+    if not clipped:
+        return 0.0
+    xs = sorted({point[0] for point in clipped} | {reference[0]})
+    volume = 0.0
+    for left, right in zip(xs[:-1], xs[1:]):
+        active = [(point[1], point[2]) for point in clipped if point[0] <= left]
+        ys = sorted({point[0] for point in active} | {reference[1]})
+        area = 0.0
+        for low_y, high_y in zip(ys[:-1], ys[1:]):
+            zs = [z for y, z in active if y <= low_y]
+            if zs:
+                area += (high_y - low_y) * max(0.0, reference[2] - min(zs))
+        volume += (right - left) * area
+    return volume
 
 
 class LearningRewardArchiveTests(unittest.TestCase):
@@ -67,11 +94,41 @@ class LearningRewardArchiveTests(unittest.TestCase):
             ((2., 8., 5.), True, "left"),
             ((8., 2., 5.), True, "right"),
         ])
-        from transformer_ppo.archive import exact_hv_3d
         self.assertAlmostEqual(
             archive.hypervolume,
             exact_hv_3d(archive.points, self.normalizer.reference),
         )
+
+    def test_fast_exact_hv_matches_original_algorithm_on_random_inputs(self):
+        generator = random.Random(20261025)
+        reference = (1.1, 1.1, 1.1)
+        for size in (0, 1, 2, 10, 50, 200):
+            points = [
+                tuple(generator.uniform(-0.2, 1.3) for _ in range(3))
+                for _ in range(size)
+            ]
+            self.assertAlmostEqual(
+                exact_hv_3d(points, reference),
+                slow_exact_hv_3d(points, reference),
+                places=12,
+            )
+
+    def test_incremental_archive_matches_batch_recomputation(self):
+        generator = random.Random(101)
+        archive = RewardArchive(self.normalizer)
+        observed = []
+        for index in range(200):
+            objectives = tuple(generator.uniform(0., 12.) for _ in range(3))
+            observed.append(objectives)
+            archive.observe(objectives, True, str(index))
+            self.assertAlmostEqual(
+                archive.hypervolume,
+                exact_hv_3d(
+                    (self.normalizer.transform(point) for point in observed),
+                    self.normalizer.reference,
+                ),
+                places=12,
+            )
 
     def test_normalization_does_not_clip_values_outside_frozen_bounds(self):
         self.assertEqual(self.normalizer.transform((12., -2., 5.)), (1.2, -.2, .5))

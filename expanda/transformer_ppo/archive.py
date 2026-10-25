@@ -26,6 +26,59 @@ def nondominated(points: Iterable[Sequence[float]]) -> list[Point]:
     return [p for p in unique if not any(_dominates(q, p) for q in unique if q != p)]
 
 
+def _insert_nondominated(
+        archive: Sequence[Point], additions: Iterable[Point]) -> list[Point]:
+    """Incrementally insert points into an already nondominated archive."""
+    updated = list(archive)
+    for point in additions:
+        if point in updated or any(_dominates(other, point) for other in updated):
+            continue
+        updated = [other for other in updated if not _dominates(point, other)]
+        updated.append(point)
+    return sorted(updated)
+
+
+def _dominated_area_2d(points: Sequence[tuple[float, float]], ref_y: float,
+                       ref_z: float) -> float:
+    """Exact dominated area for minimization points in two dimensions."""
+    clipped = sorted((y, z) for y, z in points if y < ref_y and z < ref_z)
+    area = 0.0
+    best_z = ref_z
+    index = 0
+    while index < len(clipped):
+        y = clipped[index][0]
+        while index < len(clipped) and clipped[index][0] == y:
+            best_z = min(best_z, clipped[index][1])
+            index += 1
+        next_y = clipped[index][0] if index < len(clipped) else ref_y
+        area += (next_y - y) * max(0.0, ref_z - best_z)
+    return area
+
+
+def _exact_hv_3d_nondominated(points: Sequence[Point], ref: Point) -> float:
+    """Exact 3-D HV when ``points`` are already finite and nondominated."""
+    clipped = sorted(
+        point for point in points
+        if all(point[index] < ref[index] for index in range(3))
+    )
+    if not clipped:
+        return 0.0
+
+    volume = 0.0
+    active: list[tuple[float, float]] = []
+    index = 0
+    while index < len(clipped):
+        left = clipped[index][0]
+        while index < len(clipped) and clipped[index][0] == left:
+            active.append((clipped[index][1], clipped[index][2]))
+            index += 1
+        right = clipped[index][0] if index < len(clipped) else ref[0]
+        if right > left:
+            volume += (right - left) * _dominated_area_2d(
+                active, ref[1], ref[2])
+    return float(volume)
+
+
 def exact_hv_3d(points: Iterable[Sequence[float]], reference: Sequence[float]) -> float:
     """Exact dominated volume for minimization points in three dimensions.
 
@@ -39,22 +92,7 @@ def exact_hv_3d(points: Iterable[Sequence[float]], reference: Sequence[float]) -
         p for p in points
         if len(p) == 3 and all(np.isfinite(p)) and all(p[i] < ref[i] for i in range(3))
     )
-    if not clipped:
-        return 0.0
-    xs = sorted({p[0] for p in clipped} | {ref[0]})
-    volume = 0.0
-    for left, right in zip(xs[:-1], xs[1:]):
-        active = [(p[1], p[2]) for p in clipped if p[0] <= left]
-        if not active or right <= left:
-            continue
-        ys = sorted({p[0] for p in active} | {ref[1]})
-        area = 0.0
-        for low_y, high_y in zip(ys[:-1], ys[1:]):
-            zs = [z for y, z in active if y <= low_y]
-            if zs and high_y > low_y:
-                area += (high_y - low_y) * max(0.0, ref[2] - min(zs))
-        volume += (right - left) * area
-    return float(volume)
+    return _exact_hv_3d_nondominated(clipped, ref)  # type: ignore[arg-type]
 
 
 @dataclass(frozen=True)
@@ -161,8 +199,12 @@ class RewardArchive:
             staged_points.append(point)
             staged_fingerprints.add(candidate_fingerprint)
 
-        updated_points = nondominated([*self._points, *staged_points])
-        after = exact_hv_3d(updated_points, self.normalizer.reference)
+        updated_points = _insert_nondominated(self._points, staged_points)
+        if updated_points == self._points:
+            after = before
+        else:
+            after = _exact_hv_3d_nondominated(
+                updated_points, self.normalizer.reference)
         raw_delta = after - before
         tolerance = max(1e-15, abs(before) * 1e-12)
         if raw_delta < -tolerance:
