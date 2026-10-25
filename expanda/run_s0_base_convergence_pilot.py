@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run resumable Base convergence curves on three selected S0 training instances."""
+"""Run resumable Base or frozen-I curves on selected S0 training instances."""
 from __future__ import annotations
 
 import argparse
@@ -111,8 +111,15 @@ def _completed(run: Path, record, repeat, seed, args, normalization):
         isinstance(row.get(name), (int, float)) and math.isfinite(row[name])
         for row in rows for name in ("population_hv", "archive_hv")
         if row.get(name) is not None)
+    checkpoint_metadata = config.get("policy_checkpoint")
+    checkpoint_matches = (
+        checkpoint_metadata is None
+        if args.component == "BASE"
+        else isinstance(checkpoint_metadata, dict)
+        and checkpoint_metadata.get("checkpoint_sha256") == args.checkpoint_sha256
+        and checkpoint_metadata.get("component") == args.component)
     if (summary.get("completed") is not True
-            or summary.get("component") != "BASE"
+            or summary.get("component") != args.component
             or summary.get("stop_reason") != "evaluation_budget"
             or summary.get("real_objective_evaluation_count") != args.evaluation_budget
             or summary.get("evaluation_budget") != args.evaluation_budget
@@ -123,7 +130,7 @@ def _completed(run: Path, record, repeat, seed, args, normalization):
             or config.get("seeds", {}).get("algorithm") != seed
             or config.get("evaluation_mode") != "deterministic"
             or config.get("policy_training") is not False
-            or config.get("policy_checkpoint") is not None
+            or not checkpoint_matches
             or not rows or rows[0].get("real_objective_evaluation_count") != args.pop
             or rows[-1].get("real_objective_evaluation_count") != args.evaluation_budget
             or not finite_hv
@@ -161,13 +168,16 @@ def _run(instance: Path, out: Path, log: Path, seed: int, args):
         "--data", str(args.data),
         "--instance", str(instance),
         "--normalization", str(args.normalization),
-        "--component", "BASE",
+        "--component", args.component,
         "--algorithm-seed", str(seed),
         "--evaluation-budget", str(args.evaluation_budget),
         "--pop", str(args.pop),
         "--gens", str(args.gens),
         "--out", str(out),
     ]
+    if args.component != "BASE":
+        command.extend(["--checkpoint", str(args.checkpoint),
+                        "--device", str(args.device)])
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("w", encoding="utf-8") as handle:
         process = subprocess.Popen(
@@ -203,7 +213,7 @@ def _run(instance: Path, out: Path, log: Path, seed: int, args):
                     flush=True)
     if returncode:
         raise RuntimeError(
-            f"Base convergence run failed with exit {returncode}; "
+            f"{args.component} convergence run failed with exit {returncode}; "
             f"inspect {log}")
 
 
@@ -243,6 +253,10 @@ def main():
     parser.add_argument("--instances", type=Path, required=True)
     parser.add_argument("--selection", type=Path, required=True)
     parser.add_argument("--normalization", type=Path, required=True)
+    parser.add_argument("--component", choices=("BASE", "I"), default="BASE")
+    parser.add_argument("--checkpoint", type=Path,
+                        help="Required frozen I checkpoint when --component I.")
+    parser.add_argument("--device", default="cpu")
     parser.add_argument("--algorithm-seed-base", type=int, default=89_200_000)
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--evaluation-budget", type=int, default=50_000)
@@ -256,6 +270,15 @@ def main():
     args.selection = args.selection.resolve()
     args.normalization = args.normalization.resolve()
     args.out = args.out.resolve()
+    if args.component == "BASE" and args.checkpoint is not None:
+        parser.error("--checkpoint is only valid with --component I")
+    if args.component == "I":
+        if args.checkpoint is None or not args.checkpoint.is_file():
+            parser.error("--component I requires an existing --checkpoint")
+        args.checkpoint = args.checkpoint.resolve()
+        args.checkpoint_sha256 = _sha256(args.checkpoint)
+    else:
+        args.checkpoint_sha256 = None
     if args.repeats < 1:
         parser.error("--repeats must be positive")
     if args.heartbeat_seconds <= 0:
@@ -294,10 +317,12 @@ def main():
 
     config = {
         "schema_version": 1,
-        "stage": "training-only S0 Base convergence pilot",
+        "stage": ("training-only S0 Base convergence pilot"
+                  if args.component == "BASE"
+                  else "training-only S0 I convergence pilot"),
         "formal": False,
         "purpose": "freeze the final evaluation budget before formal training",
-        "component": "BASE",
+        "component": args.component,
         "configuration": "S0",
         "test_instances_used": False,
         "validation_set_used": False,
@@ -327,6 +352,12 @@ def main():
             "episode.py": _sha256(ROOT / "transformer_ppo/episode.py"),
         },
     }
+    if args.component == "I":
+        config.update({
+            "policy_checkpoint": str(args.checkpoint),
+            "policy_checkpoint_sha256": args.checkpoint_sha256,
+            "device": args.device,
+        })
     config_path = args.out / "pilot_configuration.json"
     if config_path.exists():
         if _read(config_path) != config:
@@ -354,7 +385,7 @@ def main():
             continue
         _quarantine(run, args.out)
         print(
-            f"[BASE] {task_index + 1}/{len(tasks)} {record['role']} "
+            f"[{args.component}] {task_index + 1}/{len(tasks)} {record['role']} "
             f"{record['instance_id']} repeat={repeat + 1} seed={seed}",
             flush=True)
         one_started = time.perf_counter()
@@ -369,7 +400,7 @@ def main():
         remaining = len(tasks) - task_index - 1
         eta = elapsed / newly_completed * remaining / 60.0
         print(
-            f"[BASE] completed seconds={time.perf_counter() - one_started:.1f} "
+            f"[{args.component}] completed seconds={time.perf_counter() - one_started:.1f} "
             f"eta_minutes={eta:.1f}", flush=True)
 
     _write_progress_csv(args.out / "convergence_progress.csv", records, args)
