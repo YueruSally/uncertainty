@@ -32,6 +32,17 @@ def _phase(evaluation: int, budget: int) -> str:
     return "late"
 
 
+def _outcome_evaluation(row: dict) -> int:
+    """Return the action settlement evaluation across C and legacy M logs."""
+    for name in ("evaluation", "evaluation_after", "ccp_evaluation_count"):
+        value = row.get(name)
+        if value is not None:
+            return int(value)
+    raise ValueError(
+        "reward outcome has no evaluation, evaluation_after, or "
+        "ccp_evaluation_count field")
+
+
 def _mean(values):
     return float(statistics.fmean(values)) if values else None
 
@@ -64,7 +75,7 @@ def _analyze_component(root: Path, component: str):
         grouped = {name: [] for name in PHASES}
         for row in _jsonl(episode_root / OUTCOME_FILE[component]):
             if row.get("reward_recorded_for_policy"):
-                grouped[_phase(int(row["evaluation"]), budget)].append(row)
+                grouped[_phase(_outcome_evaluation(row), budget)].append(row)
         for phase in PHASES:
             rows = grouped[phase]
             rewards = [float(row.get("reward", 0.0) or 0.0) for row in rows]
@@ -197,7 +208,6 @@ def _svg(path: Path, phase_summary):
 
 
 def analyze(c_training: Path, m_training: Path, out: Path):
-    out.mkdir(parents=True, exist_ok=False)
     phase_rows, update_rows, provenance = [], [], {}
     for component, root in (("C", c_training), ("M", m_training)):
         summary, config, current_phases, current_updates = _analyze_component(
@@ -212,6 +222,7 @@ def analyze(c_training: Path, m_training: Path, out: Path):
             "population": config["population"],
             "evaluation_budget": config["evaluation_budget_per_episode"],
         }
+    out.mkdir(parents=True, exist_ok=False)
     phase_summary = _aggregate_phases(phase_rows)
     bins = _update_bins(update_rows)
     result = {

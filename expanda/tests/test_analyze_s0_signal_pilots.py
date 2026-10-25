@@ -26,6 +26,7 @@ class AnalyzeS0SignalPilotsTests(unittest.TestCase):
         episode = root / "episodes" / "train-S0-001"
         episode.mkdir(parents=True)
         name = "crossover_outcomes.jsonl" if component == "C" else "mutation_outcomes.jsonl"
+        evaluation_key = "evaluation" if component == "C" else "evaluation_after"
         rows = [
             {"evaluation": 50, "reward": 1.0, "reward_hv_delta": .01,
              "reward_archive_size": 2, "reward_recorded_for_policy": True},
@@ -34,6 +35,9 @@ class AnalyzeS0SignalPilotsTests(unittest.TestCase):
             {"evaluation": 250, "reward": 2.0, "reward_hv_delta": .02,
              "reward_archive_size": 4, "reward_recorded_for_policy": True},
         ]
+        if evaluation_key != "evaluation":
+            for row in rows:
+                row[evaluation_key] = row.pop("evaluation")
         (episode / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
         updates = [{
             "update": index, "transition_count": 10,
