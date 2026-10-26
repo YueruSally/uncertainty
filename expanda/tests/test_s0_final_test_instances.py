@@ -1,6 +1,11 @@
 import unittest
 
-from generate_s0_final_test_instances import DEFAULT_MASTER_SEED
+from generate_s0_final_test_instances import (
+    CCP100_SEED_BASE,
+    DEFAULT_MASTER_SEED,
+    OOS5000_SEED_BASE,
+    PATH_SEED_OFFSET,
+)
 
 
 class S0FinalTestInstanceTest(unittest.TestCase):
@@ -14,10 +19,17 @@ class S0FinalTestInstanceTest(unittest.TestCase):
         instance_seeds = {
             DEFAULT_MASTER_SEED + index * 100 for index in range(10)
         }
-        ccp_seeds = {63_000_000 + index for index in range(10)}
-        oos_seeds = {64_000_000 + index for index in range(10)}
+        possible_path_seeds = {
+            DEFAULT_MASTER_SEED + index * 100 + PATH_SEED_OFFSET + offset
+            for index in range(10)
+            for offset in range(20)
+        }
+        ccp_seeds = {CCP100_SEED_BASE + index for index in range(10)}
+        oos_seeds = {OOS5000_SEED_BASE + index for index in range(10)}
         self.assertFalse(instance_seeds & ccp_seeds)
         self.assertFalse(instance_seeds & oos_seeds)
+        self.assertFalse(possible_path_seeds & ccp_seeds)
+        self.assertFalse(possible_path_seeds & oos_seeds)
         self.assertFalse(ccp_seeds & oos_seeds)
 
 

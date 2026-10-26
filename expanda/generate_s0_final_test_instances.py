@@ -19,6 +19,9 @@ from transformer_ppo.instance_catalog import (
 
 
 DEFAULT_MASTER_SEED = 62_000_000
+PATH_SEED_OFFSET = 1_000_000
+CCP100_SEED_BASE = 65_000_000
+OOS5000_SEED_BASE = 66_000_000
 
 
 def _read(path):
@@ -106,7 +109,7 @@ def main():
                     "new final-test instance duplicates a frozen source instance")
             existing_signatures.add(signature)
             path_seed = _find_path_seed(
-                instance_seed + 1_000_000, nodes, regions, arcs, batches,
+                instance_seed + PATH_SEED_OFFSET, nodes, regions, arcs, batches,
                 timetable, lookup)
             instance_id = f"final-test-S0-{index + 1:03d}"
             record = {
@@ -124,8 +127,8 @@ def main():
                 "od_pool": "test",
                 "instance_seed": instance_seed,
                 "path_seed": path_seed,
-                "ccp100_seed": 63_000_000 + index,
-                "oos5000_seed": 64_000_000 + index,
+                "ccp100_seed": CCP100_SEED_BASE + index,
+                "oos5000_seed": OOS5000_SEED_BASE + index,
                 "source_data_sha256": data_sha,
                 "source_catalog_digest": source_digest,
                 "batch_signature": signature,
