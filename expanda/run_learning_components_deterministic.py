@@ -39,8 +39,10 @@ def main(argv=None):
     parser.add_argument("--instance", type=Path, required=True)
     parser.add_argument("--normalization", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--component", choices=("BASE", "I", "C", "M", "ICM"),
+    parser.add_argument("--component", choices=(
+        "BASE", "RULE-I", "I", "C", "M", "ICM"),
                         required=True)
+    parser.add_argument("--initialization-rule-normalization", type=Path)
     parser.add_argument("--checkpoint", type=Path,
                         help="Checkpoint for a single I, C, or M run.")
     parser.add_argument("--i-checkpoint", type=Path)
@@ -54,7 +56,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         normalizer = _normalizer(args.normalization)
-        if args.component == "BASE":
+        rule_normalization = None
+        if args.component == "RULE-I":
+            if (args.initialization_rule_normalization is None
+                    or not args.initialization_rule_normalization.is_file()):
+                raise ValueError("RULE-I requires --initialization-rule-normalization")
+            rule_normalization = json.loads(
+                args.initialization_rule_normalization.read_text(encoding="utf-8"))
+            trainer = None
+        elif args.component == "BASE":
             trainer = None
         elif args.component == "ICM":
             trainer = {
@@ -69,7 +79,8 @@ def main(argv=None):
             algorithm_seed=args.algorithm_seed,
             evaluation_budget=args.evaluation_budget, pop_size=args.pop,
             generations=args.gens, reward_config=RewardConfig(),
-            evaluation_mode="deterministic", component=args.component)
+            evaluation_mode="deterministic", component=args.component,
+            rule_initialization_normalization=rule_normalization)
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     print(json.dumps(summary, indent=2, allow_nan=False))

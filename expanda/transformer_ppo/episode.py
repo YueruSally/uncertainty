@@ -17,6 +17,7 @@ from .comparison_controllers import BaseBudgetController, CombinedPPOController
 from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
 from .initialization_controller import InitializationPPOController
+from .initialization_rule import InitializationRuleController
 from .instance_catalog import read_instance
 from .graph_features import build_graph_observation
 
@@ -35,7 +36,8 @@ def _optimisation_vector(row):
 def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 algorithm_seed: int, evaluation_budget=15_000,
                 pop_size=100, generations=1_000, reward_config=None,
-                evaluation_mode="ccp100", component="M"):
+                evaluation_mode="ccp100", component="M",
+                rule_initialization_normalization=None):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
@@ -43,16 +45,19 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if evaluation_mode not in ("deterministic", "ccp100"):
         raise ValueError("evaluation_mode must be 'deterministic' or 'ccp100'")
     component = str(component).upper()
-    if component not in ("M", "C", "I", "ICM", "BASE"):
-        raise ValueError("component must be 'M', 'C', 'I', 'ICM', or 'BASE'")
+    if component not in ("M", "C", "I", "ICM", "BASE", "RULE-I"):
+        raise ValueError(
+            "component must be 'M', 'C', 'I', 'ICM', 'BASE', or 'RULE-I'")
     if component in ("M", "C", "I") and trainer.component != component:
         raise ValueError("trainer component does not match episode component")
     if component == "ICM" and (
             not isinstance(trainer, dict) or set(trainer) != {"I", "C", "M"}
             or any(item.component != name for name, item in trainer.items())):
         raise ValueError("ICM requires matching I, C, and M trainers")
-    if component == "BASE" and trainer is not None:
-        raise ValueError("BASE does not accept a policy trainer")
+    if component in ("BASE", "RULE-I") and trainer is not None:
+        raise ValueError(f"{component} does not accept a policy trainer")
+    if component == "RULE-I" and rule_initialization_normalization is None:
+        raise ValueError("RULE-I requires a path-feature normalization")
     if out.exists() and any(out.iterdir()):
         raise ValueError(f"episode output directory must be empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
@@ -114,14 +119,15 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         nodes, regions, hold, proc, trans_cost, arcs, batches)
     method = (
         "base-nsga2" if component == "BASE" else
+        "rule-initialization" if component == "RULE-I" else
         "transformer-ppo-i+c+m-frozen" if component == "ICM" else
         trainer.name)
     policy_training = (
-        False if component == "BASE" else
+        False if component in ("BASE", "RULE-I") else
         any(item.training for item in trainer.values()) if component == "ICM" else
         bool(trainer.training))
     policy_checkpoint = (
-        None if component == "BASE" else
+        None if component in ("BASE", "RULE-I") else
         {name: item.checkpoint_provenance for name, item in trainer.items()}
         if component == "ICM" else trainer.checkpoint_provenance)
     config = {
@@ -145,6 +151,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "intermediate_post_crossover_evaluation": False,
         "policy_training": policy_training,
         "policy_checkpoint": policy_checkpoint,
+        "initialization_rule": (
+            rule_initialization_normalization if component == "RULE-I" else None),
         "network_encoding": graph_observation["schema"],
         "normalization": {"minimum": episode_normalizer.minimum,
                           "maximum": episode_normalizer.maximum,
@@ -164,6 +172,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
             method=method, instance=instance, seeds=seeds,
             normalizer=episode_normalizer)
+    elif component == "RULE-I":
+        controller = InitializationRuleController(
+            out, instance["instance_id"], config["scenario_digest"],
+            evaluation_budget, method=method, instance=instance, seeds=seeds,
+            normalizer=episode_normalizer,
+            rule_normalization=rule_initialization_normalization)
     elif component == "ICM":
         controller = CombinedPPOController(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
@@ -246,6 +260,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         summary["crossover_attempts"] = controller.total_attempts
         summary["effective_crossovers"] = controller.total_effective
     elif component == "I":
+        summary["initialization_attempts"] = controller.total_attempts
+        summary["initializations_different_from_shadow_base"] = controller.total_effective
+    elif component == "RULE-I":
         summary["initialization_attempts"] = controller.total_attempts
         summary["initializations_different_from_shadow_base"] = controller.total_effective
     elif component == "ICM":

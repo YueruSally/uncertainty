@@ -21,9 +21,10 @@ class BaseBudgetController(MutationLogger):
     def __init__(self, *args, normalizer=None, **kwargs):
         self.archive = RewardArchive(normalizer) if normalizer is not None else None
         self._archive_pending = []
+        log_names = kwargs.pop("log_names", ("generation_summary",))
         super().__init__(
             *args, evaluate_before_mutation=False,
-            log_names=("generation_summary",), normalizer=normalizer, **kwargs)
+            log_names=log_names, normalizer=normalizer, **kwargs)
 
     def evaluate(self, function, ind, *args, **kwargs):
         previous = self.evaluations
