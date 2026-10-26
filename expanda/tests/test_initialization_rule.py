@@ -23,7 +23,8 @@ NORMALIZATION = {
 
 def path(path_id, cost, emission, time):
     return base.Path(
-        path_id, "A", "B", ["A", "B"], ["rail"], [],
+        path_id, "A", "B", ["A", f"X{path_id}", "B"],
+        ["rail", "rail"], [],
         cost, emission, time)
 
 
@@ -44,20 +45,25 @@ class InitializationRuleTest(unittest.TestCase):
                 Path(temporary), "run", "scenario", 100,
                 normalizer=None, rule_normalization=NORMALIZATION,
                 method="rule", instance={}, seeds={})
-            random.seed(7)
-            before = random.getstate()
-            individual = controller.initial_individual(
-                [batch], {("A", "B"): candidates}, max_paths=3)
-            after_rule = random.getstate()
-            random.setstate(before)
-            k = random.randint(1, 3)
-            random.sample(candidates, k)
-            [random.random() for _ in range(k)]
-            after_base = random.getstate()
-            self.assertEqual(after_rule, after_base)
-            selected = individual.od_allocations[("A", "B", 0)]
-            self.assertEqual([item.path.path_id for item in selected], [2, 3, 1][:k])
-            controller.close()
+            try:
+                random.seed(7)
+                before = random.getstate()
+                individual = controller.initial_individual(
+                    [batch], {("A", "B"): candidates}, max_paths=3)
+                after_rule = random.getstate()
+                random.setstate(before)
+                k = random.randint(1, 3)
+                random.sample(candidates, k)
+                [random.random() for _ in range(k)]
+                after_base = random.getstate()
+                self.assertEqual(after_rule, after_base)
+                selected = individual.od_allocations[("A", "B", 0)]
+                self.assertEqual(
+                    [item.path.path_id for item in selected],
+                    [2, 3, 1][:k],
+                )
+            finally:
+                controller.close()
 
 
 if __name__ == "__main__":
