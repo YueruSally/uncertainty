@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run resumable Base or frozen-I curves on selected S0 training instances."""
+"""Run resumable component curves on selected S0 training instances."""
 from __future__ import annotations
 
 import argparse
@@ -98,6 +98,30 @@ def _progress(path: Path):
     ]
 
 
+def control_arguments(component, checkpoint=None, device="cpu",
+                      rule_normalization=None, rule_top_k=None,
+                      model_choice_probability=1.0):
+    """Return runner arguments for one frozen development component."""
+    result = []
+    if component in ("I", "C", "M"):
+        result.extend(["--checkpoint", str(checkpoint),
+                       "--device", str(device)])
+    if (component in ("RULE-I", "I")
+            and rule_normalization is not None):
+        result.extend([
+            "--initialization-rule-normalization",
+            str(rule_normalization),
+        ])
+    if component == "I" and rule_top_k is not None:
+        result.extend(["--initialization-rule-top-k", str(rule_top_k)])
+    if component in ("C", "M"):
+        result.extend([
+            "--model-choice-probability",
+            str(model_choice_probability),
+        ])
+    return result
+
+
 def _completed(run: Path, record, repeat, seed, args, normalization):
     marker = run / "COMPLETE.json"
     config_path = run / "configuration.json"
@@ -114,10 +138,28 @@ def _completed(run: Path, record, repeat, seed, args, normalization):
     checkpoint_metadata = config.get("policy_checkpoint")
     checkpoint_matches = (
         checkpoint_metadata is None
-        if args.component == "BASE"
+        if args.component in ("BASE", "RULE-I")
         else isinstance(checkpoint_metadata, dict)
         and checkpoint_metadata.get("checkpoint_sha256") == args.checkpoint_sha256
         and checkpoint_metadata.get("component") == args.component)
+    learning_control = config.get("learning_control", {})
+    prefilter = learning_control.get("initialization_rule_prefilter")
+    probabilities = learning_control.get("model_choice_probabilities", {})
+    control_matches = True
+    if args.component == "RULE-I":
+        control_matches = (
+            config.get("initialization_rule", {}).get("normalization_digest")
+            == args.rule_normalization_digest)
+    elif args.component == "I" and args.initialization_rule_top_k is not None:
+        control_matches = (
+            isinstance(prefilter, dict)
+            and prefilter.get("top_k") == args.initialization_rule_top_k
+            and prefilter.get("normalization_digest")
+            == args.rule_normalization_digest)
+    elif args.component in ("C", "M"):
+        control_matches = (
+            probabilities.get(args.component)
+            == args.model_choice_probability)
     if (summary.get("completed") is not True
             or summary.get("component") != args.component
             or summary.get("stop_reason") != "evaluation_budget"
@@ -131,6 +173,8 @@ def _completed(run: Path, record, repeat, seed, args, normalization):
             or config.get("evaluation_mode") != "deterministic"
             or config.get("policy_training") is not False
             or not checkpoint_matches
+            or not control_matches
+            or summary.get("ppo_updates", 0) != 0
             or not rows or rows[0].get("real_objective_evaluation_count") != args.pop
             or rows[-1].get("real_objective_evaluation_count") != args.evaluation_budget
             or not finite_hv
@@ -175,9 +219,11 @@ def _run(instance: Path, out: Path, log: Path, seed: int, args):
         "--gens", str(args.gens),
         "--out", str(out),
     ]
-    if args.component != "BASE":
-        command.extend(["--checkpoint", str(args.checkpoint),
-                        "--device", str(args.device)])
+    command.extend(control_arguments(
+        args.component, checkpoint=args.checkpoint, device=args.device,
+        rule_normalization=args.initialization_rule_normalization,
+        rule_top_k=args.initialization_rule_top_k,
+        model_choice_probability=args.model_choice_probability))
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("w", encoding="utf-8") as handle:
         process = subprocess.Popen(
@@ -253,9 +299,17 @@ def main():
     parser.add_argument("--instances", type=Path, required=True)
     parser.add_argument("--selection", type=Path, required=True)
     parser.add_argument("--normalization", type=Path, required=True)
-    parser.add_argument("--component", choices=("BASE", "I"), default="BASE")
+    parser.add_argument(
+        "--component", choices=("BASE", "RULE-I", "I", "C", "M"),
+        default="BASE")
     parser.add_argument("--checkpoint", type=Path,
-                        help="Required frozen I checkpoint when --component I.")
+                        help="Required frozen I/C/M checkpoint.")
+    parser.add_argument("--initialization-rule-normalization", type=Path,
+                        help="Required by RULE-I and V2 I top-k.")
+    parser.add_argument("--initialization-rule-top-k", type=int,
+                        help="V2 learned-I Rule-I prefilter size.")
+    parser.add_argument("--model-choice-probability", type=float, default=1.0,
+                        help="V2 C/M probability of using the learned action.")
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--algorithm-seed-base", type=int, default=89_200_000)
     parser.add_argument("--repeats", type=int, default=3)
@@ -270,15 +324,47 @@ def main():
     args.selection = args.selection.resolve()
     args.normalization = args.normalization.resolve()
     args.out = args.out.resolve()
-    if args.component == "BASE" and args.checkpoint is not None:
-        parser.error("--checkpoint is only valid with --component I")
-    if args.component == "I":
+    if args.component in ("BASE", "RULE-I") and args.checkpoint is not None:
+        parser.error("--checkpoint is valid only with I, C, or M")
+    if args.component in ("I", "C", "M"):
         if args.checkpoint is None or not args.checkpoint.is_file():
-            parser.error("--component I requires an existing --checkpoint")
+            parser.error(
+                f"--component {args.component} requires an existing --checkpoint")
         args.checkpoint = args.checkpoint.resolve()
         args.checkpoint_sha256 = _sha256(args.checkpoint)
     else:
+        args.checkpoint = None
         args.checkpoint_sha256 = None
+    needs_rule = (
+        args.component == "RULE-I"
+        or args.component == "I" and args.initialization_rule_top_k is not None)
+    if needs_rule:
+        if (args.initialization_rule_normalization is None
+                or not args.initialization_rule_normalization.is_file()):
+            parser.error(
+                "RULE-I/V2 I top-k requires an existing "
+                "--initialization-rule-normalization")
+        args.initialization_rule_normalization = (
+            args.initialization_rule_normalization.resolve())
+        rule_normalization = _read(args.initialization_rule_normalization)
+        args.rule_normalization_digest = rule_normalization.get(
+            "normalization_digest")
+        if not args.rule_normalization_digest:
+            parser.error("rule normalization has no normalization_digest")
+    else:
+        if args.initialization_rule_normalization is not None:
+            parser.error(
+                "--initialization-rule-normalization is valid only with "
+                "RULE-I or V2 I top-k")
+        args.rule_normalization_digest = None
+    if args.initialization_rule_top_k is not None:
+        if args.component != "I" or args.initialization_rule_top_k < 2:
+            parser.error("--initialization-rule-top-k requires I and must be >= 2")
+    if not 0.0 <= args.model_choice_probability <= 1.0:
+        parser.error("--model-choice-probability must be in [0, 1]")
+    if (args.component not in ("C", "M")
+            and args.model_choice_probability != 1.0):
+        parser.error("model choice probability is valid only with C or M")
     if args.repeats < 1:
         parser.error("--repeats must be positive")
     if args.heartbeat_seconds <= 0:
@@ -315,13 +401,22 @@ def main():
             json.JSONDecodeError) as error:
         parser.error(str(error))
 
+    v2_development = (
+        args.component in ("RULE-I", "C", "M")
+        or args.component == "I" and args.initialization_rule_top_k is not None)
     config = {
         "schema_version": 1,
-        "stage": ("training-only S0 Base convergence pilot"
-                  if args.component == "BASE"
-                  else "training-only S0 I convergence pilot"),
+        "stage": (
+            "training-only S0 component development pilot"
+            if v2_development else
+            "training-only S0 Base convergence pilot"
+            if args.component == "BASE" else
+            "training-only S0 I convergence pilot"),
         "formal": False,
-        "purpose": "freeze the final evaluation budget before formal training",
+        "purpose": (
+            "paired V2 development comparison without test instances"
+            if v2_development else
+            "freeze the final evaluation budget before formal training"),
         "component": args.component,
         "configuration": "S0",
         "test_instances_used": False,
@@ -352,12 +447,25 @@ def main():
             "episode.py": _sha256(ROOT / "transformer_ppo/episode.py"),
         },
     }
-    if args.component == "I":
+    if args.component in ("I", "C", "M"):
         config.update({
             "policy_checkpoint": str(args.checkpoint),
             "policy_checkpoint_sha256": args.checkpoint_sha256,
             "device": args.device,
         })
+    if v2_development:
+        config["learning_control"] = {
+            "initialization_rule_normalization": (
+                str(args.initialization_rule_normalization)
+                if args.initialization_rule_normalization is not None else None),
+            "initialization_rule_normalization_sha256": (
+                _sha256(args.initialization_rule_normalization)
+                if args.initialization_rule_normalization is not None else None),
+            "initialization_rule_normalization_digest": (
+                args.rule_normalization_digest),
+            "initialization_rule_top_k": args.initialization_rule_top_k,
+            "model_choice_probability": args.model_choice_probability,
+        }
     config_path = args.out / "pilot_configuration.json"
     if config_path.exists():
         if _read(config_path) != config:
@@ -419,6 +527,11 @@ def main():
                 "final_hypervolume": summary["final_hypervolume"],
                 "final_front_size": summary["final_front_size"],
                 "optimisation_seconds": summary["optimisation_seconds"],
+                "positive_reward_actions": summary.get(
+                    "positive_reward_actions", 0),
+                "decision_counts": summary.get("decision_counts", {}),
+                "model_control_events": summary.get("model_control_events"),
+                "base_control_events": summary.get("base_control_events"),
             })
     complete = {
         "completed": True,

@@ -1,6 +1,6 @@
 import unittest
 
-from run_s0_base_convergence_pilot import selected_records
+from run_s0_base_convergence_pilot import control_arguments, selected_records
 
 
 def _selection(rows):
@@ -33,6 +33,40 @@ class BaseConvergencePilotTest(unittest.TestCase):
         ]
         with self.assertRaisesRegex(ValueError, "non-training"):
             selected_records(_selection(rows))
+
+    def test_builds_v2_component_arguments(self):
+        self.assertEqual(
+            control_arguments("BASE"),
+            [],
+        )
+        self.assertEqual(
+            control_arguments("I", checkpoint="i.pt", device="cuda"),
+            ["--checkpoint", "i.pt", "--device", "cuda"],
+        )
+        self.assertEqual(
+            control_arguments(
+                "I", checkpoint="i.pt", device="cuda",
+                rule_normalization="rule.json", rule_top_k=8),
+            [
+                "--checkpoint", "i.pt", "--device", "cuda",
+                "--initialization-rule-normalization", "rule.json",
+                "--initialization-rule-top-k", "8",
+            ],
+        )
+        self.assertEqual(
+            control_arguments(
+                "C", checkpoint="c.pt", device="cuda",
+                model_choice_probability=0.5),
+            [
+                "--checkpoint", "c.pt", "--device", "cuda",
+                "--model-choice-probability", "0.5",
+            ],
+        )
+        self.assertEqual(
+            control_arguments(
+                "RULE-I", rule_normalization="rule.json"),
+            ["--initialization-rule-normalization", "rule.json"],
+        )
 
 
 if __name__ == "__main__":
