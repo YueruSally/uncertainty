@@ -10,7 +10,10 @@ from multi_instance_policy import Decision
 
 from .archive import RewardArchive, RewardConfig, hv_reward
 from .initialization_observations import build_initialization_observation
-from .initialization_rule import path_rule_score, validate_rule_normalization
+from .initialization_rule_features import (
+    path_rule_score,
+    validate_rule_normalization,
+)
 
 
 def _path_signature(path):

@@ -13,7 +13,7 @@ from transformer_ppo.config import PPOConfig, SCENARIOS, episode_seeds
 from transformer_ppo.crossover_observations import CROSSOVER_GRAPH_MODEL_SPEC
 from transformer_ppo.graph_features import GRAPH_MODEL_SPEC
 from transformer_ppo.initialization_observations import INITIALIZATION_GRAPH_MODEL_SPEC
-from transformer_ppo.initialization_rule import validate_rule_normalization
+from transformer_ppo.initialization_rule_features import validate_rule_normalization
 from transformer_ppo.observations import (
     CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
 )

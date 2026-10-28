@@ -17,10 +17,8 @@ from .comparison_controllers import BaseBudgetController, CombinedPPOController
 from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
 from .initialization_controller import InitializationPPOController
-from .initialization_rule import (
-    InitializationRuleController,
-    validate_rule_normalization,
-)
+from .initialization_rule import InitializationRuleController
+from .initialization_rule_features import validate_rule_normalization
 from .instance_catalog import read_instance
 from .graph_features import build_graph_observation
 from .v2_controls import validate_model_choice_probability
