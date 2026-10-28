@@ -10,6 +10,7 @@ from multi_instance_policy import Decision
 
 from .archive import RewardArchive, RewardConfig, hv_reward
 from .initialization_observations import build_initialization_observation
+from .initialization_rule import path_rule_score, validate_rule_normalization
 
 
 def _path_signature(path):
@@ -25,7 +26,8 @@ class InitializationPPOController(MutationLogger):
 
     def __init__(self, *args, trainer, archive: RewardArchive,
                  reward_config: RewardConfig, batches, generations, pop_size,
-                 graph_observation=None, **kwargs):
+                 graph_observation=None, rule_normalization=None,
+                 rule_top_k=None, **kwargs):
         self.trainer = trainer
         self._ppo_updates_at_start = int(trainer.updates)
         self.archive = archive
@@ -34,6 +36,17 @@ class InitializationPPOController(MutationLogger):
         self.generations = int(generations)
         self.pop_size = int(pop_size)
         self.graph_observation = graph_observation
+        if (rule_normalization is None) != (rule_top_k is None):
+            raise ValueError(
+                "I rule normalization and top-k must be supplied together")
+        if rule_top_k is not None and int(rule_top_k) < 2:
+            raise ValueError("I rule top-k must be at least 2")
+        self.rule_normalization = (
+            None if rule_normalization is None else dict(rule_normalization))
+        self.rule_top_k = (
+            None if rule_top_k is None else int(rule_top_k))
+        if self.rule_normalization is not None:
+            validate_rule_normalization(self.rule_normalization)
         self.current_population = []
         self._current_partial = None
         self._current_context = None
@@ -102,11 +115,24 @@ class InitializationPPOController(MutationLogger):
                 remaining = list(paths)
                 selected = []
                 for step in range(k):
+                    candidate_paths = remaining
+                    if self.rule_top_k is not None:
+                        candidate_paths = sorted(
+                            remaining,
+                            key=lambda path: (
+                                path_rule_score(path, self.rule_normalization),
+                                int(path.path_id),
+                                _path_signature(path),
+                            ),
+                        )[:self.rule_top_k]
                     candidates = [{
                         "eligible": True, "path": path,
                         "path_id": path.path_id,
                         "nodes": list(path.nodes), "modes": list(path.modes),
-                    } for path in remaining]
+                        "rule_score": (
+                            path_rule_score(path, self.rule_normalization)
+                            if self.rule_normalization is not None else None),
+                    } for path in candidate_paths]
                     context = {
                         "component": "I", "batch": batch,
                         "selection_step": step,
@@ -139,7 +165,8 @@ class InitializationPPOController(MutationLogger):
                     chosen_index = decision.chosen_index
                     if chosen_index is None:
                         raise RuntimeError("non-empty initialization candidates were rejected")
-                    chosen = remaining.pop(chosen_index)
+                    chosen = candidate_paths[chosen_index]
+                    remaining.remove(chosen)
                     selected.append(chosen)
                     individual.od_allocations[key] = [
                         base.PathAllocation(path=path, share=raw_shares[index])
@@ -152,6 +179,9 @@ class InitializationPPOController(MutationLogger):
                             "candidate_id": candidate_index,
                             "path_id": candidate["path_id"],
                             "nodes": candidate["nodes"], "modes": candidate["modes"],
+                            "rule_score": candidate["rule_score"],
+                            "rule_prefilter_top_k": self.rule_top_k,
+                            "candidate_count_before_prefilter": len(remaining) + 1,
                             "decision_kind": kind,
                             "selection_probability": decision.probabilities[candidate_index],
                             "chosen": candidate_index == chosen_index,
@@ -256,6 +286,8 @@ class InitializationPPOController(MutationLogger):
             "ppo_updates": self.trainer.updates - self._ppo_updates_at_start,
             "ppo_updates_before_run": self._ppo_updates_at_start,
             "ppo_updates_total": self.trainer.updates,
+            "rule_prefilter_top_k": self.rule_top_k,
+            "rule_prefilter_enabled": self.rule_top_k is not None,
             "feature_construction_seconds": self.feature_construction_seconds,
             "ppo_update_seconds": self.ppo_update_seconds,
         }

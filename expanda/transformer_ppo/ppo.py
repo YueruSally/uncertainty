@@ -357,6 +357,7 @@ class PPOTrainer:
             "normalization_digest": metadata.get("normalization_digest"),
             "training_episode_count": metadata.get("episode_count"),
             "ppo_digest": metadata.get("ppo_digest"),
+            "learning_control": metadata.get("learning_control"),
             "updates": result.updates,
         }
         return result

@@ -43,6 +43,12 @@ def main(argv=None):
         "BASE", "RULE-I", "I", "C", "M", "ICM"),
                         required=True)
     parser.add_argument("--initialization-rule-normalization", type=Path)
+    parser.add_argument("--initialization-rule-top-k", type=int,
+                        help="V2 learned-I Rule-I prefilter size.")
+    parser.add_argument("--model-choice-probability", type=float, default=1.0,
+                        help="V2 single C/M probability of using the model.")
+    parser.add_argument("--c-model-choice-probability", type=float, default=1.0)
+    parser.add_argument("--m-model-choice-probability", type=float, default=1.0)
     parser.add_argument("--checkpoint", type=Path,
                         help="Checkpoint for a single I, C, or M run.")
     parser.add_argument("--i-checkpoint", type=Path)
@@ -57,14 +63,29 @@ def main(argv=None):
     try:
         normalizer = _normalizer(args.normalization)
         rule_normalization = None
-        if args.component == "RULE-I":
+        needs_rule_normalization = (
+            args.component == "RULE-I"
+            or args.initialization_rule_top_k is not None)
+        if needs_rule_normalization:
             if (args.initialization_rule_normalization is None
                     or not args.initialization_rule_normalization.is_file()):
-                raise ValueError("RULE-I requires --initialization-rule-normalization")
+                raise ValueError(
+                    "RULE-I/I prefilter requires "
+                    "--initialization-rule-normalization")
             rule_normalization = json.loads(
                 args.initialization_rule_normalization.read_text(encoding="utf-8"))
-            trainer = None
-        elif args.component == "BASE":
+        if args.initialization_rule_top_k is not None:
+            if args.component not in ("I", "ICM"):
+                raise ValueError("I rule top-k is valid only for I or ICM")
+            if args.initialization_rule_top_k < 2:
+                raise ValueError("I rule top-k must be at least 2")
+        for name, value in (
+                ("model", args.model_choice_probability),
+                ("C", args.c_model_choice_probability),
+                ("M", args.m_model_choice_probability)):
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{name} choice probability must be in [0, 1]")
+        if args.component in ("BASE", "RULE-I"):
             trainer = None
         elif args.component == "ICM":
             trainer = {
@@ -80,7 +101,18 @@ def main(argv=None):
             evaluation_budget=args.evaluation_budget, pop_size=args.pop,
             generations=args.gens, reward_config=RewardConfig(),
             evaluation_mode="deterministic", component=args.component,
-            rule_initialization_normalization=rule_normalization)
+            rule_initialization_normalization=(
+                rule_normalization if args.component == "RULE-I" else None),
+            initialization_learning_rule_normalization=(
+                rule_normalization
+                if args.initialization_rule_top_k is not None else None),
+            initialization_learning_rule_top_k=args.initialization_rule_top_k,
+            model_choice_probabilities=(
+                {args.component: args.model_choice_probability}
+                if args.component in ("C", "M") else
+                {"C": args.c_model_choice_probability,
+                 "M": args.m_model_choice_probability}
+                if args.component == "ICM" else None))
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     print(json.dumps(summary, indent=2, allow_nan=False))

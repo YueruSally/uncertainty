@@ -17,9 +17,13 @@ from .comparison_controllers import BaseBudgetController, CombinedPPOController
 from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
 from .initialization_controller import InitializationPPOController
-from .initialization_rule import InitializationRuleController
+from .initialization_rule import (
+    InitializationRuleController,
+    validate_rule_normalization,
+)
 from .instance_catalog import read_instance
 from .graph_features import build_graph_observation
+from .v2_controls import validate_model_choice_probability
 
 
 FINAL_OBJECTIVE_ORDER = ("cost", "emission", "makespan")
@@ -37,7 +41,11 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 algorithm_seed: int, evaluation_budget=15_000,
                 pop_size=100, generations=1_000, reward_config=None,
                 evaluation_mode="ccp100", component="M",
-                rule_initialization_normalization=None):
+                rule_initialization_normalization=None,
+                initialization_learning_rule_normalization=None,
+                initialization_learning_rule_top_k=None,
+                model_choice_probabilities=None,
+                learning_protocol_version=None):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
@@ -58,6 +66,34 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         raise ValueError(f"{component} does not accept a policy trainer")
     if component == "RULE-I" and rule_initialization_normalization is None:
         raise ValueError("RULE-I requires a path-feature normalization")
+    if learning_protocol_version not in (None, 1, 2):
+        raise ValueError("learning protocol version must be 1 or 2")
+    if ((initialization_learning_rule_normalization is None)
+            != (initialization_learning_rule_top_k is None)):
+        raise ValueError(
+            "learned I rule normalization and top-k must be supplied together")
+    if initialization_learning_rule_top_k is not None:
+        if component not in ("I", "ICM"):
+            raise ValueError("I rule prefilter is valid only for I or ICM")
+        if int(initialization_learning_rule_top_k) < 2:
+            raise ValueError("learned I rule top-k must be at least 2")
+        validate_rule_normalization(
+            initialization_learning_rule_normalization)
+    probabilities = {"C": 1.0, "M": 1.0}
+    supplied_probabilities = dict(model_choice_probabilities or {})
+    if set(supplied_probabilities) - {"C", "M"}:
+        raise ValueError("model choice probabilities accept only C and M")
+    probabilities.update({
+        name: validate_model_choice_probability(value)
+        for name, value in supplied_probabilities.items()
+    })
+    allowed_probability_components = (
+        {component} if component in ("C", "M") else
+        {"C", "M"} if component == "ICM" else set())
+    if any(name not in allowed_probability_components
+           for name in supplied_probabilities):
+        raise ValueError(
+            "model choice probabilities do not match the episode component")
     if out.exists() and any(out.iterdir()):
         raise ValueError(f"episode output directory must be empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
@@ -130,9 +166,28 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         None if component in ("BASE", "RULE-I") else
         {name: item.checkpoint_provenance for name, item in trainer.items()}
         if component == "ICM" else trainer.checkpoint_provenance)
+    policy_trainers = (
+        trainer.values() if component == "ICM" else
+        () if trainer is None else (trainer,))
+    checkpoint_v2 = any(
+        ((item.checkpoint_provenance or {}).get("learning_control") or {}).get(
+            "protocol") == "nsga2-learning-components-v2"
+        for item in policy_trainers
+    )
+    derived_v2 = (
+        initialization_learning_rule_top_k is not None
+        or any(probabilities[name] != 1.0
+               for name in allowed_probability_components)
+        or checkpoint_v2
+    )
+    v2_active = (
+        derived_v2 if learning_protocol_version is None
+        else learning_protocol_version == 2)
     config = {
         "schema_version": 3, "method": method,
-        "protocol": "nsga2-learning-components-v1",
+        "protocol": (
+            "nsga2-learning-components-v2"
+            if v2_active else "nsga2-learning-components-v1"),
         "component": component,
         "evaluation_mode": evaluation_mode,
         "instance_id": instance["instance_id"], "configuration": instance["configuration"],
@@ -153,6 +208,21 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "policy_checkpoint": policy_checkpoint,
         "initialization_rule": (
             rule_initialization_normalization if component == "RULE-I" else None),
+        "learning_control": {
+            "version": 2 if v2_active else 1,
+            "initialization_rule_prefilter": (
+                None if initialization_learning_rule_top_k is None else {
+                    "top_k": int(initialization_learning_rule_top_k),
+                    "normalization_digest": (
+                        initialization_learning_rule_normalization.get(
+                            "normalization_digest")),
+                }),
+            "model_choice_probabilities": {
+                name: probabilities[name]
+                for name in sorted(allowed_probability_components)
+            },
+            "control_random_stream": "private-sha256-seeded",
+        },
         "network_encoding": graph_observation["schema"],
         "normalization": {"minimum": episode_normalizer.minimum,
                           "maximum": episode_normalizer.maximum,
@@ -185,15 +255,27 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             reward_config=reward_config or RewardConfig(), batches=batches,
             generations=generations, pop_size=pop_size,
             graph_observation=graph_observation, method=method,
-            instance=instance, seeds=seeds)
+            instance=instance, seeds=seeds,
+            initialization_rule_normalization=(
+                initialization_learning_rule_normalization),
+            initialization_rule_top_k=initialization_learning_rule_top_k,
+            model_choice_probabilities=probabilities)
     else:
         controller_type = controller_types[component]
+        controller_options = {}
+        if component == "I":
+            controller_options.update(
+                rule_normalization=initialization_learning_rule_normalization,
+                rule_top_k=initialization_learning_rule_top_k)
+        elif component in ("C", "M"):
+            controller_options["model_choice_probability"] = probabilities[component]
         controller = controller_type(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
             trainer=trainer, archive=archive,
             reward_config=reward_config or RewardConfig(), batches=batches,
             generations=generations, pop_size=pop_size, method=method,
-            instance=instance, seeds=seeds, graph_observation=graph_observation)
+            instance=instance, seeds=seeds, graph_observation=graph_observation,
+            **controller_options)
     base.ACTIVE_MUTATION_LOGGER = controller
     try:
         population = base.run_nsga2(

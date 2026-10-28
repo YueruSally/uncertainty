@@ -13,6 +13,7 @@ from .crossover_observations import (
     build_crossover_observation,
     build_crossover_shared_observation,
 )
+from .v2_controls import private_seed, validate_model_choice_probability
 
 
 class CrossoverPPOController(MutationLogger):
@@ -23,7 +24,8 @@ class CrossoverPPOController(MutationLogger):
 
     def __init__(self, *args, trainer, archive: RewardArchive,
                  reward_config: RewardConfig, batches, generations, pop_size,
-                 graph_observation=None, **kwargs):
+                 graph_observation=None, model_choice_probability=1.0,
+                 **kwargs):
         self.trainer = trainer
         self._ppo_updates_at_start = int(trainer.updates)
         self.archive = archive
@@ -32,6 +34,11 @@ class CrossoverPPOController(MutationLogger):
         self.generations = int(generations)
         self.pop_size = int(pop_size)
         self.graph_observation = graph_observation
+        self.model_choice_probability = validate_model_choice_probability(
+            model_choice_probability)
+        self.control_rng = random.Random(private_seed(
+            "C-mixture-v2", kwargs.get("run_id", args[1] if len(args) > 1 else ""),
+            (kwargs.get("seeds") or {}).get("algorithm")))
         self.current_population = []
         self.pending_offspring = []
         self._pending_fingerprints = set()
@@ -44,11 +51,15 @@ class CrossoverPPOController(MutationLogger):
         self._settled_outcomes = []
         self.reward_total = 0.0
         self.positive_reward_actions = 0
+        self.model_control_events = 0
+        self.base_control_events = 0
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
             log_names=("crossover_outcomes", "crossover_candidates",
                        "crossover_skips", "generation_summary"),
             normalizer=archive.normalizer, **kwargs)
+        if self.model_choice_probability < 1.0:
+            self.decision_counts["base_mixture_choice"] = 0
         trainer.observation_provider = self._observation
 
     def evaluate(self, function, ind, *args, **kwargs):
@@ -101,7 +112,26 @@ class CrossoverPPOController(MutationLogger):
         self.event_count += 1
         self.total_attempts += 1
         self._shared_observation = None
-        model_decisions = sum(len(item.candidates) >= 2 for item in cut_decisions)
+        has_learnable_cut = any(
+            len(cut.candidates) >= 2 for cut in cut_decisions)
+        event_uses_model = (
+            has_learnable_cut and (
+                True if self.model_choice_probability == 1.0 else
+                False if self.model_choice_probability == 0.0 else
+                self.control_rng.random() < self.model_choice_probability
+            )
+        )
+        # One crossover is one environment action and one joint reward.  The
+        # mixture branch is therefore sampled once for the whole event, not
+        # independently for its sub-decisions.
+        use_model = [
+            bool(event_uses_model and len(cut.candidates) >= 2)
+            for cut in cut_decisions
+        ]
+        if has_learnable_cut:
+            self.model_control_events += int(event_uses_model)
+            self.base_control_events += int(not event_uses_model)
+        model_decisions = sum(use_model)
         if model_decisions:
             self.trainer.begin_sequence()
         self._current_parents = (parent1, parent2)
@@ -130,11 +160,28 @@ class CrossoverPPOController(MutationLogger):
                             "fallback": None,
                             "decision_kind": "single_candidate",
                         })
-                else:
+                elif use_model[cut_index]:
                     if self.trainer.pending is not None:
                         # Only the final learnable cut receives the terminal reward.
                         self.trainer.observe_outcome(0.0, done=False)
                     decision = self.trainer.choose(list(cut.candidates), context)
+                    decision.metadata.update({
+                        "control_branch": "model",
+                        "model_choice_probability": self.model_choice_probability,
+                    })
+                else:
+                    probabilities = [0.0] * len(cut.candidates)
+                    probabilities[shadow_base_index] = 1.0
+                    decision = Decision(
+                        shadow_base_index, probabilities,
+                        [None] * len(cut.candidates), {
+                            "no_eligible_candidate": False,
+                            "fallback": None,
+                            "decision_kind": "base_mixture_choice",
+                            "control_branch": "paired_base",
+                            "model_choice_probability": (
+                                self.model_choice_probability),
+                        })
                 kind = decision.metadata.get("decision_kind", "policy_choice")
                 self.decision_counts[kind] = self.decision_counts.get(kind, 0) + 1
                 self.inference_seconds += float(
@@ -292,6 +339,9 @@ class CrossoverPPOController(MutationLogger):
             "ppo_updates_before_run": self._ppo_updates_at_start,
             "ppo_updates_total": self.trainer.updates,
             "shared_observation_builds": self.shared_observation_builds,
+            "model_choice_probability": self.model_choice_probability,
+            "model_control_events": self.model_control_events,
+            "base_control_events": self.base_control_events,
             "feature_construction_seconds": self.feature_construction_seconds,
             "ppo_update_seconds": self.ppo_update_seconds,
         }

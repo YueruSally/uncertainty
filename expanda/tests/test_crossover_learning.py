@@ -216,6 +216,48 @@ class CrossoverPlanningTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_v2_zero_model_probability_executes_paired_base_cut(self):
+        from transformer_ppo.archive import RewardArchive, RewardConfig
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        trainer = _FakeTrainer()
+        trainer.choose = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("zero model probability must not call PPO"))
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        lookup = {
+            (arc.from_node, arc.to_node, arc.mode): arc
+            for path in (self.path1, self.path2) for arc in path.arcs
+        }
+        random.seed(1234)
+        base.crossover_common_node(
+            self.parent1, self.parent2, [self.batch], {}, lookup)
+        expected_state = random.getstate()
+
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CrossoverPPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[self.batch], generations=2, pop_size=2,
+                method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0},
+                seeds={"algorithm": 1234}, model_choice_probability=0.0)
+            try:
+                random.seed(1234)
+                controller.crossover_common_node(
+                    self.parent1, self.parent2, [self.batch], {}, lookup)
+                self.assertEqual(random.getstate(), expected_state)
+                selected = controller._active_event["selected_cuts"][0]
+                self.assertEqual(
+                    selected["chosen_index"], selected["shadow_base_index"])
+                self.assertEqual(
+                    selected["decision_kind"], "base_mixture_choice")
+                self.assertEqual(controller._active_event["model_decisions"], 0)
+            finally:
+                controller.close()
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CrossoverPPOSequenceTests(unittest.TestCase):

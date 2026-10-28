@@ -53,6 +53,10 @@ class PPOConfig:
             raise ValueError("gamma and gae_lambda must be in (0, 1]")
         if not 0.0 < self.clip_ratio < 1.0:
             raise ValueError("clip_ratio must be in (0, 1)")
+        if self.actor_learning_rate <= 0.0 or self.critic_learning_rate <= 0.0:
+            raise ValueError("actor and critic learning rates must be positive")
+        if self.entropy_coefficient < 0.0:
+            raise ValueError("entropy coefficient must be non-negative")
         if self.hidden_dim % self.attention_heads:
             raise ValueError("hidden_dim must be divisible by attention_heads")
 

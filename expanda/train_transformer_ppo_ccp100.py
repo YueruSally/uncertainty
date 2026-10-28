@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Train one separate M-location, C-cut, or I-path PPO seed."""
 import argparse
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import hashlib
 import json
 from pathlib import Path
@@ -13,6 +13,7 @@ from transformer_ppo.config import PPOConfig, SCENARIOS, episode_seeds
 from transformer_ppo.crossover_observations import CROSSOVER_GRAPH_MODEL_SPEC
 from transformer_ppo.graph_features import GRAPH_MODEL_SPEC
 from transformer_ppo.initialization_observations import INITIALIZATION_GRAPH_MODEL_SPEC
+from transformer_ppo.initialization_rule import validate_rule_normalization
 from transformer_ppo.observations import (
     CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
 )
@@ -112,8 +113,11 @@ def _model_spec(component):
 
 def _run_config(args, config, manifests, records):
     normalization = _read_json(args.normalization)
+    rule_normalization = (
+        None if args.initialization_rule_normalization is None
+        else _read_json(args.initialization_rule_normalization))
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "component": args.component,
         "architecture": args.architecture,
         "model_spec": _model_spec(args.component),
@@ -135,6 +139,19 @@ def _run_config(args, config, manifests, records):
         "generations": args.gens,
         "normalization_sha256": _sha256(args.normalization),
         "normalization_digest": normalization.get("normalization_digest"),
+        "learning_control": {
+            "protocol": "nsga2-learning-components-v2",
+            "initialization_rule_prefilter": (
+                None if args.initialization_rule_top_k is None else {
+                    "top_k": args.initialization_rule_top_k,
+                    "normalization_sha256": _sha256(
+                        args.initialization_rule_normalization),
+                    "normalization_digest": rule_normalization.get(
+                        "normalization_digest"),
+                }),
+            "model_choice_probability": args.model_choice_probability,
+            "control_random_stream": "private-sha256-seeded",
+        },
         "reward": asdict(RewardConfig()),
         "oos_used_for_training": False,
         "checkpoint_rule": "episode-boundary checkpoint after every predeclared instance",
@@ -232,6 +249,16 @@ def main():
         help=("Explicit predeclared ordered training subset. Mutually "
               "exclusive with --max-instances."))
     parser.add_argument("--device")
+    parser.add_argument("--initialization-rule-normalization", type=Path,
+                        help="Training-only Rule-I ranges for learned-I prefiltering.")
+    parser.add_argument("--initialization-rule-top-k", type=int,
+                        help="Keep the best k Rule-I paths before each I decision.")
+    parser.add_argument("--model-choice-probability", type=float, default=1.0,
+                        help=("Probability of using PPO; C/M otherwise execute "
+                              "their paired original Base operation."))
+    parser.add_argument("--actor-learning-rate", type=float)
+    parser.add_argument("--critic-learning-rate", type=float)
+    parser.add_argument("--entropy-coefficient", type=float)
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
@@ -243,6 +270,29 @@ def main():
         parser.error(f"instance directory does not exist: {args.instances}")
     if not args.normalization.is_file():
         parser.error(f"normalization file does not exist: {args.normalization}")
+    if ((args.initialization_rule_normalization is None)
+            != (args.initialization_rule_top_k is None)):
+        parser.error(
+            "--initialization-rule-normalization and --initialization-rule-top-k "
+            "must be supplied together")
+    if args.initialization_rule_top_k is not None:
+        if args.component != "I":
+            parser.error("I rule prefilter options require --component I")
+        if args.initialization_rule_top_k < 2:
+            parser.error("--initialization-rule-top-k must be at least 2")
+        if not args.initialization_rule_normalization.is_file():
+            parser.error(
+                "initialization rule normalization does not exist: "
+                f"{args.initialization_rule_normalization}")
+        try:
+            validate_rule_normalization(
+                _read_json(args.initialization_rule_normalization))
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            parser.error(str(error))
+    if not 0.0 < args.model_choice_probability <= 1.0:
+        parser.error("training --model-choice-probability must be in (0, 1]")
+    if args.component == "I" and args.model_choice_probability != 1.0:
+        parser.error("--model-choice-probability is valid only for C or M")
     if args.resume:
         if not args.out.exists() or not any(args.out.iterdir()):
             parser.error("--resume requires an existing non-empty output directory")
@@ -256,6 +306,18 @@ def main():
         parser.error(str(error))
     config = (PPOConfig(rollout_steps=512, gae_horizon=256)
               if args.component == "I" else PPOConfig())
+    overrides = {
+        name: value for name, value in {
+            "actor_learning_rate": args.actor_learning_rate,
+            "critic_learning_rate": args.critic_learning_rate,
+            "entropy_coefficient": args.entropy_coefficient,
+        }.items() if value is not None
+    }
+    config = replace(config, **overrides)
+    try:
+        config.validate()
+    except ValueError as error:
+        parser.error(str(error))
     normalizer = _normalizer(args.normalization)
     run_config = _run_config(args, config, manifests, records)
     args.out.mkdir(parents=True, exist_ok=True)
@@ -299,11 +361,20 @@ def main():
         if args.resume:
             _quarantine_partial_episode(args.out, episode_out)
         print(f"EPISODE {index + 1}/{len(manifests)} {manifest.stem}", flush=True)
+        rule_normalization = (
+            None if args.initialization_rule_normalization is None
+            else _read_json(args.initialization_rule_normalization))
         summary = run_episode(
             args.data, manifest, episode_out, trainer, normalizer,
             algorithm_seed=seeds["algorithm"], evaluation_budget=args.evaluation_budget,
             pop_size=args.pop, generations=args.gens, reward_config=RewardConfig(),
-            evaluation_mode=args.evaluation_mode, component=args.component)
+            evaluation_mode=args.evaluation_mode, component=args.component,
+            initialization_learning_rule_normalization=rule_normalization,
+            initialization_learning_rule_top_k=args.initialization_rule_top_k,
+            model_choice_probabilities=(
+                {args.component: args.model_choice_probability}
+                if args.component in ("C", "M") else None),
+            learning_protocol_version=2)
         summaries.append({"instance": manifest.stem, **summary})
         completed = index + 1
         previous_checkpoint = checkpoint

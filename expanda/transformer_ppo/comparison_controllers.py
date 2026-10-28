@@ -96,7 +96,10 @@ class CombinedPPOController:
 
     def __init__(self, out, run_id, scenario_id, budget, *, trainers,
                  normalizer, reward_config: RewardConfig, batches, generations,
-                 pop_size, graph_observation, method, instance, seeds):
+                 pop_size, graph_observation, method, instance, seeds,
+                 initialization_rule_normalization=None,
+                 initialization_rule_top_k=None,
+                 model_choice_probabilities=None):
         if set(trainers) != {"I", "C", "M"}:
             raise ValueError("combined controller requires exactly I, C, and M trainers")
         if any(trainer.training for trainer in trainers.values()):
@@ -121,17 +124,27 @@ class CombinedPPOController:
             "C": CrossoverPPOController,
             "M": PPOController,
         }
+        probabilities = {"C": 1.0, "M": 1.0}
+        probabilities.update(model_choice_probabilities or {})
         self.controllers = {}
         for component in ("I", "C", "M"):
             component_out = out / "components" / component
             component_out.mkdir(parents=True, exist_ok=False)
+            component_options = {}
+            if component == "I":
+                component_options.update(
+                    rule_normalization=initialization_rule_normalization,
+                    rule_top_k=initialization_rule_top_k)
+            elif component in probabilities:
+                component_options["model_choice_probability"] = (
+                    probabilities[component])
             self.controllers[component] = controller_types[component](
                 component_out, run_id, scenario_id, budget,
                 trainer=trainers[component], archive=RewardArchive(normalizer),
                 reward_config=reward_config, batches=batches,
                 generations=generations, pop_size=pop_size,
                 graph_observation=graph_observation, method=method,
-                instance=instance, seeds=seeds)
+                instance=instance, seeds=seeds, **component_options)
         self._sync_children()
 
     @property

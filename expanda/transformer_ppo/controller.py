@@ -1,12 +1,15 @@
 """PPO controller implementing the frozen NSGA-II mutation logger hook."""
 from __future__ import annotations
 
+import random
 import time
 
+import baseline_uncertainty as base
 from multi_instance_logging import MutationLogger, fingerprint
 
 from .archive import RewardArchive, RewardConfig, hv_reward
 from .observations import build_observation
+from .v2_controls import private_seed, validate_model_choice_probability
 
 
 class PPOController(MutationLogger):
@@ -14,7 +17,8 @@ class PPOController(MutationLogger):
 
     def __init__(self, *args, trainer, archive: RewardArchive,
                  reward_config: RewardConfig, batches, generations, pop_size,
-                 graph_observation=None, **kwargs):
+                 graph_observation=None, model_choice_probability=1.0,
+                 **kwargs):
         self.trainer = trainer
         self._ppo_updates_at_start = int(trainer.updates)
         self.archive = archive
@@ -31,9 +35,20 @@ class PPOController(MutationLogger):
         self._inside_mutation = False
         self.reward_total = 0.0
         self.positive_reward_actions = 0
+        self.model_control_events = 0
+        self.base_control_events = 0
+        self.model_choice_probability = validate_model_choice_probability(
+            model_choice_probability)
+        self.control_rng = random.Random(private_seed(
+            "M-mixture-v2",
+            kwargs.get("run_id", args[1] if len(args) > 1 else ""),
+            (kwargs.get("seeds") or {}).get("algorithm"),
+        ))
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
             preserve_base_position_rng=True, normalizer=archive.normalizer, **kwargs)
+        if self.model_choice_probability < 1.0:
+            self.decision_counts["base_mixture_choice"] = 0
         trainer.observation_provider = self._observation
 
     def evaluate(self, function, ind, *args, **kwargs):
@@ -74,6 +89,48 @@ class PPOController(MutationLogger):
                arcs, waiting_cost, waiting_emission, reliable_options=None, **kwargs):
         # Preserve the original crossover -> mutation -> repair -> evaluation
         # order.  In particular, do not evaluate the crossed child here.
+        use_model = (
+            True if self.model_choice_probability == 1.0 else
+            False if self.model_choice_probability == 0.0 else
+            self.control_rng.random() < self.model_choice_probability
+        )
+        if not use_model:
+            self.base_control_events += 1
+            before = fingerprint(ind)
+            self._inside_mutation = True
+            # Re-enter Base's exact implementation without recursively routing
+            # it back to this controller.  Its random batch, operator, target,
+            # repair, and evaluation stream are therefore unchanged.
+            self.controls_mutation = False
+            try:
+                result = base.mutate_fixed(
+                    ind, batches, path_lib, tt_dict, arc_lookup, arcs,
+                    waiting_cost, waiting_emission,
+                    reliable_options=reliable_options, **kwargs)
+            finally:
+                self.controls_mutation = True
+                self._inside_mutation = False
+            changed = fingerprint(ind) != before
+            self.total_attempts += 1
+            self.total_effective += int(changed)
+            self.decision_counts["base_mixture_choice"] += 1
+            self.append("mutation_outcomes", {
+                "run_id": self.run_id,
+                "instance_id": self.instance.get("instance_id"),
+                "generation": self.generation,
+                "evaluation": self.evaluations,
+                "decision_kind": "base_mixture_choice",
+                "control_branch": "paired_base",
+                "model_choice_probability": self.model_choice_probability,
+                "operator": result[0],
+                "decision_changed": bool(changed),
+                "reward_recorded_for_policy": False,
+            })
+            if self.phase == "offspring":
+                self._record_pending_offspring(ind)
+            return result
+
+        self.model_control_events += 1
         self._inside_mutation = True
         pending_before = len(self.pending)
         self.current_individual = ind
@@ -105,8 +162,9 @@ class PPOController(MutationLogger):
                    reward_recorded_for_policy=(
                        row.get("decision_kind") == "model_choice"),
                    action_wall_seconds=time.perf_counter() - started)
-        self.reward_total += reward
-        self.positive_reward_actions += int(reward > 0)
+        if row.get("decision_kind") == "model_choice":
+            self.reward_total += reward
+            self.positive_reward_actions += int(reward > 0)
         self.trainer.observe_outcome(reward, done=False)
         if self.phase == "offspring":
             self._record_pending_offspring(ind)
@@ -139,5 +197,8 @@ class PPOController(MutationLogger):
                 "ppo_updates": self.trainer.updates - self._ppo_updates_at_start,
                 "ppo_updates_before_run": self._ppo_updates_at_start,
                 "ppo_updates_total": self.trainer.updates,
+                "model_choice_probability": self.model_choice_probability,
+                "model_control_events": self.model_control_events,
+                "base_control_events": self.base_control_events,
                 "feature_construction_seconds": self.feature_construction_seconds,
                 "ppo_update_seconds": self.ppo_update_seconds}

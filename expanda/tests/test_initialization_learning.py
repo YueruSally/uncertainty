@@ -183,6 +183,53 @@ class InitializationControllerTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_v2_rule_prefilter_limits_model_candidates_without_changing_base_rng(self):
+        for path, value in zip(self.paths, (9.0, 1.0, 5.0)):
+            path.base_cost_per_teu = value
+            path.base_emission_per_teu = value
+            path.base_travel_time_h = value
+        rule = {
+            "source": "training-only",
+            "configuration": "S0",
+            "features": [
+                "base_cost_per_teu", "base_emission_per_teu",
+                "base_travel_time_h",
+            ],
+            "minimum": [0.0, 0.0, 0.0],
+            "maximum": [10.0, 10.0, 10.0],
+            "test_instances_used": False,
+            "normalization_digest": "toy-rule",
+        }
+        random.seed(42)
+        base.random_initial_individual([self.batch], self.path_lib, max_paths=2)
+        expected_state = random.getstate()
+
+        trainer = _FakeTrainer()
+        with tempfile.TemporaryDirectory() as directory:
+            controller = InitializationPPOController(
+                Path(directory), "run", "scenario", 50, trainer=trainer,
+                archive=RewardArchive(self.normalizer),
+                reward_config=RewardConfig(), batches=[self.batch],
+                generations=2, pop_size=4, method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={},
+                rule_normalization=rule, rule_top_k=2)
+            try:
+                random.seed(42)
+                learned = controller.initial_individual(
+                    [self.batch], self.path_lib, max_paths=2)
+                self.assertEqual(random.getstate(), expected_state)
+                self.assertLessEqual(
+                    len(trainer.last_observation["candidates"]), 2)
+                selected_ids = {
+                    item.path.path_id
+                    for item in learned.od_allocations[("A", "D", 4)]
+                }
+                self.assertNotIn(1, selected_ids)
+                self.assertTrue(controller.summary()["rule_prefilter_enabled"])
+            finally:
+                controller.close()
+
 
 def _path_signature(path):
     return tuple(path.nodes), tuple(path.modes)
