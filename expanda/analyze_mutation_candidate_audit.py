@@ -8,6 +8,7 @@ import itertools
 import json
 import math
 from pathlib import Path
+import random
 import statistics
 
 
@@ -65,6 +66,32 @@ def correlation(left, right):
     return None if denominator <= 0.0 else float(numerator / denominator)
 
 
+def shuffled_residual_expectations(prior, residual, values, sample_count=4096):
+    """Evaluate the shuffled residual null without factorial blow-up.
+
+    Exact enumeration is retained for small audits.  Larger joint path action
+    sets use a deterministic Monte Carlo permutation sample so the report is
+    reproducible and bounded in both time and memory.
+    """
+    count = len(residual)
+    if count <= 8:
+        permutations = itertools.permutations(residual)
+    else:
+        rng = random.Random(0)
+
+        def sampled():
+            indices = list(range(count))
+            for _ in range(sample_count):
+                rng.shuffle(indices)
+                yield [residual[index] for index in indices]
+
+        permutations = sampled()
+    return [expectation(conditional([
+        prior_value * residual_value
+        for prior_value, residual_value in zip(prior, permutation)
+    ]), values) for permutation in permutations]
+
+
 def metric_comparison(prior, trained, values):
     prior_expected = expectation(prior, values)
     trained_expected = expectation(trained, values)
@@ -72,13 +99,7 @@ def metric_comparison(prior, trained, values):
         trained_value / prior_value
         for prior_value, trained_value in zip(prior, trained)
     ]
-    shuffled = []
-    for permutation in itertools.permutations(residual):
-        probabilities = conditional([
-            prior_value * residual_value
-            for prior_value, residual_value in zip(prior, permutation)
-        ])
-        shuffled.append(expectation(probabilities, values))
+    shuffled = shuffled_residual_expectations(prior, residual, values)
     oracle = max(values)
     trained_top = max(range(len(values)), key=lambda index: trained[index])
     return {

@@ -7,7 +7,9 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from analyze_mutation_candidate_audit import analyze
+from analyze_mutation_candidate_audit import (
+    analyze, shuffled_residual_expectations,
+)
 
 
 def write_jsonl(path, rows):
@@ -17,6 +19,17 @@ def write_jsonl(path, rows):
 
 
 class MutationCandidateAuditTests(unittest.TestCase):
+    def test_large_action_shuffle_is_bounded_and_reproducible(self):
+        prior = [1. / 16] * 16
+        residual = [float(index + 1) for index in range(16)]
+        values = [float(index) for index in range(16)]
+        first = shuffled_residual_expectations(
+            prior, residual, values, sample_count=32)
+        second = shuffled_residual_expectations(
+            prior, residual, values, sample_count=32)
+        self.assertEqual(len(first), 32)
+        self.assertEqual(first, second)
+
     def test_analysis_compares_trained_prior_shuffle_and_oracle(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
