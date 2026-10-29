@@ -45,6 +45,8 @@ class PPOConfig:
     attention_heads: int = 4
     transformer_layers: int = 2
     dropout: float = 0.1
+    actor_policy: str = "direct"
+    residual_logit_limit: float = 2.0
 
     def validate(self) -> None:
         if self.rollout_steps < self.gae_horizon:
@@ -59,6 +61,11 @@ class PPOConfig:
             raise ValueError("entropy coefficient must be non-negative")
         if not 0.0 <= self.dropout < 1.0:
             raise ValueError("dropout must be in [0, 1)")
+        if self.actor_policy not in ("direct", "base_residual"):
+            raise ValueError(
+                "actor_policy must be 'direct' or 'base_residual'")
+        if self.residual_logit_limit <= 0.0:
+            raise ValueError("residual_logit_limit must be positive")
         if self.hidden_dim % self.attention_heads:
             raise ValueError("hidden_dim must be divisible by attention_heads")
 

@@ -207,6 +207,8 @@ class CrossoverPPOController(MutationLogger):
                         "evaluation": self.evaluations,
                         "decision_kind": kind,
                         **candidate,
+                        "baseline_selection_probability": (
+                            1.0 / len(cut.candidates)),
                         "selection_probability": decision.probabilities[candidate_index],
                         "chosen": candidate_index == decision.chosen_index,
                     })

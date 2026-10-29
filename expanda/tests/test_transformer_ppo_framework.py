@@ -17,7 +17,7 @@ from transformer_ppo.config import PPOConfig, SCENARIOS, TEST_CONFIGS, TRAIN_CON
 from transformer_ppo.instance_catalog import _draw_quantity, _draw_release_time, _split_od_pool
 from transformer_ppo.observations import (
     CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
-    build_observation, candidate_tokens,
+    action_prior, build_observation, candidate_tokens,
 )
 from transformer_ppo.statistics import formal_report, holm
 from run_transformer_ppo_formal_batch import _seeds
@@ -48,6 +48,16 @@ class ArchiveTests(unittest.TestCase):
 
 
 class ObservationTests(unittest.TestCase):
+    def test_action_prior_renormalizes_base_mass_over_legal_candidates(self):
+        candidates = [
+            {"selection_probability": 0.2},
+            {"selection_probability": 0.5},
+            {"selection_probability": 0.3},
+        ]
+        self.assertEqual(
+            action_prior(candidates, [True, False, True]),
+            [0.4, 0.0, 0.6])
+
     def test_mask_and_operator_are_separate_from_list_position(self):
         rows = [
             {"target": {"batch_id": 2}, "eligible": False, "p_rule": 0.},
@@ -120,9 +130,49 @@ class ConfigTests(unittest.TestCase):
             with self.subTest(dropout=dropout), self.assertRaises(ValueError):
                 PPOConfig(dropout=dropout).validate()
 
+    def test_invalid_actor_policy_fails(self):
+        with self.assertRaisesRegex(ValueError, "actor_policy"):
+            PPOConfig(actor_policy="replace-base").validate()
+
+    def test_invalid_residual_logit_limit_fails(self):
+        with self.assertRaisesRegex(ValueError, "residual_logit_limit"):
+            PPOConfig(residual_logit_limit=0.0).validate()
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CheckpointTests(unittest.TestCase):
+    def test_base_residual_actor_starts_at_declared_prior(self):
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(
+            hidden_dim=16, attention_heads=4, transformer_layers=1,
+            dropout=0.0, actor_policy="base_residual")
+        observation = {
+            "parent": [[0.0] * len(PARENT_FEATURES)],
+            "candidates": [[0.0] * len(CANDIDATE_FEATURES)] * 3,
+            "eligible": [True, True, False],
+            "action_prior": [0.25, 0.75, 0.0],
+            "operator_id": 0,
+            "global": [0.0] * len(GLOBAL_FEATURES),
+        }
+        for architecture in ("mlp", "transformer"):
+            with self.subTest(architecture=architecture):
+                trainer = PPOTrainer(
+                    architecture, config, lambda *_: observation,
+                    device="cpu", policy_seed=123, training=False)
+                decision = trainer.choose([
+                    {"eligible": True}, {"eligible": True},
+                    {"eligible": False},
+                ])
+                self.assertEqual(decision.chosen_index, 1)
+                self.assertAlmostEqual(
+                    decision.probabilities[0], 0.25, places=6)
+                self.assertAlmostEqual(
+                    decision.probabilities[1], 0.75, places=6)
+                self.assertEqual(decision.probabilities[2], 0.0)
+                self.assertEqual(
+                    decision.metadata["actor_policy"], "base_residual")
+
     def test_forced_single_candidate_creates_no_ppo_transition(self):
         from transformer_ppo.ppo import PPOTrainer
 

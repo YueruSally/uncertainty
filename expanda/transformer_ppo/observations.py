@@ -62,6 +62,30 @@ def _category_code(value) -> tuple[float, float]:
     return 2.0 * first - 1.0, 2.0 * second - 1.0
 
 
+def action_prior(candidates, eligible, use_candidate_probability=True):
+    """Return Base's candidate distribution restricted to legal actions."""
+    if len(candidates) != len(eligible):
+        raise ValueError("candidate prior and eligibility lengths differ")
+    values = []
+    for candidate, legal in zip(candidates, eligible):
+        if not legal:
+            values.append(0.0)
+            continue
+        value = (
+            candidate.get("selection_probability", 1.0)
+            if use_candidate_probability else 1.0)
+        value = _finite(value, 0.0)
+        values.append(max(0.0, value))
+    mass = sum(values)
+    legal_count = sum(bool(value) for value in eligible)
+    if mass <= 0.0:
+        return [
+            (1.0 / legal_count if legal else 0.0)
+            for legal in eligible
+        ] if legal_count else [0.0] * len(eligible)
+    return [value / mass for value in values]
+
+
 def parent_tokens(ind, batches) -> list[list[float]]:
     by_id = {batch.batch_id: batch for batch in batches}
     tokens = []
@@ -201,6 +225,7 @@ def build_observation(ind, batches, candidates, context, population, pending_off
         "parent": parent_tokens(ind, batches),
         "candidates": candidate_values,
         "eligible": eligible,
+        "action_prior": action_prior(candidates, eligible),
         "operator_id": OPERATOR_TO_ID[operator],
         "global": global_values,
     }
@@ -233,6 +258,8 @@ def pad_observations(observations, device=None):
     parent_mask = torch.ones(batch, max_parent, dtype=torch.bool, device=device)
     candidate_mask = torch.ones(batch, max_candidates, dtype=torch.bool, device=device)
     eligible = torch.zeros(batch, max_candidates, dtype=torch.bool, device=device)
+    action_prior_values = torch.zeros(
+        batch, max_candidates, dtype=torch.float32, device=device)
     for row, item in enumerate(observations):
         p, c = len(item["parent"]), len(item["candidates"])
         parent[row, :p] = torch.as_tensor(item["parent"], dtype=torch.float32, device=device)
@@ -240,10 +267,23 @@ def pad_observations(observations, device=None):
         parent_mask[row, :p] = False
         candidate_mask[row, :c] = False
         eligible[row, :c] = torch.as_tensor(item["eligible"], dtype=torch.bool, device=device)
+        prior = item.get("action_prior")
+        if prior is None:
+            prior = action_prior(
+                [{} for _ in item["candidates"]], item["eligible"],
+                use_candidate_probability=False)
+        if len(prior) != c:
+            raise ValueError("action prior must match candidate count")
+        prior = action_prior(
+            [{"selection_probability": value} for value in prior],
+            item["eligible"])
+        action_prior_values[row, :c] = torch.as_tensor(
+            prior, dtype=torch.float32, device=device)
     result = {
         "parent": parent, "candidates": candidates,
         "parent_padding_mask": parent_mask, "candidate_padding_mask": candidate_mask,
         "eligible_mask": eligible,
+        "action_prior": action_prior_values,
         "operator_id": torch.as_tensor([x["operator_id"] for x in observations],
                                        dtype=torch.long, device=device),
         "global": torch.as_tensor([x["global"] for x in observations],

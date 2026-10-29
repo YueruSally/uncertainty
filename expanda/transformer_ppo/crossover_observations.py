@@ -1,7 +1,7 @@
 """Raw-chromosome and population observations for crossover-cut learning."""
 from __future__ import annotations
 
-from .observations import _category_code, _finite, population_summary
+from .observations import action_prior, _category_code, _finite, population_summary
 from .graph_features import GRAPH_MODEL_SPEC
 
 
@@ -138,6 +138,9 @@ def build_crossover_observation(parent1, parent2, batches, candidates, context,
     observation = dict(shared)
     observation["candidates"] = candidate_values
     observation["eligible"] = eligible
+    # Base draws the common join node uniformly.
+    observation["action_prior"] = action_prior(
+        candidates, eligible, use_candidate_probability=False)
     if "graph" in observation:
         graph_observation = observation["graph"]
         node_index = graph_observation["node_index"]

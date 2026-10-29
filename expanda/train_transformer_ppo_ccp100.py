@@ -127,6 +127,7 @@ def _run_config(args, config, manifests, records):
             TRANSFORMER_ACTOR_CONDITIONING
             if args.architecture == "transformer" else
             "candidate-plus-global-plus-parent-pool"),
+        "actor_policy": config.actor_policy,
         "policy_seed": args.policy_seed,
         "ppo": asdict(config),
         "ppo_digest": config.digest(),
@@ -267,6 +268,13 @@ def main():
     parser.add_argument(
         "--dropout", type=float,
         help="PPO model dropout override; omit to retain PPOConfig default.")
+    parser.add_argument(
+        "--actor-policy", choices=("direct", "base_residual"),
+        help=("Actor formulation override. base_residual learns corrections "
+              "to Base's legal candidate distribution."))
+    parser.add_argument(
+        "--residual-logit-limit", type=float,
+        help="Absolute tanh bound for base-residual actor corrections.")
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
@@ -320,6 +328,8 @@ def main():
             "critic_learning_rate": args.critic_learning_rate,
             "entropy_coefficient": args.entropy_coefficient,
             "dropout": args.dropout,
+            "actor_policy": args.actor_policy,
+            "residual_logit_limit": args.residual_logit_limit,
         }.items() if value is not None
     }
     config = replace(config, **overrides)

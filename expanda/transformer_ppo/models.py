@@ -24,19 +24,35 @@ def _masked_mean(values, padding_mask):
 
 
 class _Heads(nn.Module):
-    def __init__(self, hidden_dim, action_count, critic_contexts=3):
+    def __init__(self, hidden_dim, action_count, critic_contexts=3,
+                 zero_actor=False):
         super().__init__()
         self.actor_heads = nn.ModuleList(
             [nn.Linear(hidden_dim, 1) for _ in range(action_count)])
         self.critic_head = nn.Sequential(
             nn.Linear(hidden_dim * critic_contexts, hidden_dim),
             nn.Tanh(), nn.Linear(hidden_dim, 1))
+        if zero_actor:
+            for head in self.actor_heads:
+                nn.init.zeros_(head.weight)
+                nn.init.zeros_(head.bias)
 
     def actor_logits(self, candidate_hidden, operator_id):
         all_logits = torch.stack(
             [head(candidate_hidden).squeeze(-1) for head in self.actor_heads], dim=1)
         index = operator_id[:, None, None].expand(-1, 1, candidate_hidden.shape[1])
         return all_logits.gather(1, index).squeeze(1)
+
+
+def _apply_actor_policy(logits, batch, actor_policy, residual_logit_limit):
+    if actor_policy == "direct":
+        return logits
+    if actor_policy != "base_residual":
+        raise ValueError(f"unknown actor policy: {actor_policy}")
+    prior = batch["action_prior"].to(logits.dtype)
+    bounded_residual = residual_logit_limit * torch.tanh(
+        logits / residual_logit_limit)
+    return bounded_residual + torch.log(prior.clamp_min(1e-12))
 
 
 class NetworkTransformerEncoder(nn.Module):
@@ -124,8 +140,11 @@ class TransformerActorCritic(nn.Module):
                  parent_dim=len(PARENT_FEATURES),
                  candidate_dim=len(CANDIDATE_FEATURES),
                  global_dim=len(GLOBAL_FEATURES), action_count=len(OPERATORS),
-                 graph_node_dim=None, graph_edge_dim=None):
+                 graph_node_dim=None, graph_edge_dim=None,
+                 actor_policy="direct", residual_logit_limit=2.0):
         super().__init__()
+        self.actor_policy = actor_policy
+        self.residual_logit_limit = float(residual_logit_limit)
         self.parent_projection = nn.Sequential(
             nn.Linear(parent_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
         self.candidate_projection = nn.Sequential(
@@ -146,7 +165,9 @@ class TransformerActorCritic(nn.Module):
             hidden_dim, heads, dropout=dropout, batch_first=True)
         self.cross_norm = nn.LayerNorm(hidden_dim)
         self.heads = _Heads(
-            hidden_dim, action_count, critic_contexts=4 if self.network_encoder else 3)
+            hidden_dim, action_count,
+            critic_contexts=4 if self.network_encoder else 3,
+            zero_actor=actor_policy == "base_residual")
 
     def forward(self, batch: Dict[str, torch.Tensor]):
         parent = self.parent_projection(_signed_log1p(batch["parent"]))
@@ -169,6 +190,8 @@ class TransformerActorCritic(nn.Module):
             key_padding_mask=batch["parent_padding_mask"], need_weights=False)
         candidate = self.cross_norm(candidate + attended)
         logits = self.heads.actor_logits(candidate, batch["operator_id"])
+        logits = _apply_actor_policy(
+            logits, batch, self.actor_policy, self.residual_logit_limit)
         valid = batch["eligible_mask"] & ~batch["candidate_padding_mask"]
         logits = logits.masked_fill(~valid, torch.finfo(logits.dtype).min)
         parent_pool = _masked_mean(parent, batch["parent_padding_mask"])
@@ -189,8 +212,11 @@ class MLPActorCritic(nn.Module):
                  parent_dim=len(PARENT_FEATURES),
                  candidate_dim=len(CANDIDATE_FEATURES),
                  global_dim=len(GLOBAL_FEATURES), action_count=len(OPERATORS),
-                 graph_node_dim=None, graph_edge_dim=None, **_):
+                 graph_node_dim=None, graph_edge_dim=None,
+                 actor_policy="direct", residual_logit_limit=2.0, **_):
         super().__init__()
+        self.actor_policy = actor_policy
+        self.residual_logit_limit = float(residual_logit_limit)
         self.parent_projection = nn.Sequential(
             nn.Linear(parent_dim, hidden_dim), nn.GELU(), nn.LayerNorm(hidden_dim))
         self.network_encoder = (
@@ -204,7 +230,9 @@ class MLPActorCritic(nn.Module):
             nn.Linear(global_dim, hidden_dim), nn.GELU())
         self.operator_embedding = nn.Embedding(action_count, hidden_dim)
         self.heads = _Heads(
-            hidden_dim, action_count, critic_contexts=4 if self.network_encoder else 3)
+            hidden_dim, action_count,
+            critic_contexts=4 if self.network_encoder else 3,
+            zero_actor=actor_policy == "base_residual")
 
     def forward(self, batch: Dict[str, torch.Tensor]):
         parent = self.parent_projection(_signed_log1p(batch["parent"]))
@@ -225,6 +253,8 @@ class MLPActorCritic(nn.Module):
         candidate = self.candidate_projection(inputs)
         candidate = candidate + self.operator_embedding(batch["operator_id"]).unsqueeze(1)
         logits = self.heads.actor_logits(candidate, batch["operator_id"])
+        logits = _apply_actor_policy(
+            logits, batch, self.actor_policy, self.residual_logit_limit)
         valid = batch["eligible_mask"] & ~batch["candidate_padding_mask"]
         logits = logits.masked_fill(~valid, torch.finfo(logits.dtype).min)
         candidate_pool = _masked_mean(candidate, batch["candidate_padding_mask"])
@@ -238,7 +268,9 @@ class MLPActorCritic(nn.Module):
 
 def build_model(architecture, config, model_spec=None):
     kwargs = dict(hidden_dim=config.hidden_dim, heads=config.attention_heads,
-                  layers=config.transformer_layers, dropout=config.dropout)
+                  layers=config.transformer_layers, dropout=config.dropout,
+                  actor_policy=config.actor_policy,
+                  residual_logit_limit=config.residual_logit_limit)
     if model_spec is not None:
         kwargs.update(model_spec)
     if architecture == "transformer":

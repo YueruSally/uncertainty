@@ -1,7 +1,7 @@
 """Partial-chromosome observations for initialization path selection."""
 from __future__ import annotations
 
-from .observations import _category_code, _finite, population_summary
+from .observations import action_prior, _category_code, _finite, population_summary
 from .graph_features import GRAPH_MODEL_SPEC
 
 
@@ -105,6 +105,10 @@ def build_initialization_observation(partial_individual, batches, candidates, co
         "parent": _partial_tokens(partial_individual, batches),
         "candidates": candidate_values,
         "eligible": eligible,
+        # Base samples paths uniformly without replacement.  At each partial
+        # construction step that is uniform over the remaining legal paths.
+        "action_prior": action_prior(
+            candidates, eligible, use_candidate_probability=False),
         "operator_id": 0,
         "global": global_values,
     }

@@ -186,6 +186,8 @@ class InitializationPPOController(MutationLogger):
                             "rule_prefilter_top_k": self.rule_top_k,
                             "candidate_count_before_prefilter": len(remaining) + 1,
                             "decision_kind": kind,
+                            "baseline_selection_probability": (
+                                1.0 / len(candidates)),
                             "selection_probability": decision.probabilities[candidate_index],
                             "chosen": candidate_index == chosen_index,
                         })
