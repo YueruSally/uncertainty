@@ -92,7 +92,7 @@ def raw_utility(row):
     return -1.0 - math.log1p(violation)
 
 
-def load_runs(paths):
+def load_runs(paths, target_metric="quality", selected_operator=None):
     candidates = []
     feature_dimension = None
     for run_index, run in enumerate(paths):
@@ -101,6 +101,9 @@ def load_runs(paths):
             raise ValueError(f"candidate audit outcomes are missing: {path}")
         grouped = defaultdict(list)
         for row in read_jsonl(path):
+            if (selected_operator is not None
+                    and str(row["operator"]) != selected_operator):
+                continue
             grouped[(int(row["state_id"]), int(row["candidate_id"]))].append(row)
         state_candidates = defaultdict(list)
         for (state_id, candidate_id), rows in grouped.items():
@@ -127,14 +130,20 @@ def load_runs(paths):
             }
             state_candidates[candidate["state_key"]].append(candidate)
         for state_key, rows in state_candidates.items():
-            minimum = min(row["raw_utility"] for row in rows)
-            maximum = max(row["raw_utility"] for row in rows)
+            if target_metric == "quality":
+                target_values = [row["raw_utility"] for row in rows]
+            elif target_metric == "archive_delta_hv":
+                target_values = [row["archive_delta_hv"] for row in rows]
+            else:
+                raise ValueError(f"unknown target metric: {target_metric}")
+            minimum = min(target_values)
+            maximum = max(target_values)
             span = maximum - minimum
-            for row in rows:
+            for row, target_value in zip(rows, target_values):
                 row["target"] = (
-                    (row["raw_utility"] - minimum) / span
+                    (target_value - minimum) / span
                     if span > 1e-12 else 0.5)
-                row["state_has_quality_gap"] = span > 1e-12
+                row["state_has_target_gap"] = span > 1e-12
                 candidates.append(row)
     if not candidates:
         raise ValueError("candidate audit dataset is empty")
@@ -288,18 +297,21 @@ def evaluate(rows, predictions):
     }
 
 
-def probe(train_paths, validation_paths, seed, feature_mode="absolute"):
-    train, dimension = load_runs(train_paths)
-    validation, validation_dimension = load_runs(validation_paths)
+def probe(train_paths, validation_paths, seed, feature_mode="absolute",
+          target_metric="quality", selected_operator=None):
+    train, dimension = load_runs(
+        train_paths, target_metric, selected_operator)
+    validation, validation_dimension = load_runs(
+        validation_paths, target_metric, selected_operator)
     if dimension != validation_dimension:
         raise ValueError("training and validation feature dimensions differ")
-    train_informative = [row for row in train if row["state_has_quality_gap"]]
+    train_informative = [row for row in train if row["state_has_target_gap"]]
     if len(train_informative) < 4:
         raise ValueError("too few informative training candidates")
     all_train_x = design_matrix(train, feature_mode)
     validation_x = design_matrix(validation, feature_mode)
     informative_indices = [
-        index for index, row in enumerate(train) if row["state_has_quality_gap"]]
+        index for index, row in enumerate(train) if row["state_has_target_gap"]]
     train_x = all_train_x[informative_indices]
     train_y = np.asarray([row["target"] for row in train_informative])
     models = {
@@ -314,8 +326,12 @@ def probe(train_paths, validation_paths, seed, feature_mode="absolute"):
     result = {
         "schema_version": 2,
         "label": (
+            "within-state min-max archive delta HV"
+            if target_metric == "archive_delta_hv" else
             "within-state min-max utility; feasible uses single-point HV, "
             "infeasible uses -1-log1p(normalized violation)"),
+        "target_metric": target_metric,
+        "selected_operator": selected_operator,
         "feature_definition": (
             "candidate + global + parent mean/std + ordered-path summary + operator; "
             + ("absolute values" if feature_mode == "absolute" else
@@ -358,13 +374,20 @@ def main():
     parser.add_argument(
         "--feature-mode", choices=("absolute", "state_relative"),
         default="absolute")
+    parser.add_argument(
+        "--target", choices=("quality", "archive_delta_hv"),
+        default="quality")
+    parser.add_argument(
+        "--operator", choices=OPERATORS,
+        help="Fit and evaluate only states for one mutation operator.")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     if set(map(Path.resolve, args.train)) & set(map(Path.resolve, args.validation)):
         parser.error("training and validation runs must be disjoint")
     try:
         result = probe(
-            args.train, args.validation, args.seed, args.feature_mode)
+            args.train, args.validation, args.seed, args.feature_mode,
+            args.target, args.operator)
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     output = json.dumps(result, indent=2, allow_nan=False) + "\n"
