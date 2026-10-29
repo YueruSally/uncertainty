@@ -338,6 +338,13 @@ class MutationLogger:
         effective_mutation = bool(ok and raw_changed and changed)
         outcome_attributable = not repair_only_change and (bool(ok) or not raw_changed)
         base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost, waiting_emission, **kwargs)
+        executed_replacement_path_id = None
+        if op == "replace":
+            executed_allocations = ind.od_allocations.get(
+                (batch.origin, batch.destination, batch.batch_id), [])
+            if len(executed_allocations) == 1:
+                executed_replacement_path_id = str(
+                    executed_allocations[0].path.path_id)
         finite_after = all(math.isfinite(v) for v in ind.objectives)
         finite_pair = bool(before_evaluated and finite_after and all(
             math.isfinite(v) for v in before.objectives))
@@ -357,6 +364,10 @@ class MutationLogger:
             selected_policy_score=decision.scores[decision.chosen_index],
             policy_metadata=decision.metadata,
             **asdict(target), path_id=chosen["path_id"], candidate_count=len(candidates),
+            executed_replacement_path_id=executed_replacement_path_id,
+            selected_replacement_executed=(
+                str(target.replacement_path_id) == executed_replacement_path_id
+                if target.replacement_path_id is not None else None),
             from_node=chosen.get("from_node"), to_node=chosen.get("to_node"),
             current_mode=chosen.get("current_mode"),
             batch_quantity=chosen.get("batch_quantity"),
