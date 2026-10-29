@@ -114,6 +114,11 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             PPOConfig(hidden_dim=127, attention_heads=4).validate()
 
+    def test_invalid_dropout_fails(self):
+        for dropout in (-0.01, 1.0):
+            with self.subTest(dropout=dropout), self.assertRaises(ValueError):
+                PPOConfig(dropout=dropout).validate()
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CheckpointTests(unittest.TestCase):

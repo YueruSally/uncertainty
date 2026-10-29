@@ -264,6 +264,9 @@ def main():
     parser.add_argument("--actor-learning-rate", type=float)
     parser.add_argument("--critic-learning-rate", type=float)
     parser.add_argument("--entropy-coefficient", type=float)
+    parser.add_argument(
+        "--dropout", type=float,
+        help="PPO model dropout override; omit to retain PPOConfig default.")
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
@@ -316,6 +319,7 @@ def main():
             "actor_learning_rate": args.actor_learning_rate,
             "critic_learning_rate": args.critic_learning_rate,
             "entropy_coefficient": args.entropy_coefficient,
+            "dropout": args.dropout,
         }.items() if value is not None
     }
     config = replace(config, **overrides)

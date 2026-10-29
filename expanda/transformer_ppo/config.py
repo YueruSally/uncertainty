@@ -57,6 +57,8 @@ class PPOConfig:
             raise ValueError("actor and critic learning rates must be positive")
         if self.entropy_coefficient < 0.0:
             raise ValueError("entropy coefficient must be non-negative")
+        if not 0.0 <= self.dropout < 1.0:
+            raise ValueError("dropout must be in [0, 1)")
         if self.hidden_dim % self.attention_heads:
             raise ValueError("hidden_dim must be divisible by attention_heads")
 
