@@ -36,6 +36,8 @@ class CrossoverPPOController(MutationLogger):
         self.graph_observation = graph_observation
         self.model_choice_probability = validate_model_choice_probability(
             model_choice_probability)
+        self.credit_assignment = getattr(
+            getattr(trainer, "config", None), "credit_assignment", "continuous")
         self.control_rng = random.Random(private_seed(
             "C-mixture-v2", kwargs.get("run_id", args[1] if len(args) > 1 else ""),
             (kwargs.get("seeds") or {}).get("algorithm")))
@@ -271,7 +273,8 @@ class CrossoverPPOController(MutationLogger):
         ])
         reward = hv_reward(update.delta_hv, self.reward_config)
         if event["model_decisions"]:
-            self.trainer.end_sequence(reward, done=False)
+            self.trainer.end_sequence(
+                reward, done=self.credit_assignment == "operation_terminal")
             self.reward_total += reward
             self.positive_reward_actions += int(reward > 0.0)
         event.update({
@@ -343,6 +346,7 @@ class CrossoverPPOController(MutationLogger):
             "ppo_updates": self.trainer.updates - self._ppo_updates_at_start,
             "ppo_updates_before_run": self._ppo_updates_at_start,
             "ppo_updates_total": self.trainer.updates,
+            "credit_assignment": self.credit_assignment,
             "shared_observation_builds": self.shared_observation_builds,
             "model_choice_probability": self.model_choice_probability,
             "model_control_events": self.model_control_events,

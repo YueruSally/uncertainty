@@ -4,6 +4,7 @@ import random
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -34,6 +35,7 @@ class _FakeTrainer:
         self.sequence_depth = 0
         self.sequence_policy_actions = 0
         self.rewards = []
+        self.done = []
         self.observation_provider = None
 
     def begin_sequence(self):
@@ -52,6 +54,7 @@ class _FakeTrainer:
     def observe_outcome(self, reward, done=False):
         if self.pending:
             self.rewards.append(float(reward))
+            self.done.append(bool(done))
         self.pending = None
 
     def end_sequence(self, reward, done=False):
@@ -179,6 +182,42 @@ class CrossoverPlanningTests(unittest.TestCase):
                 self.assertEqual(len(controller.archive.points), 2)
                 self.assertEqual(controller.evaluations, 0)
                 self.assertFalse(controller._pending_child_ids)
+            finally:
+                controller.close()
+
+    def test_operation_terminal_credit_closes_each_crossover_trajectory(self):
+        from transformer_ppo.archive import RewardArchive, RewardConfig
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        trainer = _FakeTrainer()
+        trainer.config = SimpleNamespace(
+            credit_assignment="operation_terminal",
+            candidate_representation="legacy")
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CrossoverPPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[self.batch], generations=2, pop_size=2,
+                method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={})
+            try:
+                lookup = {
+                    (arc.from_node, arc.to_node, arc.mode): arc
+                    for path in (self.path1, self.path2) for arc in path.arcs
+                }
+                child1, child2 = controller.crossover_common_node(
+                    self.parent1, self.parent2, [self.batch], {}, lookup)
+                child1.objectives, child1.feasible = (2.0, 3.0, 4.0), True
+                child2.objectives, child2.feasible = (3.0, 2.0, 4.0), True
+                controller.settle_crossover(child1, child2)
+                self.assertTrue(trainer.done[-1])
+                self.assertEqual(
+                    controller.summary()["credit_assignment"],
+                    "operation_terminal")
             finally:
                 controller.close()
 

@@ -16,12 +16,13 @@ from transformer_ppo.crossover_observations import (
 from transformer_ppo.graph_features import GRAPH_MODEL_SPEC, GRAPH_MODEL_SPEC_V2
 from transformer_ppo.initialization_observations import (
     INITIALIZATION_GRAPH_MODEL_SPEC, INITIALIZATION_GRAPH_MODEL_SPEC_V2,
+    INITIALIZATION_GRAPH_MODEL_SPEC_V3,
 )
 from transformer_ppo.initialization_rule_features import validate_rule_normalization
 from transformer_ppo.models import TRANSFORMER_ACTOR_CONDITIONING
 from transformer_ppo.observations import (
-    CANDIDATE_FEATURES, CANDIDATE_PATH_V2_FEATURES, GLOBAL_FEATURES,
-    PARENT_FEATURES,
+    CANDIDATE_FEATURES, CANDIDATE_PATH_V2_FEATURES,
+    CANDIDATE_PATH_V3_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
 )
 from transformer_ppo.episode import run_episode
 from transformer_ppo.ppo import PPOTrainer
@@ -104,20 +105,27 @@ def _catalog_digest(instances):
 
 
 def _model_spec(component, candidate_representation="legacy"):
-    path_v2 = candidate_representation == "path_v2"
+    path_encoded = candidate_representation in ("path_v2", "path_v3")
     if component == "C":
-        return dict(CROSSOVER_GRAPH_MODEL_SPEC_V2 if path_v2
+        return dict(CROSSOVER_GRAPH_MODEL_SPEC_V2 if path_encoded
                     else CROSSOVER_GRAPH_MODEL_SPEC)
     if component == "I":
-        return dict(INITIALIZATION_GRAPH_MODEL_SPEC_V2 if path_v2
-                    else INITIALIZATION_GRAPH_MODEL_SPEC)
+        return dict(
+            INITIALIZATION_GRAPH_MODEL_SPEC_V3
+            if candidate_representation == "path_v3" else
+            INITIALIZATION_GRAPH_MODEL_SPEC_V2
+            if candidate_representation == "path_v2" else
+            INITIALIZATION_GRAPH_MODEL_SPEC)
     return {
         "parent_dim": len(PARENT_FEATURES),
-        "candidate_dim": len(CANDIDATE_PATH_V2_FEATURES if path_v2
-                             else CANDIDATE_FEATURES),
+        "candidate_dim": len(
+            CANDIDATE_PATH_V3_FEATURES
+            if candidate_representation == "path_v3" else
+            CANDIDATE_PATH_V2_FEATURES if path_encoded else
+            CANDIDATE_FEATURES),
         "global_dim": len(GLOBAL_FEATURES),
         "action_count": 5,
-        **(GRAPH_MODEL_SPEC_V2 if path_v2 else GRAPH_MODEL_SPEC),
+        **(GRAPH_MODEL_SPEC_V2 if path_encoded else GRAPH_MODEL_SPEC),
     }
 
 
@@ -134,7 +142,7 @@ def _run_config(args, config, manifests, records):
             args.component, config.candidate_representation),
         "network_encoding": (
             "ordered-node-edge-paths-v2"
-            if config.candidate_representation == "path_v2"
+            if config.candidate_representation in ("path_v2", "path_v3")
             else "shared-network-tokens-v1"),
         "actor_conditioning": (
             TRANSFORMER_ACTOR_CONDITIONING
@@ -289,9 +297,21 @@ def main():
         "--residual-logit-limit", type=float,
         help="Absolute tanh bound for base-residual actor corrections.")
     parser.add_argument(
-        "--candidate-representation", choices=("legacy", "path_v2"),
+        "--candidate-representation", choices=("legacy", "path_v2", "path_v3"),
         help=("Candidate feature/graph representation. path_v2 adds business "
-              "path summaries and ordered node-edge candidate encoding."))
+              "path summaries and ordered node-edge candidate encoding; "
+              "path_v3 adds I planned-share/rank/coverage features or M "
+              "operator-stage features."))
+    parser.add_argument(
+        "--credit-assignment", choices=("continuous", "operation_terminal"),
+        help=("Trajectory boundary. operation_terminal is the V3 C setting: "
+              "one complete crossover is one terminal credit sequence."))
+    parser.add_argument("--gae-horizon", type=int)
+    parser.add_argument("--rollout-steps", type=int)
+    parser.add_argument(
+        "--mutation-control", choices=("location", "operator_location"),
+        help=("M action space. operator_location first chooses a legal "
+              "mutation operator and then its target."))
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
@@ -326,6 +346,23 @@ def main():
         parser.error("training --model-choice-probability must be in (0, 1]")
     if args.component == "I" and args.model_choice_probability != 1.0:
         parser.error("--model-choice-probability is valid only for C or M")
+    if (args.credit_assignment == "operation_terminal"
+            and args.component not in ("C", "M")):
+        parser.error("operation_terminal credit assignment is valid only for C or M")
+    if (args.component == "C"
+            and args.credit_assignment == "operation_terminal"
+            and args.gae_horizon is not None and args.gae_horizon < 64):
+        parser.error("C operation_terminal requires --gae-horizon >= 64")
+    if args.candidate_representation == "path_v3" and args.component not in ("I", "M"):
+        parser.error("path_v3 is valid only for I or M")
+    if args.mutation_control is not None and args.component != "M":
+        parser.error("--mutation-control is valid only for M")
+    if args.mutation_control == "operator_location" and not (
+            args.candidate_representation == "path_v3"
+            and args.credit_assignment == "operation_terminal"):
+        parser.error(
+            "operator_location requires --candidate-representation path_v3 "
+            "and --credit-assignment operation_terminal")
     if args.resume:
         if not args.out.exists() or not any(args.out.iterdir()):
             parser.error("--resume requires an existing non-empty output directory")
@@ -337,8 +374,13 @@ def main():
             args.configuration, args.instance_ids)
     except ValueError as error:
         parser.error(str(error))
-    config = (PPOConfig(rollout_steps=512, gae_horizon=256)
-              if args.component == "I" else PPOConfig())
+    config = (
+        PPOConfig(rollout_steps=512, gae_horizon=256)
+        if args.component == "I" else
+        PPOConfig(gae_horizon=64)
+        if (args.component == "C"
+            and args.credit_assignment == "operation_terminal") else
+        PPOConfig())
     overrides = {
         name: value for name, value in {
             "actor_learning_rate": args.actor_learning_rate,
@@ -348,6 +390,10 @@ def main():
             "actor_policy": args.actor_policy,
             "residual_logit_limit": args.residual_logit_limit,
             "candidate_representation": args.candidate_representation,
+            "credit_assignment": args.credit_assignment,
+            "gae_horizon": args.gae_horizon,
+            "rollout_steps": args.rollout_steps,
+            "mutation_control": args.mutation_control,
         }.items() if value is not None
     }
     config = replace(config, **overrides)

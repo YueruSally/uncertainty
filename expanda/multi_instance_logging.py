@@ -205,7 +205,8 @@ class MutationLogger:
         ind._learning_eval_id = self.evaluations
 
     def mutate(self, ind, batches, path_lib, tt_dict, arc_lookup,
-               arcs, waiting_cost, waiting_emission, reliable_options=None, **kwargs):
+               arcs, waiting_cost, waiting_emission, reliable_options=None,
+               operator_override=None, **kwargs):
         before_evaluated = self.evaluate_before_mutation
         if before_evaluated:
             # Retained only for legacy before/after-label collection.
@@ -219,9 +220,16 @@ class MutationLogger:
         # the paired Base draw so every later Python-random decision stays aligned.
         shadow_base_batch = (
             random.choice(batches) if self.preserve_base_position_rng else None)
-        op = base.sample_operator()
+        shadow_base_operator = base.sample_operator()
+        op = shadow_base_operator if operator_override is None else operator_override
         candidates = candidates_for(ind, batches, op, path_lib, tt_dict, arc_lookup,
                                     reliable_options)
+        legal_target_count = sum(bool(row["eligible"]) for row in candidates)
+        for candidate in candidates:
+            candidate["candidate_operator"] = op
+            candidate["operator_legal_target_count"] = legal_target_count
+            candidate["operator_legal_target_fraction"] = (
+                legal_target_count / max(1, len(candidates)))
         context = dict(operator=op, generation=self.generation, phase=self.phase,
             K=self.instance.get("K"),
             deadline_window_alpha=self.instance.get("deadline_window_alpha"),
@@ -313,6 +321,8 @@ class MutationLogger:
             method=self.method, generation=self.generation, phase=self.phase,
             decision_kind=decision_kind,
             operator=op, operator_probability=0.2, selection_policy=self.policy.name,
+            shadow_base_operator=shadow_base_operator,
+            different_from_shadow_base_operator=(op != shadow_base_operator),
             baseline_selection_probability=chosen["selection_probability"],
             selection_probability=decision.probabilities[decision.chosen_index],
             selected_policy_score=decision.scores[decision.chosen_index],

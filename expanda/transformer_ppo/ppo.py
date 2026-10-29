@@ -147,6 +147,8 @@ class PPOTrainer:
             "state_value": float(value.item()), "entropy": float(entropy),
             "actor_policy": self.config.actor_policy,
             "candidate_representation": self.config.candidate_representation,
+            "credit_assignment": self.config.credit_assignment,
+            "mutation_control": self.config.mutation_control,
             "policy_update": self.updates, "architecture": self.architecture,
             "inference_seconds": time.perf_counter() - inference_started,
         })
@@ -168,7 +170,15 @@ class PPOTrainer:
     def end_sequence(self, terminal_reward, done=False):
         if self.sequence_depth != 1:
             raise RuntimeError("policy decision sequences cannot be nested")
-        self.observe_outcome(terminal_reward, done=done)
+        if self.pending is not None:
+            self.observe_outcome(terminal_reward, done=done)
+        elif self.training and self.sequence_policy_actions:
+            # A final forced sub-action creates no PPO transition.  In that
+            # case the most recent learnable action is the terminal action and
+            # must receive the operation reward instead of retaining its
+            # temporary zero credit.
+            self.buffer[-1].reward = float(terminal_reward)
+            self.buffer[-1].done = bool(done)
         self.sequence_depth = 0
         self.sequence_policy_actions = 0
 
@@ -420,6 +430,8 @@ class PPOTrainer:
             "ppo_digest": metadata.get("ppo_digest"),
             "actor_policy": config.actor_policy,
             "candidate_representation": config.candidate_representation,
+            "credit_assignment": config.credit_assignment,
+            "mutation_control": config.mutation_control,
             "learning_control": metadata.get("learning_control"),
             "updates": result.updates,
         }

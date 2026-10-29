@@ -14,9 +14,13 @@ from transformer_ppo.archive import (
     ObjectiveNormalizer, RewardArchive, exact_hv_3d, nondominated,
 )
 from transformer_ppo.config import PPOConfig, SCENARIOS, TEST_CONFIGS, TRAIN_CONFIGS
+from transformer_ppo.initialization_observations import (
+    INITIALIZATION_CANDIDATE_FEATURES_V3, _candidate_tokens,
+)
 from transformer_ppo.instance_catalog import _draw_quantity, _draw_release_time, _split_od_pool
 from transformer_ppo.observations import (
-    CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
+    CANDIDATE_FEATURES, CANDIDATE_PATH_V3_FEATURES,
+    GLOBAL_FEATURES, PARENT_FEATURES,
     action_prior, build_observation, candidate_tokens,
 )
 from transformer_ppo.statistics import formal_report, holm
@@ -48,6 +52,86 @@ class ArchiveTests(unittest.TestCase):
 
 
 class ObservationTests(unittest.TestCase):
+    def test_mutation_v3_identifies_operator_candidates(self):
+        rows, eligible = candidate_tokens([{
+            "target": {"batch_id": 0}, "eligible": True,
+            "candidate_operator": "replace",
+            "operator_stage": True,
+            "operator_legal_target_count": 3,
+            "operator_legal_target_fraction": .75,
+        }], "add", representation="path_v3")
+        feature = {name: rows[0][index]
+                   for index, name in enumerate(CANDIDATE_PATH_V3_FEATURES)}
+        self.assertEqual(eligible, [True])
+        self.assertEqual(len(rows[0]), len(CANDIDATE_PATH_V3_FEATURES))
+        self.assertEqual(feature["candidate_is_operator_stage"], 1.)
+        self.assertEqual(feature["candidate_is_add"], 0.)
+        self.assertEqual(feature["candidate_is_replace"], 1.)
+        self.assertEqual(feature["operator_legal_target_count"], 3.)
+        self.assertEqual(feature["operator_legal_target_fraction"], .75)
+
+    def test_initialization_v3_exposes_planned_share_ranks_and_population_use(self):
+        def path(path_id, cost, emission, travel_time, capacity, mode="road"):
+            arc = SimpleNamespace(
+                from_node="O", to_node="D", mode=mode, distance=100.,
+                capacity=capacity, cost_per_teu_km=1.,
+                emission_per_teu_km=1., speed_kmh=50., is_border_arc=False)
+            return SimpleNamespace(
+                path_id=path_id, nodes=("O", "D"), modes=(mode,), arcs=(arc,),
+                base_cost_per_teu=cost, base_emission_per_teu=emission,
+                base_travel_time_h=travel_time)
+
+        cheap = path(1, 10., 30., 5., 100.)
+        clean = path(2, 20., 10., 8., 50., "rail")
+        batch = SimpleNamespace(
+            batch_id=7, origin="O", destination="D", quantity=40., ET=0., LT=24.)
+        key = ("O", "D", 7)
+        partial = SimpleNamespace(od_allocations={
+            key: [SimpleNamespace(path=clean, share=.25)],
+        })
+        population = [SimpleNamespace(od_allocations={
+            key: [SimpleNamespace(path=cheap, share=1.)],
+        })]
+        candidates = [
+            {"eligible": True, "path": cheap},
+            {"eligible": True, "path": clean},
+        ]
+        rows, eligible = _candidate_tokens(
+            candidates, {
+                "batch": batch, "selection_step": 1,
+                "required_path_count": 2, "planned_share": .75,
+                "remaining_planned_share": .75,
+            }, partial, population, "path_v3")
+        feature = {name: rows[0][index]
+                   for index, name in enumerate(INITIALIZATION_CANDIDATE_FEATURES_V3)}
+        self.assertEqual(eligible, [True, True])
+        self.assertEqual(len(rows[0]), len(INITIALIZATION_CANDIDATE_FEATURES_V3))
+        self.assertAlmostEqual(feature["planned_share"], .75)
+        self.assertAlmostEqual(feature["allocated_quantity"], 30.)
+        self.assertAlmostEqual(feature["candidate_cost_rank"], 0.)
+        self.assertAlmostEqual(feature["candidate_emission_rank"], 1.)
+        self.assertAlmostEqual(feature["candidate_capacity_rank"], 0.)
+        self.assertAlmostEqual(feature["population_path_use_fraction"], 1.)
+        self.assertGreater(feature["selected_edge_novelty"], 0.)
+
+        count_rows, count_eligible = _candidate_tokens([
+            {"eligible": True, "path_count": 1},
+            {"eligible": True, "path_count": 2},
+            {"eligible": True, "path_count": 3},
+        ], {
+            "batch": batch, "decision_stage": "path_count",
+            "maximum_path_count": 3,
+        }, SimpleNamespace(od_allocations={}), [], "path_v3")
+        count_feature = {
+            name: count_rows[1][index]
+            for index, name in enumerate(INITIALIZATION_CANDIDATE_FEATURES_V3)}
+        self.assertEqual(count_eligible, [True, True, True])
+        self.assertEqual(
+            len(count_rows[0]), len(INITIALIZATION_CANDIDATE_FEATURES_V3))
+        self.assertEqual(count_feature["candidate_is_path_count"], 1.)
+        self.assertAlmostEqual(
+            count_feature["proposed_path_count_fraction"], 2. / 3.)
+
     def test_action_prior_renormalizes_base_mass_over_legal_candidates(self):
         candidates = [
             {"selection_probability": 0.2},
@@ -142,9 +226,41 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate_representation"):
             PPOConfig(candidate_representation="path-hash").validate()
 
+    def test_invalid_credit_assignment_fails(self):
+        with self.assertRaisesRegex(ValueError, "credit_assignment"):
+            PPOConfig(credit_assignment="cross-operation").validate()
+
+    def test_invalid_mutation_control_fails(self):
+        with self.assertRaisesRegex(ValueError, "mutation_control"):
+            PPOConfig(mutation_control="operator-only").validate()
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CheckpointTests(unittest.TestCase):
+    def test_terminal_reward_reaches_last_learnable_action_before_forced_action(self):
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(
+            hidden_dim=16, attention_heads=4, transformer_layers=1,
+            dropout=0.0)
+        observation = {
+            "parent": [[0.0] * len(PARENT_FEATURES)],
+            "candidates": [[0.0] * len(CANDIDATE_FEATURES)] * 2,
+            "eligible": [True, True], "operator_id": 0,
+            "global": [0.0] * len(GLOBAL_FEATURES),
+        }
+        trainer = PPOTrainer(
+            "mlp", config, lambda *_: observation,
+            device="cpu", policy_seed=123, training=True)
+        trainer.begin_sequence()
+        trainer.choose([{"eligible": True}, {"eligible": True}])
+        trainer.observe_outcome(0.0, done=False)
+        # The next sub-action is forced, so it creates no pending transition.
+        trainer.end_sequence(2.5, done=True)
+        self.assertEqual(len(trainer.buffer), 1)
+        self.assertAlmostEqual(trainer.buffer[0].reward, 2.5)
+        self.assertTrue(trainer.buffer[0].done)
+
     def test_base_residual_actor_starts_at_declared_prior(self):
         from transformer_ppo.ppo import PPOTrainer
 

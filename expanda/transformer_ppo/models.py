@@ -222,7 +222,7 @@ class TransformerActorCritic(nn.Module):
             OrderedCandidatePathEncoder(
                 hidden_dim, heads, dropout, use_attention=True)
             if self.network_encoder is not None
-            and candidate_representation == "path_v2" else None)
+            and candidate_representation in ("path_v2", "path_v3") else None)
         encoder_layer = lambda: nn.TransformerEncoderLayer(
             d_model=hidden_dim, nhead=heads, dim_feedforward=hidden_dim * 4,
             dropout=dropout, activation="gelu", batch_first=True, norm_first=True)
@@ -298,7 +298,7 @@ class MLPActorCritic(nn.Module):
             OrderedCandidatePathEncoder(
                 hidden_dim, heads=1, dropout=0.0, use_attention=False)
             if self.network_encoder is not None
-            and self.candidate_representation == "path_v2" else None)
+            and self.candidate_representation in ("path_v2", "path_v3") else None)
         self.candidate_projection = nn.Sequential(
             nn.Linear(candidate_dim + global_dim + hidden_dim
                       + (hidden_dim if self.network_encoder else 0),

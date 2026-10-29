@@ -109,8 +109,9 @@ def build_graph_observation(nodes, regions, hold_cost, processing_cost,
             *numerical, terminal, *_category_code(regions.get(name)),
         ])
 
-    if representation not in ("legacy", "path_v2"):
+    if representation not in ("legacy", "path_v2", "path_v3"):
         raise ValueError("unknown graph representation")
+    ordered_path_representation = representation in ("path_v2", "path_v3")
     ordered_arcs = sorted(
         arcs, key=lambda arc: (
             str(arc.from_node), str(arc.to_node), str(arc.mode),
@@ -159,7 +160,7 @@ def build_graph_observation(nodes, regions, hold_cost, processing_cost,
             float(mode == "road"), float(mode == "rail"),
             float(mode == "water"), float(mode not in {"road", "rail", "water"}),
         ]
-        if representation == "path_v2":
+        if ordered_path_representation:
             values.extend(
                 value / scale for value, scale in
                 zip(timetable_columns[position], timetable_scales))
@@ -170,12 +171,12 @@ def build_graph_observation(nodes, regions, hold_cost, processing_cost,
     return {
         "schema": (
             "ordered-node-edge-paths-v2"
-            if representation == "path_v2" else "shared-network-tokens-v1"),
+            if ordered_path_representation else "shared-network-tokens-v1"),
         "nodes": node_values,
         "edges": edge_values,
         "edge_index": edge_index,
         "edge_dim": (len(GRAPH_EDGE_FEATURES_V2)
-                     if representation == "path_v2" else len(GRAPH_EDGE_FEATURES)),
+                     if ordered_path_representation else len(GRAPH_EDGE_FEATURES)),
         "node_index": node_index,
         "edge_lookup": edge_lookup,
     }

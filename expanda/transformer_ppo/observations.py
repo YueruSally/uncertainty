@@ -48,6 +48,15 @@ MUTATION_OPTION_FEATURES = (
 CANDIDATE_PATH_V2_FEATURES = (
     *CANDIDATE_FEATURES, *PATH_BUSINESS_FEATURES, *MUTATION_OPTION_FEATURES,
 )
+MUTATION_CONTROL_FEATURES_V3 = (
+    "candidate_is_operator_stage",
+    "candidate_is_add", "candidate_is_del", "candidate_is_mod",
+    "candidate_is_mode", "candidate_is_replace",
+    "operator_legal_target_count", "operator_legal_target_fraction",
+)
+CANDIDATE_PATH_V3_FEATURES = (
+    *CANDIDATE_PATH_V2_FEATURES, *MUTATION_CONTROL_FEATURES_V3,
+)
 GLOBAL_FEATURES = (
     "K", "deadline_window_alpha", "generation_fraction", "evaluation_fraction",
     "remaining_fraction", "offspring_fraction", "phase_is_boost",
@@ -211,19 +220,30 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=(),
             float(arc_index is not None), _finite(arc_index),
             *origin, *destination, *from_node, *to_node, *mode,
         ]
-        if representation == "path_v2":
+        if representation in ("path_v2", "path_v3"):
             row.extend(path_business_features(
                 candidate.get("path"), batch, candidate.get("share"),
                 candidate.get("arc"), candidate))
             row.extend(_finite(candidate.get(name))
                        for name in MUTATION_OPTION_FEATURES)
+            if representation == "path_v3":
+                candidate_operator = candidate.get("candidate_operator", operator)
+                row.append(float(bool(candidate.get("operator_stage"))))
+                row.extend(
+                    float(candidate_operator == name) for name in OPERATOR_TO_ID)
+                row.extend([
+                    _finite(candidate.get("operator_legal_target_count")),
+                    _finite(candidate.get("operator_legal_target_fraction")),
+                ])
         elif representation != "legacy":
             raise ValueError("unknown candidate representation")
         rows.append(row)
         eligible.append(bool(candidate.get("eligible")))
     if not rows:
-        dimension = (len(CANDIDATE_PATH_V2_FEATURES)
-                     if representation == "path_v2" else len(CANDIDATE_FEATURES))
+        dimension = (
+            len(CANDIDATE_PATH_V3_FEATURES) if representation == "path_v3" else
+            len(CANDIDATE_PATH_V2_FEATURES) if representation == "path_v2" else
+            len(CANDIDATE_FEATURES))
         rows, eligible = [[0.0] * dimension], [False]
     if operator not in OPERATOR_TO_ID:
         raise ValueError(f"unknown operator: {operator}")
@@ -354,7 +374,7 @@ def build_observation(ind, batches, candidates, context, population, pending_off
         observation["graph"] = graph_observation
         observation["candidate_graph_nodes"] = candidate_graph_nodes(
             candidates, graph_observation)
-        if candidate_representation == "path_v2":
+        if candidate_representation in ("path_v2", "path_v3"):
             observation["candidate_graph_tokens"] = candidate_graph_tokens(
                 candidates, graph_observation)
     return observation

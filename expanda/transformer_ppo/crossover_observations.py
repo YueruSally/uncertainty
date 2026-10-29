@@ -95,7 +95,7 @@ def _candidate_tokens(candidates, representation="legacy"):
             float(length2 - position2), *_category_code(row["origin"]),
             *_category_code(row["destination"]), *_category_code(row["join_node"]),
         ]
-        if representation == "path_v2":
+        if representation in ("path_v2", "path_v3"):
             candidate.extend(_finite(row.get(name)) for name in (
                 "parent_combined_cost", "parent_combined_emission",
                 "parent_combined_time", "child_combined_cost",
@@ -193,7 +193,7 @@ def build_crossover_observation(parent1, parent2, batches, candidates, context,
              if row["join_node"] in node_index else [])
             for row in candidates
         ]
-        if candidate_representation == "path_v2":
+        if candidate_representation in ("path_v2", "path_v3"):
             observation["candidate_graph_tokens"] = candidate_graph_tokens(
                 candidates, graph_observation)
     return observation

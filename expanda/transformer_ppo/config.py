@@ -48,6 +48,8 @@ class PPOConfig:
     actor_policy: str = "direct"
     residual_logit_limit: float = 2.0
     candidate_representation: str = "legacy"
+    credit_assignment: str = "continuous"
+    mutation_control: str = "location"
 
     def validate(self) -> None:
         if self.rollout_steps < self.gae_horizon:
@@ -67,9 +69,20 @@ class PPOConfig:
                 "actor_policy must be 'direct' or 'base_residual'")
         if self.residual_logit_limit <= 0.0:
             raise ValueError("residual_logit_limit must be positive")
-        if self.candidate_representation not in ("legacy", "path_v2"):
+        if self.candidate_representation not in ("legacy", "path_v2", "path_v3"):
             raise ValueError(
-                "candidate_representation must be 'legacy' or 'path_v2'")
+                "candidate_representation must be 'legacy', 'path_v2', or 'path_v3'")
+        if self.credit_assignment not in ("continuous", "operation_terminal"):
+            raise ValueError(
+                "credit_assignment must be 'continuous' or 'operation_terminal'")
+        if self.mutation_control not in ("location", "operator_location"):
+            raise ValueError(
+                "mutation_control must be 'location' or 'operator_location'")
+        if (self.mutation_control == "operator_location"
+                and (self.candidate_representation != "path_v3"
+                     or self.credit_assignment != "operation_terminal")):
+            raise ValueError(
+                "operator_location requires path_v3 and operation_terminal credit")
         if self.hidden_dim % self.attention_heads:
             raise ValueError("hidden_dim must be divisible by attention_heads")
 

@@ -14,6 +14,7 @@ from .initialization_rule_features import (
     path_rule_score,
     validate_rule_normalization,
 )
+from .v2_controls import private_seed
 
 
 def _path_signature(path):
@@ -59,6 +60,7 @@ class InitializationPPOController(MutationLogger):
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
             log_names=("initialization_outcomes", "initialization_candidates",
+                       "initialization_count_candidates",
                        "initialization_skips", "generation_summary"),
             normalizer=archive.normalizer, **kwargs)
         trainer.observation_provider = self._observation
@@ -111,12 +113,72 @@ class InitializationPPOController(MutationLogger):
                     })
                     continue
 
-                k = random.randint(1, min(int(max_paths), len(paths)))
+                maximum_path_count = min(int(max_paths), len(paths))
+                shadow_k = random.randint(1, maximum_path_count)
                 # Consume Base's exact path-sampling stream even though the
                 # policy replaces the result.  All other stochastic choices,
                 # including k and split shares, therefore remain paired.
-                shadow_paths = random.sample(paths, k)
-                raw_shares = [random.random() for _ in range(k)]
+                shadow_paths = random.sample(paths, shadow_k)
+                shadow_raw_shares = [random.random() for _ in range(shadow_k)]
+                representation = getattr(
+                    getattr(self.trainer, "config", None),
+                    "candidate_representation", "legacy")
+                if representation == "path_v3" and maximum_path_count > 1:
+                    count_candidates = [
+                        {"eligible": True, "path_count": count}
+                        for count in range(1, maximum_path_count + 1)]
+                    count_context = {
+                        "component": "I", "batch": batch,
+                        "decision_stage": "path_count",
+                        "selection_step": 0, "required_path_count": 0,
+                        "maximum_path_count": maximum_path_count,
+                        "K": self.instance.get("K"),
+                        "deadline_window_alpha": self.instance.get(
+                            "deadline_window_alpha"),
+                    }
+                    self._current_partial = individual
+                    self._current_context = count_context
+                    if not sequence_started:
+                        self.trainer.begin_sequence()
+                        sequence_started = True
+                    elif self.trainer.pending is not None:
+                        self.trainer.observe_outcome(0.0, done=False)
+                    count_decision = self.trainer.choose(
+                        count_candidates, count_context)
+                    model_decisions += 1
+                    k = count_candidates[
+                        count_decision.chosen_index]["path_count"]
+                    count_kind = count_decision.metadata["decision_kind"]
+                    self.decision_counts[count_kind] = (
+                        self.decision_counts.get(count_kind, 0) + 1)
+                    self.inference_seconds += float(
+                        count_decision.metadata.get("inference_seconds", 0.0))
+                    for candidate_index, candidate in enumerate(count_candidates):
+                        self.append("initialization_count_candidates", {
+                            "event_id": event_id, "batch_id": batch.batch_id,
+                            "candidate_id": candidate_index,
+                            "path_count": candidate["path_count"],
+                            "maximum_path_count": maximum_path_count,
+                            "shadow_base_path_count": shadow_k,
+                            "baseline_selection_probability": (
+                                1.0 / maximum_path_count),
+                            "selection_probability": (
+                                count_decision.probabilities[candidate_index]),
+                            "chosen": candidate_index == count_decision.chosen_index,
+                            "decision_kind": count_kind,
+                        })
+                else:
+                    k = shadow_k
+                raw_shares = list(shadow_raw_shares[:k])
+                if k > shadow_k:
+                    extra_rng = random.Random(private_seed(
+                        "I-extra-shares-v3", event_id, batch.batch_id))
+                    raw_shares.extend(
+                        extra_rng.random() for _ in range(k - shadow_k))
+                share_total = sum(raw_shares)
+                normalized_shares = [
+                    (value / share_total if share_total > 0.0 else 1.0 / k)
+                    for value in raw_shares]
                 remaining = list(paths)
                 selected = []
                 for step in range(k):
@@ -142,6 +204,10 @@ class InitializationPPOController(MutationLogger):
                         "component": "I", "batch": batch,
                         "selection_step": step,
                         "required_path_count": k,
+                        "maximum_path_count": maximum_path_count,
+                        "planned_share": normalized_shares[step],
+                        "remaining_planned_share": sum(
+                            normalized_shares[step:]),
                         "K": self.instance.get("K"),
                         "deadline_window_alpha": self.instance.get(
                             "deadline_window_alpha"),
@@ -174,13 +240,18 @@ class InitializationPPOController(MutationLogger):
                     remaining.remove(chosen)
                     selected.append(chosen)
                     individual.od_allocations[key] = [
-                        base.PathAllocation(path=path, share=raw_shares[index])
+                        base.PathAllocation(
+                            path=path,
+                            share=(normalized_shares[index]
+                                   if representation == "path_v3" else
+                                   raw_shares[index]))
                         for index, path in enumerate(selected)
                     ]
                     for candidate_index, candidate in enumerate(candidates):
                         self.append("initialization_candidates", {
                             "event_id": event_id, "batch_id": batch.batch_id,
                             "selection_step": step, "required_path_count": k,
+                            "planned_share": normalized_shares[step],
                             "candidate_id": candidate_index,
                             "path_id": candidate["path_id"],
                             "nodes": candidate["nodes"], "modes": candidate["modes"],
@@ -196,6 +267,7 @@ class InitializationPPOController(MutationLogger):
                     selected_rows.append({
                         "batch_id": batch.batch_id, "selection_step": step,
                         "required_path_count": k, "chosen_path_id": chosen.path_id,
+                        "planned_share": normalized_shares[step],
                         "decision_kind": kind,
                     })
                 individual.od_allocations[key] = base.merge_and_normalize(
@@ -203,6 +275,7 @@ class InitializationPPOController(MutationLogger):
                 # Order matters because Base attaches the independently drawn
                 # split shares to sampled paths in order.
                 differs_from_shadow = differs_from_shadow or (
+                    k != shadow_k or
                     tuple(_path_signature(path) for path in selected)
                     != tuple(_path_signature(path) for path in shadow_paths))
         except Exception:

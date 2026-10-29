@@ -3,6 +3,7 @@ import random
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -140,6 +141,29 @@ class InitializationControllerTests(unittest.TestCase):
                 self.assertTrue(trainer.done[-1])
                 self.assertEqual(controller.positive_reward_actions, 1)
                 self.assertEqual(len(controller.archive.points), 1)
+            finally:
+                controller.close()
+
+    def test_v3_policy_controls_path_count_without_consuming_base_rng(self):
+        random.seed(9)
+        base.random_initial_individual(
+            [self.batch], self.path_lib, max_paths=3)
+        expected_state = random.getstate()
+
+        trainer = _FakeTrainer()
+        trainer.config = SimpleNamespace(candidate_representation="path_v3")
+        with tempfile.TemporaryDirectory() as directory:
+            controller = self._controller(directory, trainer)
+            try:
+                random.seed(9)
+                individual = controller.initial_individual(
+                    [self.batch], self.path_lib, max_paths=3)
+                allocations = individual.od_allocations[("A", "D", 4)]
+                self.assertEqual(random.getstate(), expected_state)
+                self.assertEqual(len(allocations), 3)
+                self.assertAlmostEqual(sum(item.share for item in allocations), 1.0)
+                count_log = Path(directory) / "initialization_count_candidates.jsonl"
+                self.assertEqual(len(count_log.read_text().splitlines()), 3)
             finally:
                 controller.close()
 
