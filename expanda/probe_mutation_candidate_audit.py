@@ -11,6 +11,7 @@ import statistics
 
 import numpy as np
 from sklearn.linear_model import Ridge
+from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -115,6 +116,7 @@ def load_runs(paths):
                 "run": str(run.resolve()),
                 "state_id": state_id,
                 "candidate_id": candidate_id,
+                "operator": str(rows[0]["operator"]),
                 "features": vector,
                 "raw_utility": mean([raw_utility(row) for row in rows]),
                 "archive_delta_hv": mean([
@@ -137,6 +139,61 @@ def load_runs(paths):
     if not candidates:
         raise ValueError("candidate audit dataset is empty")
     return candidates, int(feature_dimension)
+
+
+def design_matrix(rows, feature_mode):
+    """Build label-free features available at one policy decision.
+
+    Absolute business quantities change scale between instances.  The relative
+    mode preserves them while adding within-state standardized differences and
+    percentile ranks computed only from the candidates visible to the policy.
+    """
+    absolute = np.stack([row["features"] for row in rows])
+    if feature_mode == "absolute":
+        return absolute
+    if feature_mode != "state_relative":
+        raise ValueError(f"unknown feature mode: {feature_mode}")
+    relative = np.zeros_like(absolute)
+    ranks = np.zeros_like(absolute)
+    by_state = defaultdict(list)
+    for index, row in enumerate(rows):
+        by_state[row["state_key"]].append(index)
+    for indices in by_state.values():
+        values = absolute[indices]
+        standard_deviation = values.std(axis=0)
+        safe_scale = np.where(standard_deviation > 1e-12,
+                              standard_deviation, 1.0)
+        relative[indices] = (values - values.mean(axis=0)) / safe_scale
+        if len(indices) > 1:
+            for column in range(values.shape[1]):
+                if standard_deviation[column] <= 1e-12:
+                    continue
+                column_ranks = np.asarray(
+                    average_ranks(values[:, column].tolist()), dtype=float)
+                ranks[indices, column] = (
+                    2.0 * column_ranks / (len(indices) - 1) - 1.0)
+    return np.concatenate([absolute, relative, ranks], axis=1)
+
+
+def pairwise_training_data(rows, matrix):
+    """Create balanced within-state comparisons without using validation data."""
+    by_state = defaultdict(list)
+    for index, row in enumerate(rows):
+        by_state[row["state_key"]].append(index)
+    differences, labels = [], []
+    for indices in by_state.values():
+        for left_offset, left in enumerate(indices):
+            for right in indices[left_offset + 1:]:
+                target_difference = rows[left]["target"] - rows[right]["target"]
+                if abs(target_difference) <= 1e-12:
+                    continue
+                difference = matrix[left] - matrix[right]
+                label = int(target_difference > 0.0)
+                differences.extend([difference, -difference])
+                labels.extend([label, 1 - label])
+    if not differences:
+        raise ValueError("too few unequal within-state candidate pairs")
+    return np.stack(differences), np.asarray(labels, dtype=int)
 
 
 def conditional_probabilities(rows, name):
@@ -231,7 +288,7 @@ def evaluate(rows, predictions):
     }
 
 
-def probe(train_paths, validation_paths, seed):
+def probe(train_paths, validation_paths, seed, feature_mode="absolute"):
     train, dimension = load_runs(train_paths)
     validation, validation_dimension = load_runs(validation_paths)
     if dimension != validation_dimension:
@@ -239,9 +296,12 @@ def probe(train_paths, validation_paths, seed):
     train_informative = [row for row in train if row["state_has_quality_gap"]]
     if len(train_informative) < 4:
         raise ValueError("too few informative training candidates")
-    train_x = np.stack([row["features"] for row in train_informative])
+    all_train_x = design_matrix(train, feature_mode)
+    validation_x = design_matrix(validation, feature_mode)
+    informative_indices = [
+        index for index, row in enumerate(train) if row["state_has_quality_gap"]]
+    train_x = all_train_x[informative_indices]
     train_y = np.asarray([row["target"] for row in train_informative])
-    validation_x = np.stack([row["features"] for row in validation])
     models = {
         "ridge": make_pipeline(StandardScaler(), Ridge(alpha=1.0)),
         "small_mlp": make_pipeline(
@@ -252,27 +312,41 @@ def probe(train_paths, validation_paths, seed):
                 random_state=int(seed))),
     }
     result = {
-        "schema_version": 1,
+        "schema_version": 2,
         "label": (
             "within-state min-max utility; feasible uses single-point HV, "
             "infeasible uses -1-log1p(normalized violation)"),
         "feature_definition": (
-            "candidate + global + parent mean/std + ordered-path summary + operator"),
+            "candidate + global + parent mean/std + ordered-path summary + operator; "
+            + ("absolute values" if feature_mode == "absolute" else
+               "absolute values plus within-state z-scores and percentile ranks")),
+        "feature_mode": feature_mode,
         "train_runs": [str(path.resolve()) for path in train_paths],
         "validation_runs": [str(path.resolve()) for path in validation_paths],
-        "feature_dimension": dimension,
+        "base_feature_dimension": dimension,
+        "feature_dimension": int(all_train_x.shape[1]),
         "training_candidate_count": len(train),
         "informative_training_candidate_count": len(train_informative),
         "validation_candidate_count": len(validation),
         "models": {},
     }
-    all_train_x = np.stack([row["features"] for row in train])
     for name, model in models.items():
         model.fit(train_x, train_y)
         result["models"][name] = {
             "training": evaluate(train, model.predict(all_train_x)),
             "validation": evaluate(validation, model.predict(validation_x)),
         }
+    pair_x, pair_y = pairwise_training_data(train_informative, train_x)
+    pairwise_model = make_pipeline(
+        StandardScaler(),
+        LogisticRegression(C=0.1, max_iter=2_000, random_state=int(seed)))
+    pairwise_model.fit(pair_x, pair_y)
+    result["models"]["pairwise_logistic"] = {
+        "training_pair_count": int(len(pair_y) // 2),
+        "training": evaluate(train, pairwise_model.decision_function(all_train_x)),
+        "validation": evaluate(
+            validation, pairwise_model.decision_function(validation_x)),
+    }
     return result
 
 
@@ -281,12 +355,16 @@ def main():
     parser.add_argument("--train", type=Path, nargs="+", required=True)
     parser.add_argument("--validation", type=Path, nargs="+", required=True)
     parser.add_argument("--seed", type=int, default=9501)
+    parser.add_argument(
+        "--feature-mode", choices=("absolute", "state_relative"),
+        default="absolute")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     if set(map(Path.resolve, args.train)) & set(map(Path.resolve, args.validation)):
         parser.error("training and validation runs must be disjoint")
     try:
-        result = probe(args.train, args.validation, args.seed)
+        result = probe(
+            args.train, args.validation, args.seed, args.feature_mode)
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     output = json.dumps(result, indent=2, allow_nan=False) + "\n"
