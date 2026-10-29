@@ -12,8 +12,14 @@ class QuickCombinationAnalysisTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             values = {
-                ("S0_002", 11): {"BASE": 0.5, "I": 0.55, "C": 0.5, "IC": 0.6},
-                ("S0_002", 12): {"BASE": 1.0, "I": 1.0, "C": 0.9, "IC": 1.1},
+                ("S0_002", 11): {
+                    "BASE": 0.5, "I": 0.55, "C": 0.5, "M": 0.45,
+                    "IC": 0.6, "ICM": 0.65,
+                },
+                ("S0_002", 12): {
+                    "BASE": 1.0, "I": 1.0, "C": 0.9, "M": 1.0,
+                    "IC": 1.1, "ICM": 1.2,
+                },
             }
             for (instance, seed), methods in values.items():
                 for method, hv in methods.items():

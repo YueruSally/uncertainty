@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Summarise a paired Base/I/C/I+C quick evaluation directory."""
+"""Summarise a paired component and combination quick evaluation directory."""
 from __future__ import annotations
 
 import argparse
@@ -8,7 +8,7 @@ import math
 from pathlib import Path
 
 
-METHODS = ("BASE", "I", "C", "IC")
+METHODS = ("BASE", "I", "C", "M", "IC", "ICM")
 
 
 def _read(path: Path):
