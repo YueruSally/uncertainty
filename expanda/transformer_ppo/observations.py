@@ -28,6 +28,26 @@ CANDIDATE_FEATURES = (
     "from_node_code_0", "from_node_code_1", "to_node_code_0", "to_node_code_1",
     "mode_code_0", "mode_code_1",
 )
+PATH_BUSINESS_FEATURES = (
+    "path_cost_per_teu", "path_emission_per_teu", "path_nominal_time_h",
+    "path_total_distance", "path_bottleneck_capacity",
+    "path_road_fraction", "path_rail_fraction", "path_water_fraction",
+    "path_other_mode_fraction", "path_border_arc_fraction",
+    "allocated_quantity", "allocated_base_cost", "allocated_base_emission",
+    "deadline_window_h", "nominal_time_slack_h",
+    "arc_distance", "arc_capacity", "arc_cost_rate", "arc_emission_rate",
+    "arc_speed", "arc_is_border",
+)
+MUTATION_OPTION_FEATURES = (
+    "alternative_min_cost", "alternative_min_emission", "alternative_min_time",
+    "alternative_mean_cost", "alternative_mean_emission",
+    "alternative_mean_time", "reliable_best_on_time_probability",
+    "reliable_mean_on_time_probability", "reliable_min_max_lateness_h",
+    "reliable_mean_max_lateness_h",
+)
+CANDIDATE_PATH_V2_FEATURES = (
+    *CANDIDATE_FEATURES, *PATH_BUSINESS_FEATURES, *MUTATION_OPTION_FEATURES,
+)
 GLOBAL_FEATURES = (
     "K", "deadline_window_alpha", "generation_fraction", "evaluation_fraction",
     "remaining_fraction", "offspring_fraction", "phase_is_boost",
@@ -60,6 +80,53 @@ def _category_code(value) -> tuple[float, float]:
     first = int.from_bytes(digest[:4], "big") / (2**32 - 1)
     second = int.from_bytes(digest[4:8], "big") / (2**32 - 1)
     return 2.0 * first - 1.0, 2.0 * second - 1.0
+
+
+def path_business_features(path, batch=None, share=0.0, arc=None, source=None):
+    """Static path and allocation features; never calls the objective evaluator."""
+    arcs = list(getattr(path, "arcs", ()) or ())
+    modes = ([str(getattr(item, "mode", "")).lower() for item in arcs]
+             if arcs else [str(item).lower()
+                           for item in (source or {}).get("path_modes", ())])
+    denominator = max(1, len(modes))
+    mode_fraction = {
+        name: sum(mode == name for mode in modes) / denominator
+        for name in ("road", "rail", "water")
+    }
+    other_fraction = sum(
+        mode not in {"road", "rail", "water"} for mode in modes) / denominator
+    quantity = _finite(getattr(batch, "quantity", 0.0))
+    allocated_quantity = quantity * _finite(share)
+    source = source or {}
+    cost = _finite(getattr(
+        path, "base_cost_per_teu", source.get("path_cost_per_teu", 0.0)))
+    emission = _finite(getattr(
+        path, "base_emission_per_teu", source.get("path_emission_per_teu", 0.0)))
+    nominal_time = _finite(getattr(
+        path, "base_travel_time_h", source.get("path_nominal_time_h", 0.0)))
+    earliest = _finite(getattr(batch, "ET", 0.0))
+    latest = _finite(getattr(batch, "LT", 0.0))
+    return [
+        cost, emission, nominal_time,
+        (sum(_finite(getattr(item, "distance", 0.0)) for item in arcs)
+         if arcs else _finite(source.get("path_total_distance"))),
+        (min((_finite(getattr(item, "capacity", 0.0)) for item in arcs),
+             default=0.0) if arcs else _finite(source.get("path_bottleneck_capacity"))),
+        mode_fraction["road"], mode_fraction["rail"], mode_fraction["water"],
+        other_fraction,
+        sum(bool(getattr(item, "is_border_arc", False)) for item in arcs) / denominator,
+        allocated_quantity, allocated_quantity * cost,
+        allocated_quantity * emission, max(0.0, latest - earliest),
+        latest - earliest - nominal_time,
+        _finite(getattr(arc, "distance", source.get("arc_distance", 0.0))),
+        _finite(getattr(arc, "capacity", source.get("arc_capacity", 0.0))),
+        _finite(getattr(
+            arc, "cost_per_teu_km", source.get("arc_cost_rate", 0.0))),
+        _finite(getattr(
+            arc, "emission_per_teu_km", source.get("arc_emission_rate", 0.0))),
+        _finite(getattr(arc, "speed_kmh", source.get("arc_speed", 0.0))),
+        float(bool(getattr(arc, "is_border_arc", source.get("arc_is_border", False)))),
+    ]
 
 
 def action_prior(candidates, eligible, use_candidate_probability=True):
@@ -118,7 +185,8 @@ def parent_tokens(ind, batches) -> list[list[float]]:
     return tokens or [[0.0] * len(PARENT_FEATURES)]
 
 
-def candidate_tokens(candidates: Iterable[dict], operator: str, batches=()) -> tuple[list[list[float]], list[bool]]:
+def candidate_tokens(candidates: Iterable[dict], operator: str, batches=(),
+                     representation="legacy") -> tuple[list[list[float]], list[bool]]:
     by_id = {batch.batch_id: batch for batch in batches}
     rows, eligible = [], []
     for candidate in candidates:
@@ -132,7 +200,7 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=()) -> t
         from_node = _category_code(candidate.get("from_node"))
         to_node = _category_code(candidate.get("to_node"))
         mode = _category_code(candidate.get("current_mode"))
-        rows.append([
+        row = [
             _finite(candidate.get("batch_quantity")), _finite(candidate.get("share")),
             _finite(candidate.get("path_count")),
             _finite(candidate.get("path_length")),
@@ -142,10 +210,21 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=()) -> t
             float(target.get("allocation_index") is not None),
             float(arc_index is not None), _finite(arc_index),
             *origin, *destination, *from_node, *to_node, *mode,
-        ])
+        ]
+        if representation == "path_v2":
+            row.extend(path_business_features(
+                candidate.get("path"), batch, candidate.get("share"),
+                candidate.get("arc"), candidate))
+            row.extend(_finite(candidate.get(name))
+                       for name in MUTATION_OPTION_FEATURES)
+        elif representation != "legacy":
+            raise ValueError("unknown candidate representation")
+        rows.append(row)
         eligible.append(bool(candidate.get("eligible")))
     if not rows:
-        rows, eligible = [[0.0] * len(CANDIDATE_FEATURES)], [False]
+        dimension = (len(CANDIDATE_PATH_V2_FEATURES)
+                     if representation == "path_v2" else len(CANDIDATE_FEATURES))
+        rows, eligible = [[0.0] * dimension], [False]
     if operator not in OPERATOR_TO_ID:
         raise ValueError(f"unknown operator: {operator}")
     return rows, eligible
@@ -161,6 +240,46 @@ def candidate_graph_nodes(candidates, graph_observation):
             candidate.get("from_node"), candidate.get("to_node")]
         indices = [node_index[name] for name in names if name in node_index]
         result.append(indices)
+    return result or [[]]
+
+
+def _path_graph_tokens(nodes, modes, graph_observation, segment):
+    node_index = graph_observation["node_index"]
+    edge_lookup = graph_observation.get("edge_lookup", {})
+    result = []
+    for position, name in enumerate(nodes):
+        if name in node_index:
+            result.append([0, node_index[name], segment, position])
+        if position < len(nodes) - 1 and position < len(modes):
+            key = (nodes[position], nodes[position + 1], str(modes[position]).lower())
+            if key in edge_lookup:
+                result.append([1, edge_lookup[key], segment, position])
+    return result
+
+
+def candidate_graph_tokens(candidates, graph_observation):
+    """Ordered alternating node/edge references for each candidate path."""
+    if graph_observation is None:
+        return None
+    result = []
+    for candidate in candidates:
+        paths = candidate.get("candidate_graph_paths")
+        path = candidate.get("path")
+        if paths is None and path is not None:
+            paths = [(list(path.nodes), list(path.modes))]
+        if paths is None:
+            nodes = list(candidate.get("path_nodes") or [])
+            modes = list(candidate.get("path_modes") or [])
+            if not nodes:
+                nodes = [name for name in (
+                    candidate.get("from_node"), candidate.get("to_node")) if name]
+                modes = [candidate.get("current_mode")] if len(nodes) == 2 else []
+            paths = [(nodes, modes)]
+        tokens = []
+        for segment, (nodes, modes) in enumerate(paths):
+            tokens.extend(_path_graph_tokens(
+                list(nodes), list(modes), graph_observation, min(segment, 1)))
+        result.append(tokens)
     return result or [[]]
 
 
@@ -195,9 +314,11 @@ def population_summary(population, normalizer=None) -> dict:
 
 def build_observation(ind, batches, candidates, context, population, pending_offspring,
                       archive_summary, normalizer, evaluation_budget,
-                      evaluation_count, generations, graph_observation=None):
+                      evaluation_count, generations, graph_observation=None,
+                      candidate_representation="legacy"):
     operator = context["operator"]
-    candidate_values, eligible = candidate_tokens(candidates, operator, batches)
+    candidate_values, eligible = candidate_tokens(
+        candidates, operator, batches, candidate_representation)
     pop = population_summary(population, normalizer)
     pending = population_summary(pending_offspring, normalizer)
     budget = max(1, int(evaluation_budget or 1))
@@ -233,6 +354,9 @@ def build_observation(ind, batches, candidates, context, population, pending_off
         observation["graph"] = graph_observation
         observation["candidate_graph_nodes"] = candidate_graph_nodes(
             candidates, graph_observation)
+        if candidate_representation == "path_v2":
+            observation["candidate_graph_tokens"] = candidate_graph_tokens(
+                candidates, graph_observation)
     return observation
 
 
@@ -361,4 +485,45 @@ def pad_observations(observations, device=None):
             "candidate_graph_node_index": candidate_graph_index,
             "candidate_graph_node_padding_mask": candidate_graph_mask,
         })
+        token_presence = ["candidate_graph_tokens" in item for item in observations]
+        if any(token_presence) and not all(token_presence):
+            raise ValueError(
+                "ordered candidate graph tokens cannot be mixed with legacy rows")
+        if all(token_presence):
+            token_rows = [item["candidate_graph_tokens"] for item in observations]
+            if any(len(rows) != len(item["candidates"])
+                   for rows, item in zip(token_rows, observations)):
+                raise ValueError(
+                    "candidate graph-token rows must match candidate actions")
+            max_tokens = max(
+                1, max((len(tokens) for rows in token_rows for tokens in rows),
+                       default=0))
+            token_index = torch.zeros(
+                batch, max_candidates, max_tokens, dtype=torch.long, device=device)
+            token_type = torch.zeros_like(token_index)
+            token_segment = torch.zeros_like(token_index)
+            token_position = torch.zeros(
+                batch, max_candidates, max_tokens, dtype=torch.float32,
+                device=device)
+            token_mask = torch.ones(
+                batch, max_candidates, max_tokens, dtype=torch.bool, device=device)
+            for row, rows in enumerate(token_rows):
+                for candidate_index, tokens in enumerate(rows):
+                    for token_offset, token in enumerate(tokens):
+                        if len(token) != 4:
+                            raise ValueError(
+                                "candidate graph token must have four fields")
+                        kind, index, segment, position = token
+                        token_type[row, candidate_index, token_offset] = int(kind)
+                        token_index[row, candidate_index, token_offset] = int(index)
+                        token_segment[row, candidate_index, token_offset] = int(segment)
+                        token_position[row, candidate_index, token_offset] = float(position)
+                        token_mask[row, candidate_index, token_offset] = False
+            result.update({
+                "candidate_graph_token_index": token_index,
+                "candidate_graph_token_type": token_type,
+                "candidate_graph_token_segment": token_segment,
+                "candidate_graph_token_position": token_position,
+                "candidate_graph_token_padding_mask": token_mask,
+            })
     return result

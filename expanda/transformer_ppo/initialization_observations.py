@@ -1,8 +1,11 @@
 """Partial-chromosome observations for initialization path selection."""
 from __future__ import annotations
 
-from .observations import action_prior, _category_code, _finite, population_summary
-from .graph_features import GRAPH_MODEL_SPEC
+from .observations import (
+    PATH_BUSINESS_FEATURES, action_prior, candidate_graph_tokens,
+    path_business_features, _category_code, _finite, population_summary,
+)
+from .graph_features import GRAPH_MODEL_SPEC, GRAPH_MODEL_SPEC_V2
 
 
 INITIALIZATION_PARENT_FEATURES = (
@@ -18,6 +21,9 @@ INITIALIZATION_CANDIDATE_FEATURES = (
     "origin_code_0", "origin_code_1", "destination_code_0",
     "destination_code_1", "chromosome_code_0", "chromosome_code_1",
 )
+INITIALIZATION_CANDIDATE_FEATURES_V2 = (
+    *INITIALIZATION_CANDIDATE_FEATURES, *PATH_BUSINESS_FEATURES,
+)
 INITIALIZATION_GLOBAL_FEATURES = (
     "K", "deadline_window_alpha", "evaluation_fraction", "remaining_fraction",
     "initial_population_fraction", "feasible_ratio", "population_hv",
@@ -32,6 +38,11 @@ INITIALIZATION_MODEL_SPEC = {
     "action_count": 1,
 }
 INITIALIZATION_GRAPH_MODEL_SPEC = {**INITIALIZATION_MODEL_SPEC, **GRAPH_MODEL_SPEC}
+INITIALIZATION_GRAPH_MODEL_SPEC_V2 = {
+    **INITIALIZATION_MODEL_SPEC,
+    "candidate_dim": len(INITIALIZATION_CANDIDATE_FEATURES_V2),
+    **GRAPH_MODEL_SPEC_V2,
+}
 
 
 def _partial_tokens(individual, batches):
@@ -57,7 +68,7 @@ def _partial_tokens(individual, batches):
     return tokens or [[0.0] * len(INITIALIZATION_PARENT_FEATURES)]
 
 
-def _candidate_tokens(candidates, context):
+def _candidate_tokens(candidates, context, representation="legacy"):
     batch = context["batch"]
     selected_count = int(context["selection_step"])
     required_count = int(context["required_path_count"])
@@ -70,7 +81,7 @@ def _candidate_tokens(candidates, context):
                 counts[mode] += 1
         denominator = max(1, len(path.modes))
         other = denominator - sum(counts.values())
-        rows.append([
+        row = [
             _finite(batch.quantity), _finite(batch.ET), _finite(batch.LT),
             float(selected_count), float(required_count),
             float(required_count - selected_count), float(len(path.arcs)),
@@ -79,15 +90,22 @@ def _candidate_tokens(candidates, context):
             counts["water"] / denominator, other / denominator,
             *_category_code(batch.origin), *_category_code(batch.destination),
             *_category_code((tuple(path.nodes), tuple(path.modes))),
-        ])
+        ]
+        if representation == "path_v2":
+            row.extend(path_business_features(path, batch, 1.0))
+        elif representation != "legacy":
+            raise ValueError("unknown candidate representation")
+        rows.append(row)
     return rows, [bool(candidate["eligible"]) for candidate in candidates]
 
 
 def build_initialization_observation(partial_individual, batches, candidates, context,
                                      population, archive_summary, normalizer,
                                      evaluation_budget, evaluation_count, pop_size,
-                                     graph_observation=None):
-    candidate_values, eligible = _candidate_tokens(candidates, context)
+                                     graph_observation=None,
+                                     candidate_representation="legacy"):
+    candidate_values, eligible = _candidate_tokens(
+        candidates, context, candidate_representation)
     population_state = population_summary(population, normalizer)
     budget = max(1, int(evaluation_budget or 1))
     minimum = population_state["objective_min"]
@@ -120,4 +138,7 @@ def build_initialization_observation(partial_individual, batches, candidates, co
              if name in node_index]
             for candidate in candidates
         ]
+        if candidate_representation == "path_v2":
+            observation["candidate_graph_tokens"] = candidate_graph_tokens(
+                candidates, graph_observation)
     return observation

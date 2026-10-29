@@ -10,13 +10,18 @@ import time
 
 from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.config import PPOConfig, SCENARIOS, episode_seeds
-from transformer_ppo.crossover_observations import CROSSOVER_GRAPH_MODEL_SPEC
-from transformer_ppo.graph_features import GRAPH_MODEL_SPEC
-from transformer_ppo.initialization_observations import INITIALIZATION_GRAPH_MODEL_SPEC
+from transformer_ppo.crossover_observations import (
+    CROSSOVER_GRAPH_MODEL_SPEC, CROSSOVER_GRAPH_MODEL_SPEC_V2,
+)
+from transformer_ppo.graph_features import GRAPH_MODEL_SPEC, GRAPH_MODEL_SPEC_V2
+from transformer_ppo.initialization_observations import (
+    INITIALIZATION_GRAPH_MODEL_SPEC, INITIALIZATION_GRAPH_MODEL_SPEC_V2,
+)
 from transformer_ppo.initialization_rule_features import validate_rule_normalization
 from transformer_ppo.models import TRANSFORMER_ACTOR_CONDITIONING
 from transformer_ppo.observations import (
-    CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
+    CANDIDATE_FEATURES, CANDIDATE_PATH_V2_FEATURES, GLOBAL_FEATURES,
+    PARENT_FEATURES,
 )
 from transformer_ppo.episode import run_episode
 from transformer_ppo.ppo import PPOTrainer
@@ -98,17 +103,21 @@ def _catalog_digest(instances):
     return _read_json(catalog_path).get("catalog_digest")
 
 
-def _model_spec(component):
+def _model_spec(component, candidate_representation="legacy"):
+    path_v2 = candidate_representation == "path_v2"
     if component == "C":
-        return dict(CROSSOVER_GRAPH_MODEL_SPEC)
+        return dict(CROSSOVER_GRAPH_MODEL_SPEC_V2 if path_v2
+                    else CROSSOVER_GRAPH_MODEL_SPEC)
     if component == "I":
-        return dict(INITIALIZATION_GRAPH_MODEL_SPEC)
+        return dict(INITIALIZATION_GRAPH_MODEL_SPEC_V2 if path_v2
+                    else INITIALIZATION_GRAPH_MODEL_SPEC)
     return {
         "parent_dim": len(PARENT_FEATURES),
-        "candidate_dim": len(CANDIDATE_FEATURES),
+        "candidate_dim": len(CANDIDATE_PATH_V2_FEATURES if path_v2
+                             else CANDIDATE_FEATURES),
         "global_dim": len(GLOBAL_FEATURES),
         "action_count": 5,
-        **GRAPH_MODEL_SPEC,
+        **(GRAPH_MODEL_SPEC_V2 if path_v2 else GRAPH_MODEL_SPEC),
     }
 
 
@@ -121,8 +130,12 @@ def _run_config(args, config, manifests, records):
         "schema_version": 4,
         "component": args.component,
         "architecture": args.architecture,
-        "model_spec": _model_spec(args.component),
-        "network_encoding": "shared-network-tokens-v1",
+        "model_spec": _model_spec(
+            args.component, config.candidate_representation),
+        "network_encoding": (
+            "ordered-node-edge-paths-v2"
+            if config.candidate_representation == "path_v2"
+            else "shared-network-tokens-v1"),
         "actor_conditioning": (
             TRANSFORMER_ACTOR_CONDITIONING
             if args.architecture == "transformer" else
@@ -275,6 +288,10 @@ def main():
     parser.add_argument(
         "--residual-logit-limit", type=float,
         help="Absolute tanh bound for base-residual actor corrections.")
+    parser.add_argument(
+        "--candidate-representation", choices=("legacy", "path_v2"),
+        help=("Candidate feature/graph representation. path_v2 adds business "
+              "path summaries and ordered node-edge candidate encoding."))
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
@@ -330,6 +347,7 @@ def main():
             "dropout": args.dropout,
             "actor_policy": args.actor_policy,
             "residual_logit_limit": args.residual_logit_limit,
+            "candidate_representation": args.candidate_representation,
         }.items() if value is not None
     }
     config = replace(config, **overrides)
@@ -358,7 +376,8 @@ def main():
             args.architecture, config, lambda *_: None,
             device=args.device, policy_seed=args.policy_seed, training=True,
             component=args.component,
-            model_spec=_model_spec(args.component))
+            model_spec=_model_spec(
+                args.component, config.candidate_representation))
         completed, summaries, previous_elapsed = 0, [], 0.0
         checkpoint = _checkpoint_path(args.out, completed)
         trainer.save(checkpoint, metadata=run_config)

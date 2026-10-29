@@ -1,8 +1,11 @@
 """Raw-chromosome and population observations for crossover-cut learning."""
 from __future__ import annotations
 
-from .observations import action_prior, _category_code, _finite, population_summary
-from .graph_features import GRAPH_MODEL_SPEC
+from .observations import (
+    action_prior, candidate_graph_tokens, _category_code, _finite,
+    population_summary,
+)
+from .graph_features import GRAPH_MODEL_SPEC, GRAPH_MODEL_SPEC_V2
 
 
 CROSSOVER_PARENT_FEATURES = (
@@ -16,6 +19,21 @@ CROSSOVER_CANDIDATE_FEATURES = (
     "position_1", "position_2", "prefix_1", "suffix_1", "prefix_2",
     "suffix_2", "origin_code_0", "origin_code_1", "destination_code_0",
     "destination_code_1", "join_node_code_0", "join_node_code_1",
+)
+CROSSOVER_CANDIDATE_FEATURES_V2 = (
+    *CROSSOVER_CANDIDATE_FEATURES,
+    "parent_combined_cost", "parent_combined_emission", "parent_combined_time",
+    "child_combined_cost", "child_combined_emission", "child_combined_time",
+    "child_cost_delta", "child_emission_delta", "child_time_delta",
+    "child_1_cost_per_teu", "child_1_emission_per_teu",
+    "child_1_nominal_time_h", "child_2_cost_per_teu",
+    "child_2_emission_per_teu", "child_2_nominal_time_h",
+    "child_1_distance", "child_2_distance",
+    "child_1_bottleneck_capacity", "child_2_bottleneck_capacity",
+    "child_1_road_fraction", "child_1_rail_fraction",
+    "child_1_water_fraction", "child_2_road_fraction",
+    "child_2_rail_fraction", "child_2_water_fraction",
+    "child_border_fraction", "deadline_window_h",
 )
 CROSSOVER_GLOBAL_FEATURES = (
     "K", "deadline_window_alpha", "generation_fraction", "evaluation_fraction",
@@ -34,6 +52,11 @@ CROSSOVER_MODEL_SPEC = {
     "action_count": 1,
 }
 CROSSOVER_GRAPH_MODEL_SPEC = {**CROSSOVER_MODEL_SPEC, **GRAPH_MODEL_SPEC}
+CROSSOVER_GRAPH_MODEL_SPEC_V2 = {
+    **CROSSOVER_MODEL_SPEC,
+    "candidate_dim": len(CROSSOVER_CANDIDATE_FEATURES_V2),
+    **GRAPH_MODEL_SPEC_V2,
+}
 
 
 def _parent_tokens(parent, batches, side):
@@ -59,19 +82,38 @@ def _parent_tokens(parent, batches, side):
     return tokens
 
 
-def _candidate_tokens(candidates):
+def _candidate_tokens(candidates, representation="legacy"):
     values = []
     for row in candidates:
         length1, length2 = row["path_length_1"], row["path_length_2"]
         position1, position2 = row["position_1"], row["position_2"]
-        values.append([
+        candidate = [
             _finite(row["batch_quantity"]), _finite(row["share_1"]),
             _finite(row["share_2"]), float(length1), float(length2),
             float(position1), float(position2), float(position1),
             float(length1 - position1), float(position2),
             float(length2 - position2), *_category_code(row["origin"]),
             *_category_code(row["destination"]), *_category_code(row["join_node"]),
-        ])
+        ]
+        if representation == "path_v2":
+            candidate.extend(_finite(row.get(name)) for name in (
+                "parent_combined_cost", "parent_combined_emission",
+                "parent_combined_time", "child_combined_cost",
+                "child_combined_emission", "child_combined_time",
+                "child_cost_delta", "child_emission_delta", "child_time_delta",
+                "child_1_cost_per_teu", "child_1_emission_per_teu",
+                "child_1_nominal_time_h", "child_2_cost_per_teu",
+                "child_2_emission_per_teu", "child_2_nominal_time_h",
+                "child_1_distance", "child_2_distance",
+                "child_1_bottleneck_capacity", "child_2_bottleneck_capacity",
+                "child_1_road_fraction", "child_1_rail_fraction",
+                "child_1_water_fraction", "child_2_road_fraction",
+                "child_2_rail_fraction", "child_2_water_fraction",
+                "child_border_fraction", "deadline_window_h",
+            ))
+        elif representation != "legacy":
+            raise ValueError("unknown candidate representation")
+        values.append(candidate)
     return values, [bool(row["eligible"]) for row in candidates]
 
 
@@ -129,8 +171,10 @@ def build_crossover_observation(parent1, parent2, batches, candidates, context,
                                 population, pending_offspring, archive_summary,
                                 normalizer, evaluation_budget, evaluation_count,
                                 generations, graph_observation=None,
-                                shared_observation=None):
-    candidate_values, eligible = _candidate_tokens(candidates)
+                                shared_observation=None,
+                                candidate_representation="legacy"):
+    candidate_values, eligible = _candidate_tokens(
+        candidates, candidate_representation)
     shared = shared_observation or build_crossover_shared_observation(
         parent1, parent2, batches, context, population, pending_offspring,
         archive_summary, normalizer, evaluation_budget, evaluation_count,
@@ -149,4 +193,7 @@ def build_crossover_observation(parent1, parent2, batches, candidates, context,
              if row["join_node"] in node_index else [])
             for row in candidates
         ]
+        if candidate_representation == "path_v2":
+            observation["candidate_graph_tokens"] = candidate_graph_tokens(
+                candidates, graph_observation)
     return observation

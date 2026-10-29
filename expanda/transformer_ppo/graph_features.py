@@ -16,9 +16,18 @@ GRAPH_EDGE_FEATURES = (
     "distance", "capacity", "cost_rate", "emission_rate", "speed",
     "is_border", "mode_road", "mode_rail", "mode_water", "mode_other",
 )
+GRAPH_EDGE_FEATURES_V2 = (
+    *GRAPH_EDGE_FEATURES,
+    "scheduled_service_count", "frequency_per_week", "first_departure_hour",
+    "headway_hours", "timetable_travel_time_h",
+)
 GRAPH_MODEL_SPEC = {
     "graph_node_dim": len(GRAPH_NODE_FEATURES),
     "graph_edge_dim": len(GRAPH_EDGE_FEATURES),
+}
+GRAPH_MODEL_SPEC_V2 = {
+    "graph_node_dim": len(GRAPH_NODE_FEATURES),
+    "graph_edge_dim": len(GRAPH_EDGE_FEATURES_V2),
 }
 
 
@@ -45,7 +54,8 @@ def _scale(values):
 
 
 def build_graph_observation(nodes, regions, hold_cost, processing_cost,
-                            transfer_cost, arcs, batches):
+                            transfer_cost, arcs, batches, timetables=(),
+                            representation="legacy"):
     """Encode one instance graph without using objectives or test statistics.
 
     The ordering and scaling rules are shared by all three learning components.
@@ -99,6 +109,8 @@ def build_graph_observation(nodes, regions, hold_cost, processing_cost,
             *numerical, terminal, *_category_code(regions.get(name)),
         ])
 
+    if representation not in ("legacy", "path_v2"):
+        raise ValueError("unknown graph representation")
     ordered_arcs = sorted(
         arcs, key=lambda arc: (
             str(arc.from_node), str(arc.to_node), str(arc.mode),
@@ -111,23 +123,59 @@ def build_graph_observation(nodes, regions, hold_cost, processing_cost,
         [_finite(arc.speed_kmh) for arc in ordered_arcs],
     ]
     edge_scales = [_scale(column) for column in edge_columns]
-    edge_values, edge_index = [], []
+    timetable_by_arc = {}
+    for entry in timetables:
+        key = (entry.from_node, entry.to_node, str(entry.mode).lower())
+        timetable_by_arc.setdefault(key, []).append(entry)
+    timetable_columns = []
+    for arc in ordered_arcs:
+        entries = timetable_by_arc.get(
+            (arc.from_node, arc.to_node, str(arc.mode).lower()), [])
+        timetable_columns.append([
+            len(entries),
+            sum(_finite(getattr(item, "frequency_per_week", 0.0))
+                for item in entries),
+            min((_finite(getattr(item, "first_departure_hour", 0.0))
+                 for item in entries),
+                default=0.0),
+            min((_finite(getattr(item, "headway_hours", 0.0))
+                 for item in entries), default=0.0),
+            min((_finite(getattr(item, "travel_time_h", 0.0))
+                 for item in entries
+                 if getattr(item, "travel_time_h", None) is not None),
+                default=0.0),
+        ])
+    timetable_scales = [
+        _scale([row[column] for row in timetable_columns])
+        for column in range(5)
+    ]
+    edge_values, edge_index, edge_lookup = [], [], {}
     for position, arc in enumerate(ordered_arcs):
         numerical = [column[position] / scale
                      for column, scale in zip(edge_columns, edge_scales)]
         mode = str(arc.mode).lower()
-        edge_values.append([
+        values = [
             *numerical, float(bool(arc.is_border_arc)),
             float(mode == "road"), float(mode == "rail"),
             float(mode == "water"), float(mode not in {"road", "rail", "water"}),
-        ])
+        ]
+        if representation == "path_v2":
+            values.extend(
+                value / scale for value, scale in
+                zip(timetable_columns[position], timetable_scales))
+        edge_values.append(values)
         edge_index.append([node_index[arc.from_node], node_index[arc.to_node]])
+        edge_lookup[(arc.from_node, arc.to_node, mode)] = position
 
     return {
-        "schema": "shared-network-tokens-v1",
+        "schema": (
+            "ordered-node-edge-paths-v2"
+            if representation == "path_v2" else "shared-network-tokens-v1"),
         "nodes": node_values,
         "edges": edge_values,
         "edge_index": edge_index,
-        "edge_dim": len(GRAPH_EDGE_FEATURES),
+        "edge_dim": (len(GRAPH_EDGE_FEATURES_V2)
+                     if representation == "path_v2" else len(GRAPH_EDGE_FEATURES)),
         "node_index": node_index,
+        "edge_lookup": edge_lookup,
     }

@@ -81,7 +81,9 @@ class InitializationPPOController(MutationLogger):
             self._current_partial, self.batches_for_observation, candidates,
             self._current_context, self.current_population,
             self.archive.summary(), self.archive.normalizer, self.budget,
-            self.evaluations, self.pop_size, self.graph_observation)
+            self.evaluations, self.pop_size, self.graph_observation,
+            getattr(getattr(self.trainer, "config", None),
+                    "candidate_representation", "legacy"))
 
     def initial_individual(self, batches, path_lib, max_paths=3):
         if self._active_event is not None:

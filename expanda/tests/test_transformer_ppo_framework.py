@@ -138,6 +138,10 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "residual_logit_limit"):
             PPOConfig(residual_logit_limit=0.0).validate()
 
+    def test_invalid_candidate_representation_fails(self):
+        with self.assertRaisesRegex(ValueError, "candidate_representation"):
+            PPOConfig(candidate_representation="path-hash").validate()
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CheckpointTests(unittest.TestCase):

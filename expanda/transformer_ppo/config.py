@@ -47,6 +47,7 @@ class PPOConfig:
     dropout: float = 0.1
     actor_policy: str = "direct"
     residual_logit_limit: float = 2.0
+    candidate_representation: str = "legacy"
 
     def validate(self) -> None:
         if self.rollout_steps < self.gae_horizon:
@@ -66,6 +67,9 @@ class PPOConfig:
                 "actor_policy must be 'direct' or 'base_residual'")
         if self.residual_logit_limit <= 0.0:
             raise ValueError("residual_logit_limit must be positive")
+        if self.candidate_representation not in ("legacy", "path_v2"):
+            raise ValueError(
+                "candidate_representation must be 'legacy' or 'path_v2'")
         if self.hidden_dim % self.attention_heads:
             raise ValueError("hidden_dim must be divisible by attention_heads")
 

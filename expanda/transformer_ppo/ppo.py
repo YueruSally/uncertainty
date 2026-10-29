@@ -146,6 +146,7 @@ class PPOTrainer:
             "old_log_probability": float(log_probability.item()),
             "state_value": float(value.item()), "entropy": float(entropy),
             "actor_policy": self.config.actor_policy,
+            "candidate_representation": self.config.candidate_representation,
             "policy_update": self.updates, "architecture": self.architecture,
             "inference_seconds": time.perf_counter() - inference_started,
         })
@@ -418,6 +419,7 @@ class PPOTrainer:
             "training_episode_count": metadata.get("episode_count"),
             "ppo_digest": metadata.get("ppo_digest"),
             "actor_policy": config.actor_policy,
+            "candidate_representation": config.candidate_representation,
             "learning_control": metadata.get("learning_control"),
             "updates": result.updates,
         }

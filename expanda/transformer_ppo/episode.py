@@ -62,6 +62,18 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         raise ValueError("ICM requires matching I, C, and M trainers")
     if component in ("BASE", "RULE-I") and trainer is not None:
         raise ValueError(f"{component} does not accept a policy trainer")
+    episode_trainers = (
+        tuple(trainer.values()) if component == "ICM" else
+        () if trainer is None else (trainer,))
+    candidate_representations = {
+        getattr(getattr(item, "config", None), "candidate_representation", "legacy")
+        for item in episode_trainers}
+    if len(candidate_representations) > 1:
+        raise ValueError(
+            "ICM checkpoints must use one common candidate representation")
+    candidate_representation = (
+        next(iter(candidate_representations))
+        if candidate_representations else "legacy")
     if component == "RULE-I" and rule_initialization_normalization is None:
         raise ValueError("RULE-I requires a path-feature normalization")
     if learning_protocol_version not in (None, 1, 2):
@@ -150,7 +162,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     )
     episode_normalizer = normalizer.with_divisor(objective_divisor)
     graph_observation = build_graph_observation(
-        nodes, regions, hold, proc, trans_cost, arcs, batches)
+        nodes, regions, hold, proc, trans_cost, arcs, batches, timetables,
+        candidate_representation)
     method = (
         "base-nsga2" if component == "BASE" else
         "rule-initialization" if component == "RULE-I" else

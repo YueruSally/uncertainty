@@ -39,12 +39,25 @@ def enumerate_targets(ind, batches, op, path_lib, tt_dict, arc_lookup):
                     "path_id": None if alloc is None else alloc.path.path_id,
                     "path_length": 0 if alloc is None else len(alloc.path.arcs),
                     "path_nodes": [] if alloc is None else list(alloc.path.nodes),
+                    "path_modes": [] if alloc is None else list(alloc.path.modes),
                     "path_cost_per_teu": None if alloc is None else alloc.path.base_cost_per_teu,
                     "path_emission_per_teu": None if alloc is None else alloc.path.base_emission_per_teu,
                     "path_nominal_time_h": None if alloc is None else alloc.path.base_travel_time_h,
+                    "path_total_distance": (None if alloc is None else
+                        sum(item.distance for item in alloc.path.arcs)),
+                    "path_bottleneck_capacity": (None if alloc is None else
+                        min((item.capacity for item in alloc.path.arcs), default=0.0)),
                     "from_node": None if arc is None else arc.from_node,
                     "to_node": None if arc is None else arc.to_node,
                     "current_mode": None if arc is None else arc.mode,
+                    "arc_distance": None if arc is None else arc.distance,
+                    "arc_capacity": None if arc is None else arc.capacity,
+                    "arc_cost_rate": None if arc is None else arc.cost_per_teu_km,
+                    "arc_emission_rate": (
+                        None if arc is None else arc.emission_per_teu_km),
+                    "arc_speed": None if arc is None else arc.speed_kmh,
+                    "arc_is_border": (
+                        False if arc is None else bool(arc.is_border_arc)),
                     "alternative_mode_count": len(alternatives),
                     "eligible": (len(allocs) > 1 if op == "del" else
                                  bool(alternatives) if op == "mode" else

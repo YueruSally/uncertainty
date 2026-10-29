@@ -88,7 +88,8 @@ class NetworkTransformerEncoder(nn.Module):
         padding_mask = torch.cat([node_mask, edge_mask], dim=1)
         encoded = self.encoder(tokens, src_key_padding_mask=padding_mask)
         encoded_nodes = encoded[:, :nodes.shape[1]]
-        return encoded_nodes, _masked_mean(encoded, padding_mask)
+        encoded_edges = encoded[:, nodes.shape[1]:]
+        return encoded_nodes, encoded_edges, _masked_mean(encoded, padding_mask)
 
 
 class NetworkMeanEncoder(nn.Module):
@@ -114,7 +115,7 @@ class NetworkMeanEncoder(nn.Module):
         tokens = torch.cat([nodes, edges], dim=1)
         padding_mask = torch.cat([
             batch["graph_node_padding_mask"], batch["graph_edge_padding_mask"]], dim=1)
-        return nodes, _masked_mean(tokens, padding_mask)
+        return nodes, edges, _masked_mean(tokens, padding_mask)
 
 
 def _candidate_graph_context(node_hidden, batch):
@@ -131,6 +132,65 @@ def _candidate_graph_context(node_hidden, batch):
             / valid.sum(dim=2).clamp_min(1.0))
 
 
+def _ordered_graph_tokens(node_hidden, edge_hidden, batch, type_embedding,
+                          segment_embedding, position_projection):
+    indices = batch["candidate_graph_token_index"]
+    kinds = batch["candidate_graph_token_type"]
+    segments = batch["candidate_graph_token_segment"].clamp(0, 1)
+    count, length = indices.shape[1], indices.shape[2]
+    hidden = node_hidden.shape[-1]
+    node_source = node_hidden.unsqueeze(1).expand(-1, count, -1, -1)
+    edge_source = edge_hidden.unsqueeze(1).expand(-1, count, -1, -1)
+    node_tokens = torch.gather(
+        node_source, 2, indices.clamp_max(node_hidden.shape[1] - 1)
+        .unsqueeze(-1).expand(-1, -1, -1, hidden))
+    edge_tokens = torch.gather(
+        edge_source, 2, indices.clamp_max(edge_hidden.shape[1] - 1)
+        .unsqueeze(-1).expand(-1, -1, -1, hidden))
+    tokens = torch.where(kinds.unsqueeze(-1).bool(), edge_tokens, node_tokens)
+    position = _signed_log1p(
+        batch["candidate_graph_token_position"].unsqueeze(-1))
+    tokens = (tokens + type_embedding(kinds) + segment_embedding(segments)
+              + position_projection(position))
+    return tokens.reshape(-1, length, hidden)
+
+
+class OrderedCandidatePathEncoder(nn.Module):
+    """Encode each candidate's ordered node-edge path without objective calls."""
+
+    def __init__(self, hidden_dim, heads, dropout, use_attention=True):
+        super().__init__()
+        self.type_embedding = nn.Embedding(2, hidden_dim)
+        self.segment_embedding = nn.Embedding(2, hidden_dim)
+        self.position_projection = nn.Linear(1, hidden_dim)
+        self.encoder = None
+        if use_attention:
+            layer = nn.TransformerEncoderLayer(
+                d_model=hidden_dim, nhead=heads,
+                dim_feedforward=hidden_dim * 2, dropout=dropout,
+                activation="gelu", batch_first=True, norm_first=True)
+            self.encoder = nn.TransformerEncoder(layer, num_layers=1)
+
+    def forward(self, node_hidden, edge_hidden, batch):
+        source = _ordered_graph_tokens(
+            node_hidden, edge_hidden, batch, self.type_embedding,
+            self.segment_embedding, self.position_projection)
+        mask = batch["candidate_graph_token_padding_mask"].reshape(
+            -1, source.shape[1])
+        valid_rows = ~mask.all(dim=1)
+        pooled = source.new_zeros(source.shape[0], source.shape[-1])
+        if valid_rows.any():
+            encoded = source[valid_rows]
+            valid_mask = mask[valid_rows]
+            if self.encoder is not None:
+                encoded = self.encoder(
+                    encoded, src_key_padding_mask=valid_mask)
+            pooled[valid_rows] = _masked_mean(encoded, valid_mask)
+        return pooled.reshape(
+            batch["candidate_graph_token_index"].shape[0],
+            batch["candidate_graph_token_index"].shape[1], -1)
+
+
 class TransformerActorCritic(nn.Module):
     """Candidate self-attention followed by parent-candidate cross-attention."""
 
@@ -141,10 +201,12 @@ class TransformerActorCritic(nn.Module):
                  candidate_dim=len(CANDIDATE_FEATURES),
                  global_dim=len(GLOBAL_FEATURES), action_count=len(OPERATORS),
                  graph_node_dim=None, graph_edge_dim=None,
-                 actor_policy="direct", residual_logit_limit=2.0):
+                 actor_policy="direct", residual_logit_limit=2.0,
+                 candidate_representation="legacy"):
         super().__init__()
         self.actor_policy = actor_policy
         self.residual_logit_limit = float(residual_logit_limit)
+        self.candidate_representation = candidate_representation
         self.parent_projection = nn.Sequential(
             nn.Linear(parent_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
         self.candidate_projection = nn.Sequential(
@@ -156,6 +218,11 @@ class TransformerActorCritic(nn.Module):
             NetworkTransformerEncoder(
                 graph_node_dim, graph_edge_dim, hidden_dim, heads, layers, dropout)
             if graph_node_dim is not None and graph_edge_dim is not None else None)
+        self.candidate_path_encoder = (
+            OrderedCandidatePathEncoder(
+                hidden_dim, heads, dropout, use_attention=True)
+            if self.network_encoder is not None
+            and candidate_representation == "path_v2" else None)
         encoder_layer = lambda: nn.TransformerEncoderLayer(
             d_model=hidden_dim, nhead=heads, dim_feedforward=hidden_dim * 4,
             dropout=dropout, activation="gelu", batch_first=True, norm_first=True)
@@ -175,11 +242,14 @@ class TransformerActorCritic(nn.Module):
         global_hidden = self.global_projection(_signed_log1p(batch["global"]))
         network_hidden = None
         if self.network_encoder is not None:
-            network_nodes, network_hidden = self.network_encoder(batch)
+            network_nodes, network_edges, network_hidden = self.network_encoder(batch)
             network_context = network_hidden.unsqueeze(1)
             parent = parent + network_context
-            candidate = candidate + network_context + _candidate_graph_context(
-                network_nodes, batch)
+            candidate_graph = (
+                self.candidate_path_encoder(network_nodes, network_edges, batch)
+                if self.candidate_path_encoder is not None else
+                _candidate_graph_context(network_nodes, batch))
+            candidate = candidate + network_context + candidate_graph
         operator = self.operator_embedding(batch["operator_id"]).unsqueeze(1)
         candidate = candidate + operator + global_hidden.unsqueeze(1)
         parent = self.parent_encoder(parent, src_key_padding_mask=batch["parent_padding_mask"])
@@ -213,15 +283,22 @@ class MLPActorCritic(nn.Module):
                  candidate_dim=len(CANDIDATE_FEATURES),
                  global_dim=len(GLOBAL_FEATURES), action_count=len(OPERATORS),
                  graph_node_dim=None, graph_edge_dim=None,
-                 actor_policy="direct", residual_logit_limit=2.0, **_):
+                 actor_policy="direct", residual_logit_limit=2.0,
+                 candidate_representation="legacy", **_):
         super().__init__()
         self.actor_policy = actor_policy
         self.residual_logit_limit = float(residual_logit_limit)
+        self.candidate_representation = candidate_representation
         self.parent_projection = nn.Sequential(
             nn.Linear(parent_dim, hidden_dim), nn.GELU(), nn.LayerNorm(hidden_dim))
         self.network_encoder = (
             NetworkMeanEncoder(graph_node_dim, graph_edge_dim, hidden_dim)
             if graph_node_dim is not None and graph_edge_dim is not None else None)
+        self.candidate_path_encoder = (
+            OrderedCandidatePathEncoder(
+                hidden_dim, heads=1, dropout=0.0, use_attention=False)
+            if self.network_encoder is not None
+            and self.candidate_representation == "path_v2" else None)
         self.candidate_projection = nn.Sequential(
             nn.Linear(candidate_dim + global_dim + hidden_dim
                       + (hidden_dim if self.network_encoder else 0),
@@ -246,9 +323,13 @@ class MLPActorCritic(nn.Module):
         ]
         network_hidden = None
         if self.network_encoder is not None:
-            network_nodes, network_hidden = self.network_encoder(batch)
+            network_nodes, network_edges, network_hidden = self.network_encoder(batch)
+            candidate_graph = (
+                self.candidate_path_encoder(network_nodes, network_edges, batch)
+                if self.candidate_path_encoder is not None else
+                _candidate_graph_context(network_nodes, batch))
             parts.append(network_hidden.unsqueeze(1).expand(-1, count, -1)
-                         + _candidate_graph_context(network_nodes, batch))
+                         + candidate_graph)
         inputs = torch.cat(parts, dim=-1)
         candidate = self.candidate_projection(inputs)
         candidate = candidate + self.operator_embedding(batch["operator_id"]).unsqueeze(1)
@@ -270,7 +351,8 @@ def build_model(architecture, config, model_spec=None):
     kwargs = dict(hidden_dim=config.hidden_dim, heads=config.attention_heads,
                   layers=config.transformer_layers, dropout=config.dropout,
                   actor_policy=config.actor_policy,
-                  residual_logit_limit=config.residual_logit_limit)
+                  residual_logit_limit=config.residual_logit_limit,
+                  candidate_representation=config.candidate_representation)
     if model_spec is not None:
         kwargs.update(model_spec)
     if architecture == "transformer":

@@ -83,7 +83,9 @@ class PPOController(MutationLogger):
             self.current_individual, self.batches_for_observation, candidates, enriched,
             self.current_population, self.pending_offspring,
             self.archive.summary(), self.archive.normalizer, self.budget,
-            self.evaluations, self.generations, self.graph_observation)
+            self.evaluations, self.generations, self.graph_observation,
+            getattr(getattr(self.trainer, "config", None),
+                    "candidate_representation", "legacy"))
 
     def mutate(self, ind, batches, path_lib, tt_dict, arc_lookup,
                arcs, waiting_cost, waiting_emission, reliable_options=None, **kwargs):

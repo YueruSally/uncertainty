@@ -100,14 +100,17 @@ class CrossoverPPOController(MutationLogger):
             self.current_population, self.pending_offspring,
             self.archive.summary(), self.archive.normalizer, self.budget,
             self.evaluations, self.generations, self.graph_observation,
-            shared_observation=self._shared_observation)
+            shared_observation=self._shared_observation,
+            candidate_representation=(
+                getattr(getattr(self.trainer, "config", None),
+                        "candidate_representation", "legacy")))
 
     def crossover_common_node(self, parent1, parent2, batches, tt_dict, arc_lookup):
         if self._active_event is not None:
             raise RuntimeError("previous crossover event was not settled")
         started = time.perf_counter()
         child1, child2, cut_decisions = prepare_common_node_crossover(
-            parent1, parent2, batches)
+            parent1, parent2, batches, tt_dict=tt_dict)
         event_id = f"{self.run_id}:C:{self.event_count + 1}"
         self.event_count += 1
         self.total_attempts += 1
