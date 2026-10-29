@@ -14,6 +14,7 @@ class CutDecision:
     allocation_index_1: int
     allocation_index_2: int
     candidates: tuple[dict, ...]
+    shadow_base_index: int
 
 
 def _stable_common_nodes(path1, path2):
@@ -157,10 +158,15 @@ def prepare_common_node_crossover(parent1, parent2, batches, rng=None,
                 ],
             })
         if candidates:
+            # Base chooses the common node immediately after choosing the two
+            # allocations for this Batch.  Consume that draw here so multiple
+            # batches preserve Base's exact interleaved RNG stream.
+            shadow_base_index = rng.randrange(len(candidates))
             decisions.append(CutDecision(
                 batch=batch, key=key,
                 allocation_index_1=index1, allocation_index_2=index2,
-                candidates=tuple(candidates)))
+                candidates=tuple(candidates),
+                shadow_base_index=shadow_base_index))
     return child1, child2, decisions
 
 

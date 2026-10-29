@@ -167,6 +167,34 @@ class InitializationControllerTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_v4_path_control_keeps_base_count_with_v3_features(self):
+        random.seed(9)
+        base_individual = base.random_initial_individual(
+            [self.batch], self.path_lib, max_paths=3)
+        expected_state = random.getstate()
+        expected_count = len(
+            base_individual.od_allocations[("A", "D", 4)])
+
+        trainer = _FakeTrainer()
+        trainer.config = SimpleNamespace(
+            candidate_representation="path_v3",
+            initialization_control="path")
+        with tempfile.TemporaryDirectory() as directory:
+            controller = self._controller(directory, trainer)
+            try:
+                random.seed(9)
+                individual = controller.initial_individual(
+                    [self.batch], self.path_lib, max_paths=3)
+                allocations = individual.od_allocations[("A", "D", 4)]
+                self.assertEqual(random.getstate(), expected_state)
+                self.assertEqual(len(allocations), expected_count)
+                count_log = Path(directory) / "initialization_count_candidates.jsonl"
+                self.assertEqual(count_log.read_text(), "")
+                self.assertEqual(
+                    len(trainer.last_observation["candidates"][0]), 50)
+            finally:
+                controller.close()
+
     def test_one_path_is_direct_and_creates_no_policy_reward(self):
         trainer = _FakeTrainer(fail_on_choose=True)
         with tempfile.TemporaryDirectory() as directory:

@@ -177,6 +177,42 @@ class RewardArchive:
         self._fingerprints.clear()
         self._hypervolume = 0.0
 
+    def diagnose_candidate(self, objectives: Sequence[float], feasible: bool,
+                           candidate_fingerprint: str) -> dict:
+        """Describe zero-reward causes without mutating the archive.
+
+        Flags are intentionally non-exclusive: one candidate may be both
+        infeasible and outside the HV reference, for example.
+        """
+        duplicate = candidate_fingerprint in self._fingerprints
+        valid_objectives = True
+        point = None
+        try:
+            point = self.normalizer.transform(objectives)
+        except ValueError:
+            valid_objectives = False
+        outside_reference = bool(
+            point is not None and any(
+                point[index] >= self.normalizer.reference[index]
+                for index in range(3)))
+        dominated = bool(
+            point is not None and any(
+                existing == point or _dominates(existing, point)
+                for existing in self._points))
+        eligible_for_archive = bool(
+            feasible and valid_objectives and not duplicate)
+        would_change_archive = bool(
+            eligible_for_archive and not dominated)
+        return {
+            "infeasible": not bool(feasible),
+            "invalid_objectives": not valid_objectives,
+            "duplicate_fingerprint": duplicate,
+            "outside_hv_reference": outside_reference,
+            "dominated_by_archive": dominated,
+            "eligible_for_archive": eligible_for_archive,
+            "would_change_archive": would_change_archive,
+        }
+
     def observe_many(self, candidates: Iterable[ArchiveCandidate]) -> ArchiveUpdate:
         """Atomically settle all feasible new solutions from one action.
 

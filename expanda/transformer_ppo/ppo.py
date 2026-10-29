@@ -24,6 +24,7 @@ class Transition:
     observation: dict
     action: int
     old_log_probability: float
+    old_probabilities: tuple[float, ...]
     value: float
     reward: float
     done: bool
@@ -138,6 +139,7 @@ class PPOTrainer:
         self.pending = {
             "observation": observation, "action": int(action.item()),
             "old_log_probability": float(log_probability.item()), "value": float(value.item())}
+        self.pending["old_probabilities"] = tuple(float(x) for x in probabilities)
         if self.sequence_depth:
             self.sequence_policy_actions += 1
         return Decision(int(action.item()), probabilities, [None] * len(probabilities), {
@@ -147,6 +149,7 @@ class PPOTrainer:
             "state_value": float(value.item()), "entropy": float(entropy),
             "actor_policy": self.config.actor_policy,
             "candidate_representation": self.config.candidate_representation,
+            "initialization_control": self.config.initialization_control,
             "credit_assignment": self.config.credit_assignment,
             "mutation_control": self.config.mutation_control,
             "policy_update": self.updates, "architecture": self.architecture,
@@ -236,7 +239,35 @@ class PPOTrainer:
         diagnostics = {
             "policy_loss": [], "value_loss": [], "entropy": [], "kl": [],
             "absolute_log_probability_change": [],
+            "clip_fraction": [], "actor_head_gradient_norm": [],
+            "critic_head_gradient_norm": [], "shared_gradient_norm": [],
         }
+        actor_head_ids = {
+            id(parameter)
+            for parameter in self.model.heads.actor_heads.parameters()
+        }
+        critic_head_ids = {
+            id(parameter)
+            for parameter in self.model.heads.critic_head.parameters()
+        }
+        actor_head_parameters = [
+            parameter for parameter in self.model.parameters()
+            if id(parameter) in actor_head_ids
+        ]
+        critic_head_parameters = [
+            parameter for parameter in self.model.parameters()
+            if id(parameter) in critic_head_ids
+        ]
+        shared_parameters = [
+            parameter for parameter in self.model.parameters()
+            if id(parameter) not in actor_head_ids | critic_head_ids
+        ]
+
+        def gradient_norm(parameters):
+            squared = sum(
+                float(parameter.grad.detach().pow(2).sum().item())
+                for parameter in parameters if parameter.grad is not None)
+            return squared ** 0.5
         first_minibatch_pre_step = None
         minibatch_count = 0
         update_epochs_started = 0
@@ -279,6 +310,12 @@ class PPOTrainer:
                 approximate_kl = (old_logp[index] - new_logp).mean().item()
                 self.optimizer.zero_grad()
                 loss.backward()
+                diagnostics["actor_head_gradient_norm"].append(
+                    gradient_norm(actor_head_parameters))
+                diagnostics["critic_head_gradient_norm"].append(
+                    gradient_norm(critic_head_parameters))
+                diagnostics["shared_gradient_norm"].append(
+                    gradient_norm(shared_parameters))
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.max_grad_norm)
                 self.optimizer.step()
                 minibatch_count += 1
@@ -288,11 +325,50 @@ class PPOTrainer:
                 diagnostics["kl"].append(float(approximate_kl))
                 diagnostics["absolute_log_probability_change"].append(float(
                     logp_difference.detach().abs().mean().item()))
+                diagnostics["clip_fraction"].append(float(
+                    ((ratio.detach() - 1.0).abs() > self.config.clip_ratio)
+                    .to(torch.float32).mean().item()))
                 if approximate_kl > self.config.target_kl:
                     stop = True
                     break
             if stop:
                 break
+        post_update_kl = []
+        post_update_total_variation = []
+        post_update_top_action_changed = []
+        post_update_values = []
+        was_training = self.model.training
+        self.model.eval()
+        with torch.no_grad():
+            for start in range(0, len(self.buffer), 64):
+                rows = self.buffer[start:start + 64]
+                batch = pad_observations(
+                    [item.observation for item in rows], self.device)
+                logits, values = self.model(batch)
+                probabilities = torch.softmax(logits, dim=-1).cpu()
+                post_update_values.extend(values.detach().cpu().tolist())
+                for row_index, item in enumerate(rows):
+                    old = torch.as_tensor(
+                        item.old_probabilities, dtype=torch.float64)
+                    new = probabilities[
+                        row_index, :len(item.old_probabilities)].to(torch.float64)
+                    support = old > 0.0
+                    post_update_kl.append(float((
+                        old[support]
+                        * (old[support].log()
+                           - new[support].clamp_min(1e-15).log())
+                    ).sum().item()))
+                    post_update_total_variation.append(float(
+                        0.5 * (old - new).abs().sum().item()))
+                    post_update_top_action_changed.append(float(
+                        int(old.argmax().item() != new.argmax().item())))
+        self.model.train(was_training)
+        return_variance = float(np.var(returns))
+        explained_variance = (
+            None if return_variance <= 1e-12 else
+            float(1.0 - np.var(
+                returns - np.asarray(post_update_values, dtype=np.float32))
+                / return_variance))
         self.buffer.clear()
         self.updates += 1
         means = {
@@ -311,6 +387,18 @@ class PPOTrainer:
             "reward_mean": float(rewards.mean()),
             "reward_std": float(rewards.std()),
             "reward_max": float(rewards.max()),
+            "return_variance": return_variance,
+            "critic_explained_variance": explained_variance,
+            "post_update_full_distribution_kl_mean": float(
+                np.mean(post_update_kl)),
+            "post_update_full_distribution_kl_max": float(
+                np.max(post_update_kl)),
+            "post_update_total_variation_mean": float(
+                np.mean(post_update_total_variation)),
+            "post_update_total_variation_max": float(
+                np.max(post_update_total_variation)),
+            "post_update_top_action_change_fraction": float(
+                np.mean(post_update_top_action_changed)),
             "minibatch_count": minibatch_count,
             "optimizer_step_count": minibatch_count,
             "configured_update_epochs": int(self.config.update_epochs),
@@ -430,6 +518,7 @@ class PPOTrainer:
             "ppo_digest": metadata.get("ppo_digest"),
             "actor_policy": config.actor_policy,
             "candidate_representation": config.candidate_representation,
+            "initialization_control": config.initialization_control,
             "credit_assignment": config.credit_assignment,
             "mutation_control": config.mutation_control,
             "learning_control": metadata.get("learning_control"),

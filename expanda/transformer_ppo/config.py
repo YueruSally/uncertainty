@@ -48,6 +48,7 @@ class PPOConfig:
     actor_policy: str = "direct"
     residual_logit_limit: float = 2.0
     candidate_representation: str = "legacy"
+    initialization_control: str = "auto"
     credit_assignment: str = "continuous"
     mutation_control: str = "location"
 
@@ -72,6 +73,13 @@ class PPOConfig:
         if self.candidate_representation not in ("legacy", "path_v2", "path_v3"):
             raise ValueError(
                 "candidate_representation must be 'legacy', 'path_v2', or 'path_v3'")
+        if self.initialization_control not in ("auto", "path", "path_count"):
+            raise ValueError(
+                "initialization_control must be 'auto', 'path', or 'path_count'")
+        if (self.initialization_control == "path_count"
+                and self.candidate_representation != "path_v3"):
+            raise ValueError(
+                "path_count initialization control requires path_v3")
         if self.credit_assignment not in ("continuous", "operation_terminal"):
             raise ValueError(
                 "credit_assignment must be 'continuous' or 'operation_terminal'")

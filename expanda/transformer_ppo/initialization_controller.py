@@ -123,7 +123,14 @@ class InitializationPPOController(MutationLogger):
                 representation = getattr(
                     getattr(self.trainer, "config", None),
                     "candidate_representation", "legacy")
-                if representation == "path_v3" and maximum_path_count > 1:
+                initialization_control = getattr(
+                    getattr(self.trainer, "config", None),
+                    "initialization_control", "auto")
+                controls_path_count = (
+                    initialization_control == "path_count"
+                    or (initialization_control == "auto"
+                        and representation == "path_v3"))
+                if controls_path_count and maximum_path_count > 1:
                     count_candidates = [
                         {"eligible": True, "path_count": count}
                         for count in range(1, maximum_path_count + 1)]
@@ -304,6 +311,9 @@ class InitializationPPOController(MutationLogger):
             return
         if id(individual) != event["individual_id"]:
             raise RuntimeError("evaluated individual does not match initialization action")
+        reward_diagnostics = self.archive.diagnose_candidate(
+            individual.objectives, bool(individual.feasible),
+            fingerprint(individual))
         update = self.archive.observe_many([
             (individual.objectives, bool(individual.feasible), fingerprint(individual)),
         ])
@@ -321,6 +331,11 @@ class InitializationPPOController(MutationLogger):
             "feasible": bool(individual.feasible),
             "objectives": list(individual.objectives),
             "reward": float(reward), "reward_hv_delta": float(update.delta_hv),
+            "reward_diagnostics": reward_diagnostics,
+            "reward_positive_hv": bool(update.delta_hv > 0.0),
+            "reward_archive_changed_without_hv": bool(
+                reward_diagnostics["would_change_archive"]
+                and update.delta_hv <= 0.0),
             "reward_archive_hv_before": update.hv_before,
             "reward_archive_hv_after": update.hv_after,
             "reward_archive_size": update.archive_size,

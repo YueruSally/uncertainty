@@ -144,9 +144,10 @@ class CrossoverPPOController(MutationLogger):
         changed = False
         try:
             for cut_index, cut in enumerate(cut_decisions):
-                # Base would draw one common node here.  Consume the paired
-                # draw before replacing its result with the frozen policy.
-                shadow_base_index = random.randrange(len(cut.candidates))
+                # The planner consumed Base's common-node draw immediately
+                # after this Batch's allocation draws, preserving Base's
+                # interleaved RNG order across multiple batches.
+                shadow_base_index = cut.shadow_base_index
                 context = {
                     "component": "C", "operator": "common_node",
                     "generation": self.generation, "phase": self.phase,
@@ -267,9 +268,16 @@ class CrossoverPPOController(MutationLogger):
             return
         if {id(child1), id(child2)} != self._pending_child_ids:
             raise RuntimeError("final offspring do not match the pending crossover event")
+        child_fingerprints = (fingerprint(child1), fingerprint(child2))
+        reward_diagnostics = [
+            self.archive.diagnose_candidate(
+                child.objectives, bool(child.feasible), child_fingerprint)
+            for child, child_fingerprint in zip(
+                (child1, child2), child_fingerprints)
+        ]
         update = self.archive.observe_many([
-            (child1.objectives, bool(child1.feasible), fingerprint(child1)),
-            (child2.objectives, bool(child2.feasible), fingerprint(child2)),
+            (child1.objectives, bool(child1.feasible), child_fingerprints[0]),
+            (child2.objectives, bool(child2.feasible), child_fingerprints[1]),
         ])
         reward = hv_reward(update.delta_hv, self.reward_config)
         if event["model_decisions"]:
@@ -279,14 +287,19 @@ class CrossoverPPOController(MutationLogger):
             self.positive_reward_actions += int(reward > 0.0)
         event.update({
             "reward": float(reward), "reward_hv_delta": float(update.delta_hv),
+            "reward_diagnostics": reward_diagnostics,
+            "reward_positive_hv": bool(update.delta_hv > 0.0),
+            "reward_archive_changed_without_hv": bool(
+                any(item["would_change_archive"] for item in reward_diagnostics)
+                and update.delta_hv <= 0.0),
             "reward_archive_hv_before": update.hv_before,
             "reward_archive_hv_after": update.hv_after,
             "reward_archive_size": update.archive_size,
             "reward_recorded_for_policy": bool(event["model_decisions"]),
             "evaluation": self.evaluations,
             "child_1": child1, "child_2": child2,
-            "child_1_fingerprint": fingerprint(child1),
-            "child_2_fingerprint": fingerprint(child2),
+            "child_1_fingerprint": child_fingerprints[0],
+            "child_2_fingerprint": child_fingerprints[1],
             "child_1_feasible": bool(child1.feasible),
             "child_2_feasible": bool(child2.feasible),
             "action_wall_seconds": time.perf_counter() - event["started"],

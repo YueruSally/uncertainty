@@ -297,6 +297,58 @@ class CrossoverPlanningTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_multibatch_zero_model_probability_replays_base_children_and_rng(self):
+        from multi_instance_logging import fingerprint
+        from transformer_ppo.archive import RewardArchive, RewardConfig
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        second_batch = base.Batch(8, "A", "D", 8.0, 0.0, 24.0)
+        key1, key2 = ("A", "D", 7), ("A", "D", 8)
+        parent1 = base.Individual({
+            key1: [base.PathAllocation(self.path1, 1.0)],
+            key2: [base.PathAllocation(self.path1, 1.0)],
+        })
+        parent2 = base.Individual({
+            key1: [base.PathAllocation(self.path2, 1.0)],
+            key2: [base.PathAllocation(self.path2, 1.0)],
+        })
+        batches = [self.batch, second_batch]
+        lookup = {
+            (arc.from_node, arc.to_node, arc.mode): arc
+            for path in (self.path1, self.path2) for arc in path.arcs
+        }
+        random.seed(8128)
+        expected_children = base.crossover_common_node(
+            parent1, parent2, batches, {}, lookup)
+        expected_fingerprints = tuple(map(fingerprint, expected_children))
+        expected_state = random.getstate()
+
+        trainer = _FakeTrainer()
+        trainer.choose = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("zero model probability must not call PPO"))
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CrossoverPPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=batches, generations=2, pop_size=2,
+                method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0},
+                seeds={"algorithm": 8128}, model_choice_probability=0.0)
+            try:
+                random.seed(8128)
+                actual_children = controller.crossover_common_node(
+                    parent1, parent2, batches, {}, lookup)
+                self.assertEqual(
+                    tuple(map(fingerprint, actual_children)),
+                    expected_fingerprints)
+                self.assertEqual(random.getstate(), expected_state)
+            finally:
+                controller.close()
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CrossoverPPOSequenceTests(unittest.TestCase):

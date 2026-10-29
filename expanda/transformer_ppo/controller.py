@@ -44,6 +44,8 @@ class PPOController(MutationLogger):
             model_choice_probability)
         self.mutation_control = getattr(
             getattr(trainer, "config", None), "mutation_control", "location")
+        self.credit_assignment = getattr(
+            getattr(trainer, "config", None), "credit_assignment", "continuous")
         self.control_rng = random.Random(private_seed(
             "M-mixture-v2",
             kwargs.get("run_id", args[1] if len(args) > 1 else ""),
@@ -276,8 +278,11 @@ class PPOController(MutationLogger):
                 self._record_pending_offspring(ind)
             return result
         row = self.pending[-1][1]
+        individual_fingerprint = fingerprint(ind)
+        reward_diagnostics = self.archive.diagnose_candidate(
+            ind.objectives, bool(ind.feasible), individual_fingerprint)
         update = self.archive.observe_many([
-            (ind.objectives, bool(ind.feasible), fingerprint(ind)),
+            (ind.objectives, bool(ind.feasible), individual_fingerprint),
         ])
         delta_hv = update.delta_hv
         reward = hv_reward(delta_hv, self.reward_config)
@@ -285,6 +290,11 @@ class PPOController(MutationLogger):
             self.trainer.sequence_policy_actions if hierarchical else
             int(row.get("decision_kind") == "model_choice"))
         row.update(reward=float(reward), reward_hv_delta=float(delta_hv),
+                   reward_diagnostics=reward_diagnostics,
+                   reward_positive_hv=bool(delta_hv > 0.0),
+                   reward_archive_changed_without_hv=bool(
+                       reward_diagnostics["would_change_archive"]
+                       and delta_hv <= 0.0),
                    reward_archive_hv_before=update.hv_before,
                    reward_archive_hv_after=update.hv_after,
                    reward_archive_size=update.archive_size,
@@ -299,7 +309,8 @@ class PPOController(MutationLogger):
         if hierarchical:
             self.trainer.end_sequence(reward, done=True)
         else:
-            self.trainer.observe_outcome(reward, done=False)
+            self.trainer.observe_outcome(
+                reward, done=self.credit_assignment == "operation_terminal")
         if self.phase == "offspring":
             self._record_pending_offspring(ind)
         return result
@@ -332,6 +343,7 @@ class PPOController(MutationLogger):
                 "ppo_updates_before_run": self._ppo_updates_at_start,
                 "ppo_updates_total": self.trainer.updates,
                 "mutation_control": self.mutation_control,
+                "credit_assignment": self.credit_assignment,
                 "model_choice_probability": self.model_choice_probability,
                 "model_control_events": self.model_control_events,
                 "base_control_events": self.base_control_events,

@@ -303,6 +303,11 @@ def main():
               "path_v3 adds I planned-share/rank/coverage features or M "
               "operator-stage features."))
     parser.add_argument(
+        "--initialization-control", choices=("auto", "path", "path_count"),
+        help=("I action scope. path keeps Base's sampled path count and learns "
+              "only path identity; path_count also learns the count. auto "
+              "preserves legacy checkpoint behaviour."))
+    parser.add_argument(
         "--credit-assignment", choices=("continuous", "operation_terminal"),
         help=("Trajectory boundary. operation_terminal is the V3 C setting: "
               "one complete crossover is one terminal credit sequence."))
@@ -355,6 +360,11 @@ def main():
         parser.error("C operation_terminal requires --gae-horizon >= 64")
     if args.candidate_representation == "path_v3" and args.component not in ("I", "M"):
         parser.error("path_v3 is valid only for I or M")
+    if args.initialization_control is not None and args.component != "I":
+        parser.error("--initialization-control is valid only for I")
+    if args.initialization_control == "path_count" and (
+            args.candidate_representation != "path_v3"):
+        parser.error("path_count initialization control requires path_v3")
     if args.mutation_control is not None and args.component != "M":
         parser.error("--mutation-control is valid only for M")
     if args.mutation_control == "operator_location" and not (
@@ -390,6 +400,7 @@ def main():
             "actor_policy": args.actor_policy,
             "residual_logit_limit": args.residual_logit_limit,
             "candidate_representation": args.candidate_representation,
+            "initialization_control": args.initialization_control,
             "credit_assignment": args.credit_assignment,
             "gae_horizon": args.gae_horizon,
             "rollout_steps": args.rollout_steps,

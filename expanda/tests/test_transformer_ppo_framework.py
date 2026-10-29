@@ -50,6 +50,21 @@ class ArchiveTests(unittest.TestCase):
         normalizer = ObjectiveNormalizer((0., 0., 0.), (10., 10., 10.)).with_divisor((2., 4., 5.))
         self.assertEqual(normalizer.transform((10., 20., 25.)), (.5, .5, .5))
 
+    def test_zero_reward_diagnostics_are_multilabel_and_non_mutating(self):
+        archive = RewardArchive(ObjectiveNormalizer(
+            (0., 0., 0.), (10., 10., 10.), reference=(1., 1., 1.)))
+        archive.observe((2., 2., 2.), True, "front")
+        before = (archive.points, archive.hypervolume)
+        dominated = archive.diagnose_candidate((5., 5., 12.), True, "new")
+        duplicate = archive.diagnose_candidate((2., 2., 2.), True, "front")
+        infeasible = archive.diagnose_candidate((12., 3., 3.), False, "bad")
+        self.assertTrue(dominated["dominated_by_archive"])
+        self.assertTrue(dominated["outside_hv_reference"])
+        self.assertTrue(duplicate["duplicate_fingerprint"])
+        self.assertTrue(infeasible["infeasible"])
+        self.assertTrue(infeasible["outside_hv_reference"])
+        self.assertEqual((archive.points, archive.hypervolume), before)
+
 
 class ObservationTests(unittest.TestCase):
     def test_mutation_v3_identifies_operator_candidates(self):
@@ -234,9 +249,120 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "mutation_control"):
             PPOConfig(mutation_control="operator-only").validate()
 
+    def test_initialization_control_is_validated_separately_from_features(self):
+        PPOConfig(
+            candidate_representation="path_v3",
+            initialization_control="path").validate()
+        PPOConfig(
+            candidate_representation="path_v3",
+            initialization_control="path_count").validate()
+        with self.assertRaisesRegex(ValueError, "initialization_control"):
+            PPOConfig(initialization_control="count-only").validate()
+        with self.assertRaisesRegex(ValueError, "requires path_v3"):
+            PPOConfig(initialization_control="path_count").validate()
+
+
+class MutationCreditTests(unittest.TestCase):
+    def test_location_control_can_end_each_mutation_operation(self):
+        from multi_instance_logging import MutationLogger
+        from transformer_ppo.archive import RewardConfig
+        from transformer_ppo.controller import PPOController
+
+        class Trainer:
+            name = "fake-m"
+            updates = 0
+
+            def __init__(self):
+                self.config = SimpleNamespace(
+                    mutation_control="location",
+                    credit_assignment="operation_terminal")
+                self.pending = None
+                self.sequence_policy_actions = 0
+                self.observation_provider = None
+                self.feature_construction_seconds = 0.0
+                self.ppo_update_seconds = 0.0
+                self.update_records = []
+                self.done = []
+
+            def observe_outcome(self, _reward, done=False):
+                self.done.append(bool(done))
+                self.pending = None
+
+        trainer = Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        individual = SimpleNamespace(
+            od_allocations={}, objectives=(2.0, 3.0, 4.0), feasible=True)
+
+        def fake_location_mutation(controller, *_args, **_kwargs):
+            trainer.pending = {"synthetic": True}
+            controller.pending.append((None, {"decision_kind": "model_choice"}))
+            return "mod", True
+
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[], generations=2, pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={})
+            try:
+                with patch.object(
+                        MutationLogger, "mutate", autospec=True,
+                        side_effect=fake_location_mutation):
+                    controller.mutate(
+                        individual, [], {}, {}, {}, [], 0.0, 0.0)
+                self.assertEqual(trainer.done, [True])
+                self.assertEqual(
+                    controller.summary()["credit_assignment"],
+                    "operation_terminal")
+            finally:
+                controller.close()
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CheckpointTests(unittest.TestCase):
+    def test_known_advantages_move_actor_probability_in_expected_direction(self):
+        import torch
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(
+            rollout_steps=2, gae_horizon=1, hidden_dim=16,
+            attention_heads=4, transformer_layers=1, update_epochs=3,
+            actor_learning_rate=1e-2, critic_learning_rate=1e-5,
+            entropy_coefficient=0.0, dropout=0.0,
+            actor_policy="base_residual")
+        observation = {
+            "parent": [[0.0] * len(PARENT_FEATURES)],
+            "candidates": [
+                [0.0] * len(CANDIDATE_FEATURES),
+                [1.0] + [0.0] * (len(CANDIDATE_FEATURES) - 1),
+            ],
+            "eligible": [True, True], "action_prior": [0.5, 0.5],
+            "operator_id": 0,
+            "global": [0.0] * len(GLOBAL_FEATURES),
+        }
+        trainer = PPOTrainer(
+            "mlp", config, lambda *_: observation,
+            device="cpu", policy_seed=123, training=True)
+        candidates = [{"eligible": True}, {"eligible": True}]
+        with patch("torch.multinomial", side_effect=[
+                torch.tensor([[0]]), torch.tensor([[1]])]):
+            trainer.choose(candidates)
+            trainer.observe_outcome(1.0, done=True)
+            trainer.choose(candidates)
+            trainer.observe_outcome(-1.0, done=True)
+        trainer.finish()
+        trainer.training = False
+        decision = trainer.choose(candidates)
+        self.assertGreater(decision.probabilities[0], 0.5)
+        record = trainer.update_records[-1]
+        self.assertGreater(
+            record["post_update_total_variation_mean"], 0.0)
+        self.assertIn("actor_head_gradient_norm", record)
+        self.assertIn("critic_explained_variance", record)
+
     def test_terminal_reward_reaches_last_learnable_action_before_forced_action(self):
         from transformer_ppo.ppo import PPOTrainer
 
