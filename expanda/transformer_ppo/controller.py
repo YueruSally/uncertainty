@@ -117,8 +117,9 @@ class PPOController(MutationLogger):
             "decision_stage": "operator", "generation": self.generation,
             "phase": self.phase, "K": self.instance.get("K"),
             "deadline_window_alpha": self.instance.get("deadline_window_alpha"),
-            "feasible_before": bool(getattr(ind, "feasible", False)),
-            "violation_before": getattr(ind, "normalized_violation", 0.0),
+            # The crossed child has not been evaluated yet.  Any feasibility
+            # fields copied from a mating parent are stale and must not be used.
+            "feasible_before": None, "violation_before": None,
         }
         decision = self.trainer.choose(candidates, context)
         self.inference_seconds += float(
