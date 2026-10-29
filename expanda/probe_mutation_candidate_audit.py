@@ -18,6 +18,8 @@ from sklearn.preprocessing import StandardScaler
 
 
 OPERATORS = ("add", "del", "mod", "mode", "replace")
+MIXTURE_ALPHAS = (0.10, 0.25, 0.50)
+MIXTURE_TEMPERATURES = (0.25, 0.50, 1.00)
 
 
 def read_jsonl(path: Path):
@@ -229,6 +231,20 @@ def pairwise_accuracy(scores, targets):
     return None if total == 0.0 else correct / total
 
 
+def rank_softmax(scores, temperature):
+    """Scale-invariant policy distribution from within-state score ranks."""
+    if temperature <= 0.0:
+        raise ValueError("mixture temperature must be positive")
+    if len(scores) == 1:
+        return np.ones(1, dtype=float)
+    ranks = np.asarray(average_ranks(scores), dtype=float)
+    ranks /= len(scores) - 1
+    logits = ranks / float(temperature)
+    logits -= logits.max()
+    weights = np.exp(logits)
+    return weights / weights.sum()
+
+
 def evaluate(rows, predictions):
     by_state = defaultdict(list)
     for row, prediction in zip(rows, predictions):
@@ -247,6 +263,13 @@ def evaluate(rows, predictions):
         prior_expected = float(prior.dot(targets))
         trained_expected = float(trained.dot(targets))
         gap = oracle - prior_expected
+        mixture_gains = {}
+        for temperature in MIXTURE_TEMPERATURES:
+            model_probability = rank_softmax(scores, temperature)
+            for alpha in MIXTURE_ALPHAS:
+                mixed = (1.0 - alpha) * prior + alpha * model_probability
+                key = (float(alpha), float(temperature))
+                mixture_gains[key] = float(mixed.dot(targets) - prior_expected)
         summaries.append({
             "quality_gap": bool(max(targets) - min(targets) > 1e-12),
             "oracle": oracle,
@@ -266,13 +289,14 @@ def evaluate(rows, predictions):
             "pairwise_accuracy": pairwise_accuracy(scores, targets),
             "spearman": correlation(
                 average_ranks(scores), average_ranks(targets)),
+            "mixture_gains": mixture_gains,
         })
     informative = [row for row in summaries if row["quality_gap"]]
 
     def values(name, rows=informative):
         return [row[name] for row in rows if row[name] is not None]
 
-    return {
+    result = {
         "state_count": len(summaries),
         "informative_state_count": len(informative),
         "mean_oracle": mean(values("oracle")),
@@ -295,6 +319,28 @@ def evaluate(rows, predictions):
         "mean_pairwise_accuracy": mean(values("pairwise_accuracy")),
         "mean_spearman": mean(values("spearman")),
     }
+    mixtures = []
+    for temperature in MIXTURE_TEMPERATURES:
+        for alpha in MIXTURE_ALPHAS:
+            key = (float(alpha), float(temperature))
+            gains = [row["mixture_gains"][key] for row in informative]
+            gap_fractions = [
+                gain / (row["oracle"] - row["prior_expected"])
+                for row, gain in zip(informative, gains)
+                if row["oracle"] - row["prior_expected"] > 1e-12
+            ]
+            mixtures.append({
+                "alpha": float(alpha),
+                "temperature": float(temperature),
+                "mean_gain": mean(gains),
+                "positive_gain_fraction": mean([
+                    float(gain > 1e-12) for gain in gains]),
+                "minimum_gain": min(gains) if gains else None,
+                "maximum_gain": max(gains) if gains else None,
+                "mean_oracle_gap_fraction_captured": mean(gap_fractions),
+            })
+    result["rank_policy_mixtures"] = mixtures
+    return result
 
 
 def probe(train_paths, validation_paths, seed, feature_mode="absolute",
