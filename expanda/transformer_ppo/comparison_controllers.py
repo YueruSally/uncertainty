@@ -88,11 +88,7 @@ class BaseBudgetController(MutationLogger):
 
 
 class CombinedPPOController:
-    """Route one NSGA-II run through three separately frozen policies."""
-
-    controls_initialization = True
-    controls_crossover = True
-    controls_mutation = True
+    """Route one NSGA-II run through a non-empty subset of frozen policies."""
 
     def __init__(self, out, run_id, scenario_id, budget, *, trainers,
                  normalizer, reward_config: RewardConfig, batches, generations,
@@ -100,10 +96,17 @@ class CombinedPPOController:
                  initialization_rule_normalization=None,
                  initialization_rule_top_k=None,
                  model_choice_probabilities=None):
-        if set(trainers) != {"I", "C", "M"}:
-            raise ValueError("combined controller requires exactly I, C, and M trainers")
+        components = set(trainers)
+        if not components or not components <= {"I", "C", "M"}:
+            raise ValueError(
+                "combined controller requires a non-empty subset of I, C, and M")
+        if len(components) < 2:
+            raise ValueError("combined controller requires at least two trainers")
         if any(trainer.training for trainer in trainers.values()):
             raise ValueError("combined policies must be frozen before composition")
+        self.controls_initialization = "I" in components
+        self.controls_crossover = "C" in components
+        self.controls_mutation = "M" in components
         self.out = out
         self.run_id = run_id
         self.scenario_id = scenario_id
@@ -128,6 +131,8 @@ class CombinedPPOController:
         probabilities.update(model_choice_probabilities or {})
         self.controllers = {}
         for component in ("I", "C", "M"):
+            if component not in trainers:
+                continue
             component_out = out / "components" / component
             component_out.mkdir(parents=True, exist_ok=False)
             component_options = {}
@@ -221,29 +226,38 @@ class CombinedPPOController:
 
     def _observe_evaluated(self, ind):
         identity = fingerprint(ind)
-        initial = self.controllers["I"]
-        crossover = self.controllers["C"]
-        mutation = self.controllers["M"]
+        initial = self.controllers.get("I")
+        crossover = self.controllers.get("C")
+        mutation = self.controllers.get("M")
 
-        active_initial = (
-            initial._active_event is not None
-            and id(ind) == initial._active_event["individual_id"])
-        if not active_initial:
-            initial.archive.observe(ind.objectives, bool(ind.feasible), identity)
-        if id(ind) not in crossover._pending_child_ids:
-            crossover.archive.observe(ind.objectives, bool(ind.feasible), identity)
-        if not mutation._suppress_archive:
-            mutation.archive.observe(ind.objectives, bool(ind.feasible), identity)
+        if initial is not None:
+            active_initial = (
+                initial._active_event is not None
+                and id(ind) == initial._active_event["individual_id"])
+            if not active_initial:
+                initial.archive.observe(
+                    ind.objectives, bool(ind.feasible), identity)
+        if (crossover is not None
+                and id(ind) not in crossover._pending_child_ids):
+            crossover.archive.observe(
+                ind.objectives, bool(ind.feasible), identity)
+        if mutation is not None and not mutation._suppress_archive:
+            mutation.archive.observe(
+                ind.objectives, bool(ind.feasible), identity)
 
         if self.generation < 0:
-            initial.current_population.append(ind)
-            if len(crossover.current_population) < crossover.pop_size:
+            if initial is not None:
+                initial.current_population.append(ind)
+            if (crossover is not None
+                    and len(crossover.current_population) < crossover.pop_size):
                 crossover.current_population.append(ind)
-            if len(mutation.current_population) < mutation.pop_size:
+            if (mutation is not None
+                    and len(mutation.current_population) < mutation.pop_size):
                 mutation.current_population.append(ind)
         elif self.phase == "offspring":
-            crossover._record_pending_offspring(ind)
-            if not mutation._inside_mutation:
+            if crossover is not None:
+                crossover._record_pending_offspring(ind)
+            if mutation is not None and not mutation._inside_mutation:
                 mutation._record_pending_offspring(ind)
 
     def initial_individual(self, *args, **kwargs):
@@ -252,7 +266,10 @@ class CombinedPPOController:
 
     def settle_initialization(self, *args, **kwargs):
         self._sync_children()
-        return self.controllers["I"].settle_initialization(*args, **kwargs)
+        controller = self.controllers.get("I")
+        if controller is not None:
+            return controller.settle_initialization(*args, **kwargs)
+        return None
 
     def crossover_common_node(self, *args, **kwargs):
         self._sync_children()
@@ -260,7 +277,10 @@ class CombinedPPOController:
 
     def settle_crossover(self, *args, **kwargs):
         self._sync_children()
-        return self.controllers["C"].settle_crossover(*args, **kwargs)
+        controller = self.controllers.get("C")
+        if controller is not None:
+            return controller.settle_crossover(*args, **kwargs)
+        return None
 
     def mutate(self, *args, **kwargs):
         self._sync_children()

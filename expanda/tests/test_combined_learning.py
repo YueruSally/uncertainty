@@ -130,6 +130,23 @@ class ComparisonControllerTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_combined_ic_leaves_mutation_under_base_control(self):
+        trainers = {name: _FrozenTrainer(name) for name in ("I", "C")}
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CombinedPPOController(
+                Path(directory), "run", "scenario", 20,
+                trainers=trainers, normalizer=self.normalizer,
+                reward_config=RewardConfig(), batches=[self.batch],
+                generations=2, pop_size=2, graph_observation=None,
+                method="combined-ic", instance={"instance_id": "toy"}, seeds={})
+            try:
+                self.assertTrue(controller.controls_initialization)
+                self.assertTrue(controller.controls_crossover)
+                self.assertFalse(controller.controls_mutation)
+                self.assertEqual(set(controller.controllers), {"I", "C"})
+            finally:
+                controller.close()
+
     def test_frozen_summary_separates_checkpoint_and_run_updates(self):
         trainers = {name: _FrozenTrainer(name) for name in ("I", "C", "M")}
         for trainer, updates in zip(trainers.values(), (1, 2, 3)):

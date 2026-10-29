@@ -52,26 +52,33 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if evaluation_mode not in ("deterministic", "ccp100"):
         raise ValueError("evaluation_mode must be 'deterministic' or 'ccp100'")
     component = str(component).upper()
-    if component not in ("M", "C", "I", "ICM", "BASE", "RULE-I"):
+    combined_components = {
+        "IC": {"I", "C"},
+        "IM": {"I", "M"},
+        "CM": {"C", "M"},
+        "ICM": {"I", "C", "M"},
+    }
+    if component not in ("M", "C", "I", *combined_components, "BASE", "RULE-I"):
         raise ValueError(
-            "component must be 'M', 'C', 'I', 'ICM', 'BASE', or 'RULE-I'")
+            "component must be a single/combined learning component, BASE, or RULE-I")
     if component in ("M", "C", "I") and trainer.component != component:
         raise ValueError("trainer component does not match episode component")
-    if component == "ICM" and (
-            not isinstance(trainer, dict) or set(trainer) != {"I", "C", "M"}
+    if component in combined_components and (
+            not isinstance(trainer, dict)
+            or set(trainer) != combined_components[component]
             or any(item.component != name for name, item in trainer.items())):
-        raise ValueError("ICM requires matching I, C, and M trainers")
+        raise ValueError(f"{component} requires matching component trainers")
     if component in ("BASE", "RULE-I") and trainer is not None:
         raise ValueError(f"{component} does not accept a policy trainer")
     episode_trainers = (
-        tuple(trainer.values()) if component == "ICM" else
+        tuple(trainer.values()) if component in combined_components else
         () if trainer is None else (trainer,))
     candidate_representations = {
         getattr(getattr(item, "config", None), "candidate_representation", "legacy")
         for item in episode_trainers}
     if len(candidate_representations) > 1:
         raise ValueError(
-            "ICM checkpoints must use one common candidate representation")
+            "combined checkpoints must use one common candidate representation")
     candidate_representation = (
         next(iter(candidate_representations))
         if candidate_representations else "legacy")
@@ -97,8 +104,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         raise ValueError(
             "learned I rule normalization and top-k must be supplied together")
     if initialization_learning_rule_top_k is not None:
-        if component not in ("I", "ICM"):
-            raise ValueError("I rule prefilter is valid only for I or ICM")
+        if component != "I" and "I" not in combined_components.get(component, set()):
+            raise ValueError("I rule prefilter requires an active I component")
         if int(initialization_learning_rule_top_k) < 2:
             raise ValueError("learned I rule top-k must be at least 2")
         validate_rule_normalization(
@@ -113,7 +120,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     })
     allowed_probability_components = (
         {component} if component in ("C", "M") else
-        {"C", "M"} if component == "ICM" else set())
+        combined_components.get(component, set()) & {"C", "M"})
     if any(name not in allowed_probability_components
            for name in supplied_probabilities):
         raise ValueError(
@@ -181,16 +188,18 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     method = (
         "base-nsga2" if component == "BASE" else
         "rule-initialization" if component == "RULE-I" else
-        "transformer-ppo-i+c+m-frozen" if component == "ICM" else
+        f"transformer-ppo-{'+'.join(component.lower())}-frozen"
+        if component in combined_components else
         trainer.name)
     policy_training = (
         False if component in ("BASE", "RULE-I") else
-        any(item.training for item in trainer.values()) if component == "ICM" else
+        any(item.training for item in trainer.values())
+        if component in combined_components else
         bool(trainer.training))
     policy_checkpoint = (
         None if component in ("BASE", "RULE-I") else
         {name: item.checkpoint_provenance for name, item in trainer.items()}
-        if component == "ICM" else trainer.checkpoint_provenance)
+        if component in combined_components else trainer.checkpoint_provenance)
     def inference_metadata(item):
         return {
             "action_mode": (
@@ -202,9 +211,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     policy_inference = (
         None if component in ("BASE", "RULE-I") else
         {name: inference_metadata(item) for name, item in trainer.items()}
-        if component == "ICM" else inference_metadata(trainer))
+        if component in combined_components else inference_metadata(trainer))
     policy_trainers = (
-        trainer.values() if component == "ICM" else
+        trainer.values() if component in combined_components else
         () if trainer is None else (trainer,))
     checkpoint_v2 = any(
         ((item.checkpoint_provenance or {}).get("learning_control") or {}).get(
@@ -288,7 +297,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             evaluation_budget, method=method, instance=instance, seeds=seeds,
             normalizer=episode_normalizer,
             rule_normalization=rule_initialization_normalization)
-    elif component == "ICM":
+    elif component in combined_components:
         controller = CombinedPPOController(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
             trainers=trainer, normalizer=episode_normalizer,
@@ -394,7 +403,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     elif component == "RULE-I":
         summary["initialization_attempts"] = controller.total_attempts
         summary["initializations_different_from_shadow_base"] = controller.total_effective
-    elif component == "ICM":
+    elif component in combined_components:
         summary["component_attempts"] = {
             name: item.total_attempts for name, item in controller.controllers.items()}
         summary["effective_component_modifications"] = {

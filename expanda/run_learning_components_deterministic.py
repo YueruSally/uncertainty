@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Base, one frozen component, or frozen I+C+M deterministically."""
+"""Run Base, one frozen component, or a frozen component combination."""
 from __future__ import annotations
 
 import argparse
@@ -43,7 +43,7 @@ def main(argv=None):
     parser.add_argument("--normalization", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--component", choices=(
-        "BASE", "RULE-I", "I", "C", "M", "ICM"),
+        "BASE", "RULE-I", "I", "C", "M", "IC", "IM", "CM", "ICM"),
                         required=True)
     parser.add_argument("--initialization-rule-normalization", type=Path)
     parser.add_argument("--initialization-rule-top-k", type=int,
@@ -91,8 +91,8 @@ def main(argv=None):
             rule_normalization = json.loads(
                 args.initialization_rule_normalization.read_text(encoding="utf-8"))
         if args.initialization_rule_top_k is not None:
-            if args.component not in ("I", "ICM"):
-                raise ValueError("I rule top-k is valid only for I or ICM")
+            if "I" not in args.component:
+                raise ValueError("I rule top-k requires an active I component")
             if args.initialization_rule_top_k < 2:
                 raise ValueError("I rule top-k must be at least 2")
         for name, value in (
@@ -111,17 +111,18 @@ def main(argv=None):
             raise ValueError("fixed-state candidate audit currently supports only M")
         if args.component in ("BASE", "RULE-I"):
             trainer = None
-        elif args.component == "ICM":
+        elif len(args.component) > 1:
+            checkpoint_paths = {
+                "I": args.i_checkpoint,
+                "C": args.c_checkpoint,
+                "M": args.m_checkpoint,
+            }
             trainer = {
-                "I": _load(
-                    args.i_checkpoint, "I", args.device,
-                    args.inference_action_mode, args.inference_policy_seed + 1),
-                "C": _load(
-                    args.c_checkpoint, "C", args.device,
-                    args.inference_action_mode, args.inference_policy_seed + 2),
-                "M": _load(
-                    args.m_checkpoint, "M", args.device,
-                    args.inference_action_mode, args.inference_policy_seed + 3),
+                name: _load(
+                    checkpoint_paths[name], name, args.device,
+                    args.inference_action_mode,
+                    args.inference_policy_seed + "ICM".index(name) + 1)
+                for name in args.component
             }
         else:
             trainer = _load(
@@ -142,9 +143,13 @@ def main(argv=None):
             model_choice_probabilities=(
                 {args.component: args.model_choice_probability}
                 if args.component in ("C", "M") else
-                {"C": args.c_model_choice_probability,
-                 "M": args.m_model_choice_probability}
-                if args.component == "ICM" else None),
+                {
+                    name: value for name, value in (
+                        ("C", args.c_model_choice_probability),
+                        ("M", args.m_model_choice_probability),
+                    ) if name in args.component
+                }
+                if len(args.component) > 1 else None),
             candidate_audit=(
                 {
                     "states": args.candidate_audit_states,
