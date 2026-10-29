@@ -213,14 +213,10 @@ class RewardArchive:
             "would_change_archive": would_change_archive,
         }
 
-    def observe_many(self, candidates: Iterable[ArchiveCandidate]) -> ArchiveUpdate:
-        """Atomically settle all feasible new solutions from one action.
-
-        Each candidate is ``(objectives, feasible, fingerprint)``.  No staged
-        candidate is visible to the archive until the joint HV increment has
-        been calculated, which prevents child order from affecting a single
-        action's total reward.
-        """
+    def _evaluate_additions(
+            self, candidates: Iterable[ArchiveCandidate]
+    ) -> tuple[ArchiveUpdate, list[Point], set[str]]:
+        """Evaluate an atomic addition without committing it."""
         before = self.hypervolume
         staged_points: list[Point] = []
         staged_fingerprints: set[str] = set()
@@ -247,17 +243,35 @@ class RewardArchive:
             raise RuntimeError("adding archive points reduced hypervolume")
         delta = 0.0 if raw_delta <= tolerance else float(raw_delta)
 
-        # Commit only after the joint reward has been computed.
-        self._points = updated_points
-        self._fingerprints.update(staged_fingerprints)
-        self._hypervolume = float(after)
-        return ArchiveUpdate(
+        return (ArchiveUpdate(
             delta_hv=delta,
             hv_before=float(before),
             hv_after=float(after),
-            archive_size=len(self._points),
+            archive_size=len(updated_points),
             accepted_fingerprints=len(staged_fingerprints),
-        )
+        ), updated_points, staged_fingerprints)
+
+    def preview_many(self, candidates: Iterable[ArchiveCandidate]) -> ArchiveUpdate:
+        """Score candidates against the frozen archive without mutating it."""
+        update, _, _ = self._evaluate_additions(candidates)
+        return update
+
+    def observe_many(self, candidates: Iterable[ArchiveCandidate]) -> ArchiveUpdate:
+        """Atomically settle all feasible new solutions from one action.
+
+        Each candidate is ``(objectives, feasible, fingerprint)``.  No staged
+        candidate is visible to the archive until the joint HV increment has
+        been calculated, which prevents child order from affecting a single
+        action's total reward.
+        """
+        update, updated_points, staged_fingerprints = self._evaluate_additions(
+            candidates)
+
+        # Commit only after the joint reward has been computed.
+        self._points = updated_points
+        self._fingerprints.update(staged_fingerprints)
+        self._hypervolume = update.hv_after
+        return update
 
     def observe(self, objectives: Sequence[float], feasible: bool, fingerprint: str) -> float:
         """Compatibility wrapper for a one-solution non-policy update."""

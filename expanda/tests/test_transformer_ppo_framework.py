@@ -65,6 +65,17 @@ class ArchiveTests(unittest.TestCase):
         self.assertTrue(infeasible["outside_hv_reference"])
         self.assertEqual((archive.points, archive.hypervolume), before)
 
+    def test_archive_preview_matches_commit_without_mutating(self):
+        archive = RewardArchive(ObjectiveNormalizer(
+            (0., 0., 0.), (10., 10., 10.), reference=(1., 1., 1.)))
+        archive.observe((5., 5., 5.), True, "existing")
+        before = (archive.points, archive.hypervolume)
+        candidates = [((2., 6., 4.), True, "candidate")]
+        preview = archive.preview_many(candidates)
+        self.assertEqual((archive.points, archive.hypervolume), before)
+        committed = archive.observe_many(candidates)
+        self.assertEqual(preview, committed)
+
 
 class ObservationTests(unittest.TestCase):
     def test_mutation_v3_identifies_operator_candidates(self):

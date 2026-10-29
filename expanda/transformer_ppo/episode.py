@@ -43,7 +43,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 initialization_learning_rule_normalization=None,
                 initialization_learning_rule_top_k=None,
                 model_choice_probabilities=None,
-                learning_protocol_version=None):
+                learning_protocol_version=None,
+                candidate_audit=None):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
@@ -78,6 +79,19 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         raise ValueError("RULE-I requires a path-feature normalization")
     if learning_protocol_version not in (None, 1, 2):
         raise ValueError("learning protocol version must be 1 or 2")
+    audit = dict(candidate_audit or {})
+    allowed_audit = {"states", "candidates", "replicates"}
+    if set(audit) - allowed_audit:
+        raise ValueError("unknown candidate audit options")
+    audit = {
+        "states": int(audit.get("states", 0)),
+        "candidates": int(audit.get("candidates", 4)),
+        "replicates": int(audit.get("replicates", 1)),
+    }
+    if audit["states"] < 0 or audit["candidates"] < 2 or audit["replicates"] < 1:
+        raise ValueError("invalid candidate audit dimensions")
+    if audit["states"] and component != "M":
+        raise ValueError("fixed-state candidate audit currently supports only M")
     if ((initialization_learning_rule_normalization is None)
             != (initialization_learning_rule_top_k is None)):
         raise ValueError(
@@ -247,6 +261,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             },
             "control_random_stream": "private-sha256-seeded",
         },
+        "candidate_audit": (
+            audit if audit["states"] else None),
         "network_encoding": graph_observation["schema"],
         "normalization": {"minimum": episode_normalizer.minimum,
                           "maximum": episode_normalizer.maximum,
@@ -293,6 +309,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 rule_top_k=initialization_learning_rule_top_k)
         elif component in ("C", "M"):
             controller_options["model_choice_probability"] = probabilities[component]
+            if component == "M" and audit["states"]:
+                controller_options.update(
+                    candidate_audit_states=audit["states"],
+                    candidate_audit_candidates=audit["candidates"],
+                    candidate_audit_replicates=audit["replicates"],
+                )
         controller = controller_type(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
             trainer=trainer, archive=archive,
@@ -332,7 +354,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         controller.objective_evaluation_seconds
         + controller.feature_construction_seconds
         + controller.inference_seconds
-        + controller.ppo_update_seconds)
+        + controller.ppo_update_seconds
+        + float(getattr(controller, "candidate_audit_seconds", 0.0)))
     summary = {
         "completed": True, "method": method,
         "real_objective_evaluation_count": controller.evaluations,

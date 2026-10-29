@@ -68,6 +68,12 @@ def main(argv=None):
     parser.add_argument("--evaluation-budget", type=int, default=15_000)
     parser.add_argument("--pop", type=int, default=100)
     parser.add_argument("--gens", type=int, default=1_000)
+    parser.add_argument(
+        "--candidate-audit-states", type=int, default=0,
+        help=("M-only fixed-state diagnostic states; extra counterfactual "
+              "evaluations do not consume the NSGA-II budget."))
+    parser.add_argument("--candidate-audit-candidates", type=int, default=4)
+    parser.add_argument("--candidate-audit-replicates", type=int, default=1)
     parser.add_argument("--device")
     args = parser.parse_args(argv)
     try:
@@ -95,6 +101,14 @@ def main(argv=None):
                 ("M", args.m_model_choice_probability)):
             if not 0.0 <= value <= 1.0:
                 raise ValueError(f"{name} choice probability must be in [0, 1]")
+        if args.candidate_audit_states < 0:
+            raise ValueError("candidate audit states cannot be negative")
+        if args.candidate_audit_candidates < 2:
+            raise ValueError("candidate audit candidates must be at least 2")
+        if args.candidate_audit_replicates < 1:
+            raise ValueError("candidate audit replicates must be positive")
+        if args.candidate_audit_states and args.component != "M":
+            raise ValueError("fixed-state candidate audit currently supports only M")
         if args.component in ("BASE", "RULE-I"):
             trainer = None
         elif args.component == "ICM":
@@ -130,7 +144,14 @@ def main(argv=None):
                 if args.component in ("C", "M") else
                 {"C": args.c_model_choice_probability,
                  "M": args.m_model_choice_probability}
-                if args.component == "ICM" else None))
+                if args.component == "ICM" else None),
+            candidate_audit=(
+                {
+                    "states": args.candidate_audit_states,
+                    "candidates": args.candidate_audit_candidates,
+                    "replicates": args.candidate_audit_replicates,
+                }
+                if args.candidate_audit_states else None))
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     print(json.dumps(summary, indent=2, allow_nan=False))

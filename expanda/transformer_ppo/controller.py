@@ -1,15 +1,20 @@
 """PPO controller implementing the frozen NSGA-II mutation logger hook."""
 from __future__ import annotations
 
+from copy import deepcopy
+from dataclasses import asdict
 import random
 import time
 import math
 
+import numpy as np
+
 import baseline_uncertainty as base
+from learning_mutation import repair_after_mutation
 from multi_instance_logging import MutationLogger, fingerprint
 from multi_instance_mutation import candidates_for
 
-from .archive import RewardArchive, RewardConfig, hv_reward
+from .archive import RewardArchive, RewardConfig, exact_hv_3d, hv_reward
 from .config import OPERATORS
 from .observations import build_observation
 from .v2_controls import private_seed, validate_model_choice_probability
@@ -21,6 +26,8 @@ class PPOController(MutationLogger):
     def __init__(self, *args, trainer, archive: RewardArchive,
                  reward_config: RewardConfig, batches, generations, pop_size,
                  graph_observation=None, model_choice_probability=1.0,
+                 candidate_audit_states=0, candidate_audit_candidates=4,
+                 candidate_audit_replicates=1,
                  **kwargs):
         self.trainer = trainer
         self._ppo_updates_at_start = int(trainer.updates)
@@ -46,17 +53,41 @@ class PPOController(MutationLogger):
             getattr(trainer, "config", None), "mutation_control", "location")
         self.credit_assignment = getattr(
             getattr(trainer, "config", None), "credit_assignment", "continuous")
+        self.candidate_audit_states = int(candidate_audit_states)
+        self.candidate_audit_candidates = int(candidate_audit_candidates)
+        self.candidate_audit_replicates = int(candidate_audit_replicates)
+        if self.candidate_audit_states < 0:
+            raise ValueError("candidate_audit_states cannot be negative")
+        if self.candidate_audit_candidates < 2:
+            raise ValueError("candidate_audit_candidates must be at least 2")
+        if self.candidate_audit_replicates < 1:
+            raise ValueError("candidate_audit_replicates must be positive")
+        if self.candidate_audit_states and self.mutation_control != "location":
+            raise ValueError(
+                "fixed-state mutation audit currently requires location control")
+        self._candidate_audit_pending = None
+        self.candidate_audit_state_count = 0
+        self.candidate_audit_evaluation_count = 0
+        self.candidate_audit_seconds = 0.0
         self.control_rng = random.Random(private_seed(
             "M-mixture-v2",
             kwargs.get("run_id", args[1] if len(args) > 1 else ""),
             (kwargs.get("seeds") or {}).get("algorithm"),
         ))
+        log_names = [
+            "mutation_outcomes", "mutation_candidates",
+            "mutation_operator_candidates", "mutation_skips",
+            "generation_summary",
+        ]
+        if self.candidate_audit_states:
+            log_names.extend((
+                "mutation_candidate_audit_states",
+                "mutation_candidate_audit_outcomes",
+            ))
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
             preserve_base_position_rng=True, normalizer=archive.normalizer,
-            log_names=("mutation_outcomes", "mutation_candidates",
-                       "mutation_operator_candidates", "mutation_skips",
-                       "generation_summary"), **kwargs)
+            log_names=tuple(log_names), **kwargs)
         if self.model_choice_probability < 1.0:
             self.decision_counts["base_mixture_choice"] = 0
         trainer.observation_provider = self._observation
@@ -174,18 +205,200 @@ class PPOController(MutationLogger):
         # copied from a mating parent is stale and must not enter the state.
         enriched["parent_rank"] = -1
         enriched["parent_crowding"] = 0.0
-        return build_observation(
+        observation = build_observation(
             self.current_individual, self.batches_for_observation, candidates, enriched,
             self.current_population, self.pending_offspring,
             self.archive.summary(), self.archive.normalizer, self.budget,
             self.evaluations, self.generations, self.graph_observation,
             getattr(getattr(self.trainer, "config", None),
                     "candidate_representation", "legacy"))
+        if self._should_capture_candidate_audit(candidates):
+            self._candidate_audit_pending = {
+                "parent": deepcopy(self.current_individual),
+                "candidates": deepcopy(candidates),
+                "context": dict(enriched),
+                "observation": observation,
+                "archive_hv": float(self.archive.hypervolume),
+                "archive_size": len(self.archive.points),
+            }
+        return observation
+
+    def _should_capture_candidate_audit(self, candidates):
+        if (not self.candidate_audit_states
+                or self.candidate_audit_state_count
+                >= self.candidate_audit_states
+                or self._candidate_audit_pending is not None):
+            return False
+        if sum(bool(candidate.get("eligible")) for candidate in candidates) < 2:
+            return False
+        threshold = (
+            (self.candidate_audit_state_count + 1)
+            / (self.candidate_audit_states + 1))
+        return self.evaluations / max(1, int(self.budget or 1)) >= threshold
+
+    def _candidate_audit_indices(self, prior, trained, chosen, eligible, state_id):
+        legal = [index for index, value in enumerate(eligible) if value]
+        ordered = []
+
+        def include(index):
+            if index in legal and index not in ordered:
+                ordered.append(index)
+
+        include(chosen)
+        include(max(legal, key=lambda index: (prior[index], -index)))
+        include(max(legal, key=lambda index: (trained[index], -index)))
+        remaining = [index for index in legal if index not in ordered]
+        random.Random(private_seed(
+            "M-candidate-audit-subset", self.run_id, state_id)).shuffle(remaining)
+        for index in remaining:
+            include(index)
+            if len(ordered) >= self.candidate_audit_candidates:
+                break
+        return ordered[:self.candidate_audit_candidates]
+
+    def _run_candidate_audit(
+            self, batches, path_lib, tt_dict, arc_lookup, arcs,
+            waiting_cost, waiting_emission, reliable_options, evaluation_kwargs):
+        snapshot = self._candidate_audit_pending
+        self._candidate_audit_pending = None
+        pending = self.trainer.pending
+        if snapshot is None or pending is None:
+            return
+        probabilities = [float(value) for value in pending["old_probabilities"]]
+        observation = snapshot["observation"]
+        prior = [float(value) for value in observation["action_prior"]]
+        eligible = [bool(value) for value in observation["eligible"]]
+        chosen = int(pending["action"])
+        state_id = self.candidate_audit_state_count + 1
+        audited = self._candidate_audit_indices(
+            prior, probabilities, chosen, eligible, state_id)
+        if len(audited) < 2:
+            return
+
+        self.candidate_audit_state_count = state_id
+        prior_mass = sum(prior[index] for index in audited)
+        trained_mass = sum(probabilities[index] for index in audited)
+        candidate_descriptors = []
+        for index, candidate in enumerate(snapshot["candidates"]):
+            target = candidate.get("target")
+            candidate_descriptors.append({
+                "candidate_id": index,
+                "target": asdict(target),
+                "eligible": bool(candidate.get("eligible")),
+                "path_id": candidate.get("path_id"),
+                "baseline_probability": prior[index],
+                "trained_probability": probabilities[index],
+                "chosen": index == chosen,
+                "audited": index in audited,
+            })
+        self.append("mutation_candidate_audit_states", {
+            "state_id": state_id,
+            "instance_id": self.instance.get("instance_id"),
+            "generation": self.generation,
+            "evaluation": self.evaluations,
+            "evaluation_fraction": (
+                self.evaluations / max(1, int(self.budget or 1))),
+            "operator": snapshot["context"]["operator"],
+            "archive_hv": snapshot["archive_hv"],
+            "archive_size": snapshot["archive_size"],
+            "chosen_candidate_id": chosen,
+            "audited_candidate_ids": audited,
+            "audited_prior_probability_mass": prior_mass,
+            "audited_trained_probability_mass": trained_mass,
+            "candidates": candidate_descriptors,
+            "observation": observation,
+        })
+
+        algorithm_random_state = random.getstate()
+        algorithm_numpy_state = np.random.get_state()
+        audit_started = time.perf_counter()
+        try:
+            for replicate in range(self.candidate_audit_replicates):
+                completion_seed = private_seed(
+                    "M-candidate-audit-completion", self.run_id,
+                    state_id, replicate)
+                for candidate_index in audited:
+                    random.setstate(random.Random(completion_seed).getstate())
+                    np.random.seed(completion_seed % (2**32 - 1))
+                    candidate = snapshot["candidates"][candidate_index]
+                    target = candidate["target"]
+                    individual = deepcopy(snapshot["parent"])
+                    before = deepcopy(individual)
+                    batch = next(
+                        item for item in batches
+                        if item.batch_id == target.batch_id)
+                    mutation_success = base.apply_mutation_op(
+                        individual, snapshot["context"]["operator"], batch,
+                        path_lib, tt_dict, arc_lookup,
+                        reliable_options=reliable_options, target=target)
+                    repair = repair_after_mutation(
+                        individual, before, batches, path_lib,
+                        tt_dict, arc_lookup)
+                    # Bypass the active controller: audit evaluations neither
+                    # consume the declared search budget nor mutate its archive.
+                    base._evaluate_individual_impl(
+                        individual, batches, arcs, tt_dict,
+                        waiting_cost, waiting_emission, **evaluation_kwargs)
+                    self.candidate_audit_evaluation_count += 1
+                    individual_fingerprint = fingerprint(individual)
+                    diagnostics = self.archive.diagnose_candidate(
+                        individual.objectives, bool(individual.feasible),
+                        individual_fingerprint)
+                    update = self.archive.preview_many([(
+                        individual.objectives, bool(individual.feasible),
+                        individual_fingerprint)])
+                    normalized = None
+                    single_point_hv = 0.0
+                    try:
+                        normalized = list(self.archive.normalizer.transform(
+                            individual.objectives))
+                        if individual.feasible:
+                            single_point_hv = exact_hv_3d(
+                                [normalized], self.archive.normalizer.reference)
+                    except ValueError:
+                        pass
+                    self.append("mutation_candidate_audit_outcomes", {
+                        "state_id": state_id,
+                        "candidate_id": candidate_index,
+                        "replicate": replicate,
+                        "completion_seed": completion_seed,
+                        "operator": snapshot["context"]["operator"],
+                        "target": asdict(target),
+                        "candidate_features": observation[
+                            "candidates"][candidate_index],
+                        "global_features": observation["global"],
+                        "parent_tokens": observation["parent"],
+                        "candidate_graph_tokens": (
+                            observation.get("candidate_graph_tokens", [])[candidate_index]
+                            if observation.get("candidate_graph_tokens") else None),
+                        "baseline_probability": prior[candidate_index],
+                        "trained_probability": probabilities[candidate_index],
+                        "chosen_by_policy": candidate_index == chosen,
+                        "audited_prior_probability_mass": prior_mass,
+                        "audited_trained_probability_mass": trained_mass,
+                        "mutation_success": bool(mutation_success),
+                        "repair": repair,
+                        "fingerprint": individual_fingerprint,
+                        "feasible": bool(individual.feasible),
+                        "normalized_violation": float(
+                            individual.normalized_violation),
+                        "objectives": [float(value)
+                                       for value in individual.objectives],
+                        "normalized_objectives": normalized,
+                        "single_point_hv": float(single_point_hv),
+                        "archive_delta_hv": float(update.delta_hv),
+                        "archive_diagnostics": diagnostics,
+                    })
+        finally:
+            random.setstate(algorithm_random_state)
+            np.random.set_state(algorithm_numpy_state)
+            self.candidate_audit_seconds += time.perf_counter() - audit_started
 
     def mutate(self, ind, batches, path_lib, tt_dict, arc_lookup,
                arcs, waiting_cost, waiting_emission, reliable_options=None, **kwargs):
         # Preserve the original crossover -> mutation -> repair -> evaluation
         # order.  In particular, do not evaluate the crossed child here.
+        self._candidate_audit_pending = None
         use_model = (
             True if self.model_choice_probability == 1.0 else
             False if self.model_choice_probability == 0.0 else
@@ -270,6 +483,10 @@ class PPOController(MutationLogger):
             self._suppress_archive = False
             self.current_individual = None
             self._inside_mutation = False
+        if self._candidate_audit_pending is not None:
+            self._run_candidate_audit(
+                batches, path_lib, tt_dict, arc_lookup, arcs,
+                waiting_cost, waiting_emission, reliable_options, kwargs)
         if len(self.pending) == pending_before:
             # no eligible candidate: no policy action and no PPO update
             if hierarchical and self.trainer.sequence_depth:
@@ -347,5 +564,9 @@ class PPOController(MutationLogger):
                 "model_choice_probability": self.model_choice_probability,
                 "model_control_events": self.model_control_events,
                 "base_control_events": self.base_control_events,
+                "candidate_audit_state_count": self.candidate_audit_state_count,
+                "candidate_audit_evaluation_count": (
+                    self.candidate_audit_evaluation_count),
+                "candidate_audit_seconds": self.candidate_audit_seconds,
                 "feature_construction_seconds": self.feature_construction_seconds,
                 "ppo_update_seconds": self.ppo_update_seconds}
