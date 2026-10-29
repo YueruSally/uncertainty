@@ -28,8 +28,11 @@ class QuickCombinationAnalysisTests(unittest.TestCase):
                     (path / "COMPLETE.json").write_text(json.dumps({
                         "completed": True,
                         "component": method,
-                        "seeds": {"algorithm": seed},
                         "final_hypervolume": hv,
+                    }))
+                    (path / "configuration.json").write_text(json.dumps({
+                        "component": method,
+                        "seeds": {"algorithm": seed},
                     }))
             with patch("builtins.print") as output:
                 main([

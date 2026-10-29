@@ -35,13 +35,18 @@ def main(argv=None):
                     args.root / instance / f"seed_{seed}" / method
                     / "COMPLETE.json"
                 )
+                config_path = path.with_name("configuration.json")
                 if not path.is_file():
                     parser.error(f"missing result: {path}")
+                if not config_path.is_file():
+                    parser.error(f"missing configuration: {config_path}")
                 result = _read(path)
+                config = _read(config_path)
                 value = result.get("final_hypervolume")
                 if (result.get("completed") is not True
                         or result.get("component") != method
-                        or result.get("seeds", {}).get("algorithm") != seed
+                        or config.get("component") != method
+                        or config.get("seeds", {}).get("algorithm") != seed
                         or not isinstance(value, (int, float))
                         or not math.isfinite(value)):
                     parser.error(f"invalid result: {path}")
