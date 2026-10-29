@@ -13,7 +13,7 @@ from torch.distributions import Categorical
 
 from multi_instance_policy import Decision
 
-from .models import build_model
+from .models import TRANSFORMER_ACTOR_CONDITIONING, build_model
 from .observations import (
     CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES, pad_observations,
 )
@@ -201,8 +201,10 @@ class PPOTrainer:
             return {}
         update_started = time.perf_counter()
         transition_count = len(self.buffer)
-        positive_reward_count = sum(item.reward > 0.0 for item in self.buffer)
-        reward_total = float(sum(item.reward for item in self.buffer))
+        rewards = np.asarray([item.reward for item in self.buffer], dtype=np.float64)
+        positive_reward_count = int(np.count_nonzero(rewards > 0.0))
+        nonzero_reward_count = int(np.count_nonzero(rewards != 0.0))
+        reward_total = float(rewards.sum())
         advantages, returns = self._advantages(float(bootstrap_value))
         old_logp = torch.as_tensor([x.old_log_probability for x in self.buffer],
                                    dtype=torch.float32, device=self.device)
@@ -211,9 +213,16 @@ class PPOTrainer:
         advantages_t = torch.as_tensor(advantages, device=self.device)
         returns_t = torch.as_tensor(returns, device=self.device)
         indices = np.arange(len(self.buffer))
-        diagnostics = {"policy_loss": [], "value_loss": [], "entropy": [], "kl": []}
+        diagnostics = {
+            "policy_loss": [], "value_loss": [], "entropy": [], "kl": [],
+            "absolute_log_probability_change": [],
+        }
+        first_minibatch_pre_step = None
+        minibatch_count = 0
+        update_epochs_started = 0
         stop = False
         for _ in range(self.config.update_epochs):
+            update_epochs_started += 1
             indices = self.minibatch_rng.permutation(indices)
             for start in range(0, len(indices), 64):
                 selected = indices[start:start + 64]
@@ -223,7 +232,22 @@ class PPOTrainer:
                 distribution = Categorical(logits=logits)
                 index = torch.as_tensor(selected, dtype=torch.long, device=self.device)
                 new_logp = distribution.log_prob(actions[index])
-                ratio = torch.exp(new_logp - old_logp[index])
+                logp_difference = new_logp - old_logp[index]
+                ratio = torch.exp(logp_difference)
+                if first_minibatch_pre_step is None:
+                    absolute_error = logp_difference.detach().abs()
+                    ratio_error = (ratio.detach() - 1.0).abs()
+                    first_minibatch_pre_step = {
+                        "first_minibatch_size": int(len(selected)),
+                        "first_minibatch_pre_step_logp_abs_error_mean": float(
+                            absolute_error.mean().item()),
+                        "first_minibatch_pre_step_logp_abs_error_max": float(
+                            absolute_error.max().item()),
+                        "first_minibatch_pre_step_ratio_abs_error_mean": float(
+                            ratio_error.mean().item()),
+                        "first_minibatch_pre_step_ratio_abs_error_max": float(
+                            ratio_error.max().item()),
+                    }
                 unclipped = ratio * advantages_t[index]
                 clipped = torch.clamp(ratio, 1 - self.config.clip_ratio,
                                       1 + self.config.clip_ratio) * advantages_t[index]
@@ -232,15 +256,18 @@ class PPOTrainer:
                 entropy = distribution.entropy().mean()
                 loss = (policy_loss + self.config.value_coefficient * value_loss
                         - self.config.entropy_coefficient * entropy)
+                approximate_kl = (old_logp[index] - new_logp).mean().item()
                 self.optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.max_grad_norm)
                 self.optimizer.step()
-                approximate_kl = (old_logp[index] - new_logp).mean().item()
+                minibatch_count += 1
                 diagnostics["policy_loss"].append(float(policy_loss.item()))
                 diagnostics["value_loss"].append(float(value_loss.item()))
                 diagnostics["entropy"].append(float(entropy.item()))
                 diagnostics["kl"].append(float(approximate_kl))
+                diagnostics["absolute_log_probability_change"].append(float(
+                    logp_difference.detach().abs().mean().item()))
                 if approximate_kl > self.config.target_kl:
                     stop = True
                     break
@@ -258,8 +285,19 @@ class PPOTrainer:
             "update": self.updates,
             "transition_count": transition_count,
             "positive_reward_transition_count": positive_reward_count,
+            "nonzero_reward_transition_count": nonzero_reward_count,
+            "zero_reward_transition_count": transition_count - nonzero_reward_count,
             "reward_total": reward_total,
+            "reward_mean": float(rewards.mean()),
+            "reward_std": float(rewards.std()),
+            "reward_max": float(rewards.max()),
+            "minibatch_count": minibatch_count,
+            "optimizer_step_count": minibatch_count,
+            "configured_update_epochs": int(self.config.update_epochs),
+            "update_epochs_started": update_epochs_started,
+            "early_stopped_on_target_kl": stop,
             "update_seconds": elapsed,
+            **(first_minibatch_pre_step or {}),
             **means,
         })
         return means
@@ -279,8 +317,11 @@ class PPOTrainer:
             raise RuntimeError("checkpoint requires an empty PPO rollout boundary")
         path.parent.mkdir(parents=True, exist_ok=True)
         artifact = {
-            "schema_version": 3,
+            "schema_version": 4,
             "architecture": self.architecture,
+            "actor_conditioning": (
+                TRANSFORMER_ACTOR_CONDITIONING
+                if self.architecture == "transformer" else None),
             "component": self.component,
             "model_spec": self.model_spec,
             "ppo_config": asdict(self.config),
@@ -314,8 +355,14 @@ class PPOTrainer:
                 path, map_location=device or "cpu", weights_only=False)
         except TypeError:  # PyTorch before the weights_only argument was added.
             artifact = torch.load(path, map_location=device or "cpu")
-        if artifact.get("schema_version") not in (1, 2, 3):
+        if artifact.get("schema_version") not in (1, 2, 3, 4):
             raise ValueError("unsupported checkpoint schema")
+        if (artifact.get("architecture") == "transformer"
+                and artifact.get("actor_conditioning")
+                != TRANSFORMER_ACTOR_CONDITIONING):
+            raise ValueError(
+                "Transformer checkpoint predates global-conditioned actor; "
+                "retrain it before evaluation or resume")
         config = config_type(**artifact["ppo_config"])
         result = cls(
             artifact["architecture"], config, observation_provider,
@@ -350,6 +397,7 @@ class PPOTrainer:
             "training_metadata_sha256": hashlib.sha256(
                 metadata_blob.encode("utf-8")).hexdigest(),
             "architecture": artifact["architecture"],
+            "actor_conditioning": artifact.get("actor_conditioning"),
             "component": result.component,
             "model_spec": result.model_spec,
             "policy_seed": metadata.get("policy_seed"),

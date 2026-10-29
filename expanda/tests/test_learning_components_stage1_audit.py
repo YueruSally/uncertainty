@@ -19,7 +19,11 @@ class Stage1AuditTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             _write(root / "training_configuration.json", {
-                "component": "M", "population": 20,
+                "component": "M", "architecture": "transformer",
+                "actor_conditioning": (
+                    "candidate-plus-operator-plus-global-before-encoder"),
+                "configuration": "S0", "evaluation_mode": "deterministic",
+                "ppo": {"dropout": 0.1}, "population": 20,
                 "evaluation_budget_per_episode": 400,
             })
             _write(root / "training_summary.json", {
@@ -35,6 +39,15 @@ class Stage1AuditTest(unittest.TestCase):
             })
             outcome = root / "episodes/train-S0-001/mutation_outcomes.jsonl"
             outcome.parent.mkdir(parents=True)
+            _write(outcome.parent / "configuration.json", {
+                "evaluation_mode": "deterministic", "training_size": 1,
+            })
+            _write(outcome.parent / "ppo_updates.jsonl", {
+                "update": 1, "transition_count": 3,
+                "optimizer_step_count": 2,
+                "early_stopped_on_target_kl": False,
+                "first_minibatch_pre_step_logp_abs_error_mean": 0.01,
+            })
             outcome.write_text("\n".join(json.dumps(row) for row in (
                 {"reward_recorded_for_policy": True, "reward": 0.5},
                 {"reward_recorded_for_policy": True, "reward": 0.0},
@@ -46,6 +59,11 @@ class Stage1AuditTest(unittest.TestCase):
             self.assertEqual(result["positive_reward_event_count"], 1)
             self.assertEqual(result["positive_reward_fraction"], 0.5)
             self.assertEqual(result["mean_model_actions_per_ppo_update"], 3.0)
+            self.assertEqual(result["configured_ppo_dropout"], 0.1)
+            self.assertTrue(result["deterministic_configuration_confirmed"])
+            self.assertEqual(result["logged_optimizer_step_count"], 2)
+            self.assertEqual(
+                result["mean_first_minibatch_pre_step_logp_abs_error"], 0.01)
 
     def test_candidate_audit_measures_nonuniformity(self):
         with tempfile.TemporaryDirectory() as directory:

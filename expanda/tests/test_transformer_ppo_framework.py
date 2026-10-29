@@ -154,12 +154,49 @@ class CheckpointTests(unittest.TestCase):
         self.assertGreater(decision.metadata["inference_seconds"], 0.0)
         self.assertGreater(trainer.feature_construction_seconds, 0.0)
 
+    def test_transformer_actor_receives_global_state_before_candidate_encoder(self):
+        import torch
+        from transformer_ppo.models import TransformerActorCritic
+        from transformer_ppo.observations import pad_observations
+
+        torch.manual_seed(7)
+        model = TransformerActorCritic(
+            hidden_dim=16, heads=4, layers=1, dropout=0.0)
+        model.eval()
+        observations = []
+        for progress in (0.0, 0.75):
+            global_features = [0.0] * len(GLOBAL_FEATURES)
+            global_features[GLOBAL_FEATURES.index("generation_fraction")] = progress
+            observations.append({
+                "parent": [[0.0] * len(PARENT_FEATURES)],
+                "candidates": [
+                    [float(index == feature) for feature in range(
+                        len(CANDIDATE_FEATURES))]
+                    for index in range(3)
+                ],
+                "eligible": [True, True, True],
+                "operator_id": 0,
+                "global": global_features,
+            })
+        captured = []
+        handle = model.candidate_encoder.register_forward_pre_hook(
+            lambda _module, args: captured.append(args[0].detach().clone()))
+        try:
+            logits, _ = model(pad_observations(observations, torch.device("cpu")))
+        finally:
+            handle.remove()
+        self.assertEqual(len(captured), 1)
+        self.assertFalse(torch.allclose(captured[0][0], captured[0][1]))
+        centred = logits - logits.mean(dim=1, keepdim=True)
+        self.assertFalse(torch.allclose(centred[0], centred[1]))
+
     def test_update_records_transition_count_and_diagnostics(self):
         from transformer_ppo.ppo import PPOTrainer
 
         config = PPOConfig(
             rollout_steps=2, gae_horizon=1, hidden_dim=16,
-            attention_heads=4, transformer_layers=1, update_epochs=1)
+            attention_heads=4, transformer_layers=1, update_epochs=1,
+            dropout=0.0)
         observation = {
             "parent": [[0.0] * len(PARENT_FEATURES)],
             "candidates": [[0.0] * len(CANDIDATE_FEATURES)] * 2,
@@ -178,7 +215,18 @@ class CheckpointTests(unittest.TestCase):
         record = trainer.update_records[0]
         self.assertEqual(record["transition_count"], 2)
         self.assertEqual(record["positive_reward_transition_count"], 1)
+        self.assertEqual(record["nonzero_reward_transition_count"], 1)
+        self.assertEqual(record["zero_reward_transition_count"], 1)
         self.assertAlmostEqual(record["reward_total"], 1.0)
+        self.assertAlmostEqual(record["reward_mean"], 0.5)
+        self.assertEqual(record["minibatch_count"], 1)
+        self.assertEqual(record["optimizer_step_count"], 1)
+        self.assertEqual(record["update_epochs_started"], 1)
+        self.assertFalse(record["early_stopped_on_target_kl"])
+        self.assertLess(
+            record["first_minibatch_pre_step_logp_abs_error_max"], 1e-6)
+        self.assertLess(
+            record["first_minibatch_pre_step_ratio_abs_error_max"], 1e-6)
         self.assertGreater(record["update_seconds"], 0.0)
         self.assertIn("policy_loss", record)
         self.assertIn("value_loss", record)
@@ -208,6 +256,39 @@ class CheckpointTests(unittest.TestCase):
                 torch.rand(4, generator=restored.action_generator), expected_action))
             np.testing.assert_array_equal(restored.minibatch_rng.random(4),
                                           expected_minibatch)
+
+    def test_legacy_transformer_checkpoint_is_rejected_after_actor_change(self):
+        import torch
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(
+            hidden_dim=16, attention_heads=4, transformer_layers=1,
+            dropout=0.0)
+        trainer = PPOTrainer(
+            "transformer", config, lambda *_: None,
+            device="cpu", policy_seed=123, training=True)
+        with tempfile.TemporaryDirectory() as directory:
+            current = Path(directory) / "current.pt"
+            legacy = Path(directory) / "legacy.pt"
+            trainer.save(current)
+            restored = PPOTrainer.load(
+                current, PPOConfig, lambda *_: None,
+                device="cpu", training=False)
+            self.assertEqual(
+                restored.checkpoint_provenance["actor_conditioning"],
+                "candidate-plus-operator-plus-global-before-encoder")
+            try:
+                artifact = torch.load(
+                    current, map_location="cpu", weights_only=False)
+            except TypeError:
+                artifact = torch.load(current, map_location="cpu")
+            artifact["schema_version"] = 3
+            artifact.pop("actor_conditioning")
+            torch.save(artifact, legacy)
+            with self.assertRaisesRegex(ValueError, "retrain"):
+                PPOTrainer.load(
+                    legacy, PPOConfig, lambda *_: None,
+                    device="cpu", training=False)
 
 
 class FormalBatchTests(unittest.TestCase):

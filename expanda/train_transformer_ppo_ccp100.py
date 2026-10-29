@@ -14,6 +14,7 @@ from transformer_ppo.crossover_observations import CROSSOVER_GRAPH_MODEL_SPEC
 from transformer_ppo.graph_features import GRAPH_MODEL_SPEC
 from transformer_ppo.initialization_observations import INITIALIZATION_GRAPH_MODEL_SPEC
 from transformer_ppo.initialization_rule_features import validate_rule_normalization
+from transformer_ppo.models import TRANSFORMER_ACTOR_CONDITIONING
 from transformer_ppo.observations import (
     CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
 )
@@ -122,6 +123,10 @@ def _run_config(args, config, manifests, records):
         "architecture": args.architecture,
         "model_spec": _model_spec(args.component),
         "network_encoding": "shared-network-tokens-v1",
+        "actor_conditioning": (
+            TRANSFORMER_ACTOR_CONDITIONING
+            if args.architecture == "transformer" else
+            "candidate-plus-global-plus-parent-pool"),
         "policy_seed": args.policy_seed,
         "ppo": asdict(config),
         "ppo_digest": config.digest(),

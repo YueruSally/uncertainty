@@ -75,6 +75,7 @@ def _training_audit(root: Path, component: str):
     if not summary_path.is_file() or not config_path.is_file():
         raise ValueError(f"incomplete {component} training directory: {root}")
     summary, config = _read(summary_path), _read(config_path)
+    ppo_config = config.get("ppo") or {}
     episodes = summary.get("episodes", [])
     if (summary.get("completed") is not True
             or str(summary.get("component")).upper() != component):
@@ -89,10 +90,31 @@ def _training_audit(root: Path, component: str):
     event_count = positive_count = 0
     reward_total_from_events = 0.0
     missing_logs = []
+    missing_configuration_logs = []
+    missing_update_logs = []
     per_episode_events = []
+    episode_evaluation_modes = set()
+    episode_training_sizes = set()
+    update_rows = []
     for episode in episodes:
         episode_id = episode["instance"]
-        path = root / "episodes" / episode_id / OUTCOME_LOG[component]
+        episode_root = root / "episodes" / episode_id
+        episode_configuration = episode_root / "configuration.json"
+        if episode_configuration.is_file():
+            episode_config = _read(episode_configuration)
+            if episode_config.get("evaluation_mode") is not None:
+                episode_evaluation_modes.add(str(
+                    episode_config["evaluation_mode"]))
+            if episode_config.get("training_size") is not None:
+                episode_training_sizes.add(int(episode_config["training_size"]))
+        else:
+            missing_configuration_logs.append(str(episode_configuration))
+        update_path = episode_root / "ppo_updates.jsonl"
+        if update_path.is_file():
+            update_rows.extend(_jsonl(update_path))
+        else:
+            missing_update_logs.append(str(update_path))
+        path = episode_root / OUTCOME_LOG[component]
         if not path.is_file():
             missing_logs.append(str(path))
             continue
@@ -108,11 +130,42 @@ def _training_audit(root: Path, component: str):
         positive_count += current_positive
         per_episode_events.append(current_events)
 
-    # All model choices become PPO transitions.  This is an aggregate audit;
-    # the current logger does not preserve each individual update batch size.
+    update_transition_counts = [
+        int(row["transition_count"]) for row in update_rows
+        if row.get("transition_count") is not None
+    ]
+    optimizer_step_counts = [
+        int(row["optimizer_step_count"]) for row in update_rows
+        if row.get("optimizer_step_count") is not None
+    ]
+    pre_step_logp_errors = [
+        float(row["first_minibatch_pre_step_logp_abs_error_mean"])
+        for row in update_rows
+        if row.get("first_minibatch_pre_step_logp_abs_error_mean") is not None
+    ]
+    complete_optimizer_diagnostics = (
+        bool(update_rows)
+        and len(optimizer_step_counts) == len(update_rows)
+        and len(pre_step_logp_errors) == len(update_rows)
+    )
+    deterministic_configuration_confirmed = (
+        config.get("evaluation_mode") == "deterministic"
+        and episode_evaluation_modes == {"deterministic"}
+        and episode_training_sizes == {1}
+        and not missing_configuration_logs
+    )
     result = {
         "component": component,
         "training_root": str(root.resolve()),
+        "architecture": config.get("architecture"),
+        "actor_conditioning": config.get("actor_conditioning"),
+        "configuration": config.get("configuration"),
+        "training_evaluation_mode": config.get("evaluation_mode"),
+        "configured_ppo_dropout": ppo_config.get("dropout"),
+        "episode_evaluation_modes": sorted(episode_evaluation_modes),
+        "episode_training_sizes": sorted(episode_training_sizes),
+        "deterministic_configuration_confirmed": (
+            deterministic_configuration_confirmed),
         "episode_count": len(episodes),
         "population": config.get("population"),
         "evaluation_budget_per_episode": config.get(
@@ -128,6 +181,23 @@ def _training_audit(root: Path, component: str):
         "positive_reward_count_from_episode_summaries": int(sum(
             row.get("positive_reward_actions", 0) for row in episodes)),
         "ppo_update_count": ppo_updates,
+        "logged_ppo_update_count": len(update_rows),
+        "ppo_update_log_matches_summary": len(update_rows) == ppo_updates,
+        "logged_update_transition_count": sum(update_transition_counts),
+        "update_transition_count_min": (
+            min(update_transition_counts) if update_transition_counts else None),
+        "update_transition_count_max": (
+            max(update_transition_counts) if update_transition_counts else None),
+        "mean_update_transition_count": _mean(update_transition_counts),
+        "logged_optimizer_step_count": (
+            sum(optimizer_step_counts) if complete_optimizer_diagnostics else None),
+        "early_stopped_update_count": (
+            sum(bool(row.get("early_stopped_on_target_kl")) for row in update_rows)
+            if complete_optimizer_diagnostics else None),
+        "mean_first_minibatch_pre_step_logp_abs_error": (
+            _mean(pre_step_logp_errors) if complete_optimizer_diagnostics else None),
+        "max_first_minibatch_pre_step_logp_abs_error": (
+            max(pre_step_logp_errors) if complete_optimizer_diagnostics else None),
         "mean_model_actions_per_ppo_update": _ratio(model_actions, ppo_updates),
         "decision_counts": decision_counts,
         "mean_reward_events_per_episode": _mean(per_episode_events),
@@ -137,9 +207,14 @@ def _training_audit(root: Path, component: str):
             row.get("inference_seconds", 0.0) for row in episodes)),
         "missing_outcome_log_count": len(missing_logs),
         "missing_outcome_logs": missing_logs[:10],
+        "missing_episode_configuration_count": len(missing_configuration_logs),
+        "missing_episode_configurations": missing_configuration_logs[:10],
+        "missing_ppo_update_log_count": len(missing_update_logs),
+        "missing_ppo_update_logs": missing_update_logs[:10],
         "logging_limit": (
-            "PPO update batch sizes and loss/KL diagnostics were not persisted; "
-            "model_actions/update is an aggregate ratio, not a batch-size trace."),
+            None if complete_optimizer_diagnostics else
+            "This run predates optimizer-step and fixed-parameter pre-step logp "
+            "diagnostics; per-update transition/loss/KL fields may still exist."),
     }
     result["non_inference_seconds"] = (
         result["optimisation_seconds"] - result["inference_seconds"])
@@ -337,11 +412,27 @@ def _markdown(audit: dict):
         f"- Policy/training seed: {audit['test_design']['policy_seed']}",
         "- Status: small-budget deterministic screening; not the final full-scale experiment.",
         "",
+        "## Training configuration check",
+        "",
+        "| Component | Architecture | Mode | Scene | PPO dropout | Episode modes | Training sizes | Deterministic confirmed |",
+        "|---|---|---|---|---:|---|---|---|",
+    ]
+    for component in COMPONENTS:
+        row = audit["training"][component]
+        modes = ", ".join(row["episode_evaluation_modes"]) or "missing"
+        sizes = ", ".join(map(str, row["episode_training_sizes"])) or "missing"
+        lines.append(
+            f"| {component} | {row['architecture']} | "
+            f"{row['training_evaluation_mode']} | {row['configuration']} | "
+            f"{row['configured_ppo_dropout']} | {modes} | {sizes} | "
+            f"{row['deterministic_configuration_confirmed']} |")
+    lines.extend([
+        "",
         "## Training signal",
         "",
         "| Component | Episodes | Model actions | Reward events | Positive rewards | Positive fraction | PPO updates | Actions/update |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
-    ]
+    ])
     for component in COMPONENTS:
         row = audit["training"][component]
         fraction = row["positive_reward_fraction"]

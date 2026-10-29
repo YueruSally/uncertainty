@@ -104,8 +104,29 @@ def _analyze_component(root: Path, component: str):
                 "global_update": int(row["update"]),
                 "transition_count": transitions,
                 "positive_reward_transition_count": positives,
+                "nonzero_reward_transition_count": row.get(
+                    "nonzero_reward_transition_count"),
+                "zero_reward_transition_count": row.get(
+                    "zero_reward_transition_count"),
                 "positive_reward_fraction": _ratio(positives, transitions),
                 "reward_total": float(row.get("reward_total", 0.0) or 0.0),
+                "reward_mean": row.get("reward_mean"),
+                "reward_std": row.get("reward_std"),
+                "reward_max": row.get("reward_max"),
+                "minibatch_count": row.get("minibatch_count"),
+                "optimizer_step_count": row.get("optimizer_step_count"),
+                "configured_update_epochs": row.get("configured_update_epochs"),
+                "update_epochs_started": row.get("update_epochs_started"),
+                "early_stopped_on_target_kl": row.get(
+                    "early_stopped_on_target_kl"),
+                "first_minibatch_pre_step_logp_abs_error_mean": row.get(
+                    "first_minibatch_pre_step_logp_abs_error_mean"),
+                "first_minibatch_pre_step_logp_abs_error_max": row.get(
+                    "first_minibatch_pre_step_logp_abs_error_max"),
+                "first_minibatch_pre_step_ratio_abs_error_mean": row.get(
+                    "first_minibatch_pre_step_ratio_abs_error_mean"),
+                "first_minibatch_pre_step_ratio_abs_error_max": row.get(
+                    "first_minibatch_pre_step_ratio_abs_error_max"),
                 "policy_loss": row.get("policy_loss"),
                 "value_loss": row.get("value_loss"),
                 "entropy": row.get("entropy"),
@@ -164,6 +185,17 @@ def _update_bins(rows, bin_count=10):
                 "mean_kl": _mean([
                     float(row["kl"]) for row in current
                     if row.get("kl") is not None]),
+                "optimizer_step_count": sum(
+                    int(row["optimizer_step_count"]) for row in current
+                    if row.get("optimizer_step_count") is not None),
+                "early_stopped_update_count": sum(
+                    bool(row.get("early_stopped_on_target_kl"))
+                    for row in current),
+                "mean_first_minibatch_pre_step_logp_abs_error": _mean([
+                    float(row["first_minibatch_pre_step_logp_abs_error_mean"])
+                    for row in current
+                    if row.get(
+                        "first_minibatch_pre_step_logp_abs_error_mean") is not None]),
             })
     return result
 
@@ -221,6 +253,10 @@ def analyze(c_training: Path, m_training: Path, out: Path):
             "ppo_updates": summary["episodes"][-1]["ppo_updates_total"],
             "population": config["population"],
             "evaluation_budget": config["evaluation_budget_per_episode"],
+            "evaluation_mode": config["evaluation_mode"],
+            "configuration": config["configuration"],
+            "ppo_dropout": (config.get("ppo") or {}).get("dropout"),
+            "actor_conditioning": config.get("actor_conditioning"),
         }
     out.mkdir(parents=True, exist_ok=False)
     phase_summary = _aggregate_phases(phase_rows)

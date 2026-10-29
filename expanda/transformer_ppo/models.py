@@ -10,6 +10,10 @@ from .config import OPERATORS
 from .observations import CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES
 
 
+TRANSFORMER_ACTOR_CONDITIONING = (
+    "candidate-plus-operator-plus-global-before-encoder")
+
+
 def _signed_log1p(value):
     return torch.sign(value) * torch.log1p(torch.abs(value))
 
@@ -147,6 +151,7 @@ class TransformerActorCritic(nn.Module):
     def forward(self, batch: Dict[str, torch.Tensor]):
         parent = self.parent_projection(_signed_log1p(batch["parent"]))
         candidate = self.candidate_projection(_signed_log1p(batch["candidates"]))
+        global_hidden = self.global_projection(_signed_log1p(batch["global"]))
         network_hidden = None
         if self.network_encoder is not None:
             network_nodes, network_hidden = self.network_encoder(batch)
@@ -155,7 +160,7 @@ class TransformerActorCritic(nn.Module):
             candidate = candidate + network_context + _candidate_graph_context(
                 network_nodes, batch)
         operator = self.operator_embedding(batch["operator_id"]).unsqueeze(1)
-        candidate = candidate + operator
+        candidate = candidate + operator + global_hidden.unsqueeze(1)
         parent = self.parent_encoder(parent, src_key_padding_mask=batch["parent_padding_mask"])
         candidate = self.candidate_encoder(
             candidate, src_key_padding_mask=batch["candidate_padding_mask"])
@@ -168,7 +173,6 @@ class TransformerActorCritic(nn.Module):
         logits = logits.masked_fill(~valid, torch.finfo(logits.dtype).min)
         parent_pool = _masked_mean(parent, batch["parent_padding_mask"])
         candidate_pool = _masked_mean(candidate, batch["candidate_padding_mask"])
-        global_hidden = self.global_projection(_signed_log1p(batch["global"]))
         contexts = [parent_pool, candidate_pool, global_hidden]
         if network_hidden is not None:
             contexts.append(network_hidden)
