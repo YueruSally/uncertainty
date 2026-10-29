@@ -22,7 +22,8 @@ from transformer_ppo.initialization_rule_features import validate_rule_normaliza
 from transformer_ppo.models import TRANSFORMER_ACTOR_CONDITIONING
 from transformer_ppo.observations import (
     CANDIDATE_FEATURES, CANDIDATE_PATH_V2_FEATURES,
-    CANDIDATE_PATH_V3_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES,
+    CANDIDATE_PATH_V3_FEATURES, CANDIDATE_PATH_V4_FEATURES,
+    GLOBAL_FEATURES, PARENT_FEATURES,
 )
 from transformer_ppo.episode import run_episode
 from transformer_ppo.ppo import PPOTrainer
@@ -105,7 +106,8 @@ def _catalog_digest(instances):
 
 
 def _model_spec(component, candidate_representation="legacy"):
-    path_encoded = candidate_representation in ("path_v2", "path_v3")
+    path_encoded = candidate_representation in (
+        "path_v2", "path_v3", "path_v4")
     if component == "C":
         return dict(CROSSOVER_GRAPH_MODEL_SPEC_V2 if path_encoded
                     else CROSSOVER_GRAPH_MODEL_SPEC)
@@ -119,6 +121,8 @@ def _model_spec(component, candidate_representation="legacy"):
     return {
         "parent_dim": len(PARENT_FEATURES),
         "candidate_dim": len(
+            CANDIDATE_PATH_V4_FEATURES
+            if candidate_representation == "path_v4" else
             CANDIDATE_PATH_V3_FEATURES
             if candidate_representation == "path_v3" else
             CANDIDATE_PATH_V2_FEATURES if path_encoded else
@@ -142,7 +146,8 @@ def _run_config(args, config, manifests, records):
             args.component, config.candidate_representation),
         "network_encoding": (
             "ordered-node-edge-paths-v2"
-            if config.candidate_representation in ("path_v2", "path_v3")
+            if config.candidate_representation in (
+                "path_v2", "path_v3", "path_v4")
             else "shared-network-tokens-v1"),
         "actor_conditioning": (
             TRANSFORMER_ACTOR_CONDITIONING
@@ -297,11 +302,13 @@ def main():
         "--residual-logit-limit", type=float,
         help="Absolute tanh bound for base-residual actor corrections.")
     parser.add_argument(
-        "--candidate-representation", choices=("legacy", "path_v2", "path_v3"),
+        "--candidate-representation",
+        choices=("legacy", "path_v2", "path_v3", "path_v4"),
         help=("Candidate feature/graph representation. path_v2 adds business "
               "path summaries and ordered node-edge candidate encoding; "
               "path_v3 adds I planned-share/rank/coverage features or M "
-              "operator-stage features."))
+              "operator-stage features; path_v4 adds joint replacement-path "
+              "relative features for M."))
     parser.add_argument(
         "--initialization-control", choices=("auto", "path", "path_count"),
         help=("I action scope. path keeps Base's sampled path count and learns "
@@ -314,9 +321,11 @@ def main():
     parser.add_argument("--gae-horizon", type=int)
     parser.add_argument("--rollout-steps", type=int)
     parser.add_argument(
-        "--mutation-control", choices=("location", "operator_location"),
+        "--mutation-control",
+        choices=("location", "operator_location", "replace_path"),
         help=("M action space. operator_location first chooses a legal "
-              "mutation operator and then its target."))
+              "mutation operator and then its target; replace_path leaves "
+              "other operators under Base and jointly chooses batch/path for replace."))
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
@@ -358,8 +367,11 @@ def main():
             and args.credit_assignment == "operation_terminal"
             and args.gae_horizon is not None and args.gae_horizon < 64):
         parser.error("C operation_terminal requires --gae-horizon >= 64")
-    if args.candidate_representation == "path_v3" and args.component not in ("I", "M"):
-        parser.error("path_v3 is valid only for I or M")
+    if (args.candidate_representation in ("path_v3", "path_v4")
+            and args.component not in ("I", "M")):
+        parser.error("path_v3/path_v4 are valid only for I or M")
+    if args.candidate_representation == "path_v4" and args.component != "M":
+        parser.error("path_v4 is valid only for M")
     if args.initialization_control is not None and args.component != "I":
         parser.error("--initialization-control is valid only for I")
     if args.initialization_control == "path_count" and (
@@ -372,6 +384,12 @@ def main():
             and args.credit_assignment == "operation_terminal"):
         parser.error(
             "operator_location requires --candidate-representation path_v3 "
+            "and --credit-assignment operation_terminal")
+    if args.mutation_control == "replace_path" and not (
+            args.candidate_representation == "path_v4"
+            and args.credit_assignment == "operation_terminal"):
+        parser.error(
+            "replace_path requires --candidate-representation path_v4 "
             "and --credit-assignment operation_terminal")
     if args.resume:
         if not args.out.exists() or not any(args.out.iterdir()):

@@ -20,6 +20,7 @@ from transformer_ppo.initialization_observations import (
 from transformer_ppo.instance_catalog import _draw_quantity, _draw_release_time, _split_od_pool
 from transformer_ppo.observations import (
     CANDIDATE_FEATURES, CANDIDATE_PATH_V3_FEATURES,
+    CANDIDATE_PATH_V4_FEATURES,
     GLOBAL_FEATURES, PARENT_FEATURES,
     action_prior, build_observation, candidate_tokens,
 )
@@ -78,6 +79,30 @@ class ArchiveTests(unittest.TestCase):
 
 
 class ObservationTests(unittest.TestCase):
+    def test_mutation_v4_exposes_replacement_path_relative_features(self):
+        values = {
+            "replacement_delta_cost_per_teu": -3.,
+            "replacement_delta_emission_per_teu": 4.,
+            "replacement_delta_nominal_time_h": -2.,
+            "replacement_delta_distance": 10.,
+            "replacement_delta_bottleneck_capacity": 20.,
+            "replacement_on_time_probability": .8,
+            "replacement_max_lateness_h": 1.5,
+            "replacement_is_current_path": 0.,
+        }
+        rows, eligible = candidate_tokens([{
+            "target": {"batch_id": 0, "replacement_path_id": "path-2"},
+            "eligible": True,
+            "candidate_operator": "replace",
+            **values,
+        }], "replace", representation="path_v4")
+        feature = {name: rows[0][index]
+                   for index, name in enumerate(CANDIDATE_PATH_V4_FEATURES)}
+        self.assertEqual(eligible, [True])
+        self.assertEqual(len(rows[0]), len(CANDIDATE_PATH_V4_FEATURES))
+        for name, value in values.items():
+            self.assertAlmostEqual(feature[name], value)
+
     def test_mutation_v3_identifies_operator_candidates(self):
         rows, eligible = candidate_tokens([{
             "target": {"batch_id": 0}, "eligible": True,
@@ -259,6 +284,14 @@ class ConfigTests(unittest.TestCase):
     def test_invalid_mutation_control_fails(self):
         with self.assertRaisesRegex(ValueError, "mutation_control"):
             PPOConfig(mutation_control="operator-only").validate()
+
+    def test_replace_path_control_requires_v4_terminal_credit(self):
+        PPOConfig(
+            mutation_control="replace_path",
+            candidate_representation="path_v4",
+            credit_assignment="operation_terminal").validate()
+        with self.assertRaisesRegex(ValueError, "requires path_v4"):
+            PPOConfig(mutation_control="replace_path").validate()
 
     def test_initialization_control_is_validated_separately_from_features(self):
         PPOConfig(

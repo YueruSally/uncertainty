@@ -10,7 +10,7 @@ import numpy as np
 import baseline_uncertainty as base
 from multi_instance_catalog import (SCENARIOS, TEST_ALPHAS, canonical_digest,
                                     delivery_deadline, prepare_batches, read_instance)
-from multi_instance_mutation import candidates_for
+from multi_instance_mutation import candidates_for, replacement_path_candidates
 from multi_instance_logging import MutationLogger
 from multi_instance_policy import LearningPolicy, RandomPolicy, RulePolicy
 from multi_instance_plan import jobs, paired_seeds
@@ -97,6 +97,38 @@ class PolicyTests(unittest.TestCase):
                               {("A", "B", "road"): arc}, {})
         self.assertFalse(rows[0]["eligible"])
         self.assertEqual(rows[0]["mask_reason"], "no_reliable_option")
+
+    def test_joint_replacement_candidates_control_path_and_expose_deltas(self):
+        road = base.Arc("A", "B", "road", 50., 100., 2., 3., 50.)
+        rail = base.Arc("A", "B", "rail", 80., 60., 1., 1., 80.)
+        current = base.path_from_arcs([road], "A", "B")
+        replacement = base.path_from_arcs([rail], "A", "B")
+        batch = base.Batch(0, "A", "B", 10., 0., 20.)
+        key = ("A", "B", 0)
+        ind = base.Individual({key: [base.PathAllocation(current, 1.)]})
+        options = {key: [
+            base.ReliablePathOption(current, .5, 4., {}),
+            base.ReliablePathOption(replacement, .9, 1., {}),
+        ]}
+
+        rows = replacement_path_candidates(ind, [batch], options)
+
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0]["eligible"])
+        self.assertEqual(
+            rows[0]["target"].replacement_path_id,
+            str(replacement.path_id))
+        self.assertIs(rows[0]["path"], replacement)
+        self.assertAlmostEqual(
+            rows[0]["replacement_delta_cost_per_teu"],
+            replacement.base_cost_per_teu - current.base_cost_per_teu)
+        with patch.object(random, "choice", return_value=options[key][0]) as choice:
+            changed = base.apply_mutation_op(
+                ind, "replace", batch, {}, {}, {},
+                reliable_options=options, target=rows[0]["target"])
+        self.assertTrue(changed)
+        choice.assert_called_once()
+        self.assertIs(ind.od_allocations[key][0].path, replacement)
 
 
 class PlanTests(unittest.TestCase):

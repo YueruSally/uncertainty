@@ -3,6 +3,7 @@ import math
 
 import baseline_uncertainty as base
 from learning_mutation import enumerate_targets
+from learning_mutation import MutationTarget
 from multi_instance_policy import rule_probabilities
 
 
@@ -61,4 +62,101 @@ def candidates_for(ind, batches, operator, path_lib, timetable, arc_lookup, reli
     rule = rule_probabilities(rows)
     for row, p in zip(rows, rule):
         row["p_rule"] = p
+    return rows
+
+
+def replacement_path_candidates(ind, batches, reliable_options):
+    """Enumerate the joint (batch, replacement path) action used by V5-R."""
+    rows = []
+    batch_count = max(1, len(batches))
+    for batch in batches:
+        key = (batch.origin, batch.destination, batch.batch_id)
+        allocations = list(ind.od_allocations.get(key, ()))
+        current_paths = {allocation.path for allocation in allocations}
+        options = list((reliable_options or {}).get(key, ()))
+        alternatives = [option for option in options
+                        if option.path not in current_paths]
+        selectable = alternatives or options
+        if not selectable:
+            rows.append({
+                "target": MutationTarget(batch.batch_id),
+                "selection_probability": 1.0 / batch_count,
+                "batch_quantity": float(batch.quantity),
+                "path_count": len(allocations),
+                "share": 1.0,
+                "available_reliable_options": 0,
+                "eligible": False,
+                "mask_reason": "no_reliable_option",
+                "candidate_operator": "replace",
+            })
+            continue
+
+        quantity = float(batch.quantity)
+        old_cost = sum(float(allocation.share)
+                       * float(allocation.path.base_cost_per_teu)
+                       for allocation in allocations)
+        old_emission = sum(float(allocation.share)
+                           * float(allocation.path.base_emission_per_teu)
+                           for allocation in allocations)
+        old_time = sum(float(allocation.share)
+                       * float(allocation.path.base_travel_time_h)
+                       for allocation in allocations)
+        old_distance = sum(
+            float(allocation.share)
+            * sum(float(arc.distance) for arc in allocation.path.arcs)
+            for allocation in allocations)
+        old_capacity = sum(
+            float(allocation.share)
+            * min((float(arc.capacity) for arc in allocation.path.arcs), default=0.0)
+            for allocation in allocations)
+        same_only = not alternatives
+        probability = 1.0 / batch_count / len(selectable)
+        current_graph_path = (
+            (list(allocations[0].path.nodes), list(allocations[0].path.modes))
+            if allocations else ([], []))
+        for option in selectable:
+            path = option.path
+            new_distance = sum(float(arc.distance) for arc in path.arcs)
+            new_capacity = min(
+                (float(arc.capacity) for arc in path.arcs), default=0.0)
+            rows.append({
+                "target": MutationTarget(
+                    batch.batch_id,
+                    replacement_path_id=str(path.path_id)),
+                "selection_probability": probability,
+                "batch_quantity": quantity,
+                "path_count": len(allocations),
+                "share": 1.0,
+                "path": path,
+                "path_id": path.path_id,
+                "path_nodes": list(path.nodes),
+                "path_modes": list(path.modes),
+                "path_length": len(path.arcs),
+                "path_cost_per_teu": float(path.base_cost_per_teu),
+                "path_emission_per_teu": float(path.base_emission_per_teu),
+                "path_nominal_time_h": float(path.base_travel_time_h),
+                "path_total_distance": new_distance,
+                "path_bottleneck_capacity": new_capacity,
+                "available_reliable_options": len(options),
+                "replacement_delta_cost_per_teu": (
+                    float(path.base_cost_per_teu) - old_cost),
+                "replacement_delta_emission_per_teu": (
+                    float(path.base_emission_per_teu) - old_emission),
+                "replacement_delta_nominal_time_h": (
+                    float(path.base_travel_time_h) - old_time),
+                "replacement_delta_distance": new_distance - old_distance,
+                "replacement_delta_bottleneck_capacity": (
+                    new_capacity - old_capacity),
+                "replacement_on_time_probability": float(
+                    option.on_time_probability),
+                "replacement_max_lateness_h": float(option.max_lateness_h),
+                "replacement_is_current_path": float(path in current_paths),
+                "candidate_graph_paths": [
+                    current_graph_path,
+                    (list(path.nodes), list(path.modes)),
+                ],
+                "eligible": not same_only,
+                "mask_reason": "same_only_replacement" if same_only else None,
+                "candidate_operator": "replace",
+            })
     return rows

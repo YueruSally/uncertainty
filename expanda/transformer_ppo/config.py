@@ -70,9 +70,10 @@ class PPOConfig:
                 "actor_policy must be 'direct' or 'base_residual'")
         if self.residual_logit_limit <= 0.0:
             raise ValueError("residual_logit_limit must be positive")
-        if self.candidate_representation not in ("legacy", "path_v2", "path_v3"):
+        if self.candidate_representation not in (
+                "legacy", "path_v2", "path_v3", "path_v4"):
             raise ValueError(
-                "candidate_representation must be 'legacy', 'path_v2', or 'path_v3'")
+                "candidate_representation must be legacy, path_v2, path_v3, or path_v4")
         if self.initialization_control not in ("auto", "path", "path_count"):
             raise ValueError(
                 "initialization_control must be 'auto', 'path', or 'path_count'")
@@ -83,14 +84,20 @@ class PPOConfig:
         if self.credit_assignment not in ("continuous", "operation_terminal"):
             raise ValueError(
                 "credit_assignment must be 'continuous' or 'operation_terminal'")
-        if self.mutation_control not in ("location", "operator_location"):
+        if self.mutation_control not in (
+                "location", "operator_location", "replace_path"):
             raise ValueError(
-                "mutation_control must be 'location' or 'operator_location'")
+                "mutation_control must be location, operator_location, or replace_path")
         if (self.mutation_control == "operator_location"
                 and (self.candidate_representation != "path_v3"
                      or self.credit_assignment != "operation_terminal")):
             raise ValueError(
                 "operator_location requires path_v3 and operation_terminal credit")
+        if (self.mutation_control == "replace_path"
+                and (self.candidate_representation != "path_v4"
+                     or self.credit_assignment != "operation_terminal")):
+            raise ValueError(
+                "replace_path requires path_v4 and operation_terminal credit")
         if self.hidden_dim % self.attention_heads:
             raise ValueError("hidden_dim must be divisible by attention_heads")
 

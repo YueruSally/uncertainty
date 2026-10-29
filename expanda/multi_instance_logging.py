@@ -10,8 +10,8 @@ import time
 import numpy as np
 
 import baseline_uncertainty as base
-from learning_mutation import repair_after_mutation
-from multi_instance_mutation import candidates_for
+from learning_mutation import MutationTarget, repair_after_mutation
+from multi_instance_mutation import candidates_for, replacement_path_candidates
 from multi_instance_policy import RandomPolicy
 from multi_instance_features import feature_record
 
@@ -58,7 +58,8 @@ class MutationLogger:
     def __init__(self, out, run_id, scenario_id, budget=None, policy=None,
                  method="Random-CCP100", instance=None, seeds=None,
                  evaluate_before_mutation=True, log_names=None,
-                 preserve_base_position_rng=False, normalizer=None):
+                 preserve_base_position_rng=False, normalizer=None,
+                 joint_replacement_paths=False):
         self.out, self.run_id, self.scenario_id, self.budget = out, run_id, scenario_id, budget
         self.policy = policy or RandomPolicy()
         self.method = method
@@ -69,6 +70,10 @@ class MutationLogger:
         # evaluates offspring only after crossover and mutation are complete.
         self.evaluate_before_mutation = bool(evaluate_before_mutation)
         self.preserve_base_position_rng = bool(preserve_base_position_rng)
+        self.joint_replacement_paths = bool(joint_replacement_paths)
+        if self.joint_replacement_paths and not self.preserve_base_position_rng:
+            raise ValueError(
+                "joint replacement control requires paired Base batch draws")
         self.normalizer = normalizer
         self.evaluations = self.cache_hits = self.event_count = 0
         self.generation, self.phase = -1, "initialisation"
@@ -222,8 +227,32 @@ class MutationLogger:
             random.choice(batches) if self.preserve_base_position_rng else None)
         shadow_base_operator = base.sample_operator()
         op = shadow_base_operator if operator_override is None else operator_override
-        candidates = candidates_for(ind, batches, op, path_lib, tt_dict, arc_lookup,
-                                    reliable_options)
+        if self.joint_replacement_paths and op == "replace":
+            candidates = replacement_path_candidates(
+                ind, batches, reliable_options)
+        elif self.joint_replacement_paths:
+            # V5-R deliberately leaves every non-replace mutation under Base.
+            # A single forced candidate reuses the already consumed Base batch
+            # draw, while apply_mutation_op retains Base's internal randomness.
+            key = (shadow_base_batch.origin, shadow_base_batch.destination,
+                   shadow_base_batch.batch_id)
+            allocations = ind.od_allocations.get(key, [])
+            candidates = [{
+                "target": MutationTarget(shadow_base_batch.batch_id),
+                "selection_probability": 1.0,
+                "batch_quantity": float(shadow_base_batch.quantity),
+                "path_count": len(allocations),
+                "share": None,
+                "path_id": None,
+                "eligible": True,
+                "mask_reason": None,
+                "candidate_operator": op,
+                "base_passthrough": True,
+            }]
+        else:
+            candidates = candidates_for(
+                ind, batches, op, path_lib, tt_dict, arc_lookup,
+                reliable_options)
         legal_target_count = sum(bool(row["eligible"]) for row in candidates)
         for candidate in candidates:
             candidate["candidate_operator"] = op
@@ -270,7 +299,7 @@ class MutationLogger:
                 decision_kind=decision_kind,
                 **asdict(candidate["target"]),
                 **{k: v for k, v in candidate.items()
-                   if k not in ("target", "selection_probability")},
+                   if k not in ("target", "selection_probability", "path")},
                 pre_mutation_features=feature_record(candidate, context),
                 baseline_selection_probability=baseline_probability,
                 selection_probability=decision.probabilities[i],

@@ -109,9 +109,10 @@ def build_graph_observation(nodes, regions, hold_cost, processing_cost,
             *numerical, terminal, *_category_code(regions.get(name)),
         ])
 
-    if representation not in ("legacy", "path_v2", "path_v3"):
+    if representation not in ("legacy", "path_v2", "path_v3", "path_v4"):
         raise ValueError("unknown graph representation")
-    ordered_path_representation = representation in ("path_v2", "path_v3")
+    ordered_path_representation = representation in (
+        "path_v2", "path_v3", "path_v4")
     ordered_arcs = sorted(
         arcs, key=lambda arc: (
             str(arc.from_node), str(arc.to_node), str(arc.mode),

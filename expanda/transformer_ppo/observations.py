@@ -57,6 +57,19 @@ MUTATION_CONTROL_FEATURES_V3 = (
 CANDIDATE_PATH_V3_FEATURES = (
     *CANDIDATE_PATH_V2_FEATURES, *MUTATION_CONTROL_FEATURES_V3,
 )
+REPLACEMENT_PATH_FEATURES_V4 = (
+    "replacement_delta_cost_per_teu",
+    "replacement_delta_emission_per_teu",
+    "replacement_delta_nominal_time_h",
+    "replacement_delta_distance",
+    "replacement_delta_bottleneck_capacity",
+    "replacement_on_time_probability",
+    "replacement_max_lateness_h",
+    "replacement_is_current_path",
+)
+CANDIDATE_PATH_V4_FEATURES = (
+    *CANDIDATE_PATH_V3_FEATURES, *REPLACEMENT_PATH_FEATURES_V4,
+)
 GLOBAL_FEATURES = (
     "K", "deadline_window_alpha", "generation_fraction", "evaluation_fraction",
     "remaining_fraction", "offspring_fraction", "phase_is_boost",
@@ -220,13 +233,13 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=(),
             float(arc_index is not None), _finite(arc_index),
             *origin, *destination, *from_node, *to_node, *mode,
         ]
-        if representation in ("path_v2", "path_v3"):
+        if representation in ("path_v2", "path_v3", "path_v4"):
             row.extend(path_business_features(
                 candidate.get("path"), batch, candidate.get("share"),
                 candidate.get("arc"), candidate))
             row.extend(_finite(candidate.get(name))
                        for name in MUTATION_OPTION_FEATURES)
-            if representation == "path_v3":
+            if representation in ("path_v3", "path_v4"):
                 candidate_operator = candidate.get("candidate_operator", operator)
                 row.append(float(bool(candidate.get("operator_stage"))))
                 row.extend(
@@ -235,12 +248,16 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=(),
                     _finite(candidate.get("operator_legal_target_count")),
                     _finite(candidate.get("operator_legal_target_fraction")),
                 ])
+                if representation == "path_v4":
+                    row.extend(_finite(candidate.get(name))
+                               for name in REPLACEMENT_PATH_FEATURES_V4)
         elif representation != "legacy":
             raise ValueError("unknown candidate representation")
         rows.append(row)
         eligible.append(bool(candidate.get("eligible")))
     if not rows:
         dimension = (
+            len(CANDIDATE_PATH_V4_FEATURES) if representation == "path_v4" else
             len(CANDIDATE_PATH_V3_FEATURES) if representation == "path_v3" else
             len(CANDIDATE_PATH_V2_FEATURES) if representation == "path_v2" else
             len(CANDIDATE_FEATURES))
@@ -374,7 +391,7 @@ def build_observation(ind, batches, candidates, context, population, pending_off
         observation["graph"] = graph_observation
         observation["candidate_graph_nodes"] = candidate_graph_nodes(
             candidates, graph_observation)
-        if candidate_representation in ("path_v2", "path_v3"):
+        if candidate_representation in ("path_v2", "path_v3", "path_v4"):
             observation["candidate_graph_tokens"] = candidate_graph_tokens(
                 candidates, graph_observation)
     return observation

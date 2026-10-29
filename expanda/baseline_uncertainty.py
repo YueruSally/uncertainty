@@ -2761,6 +2761,7 @@ def mutate_replace_reliable(
     batch: Batch,
     reliable_options: Optional[
         Dict[Tuple[str, str, int], List[ReliablePathOption]]],
+    replacement_path_id: Optional[str] = None,
 ) -> bool:
     """Replace a batch's allocation by another structurally valid path."""
     if not reliable_options:
@@ -2774,7 +2775,16 @@ def mutate_replace_reliable(
                   if option.path not in current_paths]
     if not candidates:
         candidates = list(options)
-    chosen = random.choice(candidates)
+    # Always consume Base's original path draw.  A learned joint action may
+    # replace its result, but must not shift every later algorithm RNG draw.
+    shadow_choice = random.choice(candidates)
+    if replacement_path_id is None:
+        chosen = shadow_choice
+    else:
+        chosen = next((option for option in candidates
+                       if str(option.path.path_id) == str(replacement_path_id)), None)
+        if chosen is None:
+            return False
     ind.od_allocations[key] = [PathAllocation(
         path=chosen.path, share=1.0)]
     return True
@@ -2803,7 +2813,9 @@ def apply_mutation_op(ind, op, batch, path_lib, tt_dict, arc_lookup,
     if op == "mode": return mutate_mode(ind, batch, tt_dict, arc_lookup,
                                          target_index=target_index, target_arc=target_arc)
     if op == "replace":
-        return mutate_replace_reliable(ind, batch, reliable_options)
+        return mutate_replace_reliable(
+            ind, batch, reliable_options,
+            None if target is None else target.replacement_path_id)
     return False
 
 

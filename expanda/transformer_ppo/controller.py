@@ -62,9 +62,10 @@ class PPOController(MutationLogger):
             raise ValueError("candidate_audit_candidates must be at least 2")
         if self.candidate_audit_replicates < 1:
             raise ValueError("candidate_audit_replicates must be positive")
-        if self.candidate_audit_states and self.mutation_control != "location":
+        if (self.candidate_audit_states
+                and self.mutation_control not in ("location", "replace_path")):
             raise ValueError(
-                "fixed-state mutation audit currently requires location control")
+                "fixed-state mutation audit requires location or replace_path control")
         self._candidate_audit_pending = None
         self.candidate_audit_state_count = 0
         self.candidate_audit_evaluation_count = 0
@@ -87,6 +88,7 @@ class PPOController(MutationLogger):
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
             preserve_base_position_rng=True, normalizer=archive.normalizer,
+            joint_replacement_paths=self.mutation_control == "replace_path",
             log_names=tuple(log_names), **kwargs)
         if self.model_choice_probability < 1.0:
             self.decision_counts["base_mixture_choice"] = 0

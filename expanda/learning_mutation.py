@@ -10,6 +10,7 @@ class MutationTarget:
     batch_id: int
     allocation_index: int | None = None
     arc_index: int | None = None
+    replacement_path_id: str | None = None
 
 
 def enumerate_targets(ind, batches, op, path_lib, tt_dict, arc_lookup):
