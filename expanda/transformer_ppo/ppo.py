@@ -17,6 +17,7 @@ from .models import TRANSFORMER_ACTOR_CONDITIONING, build_model
 from .observations import (
     CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES, pad_observations,
 )
+from .supervised_prior import SupervisedMutationPrior
 
 
 @dataclass
@@ -33,7 +34,7 @@ class Transition:
 class PPOTrainer:
     def __init__(self, architecture, config, observation_provider, device=None,
                  policy_seed=0, training=True, component="M", model_spec=None,
-                 inference_action_mode="argmax"):
+                 inference_action_mode="argmax", supervised_prior=None):
         config.validate()
         if inference_action_mode not in ("argmax", "sample"):
             raise ValueError(
@@ -85,6 +86,9 @@ class PPOTrainer:
         self.feature_construction_seconds = 0.0
         self.ppo_update_seconds = 0.0
         self.update_records = []
+        self.supervised_prior = (
+            None if supervised_prior is None
+            else SupervisedMutationPrior(supervised_prior))
 
     @property
     def name(self):
@@ -115,6 +119,9 @@ class PPOTrainer:
                  "decision_kind": "single_candidate"})
         feature_started = time.perf_counter()
         observation = self.observation_provider(candidates, context or {})
+        prior_diagnostics = None
+        if self.supervised_prior is not None:
+            observation, prior_diagnostics = self.supervised_prior.apply(observation)
         self.feature_construction_seconds += time.perf_counter() - feature_started
         # Never update in the middle of one environment action.  The first
         # learnable sub-decision of the next sequence is a safe rollout
@@ -152,6 +159,7 @@ class PPOTrainer:
             "initialization_control": self.config.initialization_control,
             "credit_assignment": self.config.credit_assignment,
             "mutation_control": self.config.mutation_control,
+            "supervised_prior": prior_diagnostics,
             "policy_update": self.updates, "architecture": self.architecture,
             "inference_seconds": time.perf_counter() - inference_started,
         })
@@ -425,7 +433,7 @@ class PPOTrainer:
             raise RuntimeError("checkpoint requires an empty PPO rollout boundary")
         path.parent.mkdir(parents=True, exist_ok=True)
         artifact = {
-            "schema_version": 4,
+            "schema_version": 5,
             "architecture": self.architecture,
             "actor_conditioning": (
                 TRANSFORMER_ACTOR_CONDITIONING
@@ -436,6 +444,9 @@ class PPOTrainer:
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "updates": self.updates,
+            "supervised_prior": (
+                None if self.supervised_prior is None
+                else self.supervised_prior.artifact),
             "metadata": metadata or {},
             "rng": {
                 "torch": torch.get_rng_state(),
@@ -465,7 +476,7 @@ class PPOTrainer:
                 path, map_location=device or "cpu", weights_only=False)
         except TypeError:  # PyTorch before the weights_only argument was added.
             artifact = torch.load(path, map_location=device or "cpu")
-        if artifact.get("schema_version") not in (1, 2, 3, 4):
+        if artifact.get("schema_version") not in (1, 2, 3, 4, 5):
             raise ValueError("unsupported checkpoint schema")
         if (artifact.get("architecture") == "transformer"
                 and artifact.get("actor_conditioning")
@@ -479,7 +490,8 @@ class PPOTrainer:
             device=device, policy_seed=inference_policy_seed,
             training=training, inference_action_mode=inference_action_mode,
             component=artifact.get("component", "M"),
-            model_spec=artifact.get("model_spec"))
+            model_spec=artifact.get("model_spec"),
+            supervised_prior=artifact.get("supervised_prior"))
         result.model.load_state_dict(artifact["model"])
         if training:
             result.optimizer.load_state_dict(artifact["optimizer"])
@@ -521,6 +533,9 @@ class PPOTrainer:
             "initialization_control": config.initialization_control,
             "credit_assignment": config.credit_assignment,
             "mutation_control": config.mutation_control,
+            "supervised_prior_digest": (
+                None if result.supervised_prior is None
+                else result.supervised_prior.digest),
             "learning_control": metadata.get("learning_control"),
             "updates": result.updates,
         }

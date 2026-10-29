@@ -238,7 +238,8 @@ class PPOController(MutationLogger):
             / (self.candidate_audit_states + 1))
         return self.evaluations / max(1, int(self.budget or 1)) >= threshold
 
-    def _candidate_audit_indices(self, prior, trained, chosen, eligible, state_id):
+    def _candidate_audit_indices(
+            self, prior, supervised_prior, trained, chosen, eligible, state_id):
         legal = [index for index, value in enumerate(eligible) if value]
         ordered = []
 
@@ -248,6 +249,8 @@ class PPOController(MutationLogger):
 
         include(chosen)
         include(max(legal, key=lambda index: (prior[index], -index)))
+        include(max(legal, key=lambda index: (
+            supervised_prior[index], -index)))
         include(max(legal, key=lambda index: (trained[index], -index)))
         remaining = [index for index in legal if index not in ordered]
         random.Random(private_seed(
@@ -268,12 +271,15 @@ class PPOController(MutationLogger):
             return
         probabilities = [float(value) for value in pending["old_probabilities"]]
         observation = snapshot["observation"]
-        prior = [float(value) for value in observation["action_prior"]]
+        prior = [float(value) for value in observation.get(
+            "base_action_prior", observation["action_prior"])]
+        supervised_prior = [float(value)
+                            for value in observation["action_prior"]]
         eligible = [bool(value) for value in observation["eligible"]]
         chosen = int(pending["action"])
         state_id = self.candidate_audit_state_count + 1
         audited = self._candidate_audit_indices(
-            prior, probabilities, chosen, eligible, state_id)
+            prior, supervised_prior, probabilities, chosen, eligible, state_id)
         if len(audited) < 2:
             return
 
@@ -289,6 +295,7 @@ class PPOController(MutationLogger):
                 "eligible": bool(candidate.get("eligible")),
                 "path_id": candidate.get("path_id"),
                 "baseline_probability": prior[index],
+                "supervised_prior_probability": supervised_prior[index],
                 "trained_probability": probabilities[index],
                 "chosen": index == chosen,
                 "audited": index in audited,
@@ -374,6 +381,8 @@ class PPOController(MutationLogger):
                             observation.get("candidate_graph_tokens", [])[candidate_index]
                             if observation.get("candidate_graph_tokens") else None),
                         "baseline_probability": prior[candidate_index],
+                        "supervised_prior_probability": supervised_prior[
+                            candidate_index],
                         "trained_probability": probabilities[candidate_index],
                         "chosen_by_policy": candidate_index == chosen,
                         "audited_prior_probability_mass": prior_mass,
@@ -485,6 +494,13 @@ class PPOController(MutationLogger):
             self._suppress_archive = False
             self.current_individual = None
             self._inside_mutation = False
+        if (self._candidate_audit_pending is not None
+                and self.trainer.pending is not None):
+            # The observation provider captures the pre-policy state.  The
+            # supervised prior is applied by PPOTrainer afterwards, so replace
+            # the audit copy with the exact observation used by the actor.
+            self._candidate_audit_pending["observation"] = deepcopy(
+                self.trainer.pending["observation"])
         if self._candidate_audit_pending is not None:
             self._run_candidate_audit(
                 batches, path_lib, tt_dict, arc_lookup, arcs,

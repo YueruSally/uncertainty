@@ -183,6 +183,11 @@ def _run_config(args, config, manifests, records):
                 }),
             "model_choice_probability": args.model_choice_probability,
             "control_random_stream": "private-sha256-seeded",
+            "mutation_supervised_prior": (
+                None if args.mutation_supervised_prior is None else {
+                    "path": str(args.mutation_supervised_prior.resolve()),
+                    "sha256": _sha256(args.mutation_supervised_prior),
+                }),
         },
         "reward": asdict(RewardConfig()),
         "oos_used_for_training": False,
@@ -326,6 +331,10 @@ def main():
         help=("M action space. operator_location first chooses a legal "
               "mutation operator and then its target; replace_path leaves "
               "other operators under Base and jointly chooses batch/path for replace."))
+    parser.add_argument(
+        "--mutation-supervised-prior", type=Path,
+        help=("Portable pairwise-linear prior artifact for M replace_path. "
+              "The artifact is embedded in every checkpoint."))
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
@@ -379,6 +388,9 @@ def main():
         parser.error("path_count initialization control requires path_v3")
     if args.mutation_control is not None and args.component != "M":
         parser.error("--mutation-control is valid only for M")
+    if (args.mutation_supervised_prior is not None
+            and not args.mutation_supervised_prior.is_file()):
+        parser.error("mutation supervised prior does not exist")
     if args.mutation_control == "operator_location" and not (
             args.candidate_representation == "path_v3"
             and args.credit_assignment == "operation_terminal"):
@@ -430,6 +442,13 @@ def main():
         config.validate()
     except ValueError as error:
         parser.error(str(error))
+    if args.mutation_supervised_prior is not None and not (
+            args.component == "M"
+            and config.mutation_control == "replace_path"
+            and config.candidate_representation == "path_v4"
+            and config.actor_policy == "base_residual"):
+        parser.error(
+            "mutation supervised prior requires M replace_path path_v4 base_residual")
     normalizer = _normalizer(args.normalization)
     run_config = _run_config(args, config, manifests, records)
     args.out.mkdir(parents=True, exist_ok=True)
@@ -452,7 +471,10 @@ def main():
             device=args.device, policy_seed=args.policy_seed, training=True,
             component=args.component,
             model_spec=_model_spec(
-                args.component, config.candidate_representation))
+                args.component, config.candidate_representation),
+            supervised_prior=(
+                None if args.mutation_supervised_prior is None
+                else _read_json(args.mutation_supervised_prior)))
         completed, summaries, previous_elapsed = 0, [], 0.0
         checkpoint = _checkpoint_path(args.out, completed)
         trainer.save(checkpoint, metadata=run_config)

@@ -25,6 +25,7 @@ from transformer_ppo.observations import (
     action_prior, build_observation, candidate_tokens,
 )
 from transformer_ppo.statistics import formal_report, holm
+from transformer_ppo.supervised_prior import SupervisedMutationPrior
 from run_transformer_ppo_formal_batch import _seeds
 from train_transformer_ppo_ccp100 import _ordered_manifests
 
@@ -79,6 +80,37 @@ class ArchiveTests(unittest.TestCase):
 
 
 class ObservationTests(unittest.TestCase):
+    def test_supervised_mutation_prior_reweights_only_eligible_replace_actions(self):
+        base_dimension = 67 + 35 + 2 * 19 + 4 + 5
+        weights = [0.0] * (3 * base_dimension)
+        weights[0] = 1.0
+        prior = SupervisedMutationPrior({
+            "schema_version": 1,
+            "feature_mode": "state_relative",
+            "selected_operator": "replace",
+            "effective_weights": weights,
+            "alpha": 0.5,
+            "temperature": 0.25,
+        })
+        candidates = [[0.0] * 67 for _ in range(3)]
+        candidates[0][0] = -1.0
+        candidates[1][0] = 1.0
+        candidates[2][0] = 100.0
+        observation = {
+            "parent": [[0.0] * 19],
+            "candidates": candidates,
+            "eligible": [True, True, False],
+            "action_prior": [0.5, 0.5, 0.0],
+            "operator_id": 4,
+            "global": [0.0] * 35,
+            "candidate_graph_tokens": [[], [], []],
+        }
+        updated, diagnostics = prior.apply(observation)
+        self.assertEqual(updated["base_action_prior"], [0.5, 0.5, 0.0])
+        self.assertGreater(updated["action_prior"][1], .5)
+        self.assertEqual(updated["action_prior"][2], 0.0)
+        self.assertGreater(diagnostics["total_variation_from_base"], 0.0)
+
     def test_mutation_v4_exposes_replacement_path_relative_features(self):
         values = {
             "replacement_delta_cost_per_teu": -3.,
