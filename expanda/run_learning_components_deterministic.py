@@ -21,11 +21,14 @@ def _normalizer(path):
         tuple(value.get("reference", (1.1, 1.1, 1.1))))
 
 
-def _load(path, component, device):
+def _load(path, component, device, inference_action_mode,
+          inference_policy_seed):
     if path is None or not path.is_file():
         raise ValueError(f"{component} checkpoint is missing: {path}")
     trainer = PPOTrainer.load(
-        path, PPOConfig, lambda *_: None, device=device, training=False)
+        path, PPOConfig, lambda *_: None, device=device, training=False,
+        inference_action_mode=inference_action_mode,
+        inference_policy_seed=inference_policy_seed)
     if trainer.component != component:
         raise ValueError(
             f"checkpoint {path} is component {trainer.component}, expected {component}")
@@ -55,6 +58,13 @@ def main(argv=None):
     parser.add_argument("--c-checkpoint", type=Path)
     parser.add_argument("--m-checkpoint", type=Path)
     parser.add_argument("--algorithm-seed", type=int, required=True)
+    parser.add_argument(
+        "--inference-action-mode", choices=("argmax", "sample"),
+        default="argmax",
+        help="Frozen-policy action selection; does not enable PPO training.")
+    parser.add_argument(
+        "--inference-policy-seed", type=int, default=0,
+        help="Private action-sampling seed used only when mode=sample.")
     parser.add_argument("--evaluation-budget", type=int, default=15_000)
     parser.add_argument("--pop", type=int, default=100)
     parser.add_argument("--gens", type=int, default=1_000)
@@ -89,12 +99,20 @@ def main(argv=None):
             trainer = None
         elif args.component == "ICM":
             trainer = {
-                "I": _load(args.i_checkpoint, "I", args.device),
-                "C": _load(args.c_checkpoint, "C", args.device),
-                "M": _load(args.m_checkpoint, "M", args.device),
+                "I": _load(
+                    args.i_checkpoint, "I", args.device,
+                    args.inference_action_mode, args.inference_policy_seed + 1),
+                "C": _load(
+                    args.c_checkpoint, "C", args.device,
+                    args.inference_action_mode, args.inference_policy_seed + 2),
+                "M": _load(
+                    args.m_checkpoint, "M", args.device,
+                    args.inference_action_mode, args.inference_policy_seed + 3),
             }
         else:
-            trainer = _load(args.checkpoint, args.component, args.device)
+            trainer = _load(
+                args.checkpoint, args.component, args.device,
+                args.inference_action_mode, args.inference_policy_seed)
         summary = run_episode(
             args.data, args.instance, args.out, trainer, normalizer,
             algorithm_seed=args.algorithm_seed,

@@ -31,8 +31,12 @@ class Transition:
 
 class PPOTrainer:
     def __init__(self, architecture, config, observation_provider, device=None,
-                 policy_seed=0, training=True, component="M", model_spec=None):
+                 policy_seed=0, training=True, component="M", model_spec=None,
+                 inference_action_mode="argmax"):
         config.validate()
+        if inference_action_mode not in ("argmax", "sample"):
+            raise ValueError(
+                "inference_action_mode must be 'argmax' or 'sample'")
         self.architecture, self.config = architecture, config
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         # The policy owns its random streams.  In particular, PPO minibatch and
@@ -71,6 +75,8 @@ class PPOTrainer:
         self.buffer: list[Transition] = []
         self.pending = None
         self.training = bool(training)
+        self.inference_action_mode = str(inference_action_mode)
+        self.policy_seed = int(policy_seed)
         self.updates = 0
         self.sequence_depth = 0
         self.sequence_policy_actions = 0
@@ -121,9 +127,11 @@ class PPOTrainer:
         inference_started = time.perf_counter()
         with torch.no_grad():
             distribution, value = self._distribution(observation)
+            sample_action = (
+                self.training or self.inference_action_mode == "sample")
             action = (torch.multinomial(
                 distribution.probs, 1, generator=self.action_generator).squeeze(-1)
-                if self.training else torch.argmax(distribution.logits, dim=-1))
+                if sample_action else torch.argmax(distribution.logits, dim=-1))
             log_probability = distribution.log_prob(action)
             probabilities = distribution.probs.squeeze(0).cpu().tolist()
             entropy = distribution.entropy().item()
@@ -348,7 +356,9 @@ class PPOTrainer:
                 temporary.unlink()
 
     @classmethod
-    def load(cls, path, config_type, observation_provider, device=None, training=False):
+    def load(cls, path, config_type, observation_provider, device=None,
+             training=False, inference_action_mode="argmax",
+             inference_policy_seed=0):
         path = Path(path)
         try:
             artifact = torch.load(
@@ -366,7 +376,8 @@ class PPOTrainer:
         config = config_type(**artifact["ppo_config"])
         result = cls(
             artifact["architecture"], config, observation_provider,
-            device=device, training=training,
+            device=device, policy_seed=inference_policy_seed,
+            training=training, inference_action_mode=inference_action_mode,
             component=artifact.get("component", "M"),
             model_spec=artifact.get("model_spec"))
         result.model.load_state_dict(artifact["model"])

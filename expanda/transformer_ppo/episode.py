@@ -164,6 +164,18 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         None if component in ("BASE", "RULE-I") else
         {name: item.checkpoint_provenance for name, item in trainer.items()}
         if component == "ICM" else trainer.checkpoint_provenance)
+    def inference_metadata(item):
+        return {
+            "action_mode": (
+                "sample" if item.training else
+                getattr(item, "inference_action_mode", "argmax")),
+            "policy_seed": getattr(item, "policy_seed", None),
+        }
+
+    policy_inference = (
+        None if component in ("BASE", "RULE-I") else
+        {name: inference_metadata(item) for name, item in trainer.items()}
+        if component == "ICM" else inference_metadata(trainer))
     policy_trainers = (
         trainer.values() if component == "ICM" else
         () if trainer is None else (trainer,))
@@ -204,6 +216,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "intermediate_post_crossover_evaluation": False,
         "policy_training": policy_training,
         "policy_checkpoint": policy_checkpoint,
+        "policy_inference": policy_inference,
         "initialization_rule": (
             rule_initialization_normalization if component == "RULE-I" else None),
         "learning_control": {

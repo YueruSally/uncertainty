@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -158,6 +159,57 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(decision.metadata["decision_kind"], "model_choice")
         self.assertGreater(decision.metadata["inference_seconds"], 0.0)
         self.assertGreater(trainer.feature_construction_seconds, 0.0)
+
+    def test_frozen_sample_mode_does_not_enable_training(self):
+        import torch
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(
+            hidden_dim=16, attention_heads=4, transformer_layers=1,
+            dropout=0.0)
+        observation = {
+            "parent": [[0.0] * len(PARENT_FEATURES)],
+            "candidates": [[0.0] * len(CANDIDATE_FEATURES)] * 2,
+            "eligible": [True, True], "operator_id": 0,
+            "global": [0.0] * len(GLOBAL_FEATURES),
+        }
+        trainer = PPOTrainer(
+            "mlp", config, lambda *_: observation,
+            device="cpu", policy_seed=123, training=False,
+            inference_action_mode="sample")
+        with torch.no_grad():
+            for parameter in trainer.model.parameters():
+                parameter.zero_()
+        with patch("torch.multinomial", return_value=torch.tensor([[1]])):
+            decision = trainer.choose([
+                {"eligible": True}, {"eligible": True},
+            ])
+        trainer.observe_outcome(1.0)
+        self.assertEqual(decision.chosen_index, 1)
+        self.assertFalse(trainer.training)
+        self.assertEqual(trainer.buffer, [])
+        self.assertEqual(trainer.updates, 0)
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "policy.pt"
+            trainer.save(checkpoint)
+            restored = PPOTrainer.load(
+                checkpoint, PPOConfig, lambda *_: observation,
+                device="cpu", training=False,
+                inference_action_mode="sample", inference_policy_seed=456)
+            self.assertFalse(restored.training)
+            self.assertEqual(restored.inference_action_mode, "sample")
+            self.assertEqual(restored.policy_seed, 456)
+
+    def test_invalid_inference_action_mode_fails(self):
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(hidden_dim=16, attention_heads=4,
+                           transformer_layers=1)
+        with self.assertRaisesRegex(ValueError, "inference_action_mode"):
+            PPOTrainer(
+                "mlp", config, lambda *_: None,
+                device="cpu", training=False,
+                inference_action_mode="invalid")
 
     def test_transformer_actor_receives_global_state_before_candidate_encoder(self):
         import torch
