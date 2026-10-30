@@ -535,7 +535,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "generations_completed": controller.generations_completed,
         "final_front_size": len(rows),
         "final_hypervolume": final_hypervolume,
-        "final_front_uncertainty": _front_uncertainty_diagnostics(front),
+        "final_front_uncertainty": _front_uncertainty_diagnostics(
+            [row["individual"] for row in rows]),
         **controller.summary(),
     }
     if component == "M":
