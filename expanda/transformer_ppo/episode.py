@@ -26,6 +26,111 @@ from .v2_controls import validate_model_choice_probability
 
 FINAL_OBJECTIVE_ORDER = ("cost", "emission", "makespan")
 
+CCP_UNCERTAINTY_PROFILES = {
+    "legacy": {
+        "default_scenario_count": 100,
+        "mode_time_cv": {"road": 0.15, "rail": 0.10, "water": 0.20},
+        "mode_time_max_factor": {"road": 2.0, "rail": 1.8, "water": 2.5},
+        "border_delay_cv": {"road": 0.45, "rail": 0.60, "water": 0.40},
+        "border_delay_max_factor": 3.5,
+        "border_mean_source": "directional_csv",
+    },
+    "transport_border_saa_v1": {
+        "default_scenario_count": 200,
+        "mode_time_cv": {"road": 0.15, "rail": 0.10, "water": 0.20},
+        "mode_time_max_factor": {"road": None, "rail": None, "water": None},
+        "border_delay_cv": {"road": 0.50, "rail": 0.50, "water": 0.50},
+        "border_delay_max_factor": 3.5,
+        "border_mean_source": "node_border",
+    },
+}
+
+
+def resolve_uncertainty_profile(
+        evaluation_mode, uncertainty_profile="legacy", scenario_count=None):
+    """Resolve one explicit frozen-SAA uncertainty configuration."""
+    if evaluation_mode not in ("deterministic", "ccp100", "ccp"):
+        raise ValueError(
+            "evaluation_mode must be 'deterministic', 'ccp100', or 'ccp'")
+    try:
+        profile = dict(CCP_UNCERTAINTY_PROFILES[uncertainty_profile])
+    except KeyError as error:
+        raise ValueError(
+            f"unknown uncertainty profile: {uncertainty_profile}") from error
+    if evaluation_mode == "deterministic":
+        resolved_count = 1
+    elif scenario_count is None:
+        resolved_count = (
+            100 if evaluation_mode == "ccp100" else
+            int(profile["default_scenario_count"]))
+    else:
+        resolved_count = int(scenario_count)
+    if resolved_count < 1:
+        raise ValueError("scenario_count must be positive")
+    profile["name"] = uncertainty_profile
+    profile["scenario_count"] = resolved_count
+    return profile
+
+
+def _scenario_sampling_diagnostics(scenarios, arcs):
+    """Summarise the realised frozen draws without changing optimisation."""
+    result = {"transport_multiplier": {}, "border_multiplier": {}}
+    arc_modes = {
+        (arc.from_node, arc.to_node, arc.mode): arc.mode for arc in arcs}
+    for mode in ("road", "rail", "water"):
+        arrays = [
+            np.asarray(values, dtype=float)
+            for key, values in scenarios.travel_multiplier.items()
+            if arc_modes.get(key) == mode
+        ]
+        if arrays:
+            values = np.concatenate(arrays)
+            mean = float(np.mean(values))
+            result["transport_multiplier"][mode] = {
+                "sample_count": int(values.size),
+                "mean": mean,
+                "cv": (float(np.std(values)) / mean if mean > 0.0 else 0.0),
+                "maximum": float(np.max(values)),
+            }
+    for mode in ("road", "rail", "water"):
+        arrays = []
+        for key, values in scenarios.border_delay_h.items():
+            mean_h = float(scenarios.border_event_mean_h.get(key, 0.0))
+            if key[2] == mode and mean_h > 0.0:
+                arrays.append(np.asarray(values, dtype=float) / mean_h)
+        if arrays:
+            values = np.concatenate(arrays)
+            mean = float(np.mean(values))
+            result["border_multiplier"][mode] = {
+                "sample_count": int(values.size),
+                "mean": mean,
+                "cv": (float(np.std(values)) / mean if mean > 0.0 else 0.0),
+                "maximum": float(np.max(values)),
+            }
+    return result
+
+
+def _front_uncertainty_diagnostics(front):
+    result = {"candidate_count": len(front), "objectives": {}}
+    for name, attribute in (
+            ("cost", "cost_s"), ("emission", "emission_s"),
+            ("makespan", "makespan_s")):
+        standard_deviations = [
+            float(np.std(np.asarray(getattr(individual, attribute), dtype=float)))
+            for individual in front
+            if getattr(individual, attribute, None) is not None
+        ]
+        result["objectives"][name] = {
+            "candidates_with_scenarios": len(standard_deviations),
+            "mean_scenario_standard_deviation": (
+                float(np.mean(standard_deviations))
+                if standard_deviations else None),
+            "maximum_scenario_standard_deviation": (
+                float(np.max(standard_deviations))
+                if standard_deviations else None),
+        }
+    return result
+
 
 def _optimisation_vector(row):
     """Return stored final objectives in the normalizer's fixed axis order."""
@@ -45,13 +150,19 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 model_choice_probabilities=None,
                 model_choice_event=None,
                 learning_protocol_version=None,
-                candidate_audit=None):
+                candidate_audit=None,
+                scenario_count=None,
+                ccp_confidence=0.90,
+                uncertainty_profile="legacy"):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
         raise ValueError("evaluation_budget must be at least pop_size+4")
-    if evaluation_mode not in ("deterministic", "ccp100"):
-        raise ValueError("evaluation_mode must be 'deterministic' or 'ccp100'")
+    resolved_uncertainty = resolve_uncertainty_profile(
+        evaluation_mode, uncertainty_profile, scenario_count)
+    ccp_confidence = float(ccp_confidence)
+    if not 0.0 < ccp_confidence <= 1.0:
+        raise ValueError("ccp_confidence must be in (0, 1]")
     component = str(component).upper()
     combined_components = {
         "IC": {"I", "C"},
@@ -160,18 +271,28 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         scenario_seed = 0
         scenarios = base.build_scenario_set(
             arcs, border_delay, 1, scenario_seed, stochastic=False,
-            border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+            border_event_definitions=base.BORDER_EVENT_DEFINITIONS,
+            border_mean_source=resolved_uncertainty["border_mean_source"])
         option_scenarios = scenarios
         option_mode = "deterministic"
         risk_metric = "deterministic"
     else:
         scenario_seed = instance["ccp100_seed"]
         scenarios = base.build_scenario_set(
-            arcs, border_delay, 100, scenario_seed, stochastic=True,
-            border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+            arcs, border_delay, resolved_uncertainty["scenario_count"],
+            scenario_seed, stochastic=True,
+            border_event_definitions=base.BORDER_EVENT_DEFINITIONS,
+            mode_time_cv=resolved_uncertainty["mode_time_cv"],
+            mode_time_max_factor=(
+                resolved_uncertainty["mode_time_max_factor"]),
+            border_delay_cv=resolved_uncertainty["border_delay_cv"],
+            border_delay_max_factor=(
+                resolved_uncertainty["border_delay_max_factor"]),
+            border_mean_source=resolved_uncertainty["border_mean_source"])
         option_scenarios = base.build_expected_value_scenario_set(
             arcs, border_delay, seed=0,
-            border_event_definitions=base.BORDER_EVENT_DEFINITIONS)
+            border_event_definitions=base.BORDER_EVENT_DEFINITIONS,
+            border_mean_source=resolved_uncertainty["border_mean_source"])
         option_mode = "ev"
         risk_metric = "ccp"
     options = base.build_reliable_path_options(
@@ -180,7 +301,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     base.ACTIVE_SCENARIO_SET = scenarios
     base._PATH_SCENARIO_CACHE = {}
     base.RISK_METRIC = risk_metric
-    base.CONFIDENCE_COST = base.CONFIDENCE_EMISSION = base.CONFIDENCE_TIME = 0.90
+    base.CONFIDENCE_COST = base.CONFIDENCE_EMISSION = base.CONFIDENCE_TIME = \
+        ccp_confidence
     random.seed(algorithm_seed)
     np.random.seed(algorithm_seed % (2**32 - 1))
     seeds = {"algorithm": algorithm_seed, "path": instance["path_seed"],
@@ -251,10 +373,20 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "instance_digest": instance["instance_digest"], "K": instance["K"],
         "deadline_window_alpha": instance["deadline_window_alpha"],
         "population": pop_size, "generations": generations,
-        "alpha": 0.90,
+        "alpha": ccp_confidence,
         "evaluation_budget": evaluation_budget,
         "training_size": scenarios.size,
         "scenario_digest": scenario_digest(scenarios), "seeds": seeds,
+        "uncertainty": {
+            **resolved_uncertainty,
+            "distribution": "lognormal",
+            "transport_arc_independence": True,
+            "border_event_independence": True,
+            "transport_border_independence": True,
+            "frozen_saa": True,
+            "sampling_diagnostics": _scenario_sampling_diagnostics(
+                scenarios, arcs),
+        },
         "operator_probabilities": dict(zip(base.OPS, base._FIXED_OP_PROBS)),
         "crossover_rate": base.CROSSOVER_RATE, "mutation_rate": base.MUTATION_RATE,
         "external_archive_role": "reward-only; excluded from environmental selection",
@@ -403,6 +535,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "generations_completed": controller.generations_completed,
         "final_front_size": len(rows),
         "final_hypervolume": final_hypervolume,
+        "final_front_uncertainty": _front_uncertainty_diagnostics(front),
         **controller.summary(),
     }
     if component == "M":

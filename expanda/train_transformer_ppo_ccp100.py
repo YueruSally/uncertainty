@@ -25,7 +25,9 @@ from transformer_ppo.observations import (
     CANDIDATE_PATH_V3_FEATURES, CANDIDATE_PATH_V4_FEATURES,
     GLOBAL_FEATURES, PARENT_FEATURES,
 )
-from transformer_ppo.episode import run_episode
+from transformer_ppo.episode import (
+    CCP_UNCERTAINTY_PROFILES, resolve_uncertainty_profile, run_episode,
+)
 from transformer_ppo.ppo import PPOTrainer
 
 
@@ -138,6 +140,8 @@ def _run_config(args, config, manifests, records):
     rule_normalization = (
         None if args.initialization_rule_normalization is None
         else _read_json(args.initialization_rule_normalization))
+    resolved_uncertainty = resolve_uncertainty_profile(
+        args.evaluation_mode, args.uncertainty_profile, args.scenario_count)
     return {
         "schema_version": 4,
         "component": args.component,
@@ -166,6 +170,10 @@ def _run_config(args, config, manifests, records):
         "source_data_sha256": _sha256(args.data),
         "evaluation_budget_per_episode": args.evaluation_budget,
         "evaluation_mode": args.evaluation_mode,
+        "scenario_count": resolved_uncertainty["scenario_count"],
+        "ccp_confidence": args.ccp_confidence,
+        "uncertainty_profile": args.uncertainty_profile,
+        "uncertainty": resolved_uncertainty,
         "configuration": args.configuration,
         "population": args.pop,
         "generations": args.gens,
@@ -273,8 +281,14 @@ def main():
     parser.add_argument("--evaluation-budget", type=int, required=True,
                         help="Predeclared real-objective evaluation budget per episode.")
     parser.add_argument(
-        "--evaluation-mode", choices=("deterministic", "ccp100"),
+        "--evaluation-mode", choices=("deterministic", "ccp100", "ccp"),
         default="ccp100")
+    parser.add_argument("--scenario-count", type=int,
+                        help="Frozen SAA scenario count; profile default if omitted.")
+    parser.add_argument("--ccp-confidence", type=float, default=0.90)
+    parser.add_argument(
+        "--uncertainty-profile",
+        choices=tuple(CCP_UNCERTAINTY_PROFILES), default="legacy")
     parser.add_argument("--configuration", choices=tuple(SCENARIOS),
                         help="Restrict training to one fixed configuration/scene.")
     parser.add_argument("--pop", type=int, default=100)
@@ -340,6 +354,10 @@ def main():
     args = parser.parse_args()
     if args.evaluation_mode == "deterministic" and args.configuration is None:
         parser.error("deterministic stage requires one fixed --configuration")
+    if args.scenario_count is not None and args.scenario_count < 1:
+        parser.error("--scenario-count must be positive")
+    if not 0.0 < args.ccp_confidence <= 1.0:
+        parser.error("--ccp-confidence must be in (0, 1]")
     if not args.data.is_file():
         parser.error(f"network workbook does not exist: {args.data}")
     if not args.instances.is_dir():
@@ -509,7 +527,10 @@ def main():
             model_choice_probabilities=(
                 {args.component: args.model_choice_probability}
                 if args.component in ("C", "M") else None),
-            learning_protocol_version=2)
+            learning_protocol_version=2,
+            scenario_count=args.scenario_count,
+            ccp_confidence=args.ccp_confidence,
+            uncertainty_profile=args.uncertainty_profile)
         summaries.append({"instance": manifest.stem, **summary})
         completed = index + 1
         previous_checkpoint = checkpoint

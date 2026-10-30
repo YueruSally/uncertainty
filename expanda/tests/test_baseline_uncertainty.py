@@ -57,6 +57,19 @@ class FrozenScenarioTests(unittest.TestCase):
         self.assertAlmostEqual(
             model.capped_lognormal_mean(mu, sigma, 3.5), 1.0, places=10)
 
+    def test_untruncated_lognormal_matches_requested_mean_and_cv(self):
+        first = model.sample_capped_mean_one_lognormal(
+            size=300000, cv=0.20, cap_factor=None,
+            rng=np.random.default_rng(2027))
+        second = model.sample_capped_mean_one_lognormal(
+            size=300000, cv=0.20, cap_factor=None,
+            rng=np.random.default_rng(2027))
+        self.assertTrue(np.array_equal(first, second))
+        mean = float(np.mean(first))
+        self.assertAlmostEqual(mean, 1.0, delta=0.002)
+        self.assertAlmostEqual(float(np.std(first)) / mean, 0.20, delta=0.002)
+        self.assertGreater(float(np.max(first)), 1.0)
+
     def test_same_candidate_has_identical_ccp_values(self):
         arc = model.Arc(
             from_node="A", to_node="B", mode="road",
@@ -168,6 +181,57 @@ class FrozenScenarioTests(unittest.TestCase):
         event_key = ("A", "B", "road")
         self.assertEqual(scenarios.border_event_for_arc(arc), event_key)
         self.assertEqual(scenarios.border_event_mean_h[event_key], 9.9)
+
+    def test_node_border_profile_uses_workbook_endpoint_means(self):
+        arc = model.Arc(
+            from_node="A", to_node="B", mode="rail",
+            distance=10.0, capacity=1000.0,
+            cost_per_teu_km=1.0, emission_per_teu_km=1.0,
+            speed_kmh=50.0, from_region="CN", to_region="CA",
+            is_border_arc=True)
+        scenarios = model.build_scenario_set(
+            [arc],
+            border_delay_map={
+                ("A", "rail"): 40.6,
+                ("B", "rail"): 40.6,
+            },
+            size=1, seed=7, stochastic=False,
+            border_event_definitions={
+                ("A", "B", "rail"): model.BorderEventDefinition(
+                    "A", "B", "rail", 999.0)},
+            border_mean_source="node_border")
+        event_key = ("A", "B", "rail")
+        self.assertEqual(scenarios.border_event_for_arc(arc), event_key)
+        self.assertAlmostEqual(
+            scenarios.border_event_mean_h[event_key], 81.2)
+        self.assertAlmostEqual(
+            float(scenarios.border_delay_h[event_key][0]), 81.2)
+
+    def test_explicit_uncertainty_overrides_control_draws(self):
+        arcs = [
+            model.Arc(
+                from_node="A", to_node="B", mode="road",
+                distance=10.0, capacity=1000.0,
+                cost_per_teu_km=1.0, emission_per_teu_km=1.0,
+                speed_kmh=40.0, from_region="CN", to_region="CA",
+                is_border_arc=True),
+        ]
+        scenarios = model.build_scenario_set(
+            arcs,
+            border_delay_map={("A", "road"): 4.2, ("B", "road"): 4.2},
+            size=200000, seed=2028, stochastic=True,
+            mode_time_cv={"road": 0.25},
+            mode_time_max_factor={"road": None},
+            border_delay_cv={"road": 0.50},
+            border_delay_max_factor=3.5,
+            border_mean_source="node_border")
+        travel = scenarios.travel_multiplier[("A", "B", "road")]
+        border = scenarios.border_delay_h[("A", "B", "road")] / 8.4
+        self.assertAlmostEqual(
+            float(np.std(travel)) / float(np.mean(travel)), 0.25,
+            delta=0.003)
+        self.assertAlmostEqual(float(np.mean(border)), 1.0, delta=0.005)
+        self.assertLessEqual(float(np.max(border)), 3.5 + 1e-12)
 
     def test_timetable_controls_waiting_not_nominal_arc_speed(self):
         arc = model.Arc(

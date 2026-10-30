@@ -6,7 +6,7 @@ from pathlib import Path
 
 from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.config import PPOConfig
-from transformer_ppo.episode import run_episode
+from transformer_ppo.episode import CCP_UNCERTAINTY_PROFILES, run_episode
 from transformer_ppo.ppo import PPOTrainer
 
 
@@ -21,8 +21,13 @@ def main():
     parser.add_argument("--algorithm-seed", type=int, required=True)
     parser.add_argument("--evaluation-budget", type=int, default=15_000)
     parser.add_argument(
-        "--evaluation-mode", choices=("deterministic", "ccp100"),
+        "--evaluation-mode", choices=("deterministic", "ccp100", "ccp"),
         default="ccp100")
+    parser.add_argument("--scenario-count", type=int)
+    parser.add_argument("--ccp-confidence", type=float, default=0.90)
+    parser.add_argument(
+        "--uncertainty-profile",
+        choices=tuple(CCP_UNCERTAINTY_PROFILES), default="legacy")
     parser.add_argument("--pop", type=int, default=100)
     parser.add_argument("--gens", type=int, default=1_000)
     parser.add_argument("--device")
@@ -40,7 +45,10 @@ def main():
         args.data, args.instance, args.out, trainer, normalizer,
         algorithm_seed=args.algorithm_seed, evaluation_budget=args.evaluation_budget,
         pop_size=args.pop, generations=args.gens, reward_config=RewardConfig(),
-        evaluation_mode=args.evaluation_mode, component=trainer.component)
+        evaluation_mode=args.evaluation_mode, component=trainer.component,
+        scenario_count=args.scenario_count,
+        ccp_confidence=args.ccp_confidence,
+        uncertainty_profile=args.uncertainty_profile)
     print(summary)
 
 

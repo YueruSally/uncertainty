@@ -365,15 +365,26 @@ def calibrated_capped_lognormal_mu(cv: float, cap_factor: float) -> float:
 def sample_capped_mean_one_lognormal(
     size: int,
     cv: float,
-    cap_factor: float,
+    cap_factor: Optional[float],
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Draw mean-one lognormal multipliers with an unchanged hard cap."""
+    """Draw mean-one lognormal multipliers, optionally with a hard cap.
+
+    ``cap_factor=None`` implements the standard untruncated parameterisation
+    used by the transport-time uncertainty specification:
+    ``sigma=sqrt(log(1+CV^2))`` and ``mu=-sigma^2/2``.  A finite cap retains
+    the historical mean-calibrated truncated distribution used for border
+    delays and legacy experiments.
+    """
     if size <= 0:
         return np.empty(0, dtype=float)
-    if cv <= 1e-12 or cap_factor <= 1.0 + 1e-12:
+    if cv <= 1e-12:
         return np.ones(size, dtype=float)
     sigma = math.sqrt(math.log1p(cv * cv))
+    if cap_factor is None or not math.isfinite(float(cap_factor)):
+        return rng.lognormal(mean=-0.5 * sigma * sigma, sigma=sigma, size=size)
+    if cap_factor <= 1.0 + 1e-12:
+        return np.ones(size, dtype=float)
     mu = calibrated_capped_lognormal_mu(cv, cap_factor)
     raw = rng.lognormal(mean=mu, sigma=sigma, size=size)
     return np.minimum(raw, cap_factor)
@@ -762,6 +773,7 @@ def resolve_border_event(
     definitions: Optional[
         Dict[Tuple[str, str, str], BorderEventDefinition]
     ] = None,
+    mean_source: str = "directional_csv",
 ) -> Optional[Tuple[Tuple[str, str, str], float]]:
     """Map one network arc to one directional border event.
 
@@ -770,9 +782,25 @@ def resolve_border_event(
     Khorgos->Altynkol event, so all batches share one scenario shock and the
     two checkpoint sides are not charged twice.
     """
+    if mean_source not in ("directional_csv", "node_border"):
+        raise ValueError(
+            "border mean source must be 'directional_csv' or 'node_border'")
     definitions = (BORDER_EVENT_DEFINITIONS
                    if definitions is None else definitions)
     crosses_region = _regions_differ(arc)
+
+    if mean_source == "node_border":
+        if not arc.is_border_arc or not crosses_region:
+            return None
+        mean_h = (
+            max(0.0, safe_float(
+                border_delay_map.get((arc.from_node, arc.mode)), 0.0))
+            + max(0.0, safe_float(
+                border_delay_map.get((arc.to_node, arc.mode)), 0.0))
+        )
+        if mean_h <= 0.0:
+            return None
+        return ((arc.from_node, arc.to_node, arc.mode), mean_h)
 
     for event_key, definition in definitions.items():
         exit_node, entry_node, mode = event_key
@@ -1511,10 +1539,24 @@ def build_scenario_set(
     border_event_definitions: Optional[
         Dict[Tuple[str, str, str], BorderEventDefinition]
     ] = None,
+    mode_time_cv: Optional[Dict[str, float]] = None,
+    mode_time_max_factor: Optional[Dict[str, Optional[float]]] = None,
+    border_delay_cv: Optional[Dict[str, float]] = None,
+    border_delay_max_factor: Optional[float] = None,
+    border_mean_source: str = "directional_csv",
 ) -> ScenarioSet:
     """Generate the complete finite scenario set once, before optimisation."""
     size = max(1, int(size)) if stochastic else 1
     rng = np.random.default_rng(int(seed))
+    effective_mode_cv = MODE_TIME_CV if mode_time_cv is None else mode_time_cv
+    effective_mode_cap = (
+        MODE_TIME_MAX_FACTOR
+        if mode_time_max_factor is None else mode_time_max_factor)
+    effective_border_cv = (
+        BORDER_DELAY_CV if border_delay_cv is None else border_delay_cv)
+    effective_border_cap = (
+        BORDER_DELAY_MAX_FACTOR
+        if border_delay_max_factor is None else float(border_delay_max_factor))
     travel_multiplier: Dict[Tuple[str, str, str], np.ndarray] = {}
     unique_arc_keys = sorted({(a.from_node, a.to_node, a.mode) for a in arcs})
     for from_node, to_node, mode in unique_arc_keys:
@@ -1522,8 +1564,8 @@ def build_scenario_set(
             travel_multiplier[(from_node, to_node, mode)] = \
                 sample_capped_mean_one_lognormal(
                     size=size,
-                    cv=MODE_TIME_CV.get(mode, 0.10),
-                    cap_factor=MODE_TIME_MAX_FACTOR.get(mode, 2.0),
+                    cv=effective_mode_cv.get(mode, 0.10),
+                    cap_factor=effective_mode_cap.get(mode),
                     rng=rng,
                 )
         else:
@@ -1538,7 +1580,8 @@ def build_scenario_set(
     border_event_mean_h: Dict[Tuple[str, str, str], float] = {}
     for arc in arcs:
         resolved = resolve_border_event(
-            arc, border_delay_map, definitions=definitions)
+            arc, border_delay_map, definitions=definitions,
+            mean_source=border_mean_source)
         if resolved is None:
             continue
         event_key, mean_h = resolved
@@ -1565,7 +1608,8 @@ def build_scenario_set(
             # sampled, so no "sampling is now active" claim would be true.
             print(f"[WARN] Nonzero maritime border-delay mean detected for "
                   f"event {key} (mean_h={base_h:g}). Stochastic maritime "
-                  f"border-delay sampling (CV={BORDER_DELAY_CV.get(mode, 0.50):g}) "
+                  f"border-delay sampling "
+                  f"(CV={effective_border_cv.get(mode, 0.50):g}) "
                   "will now be ACTIVE for this event. Confirm this mean is "
                   "evidence-based before trusting results that depend on it.")
         if base_h <= 0.0:
@@ -1573,8 +1617,8 @@ def build_scenario_set(
         elif stochastic:
             multipliers = sample_capped_mean_one_lognormal(
                 size=size,
-                cv=BORDER_DELAY_CV.get(mode, 0.50),
-                cap_factor=BORDER_DELAY_MAX_FACTOR,
+                cv=effective_border_cv.get(mode, 0.50),
+                cap_factor=effective_border_cap,
                 rng=rng,
             )
             border_delay_h[key] = base_h * multipliers
@@ -1599,6 +1643,7 @@ def build_expected_value_scenario_set(
     border_event_definitions: Optional[
         Dict[Tuple[str, str, str], BorderEventDefinition]
     ] = None,
+    border_mean_source: str = "directional_csv",
 ) -> ScenarioSet:
     """Build the direct expected-input environment used by EV optimisation.
 
@@ -1618,6 +1663,7 @@ def build_expected_value_scenario_set(
         seed=int(seed),
         stochastic=False,
         border_event_definitions=border_event_definitions,
+        border_mean_source=border_mean_source,
     )
     return ScenarioSet(
         size=expected.size,
