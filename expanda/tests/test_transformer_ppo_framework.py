@@ -339,6 +339,68 @@ class ConfigTests(unittest.TestCase):
 
 
 class MutationCreditTests(unittest.TestCase):
+    def test_policy_state_log_preserves_full_observation_and_event_identity(self):
+        import json
+
+        from learning_mutation import MutationTarget
+        from transformer_ppo.archive import RewardConfig
+        from transformer_ppo.controller import PPOController
+
+        trainer = SimpleNamespace(
+            name="fake-m", updates=0,
+            config=SimpleNamespace(
+                mutation_control="replace_path",
+                credit_assignment="operation_terminal",
+                candidate_representation="path_v4"),
+            observation_provider=None)
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        observation = {
+            "parent": [[1.0, 2.0]],
+            "candidates": [[3.0], [4.0]],
+            "global": [5.0],
+            "eligible": [True, True],
+            "action_prior": [0.5, 0.5],
+            "operator_id": 4,
+        }
+        candidates = [{
+            "target": MutationTarget(7, 0, None, str(path_id)),
+            "path_id": str(path_id),
+            "candidate_operator": "replace",
+            "eligible": True,
+        } for path_id in (101, 202)]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            controller = PPOController(
+                root, "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[], generations=2, pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0},
+                seeds={"algorithm": 7})
+            try:
+                controller.current_individual = SimpleNamespace()
+                controller._active_mixture_event_index = 13
+                with patch(
+                        "transformer_ppo.controller.build_observation",
+                        return_value=observation):
+                    actual = controller._observation(
+                        candidates, {"operator": "replace"})
+                self.assertIs(actual, observation)
+                row = json.loads(
+                    (root / "mutation_policy_states.jsonl")
+                    .read_text(encoding="utf-8").strip())
+                self.assertEqual(row["mixture_event_index"], 13)
+                self.assertEqual(row["operator"], "replace")
+                self.assertEqual(row["observation"], observation)
+                self.assertEqual(
+                    [item["target"]["replacement_path_id"]
+                     for item in row["candidates"]],
+                    ["101", "202"])
+            finally:
+                controller.close()
+
     def test_model_choice_event_enables_exactly_one_global_mutation_call(self):
         from transformer_ppo.archive import RewardConfig
         from transformer_ppo.controller import PPOController

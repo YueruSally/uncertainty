@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 import random
 import time
 import math
@@ -81,6 +81,8 @@ class PPOController(MutationLogger):
         self.candidate_audit_state_count = 0
         self.candidate_audit_evaluation_count = 0
         self.candidate_audit_seconds = 0.0
+        self.policy_state_count = 0
+        self._active_mixture_event_index = None
         self.control_rng = random.Random(private_seed(
             "M-mixture-v2",
             kwargs.get("run_id", args[1] if len(args) > 1 else ""),
@@ -89,7 +91,7 @@ class PPOController(MutationLogger):
         log_names = [
             "mutation_outcomes", "mutation_candidates",
             "mutation_operator_candidates", "mutation_skips",
-            "generation_summary",
+            "mutation_policy_states", "generation_summary",
         ]
         if self.candidate_audit_states:
             log_names.extend((
@@ -239,6 +241,34 @@ class PPOController(MutationLogger):
             self.evaluations, self.generations, self.graph_observation,
             getattr(getattr(self.trainer, "config", None),
                     "candidate_representation", "legacy"))
+        self.policy_state_count += 1
+        candidate_descriptors = []
+        for index, candidate in enumerate(candidates):
+            target = candidate.get("target", {})
+            if is_dataclass(target):
+                target = asdict(target)
+            elif isinstance(target, dict):
+                target = dict(target)
+            else:
+                raise TypeError("mutation candidate target must be a dataclass or dict")
+            candidate_descriptors.append({
+                "candidate_id": index,
+                "target": target,
+                "path_id": candidate.get("path_id"),
+                "candidate_operator": candidate.get("candidate_operator"),
+                "eligible": bool(candidate.get("eligible")),
+            })
+        self.append("mutation_policy_states", {
+            "policy_state_id": self.policy_state_count,
+            "mixture_event_index": self._active_mixture_event_index,
+            "instance_id": self.instance.get("instance_id"),
+            "generation": self.generation,
+            "evaluation": self.evaluations,
+            "operator": enriched.get("operator"),
+            "decision_stage": enriched.get("decision_stage", "location"),
+            "candidates": candidate_descriptors,
+            "observation": observation,
+        })
         if self._should_capture_candidate_audit(candidates):
             self._candidate_audit_pending = {
                 "parent": deepcopy(self.current_individual),
@@ -436,6 +466,7 @@ class PPOController(MutationLogger):
         # order.  In particular, do not evaluate the crossed child here.
         self._candidate_audit_pending = None
         use_model, mixture_event_index = self._next_control_branch()
+        self._active_mixture_event_index = mixture_event_index
         if not use_model:
             self.base_control_events += 1
             before = fingerprint(ind)
