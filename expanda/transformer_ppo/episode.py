@@ -72,6 +72,17 @@ def resolve_uncertainty_profile(
     return profile
 
 
+def resolve_combined_graph_representation(policy_representations):
+    """Map component-specific candidate schemas to one shared graph schema."""
+    families = {
+        ("legacy" if representation == "legacy" else "ordered-path")
+        for representation in policy_representations.values()}
+    if len(families) > 1:
+        raise ValueError(
+            "combined checkpoints must use one common graph representation family")
+    return "path_v2" if families == {"ordered-path"} else "legacy"
+
+
 def _scenario_sampling_diagnostics(scenarios, arcs):
     """Summarise the realised frozen draws without changing optimisation."""
     result = {"transport_multiplier": {}, "border_multiplier": {}}
@@ -185,15 +196,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     episode_trainers = (
         tuple(trainer.values()) if component in combined_components else
         () if trainer is None else (trainer,))
-    candidate_representations = {
-        getattr(getattr(item, "config", None), "candidate_representation", "legacy")
+    policy_candidate_representations = {
+        item.component: getattr(
+            getattr(item, "config", None), "candidate_representation", "legacy")
         for item in episode_trainers}
-    if len(candidate_representations) > 1:
-        raise ValueError(
-            "combined checkpoints must use one common candidate representation")
-    candidate_representation = (
-        next(iter(candidate_representations))
-        if candidate_representations else "legacy")
+    candidate_representation = resolve_combined_graph_representation(
+        policy_candidate_representations)
     if component == "RULE-I" and rule_initialization_normalization is None:
         raise ValueError("RULE-I requires a path-feature normalization")
     if learning_protocol_version not in (None, 1, 2):
@@ -396,6 +404,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "policy_training": policy_training,
         "policy_checkpoint": policy_checkpoint,
         "policy_inference": policy_inference,
+        "policy_candidate_representations": (
+            policy_candidate_representations or None),
         "initialization_rule": (
             rule_initialization_normalization if component == "RULE-I" else None),
         "learning_control": {

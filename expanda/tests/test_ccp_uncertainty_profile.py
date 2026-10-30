@@ -1,6 +1,8 @@
 import unittest
 
-from transformer_ppo.episode import resolve_uncertainty_profile
+from transformer_ppo.episode import (
+    resolve_combined_graph_representation, resolve_uncertainty_profile,
+)
 
 
 class CCPUncertaintyProfileTests(unittest.TestCase):
@@ -37,6 +39,15 @@ class CCPUncertaintyProfileTests(unittest.TestCase):
             resolve_uncertainty_profile("ccp", "missing")
         with self.assertRaises(ValueError):
             resolve_uncertainty_profile("ccp", "legacy", scenario_count=0)
+
+    def test_component_specific_ordered_candidate_schemas_can_be_combined(self):
+        self.assertEqual(
+            resolve_combined_graph_representation({
+                "I": "path_v2", "C": "path_v2", "M": "path_v4"}),
+            "path_v2")
+        with self.assertRaises(ValueError):
+            resolve_combined_graph_representation({
+                "I": "legacy", "M": "path_v4"})
 
 
 if __name__ == "__main__":
