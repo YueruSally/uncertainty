@@ -43,6 +43,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 initialization_learning_rule_normalization=None,
                 initialization_learning_rule_top_k=None,
                 model_choice_probabilities=None,
+                model_choice_event=None,
                 learning_protocol_version=None,
                 candidate_audit=None):
     if pop_size < 2 or pop_size % 2 or generations < 1:
@@ -125,6 +126,15 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
            for name in supplied_probabilities):
         raise ValueError(
             "model choice probabilities do not match the episode component")
+    if model_choice_event is not None:
+        model_choice_event = int(model_choice_event)
+        if model_choice_event < 1:
+            raise ValueError("model choice event must be a positive integer")
+        if component != "M":
+            raise ValueError("model choice event currently supports only M")
+        if probabilities["M"] != 1.0:
+            raise ValueError(
+                "model choice event cannot be combined with probability gating")
     if out.exists() and any(out.iterdir()):
         raise ValueError(f"episode output directory must be empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
@@ -224,6 +234,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         initialization_learning_rule_top_k is not None
         or any(probabilities[name] != 1.0
                for name in allowed_probability_components)
+        or model_choice_event is not None
         or checkpoint_v2
     )
     v2_active = (
@@ -268,6 +279,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 name: probabilities[name]
                 for name in sorted(allowed_probability_components)
             },
+            "model_choice_event": model_choice_event,
             "control_random_stream": "private-sha256-seeded",
         },
         "candidate_audit": (
@@ -318,6 +330,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 rule_top_k=initialization_learning_rule_top_k)
         elif component in ("C", "M"):
             controller_options["model_choice_probability"] = probabilities[component]
+            if component == "M":
+                controller_options["model_choice_event"] = model_choice_event
             if component == "M" and audit["states"]:
                 controller_options.update(
                     candidate_audit_states=audit["states"],

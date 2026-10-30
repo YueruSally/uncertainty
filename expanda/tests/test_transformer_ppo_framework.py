@@ -339,6 +339,59 @@ class ConfigTests(unittest.TestCase):
 
 
 class MutationCreditTests(unittest.TestCase):
+    def test_model_choice_event_enables_exactly_one_global_mutation_call(self):
+        from transformer_ppo.archive import RewardConfig
+        from transformer_ppo.controller import PPOController
+
+        trainer = SimpleNamespace(
+            name="fake-m", updates=0,
+            config=SimpleNamespace(
+                mutation_control="location", credit_assignment="continuous"),
+            observation_provider=None)
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[], generations=2, pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={},
+                model_choice_event=2)
+            try:
+                self.assertEqual(controller._next_control_branch(), (False, 1))
+                self.assertEqual(controller._next_control_branch(), (True, 2))
+                self.assertEqual(controller._next_control_branch(), (False, 3))
+                summary = controller.summary()
+                self.assertEqual(summary["model_choice_event"], 2)
+                self.assertEqual(summary["mixture_event_count"], 3)
+            finally:
+                controller.close()
+
+    def test_model_choice_event_rejects_probability_gating(self):
+        from transformer_ppo.archive import RewardConfig
+        from transformer_ppo.controller import PPOController
+
+        trainer = SimpleNamespace(
+            name="fake-m", updates=0,
+            config=SimpleNamespace(
+                mutation_control="location", credit_assignment="continuous"),
+            observation_provider=None)
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "probability gating"):
+                PPOController(
+                    Path(directory), "run", "scenario", 20, trainer=trainer,
+                    archive=RewardArchive(normalizer),
+                    reward_config=RewardConfig(), batches=[], generations=2,
+                    pop_size=2, method=trainer.name,
+                    instance={"instance_id": "toy", "K": 1,
+                              "deadline_window_alpha": 1.0}, seeds={},
+                    model_choice_probability=0.1, model_choice_event=2)
+
     def test_location_control_can_end_each_mutation_operation(self):
         from multi_instance_logging import MutationLogger
         from transformer_ppo.archive import RewardConfig

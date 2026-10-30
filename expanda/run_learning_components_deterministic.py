@@ -52,6 +52,10 @@ def main(argv=None):
                         help="V2 single C/M probability of using the model.")
     parser.add_argument("--c-model-choice-probability", type=float, default=1.0)
     parser.add_argument("--m-model-choice-probability", type=float, default=1.0)
+    parser.add_argument(
+        "--model-choice-event", type=int,
+        help=("M-only diagnostic: use the model exactly at this global "
+              "mutation-call index and Base at every other call."))
     parser.add_argument("--checkpoint", type=Path,
                         help="Checkpoint for a single I, C, or M run.")
     parser.add_argument("--i-checkpoint", type=Path)
@@ -109,6 +113,14 @@ def main(argv=None):
             raise ValueError("candidate audit replicates must be positive")
         if args.candidate_audit_states and args.component != "M":
             raise ValueError("fixed-state candidate audit currently supports only M")
+        if args.model_choice_event is not None:
+            if args.model_choice_event < 1:
+                raise ValueError("model choice event must be a positive integer")
+            if args.component != "M":
+                raise ValueError("model choice event currently supports only M")
+            if args.model_choice_probability != 1.0:
+                raise ValueError(
+                    "model choice event cannot be combined with probability gating")
         if args.component in ("BASE", "RULE-I"):
             trainer = None
         elif len(args.component) > 1:
@@ -140,6 +152,7 @@ def main(argv=None):
                 rule_normalization
                 if args.initialization_rule_top_k is not None else None),
             initialization_learning_rule_top_k=args.initialization_rule_top_k,
+            model_choice_event=args.model_choice_event,
             model_choice_probabilities=(
                 {args.component: args.model_choice_probability}
                 if args.component in ("C", "M") else

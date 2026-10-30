@@ -26,6 +26,7 @@ class PPOController(MutationLogger):
     def __init__(self, *args, trainer, archive: RewardArchive,
                  reward_config: RewardConfig, batches, generations, pop_size,
                  graph_observation=None, model_choice_probability=1.0,
+                 model_choice_event=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
                  **kwargs):
@@ -49,6 +50,15 @@ class PPOController(MutationLogger):
         self.base_control_events = 0
         self.model_choice_probability = validate_model_choice_probability(
             model_choice_probability)
+        self.model_choice_event = (
+            None if model_choice_event is None else int(model_choice_event))
+        if self.model_choice_event is not None and self.model_choice_event < 1:
+            raise ValueError("model_choice_event must be a positive integer")
+        if (self.model_choice_event is not None
+                and self.model_choice_probability != 1.0):
+            raise ValueError(
+                "model_choice_event cannot be combined with probability gating")
+        self.mixture_event_count = 0
         self.mutation_control = getattr(
             getattr(trainer, "config", None), "mutation_control", "location")
         self.credit_assignment = getattr(
@@ -90,9 +100,23 @@ class PPOController(MutationLogger):
             preserve_base_position_rng=True, normalizer=archive.normalizer,
             joint_replacement_paths=self.mutation_control == "replace_path",
             log_names=tuple(log_names), **kwargs)
-        if self.model_choice_probability < 1.0:
+        if (self.model_choice_probability < 1.0
+                or self.model_choice_event is not None):
             self.decision_counts["base_mixture_choice"] = 0
         trainer.observation_provider = self._observation
+
+    def _next_control_branch(self):
+        """Return the branch and globally ordered mutation-call index."""
+        self.mixture_event_count += 1
+        if self.model_choice_event is not None:
+            use_model = self.mixture_event_count == self.model_choice_event
+        else:
+            use_model = (
+                True if self.model_choice_probability == 1.0 else
+                False if self.model_choice_probability == 0.0 else
+                self.control_rng.random() < self.model_choice_probability
+            )
+        return use_model, self.mixture_event_count
 
     @staticmethod
     def _mean(rows, name):
@@ -410,11 +434,7 @@ class PPOController(MutationLogger):
         # Preserve the original crossover -> mutation -> repair -> evaluation
         # order.  In particular, do not evaluate the crossed child here.
         self._candidate_audit_pending = None
-        use_model = (
-            True if self.model_choice_probability == 1.0 else
-            False if self.model_choice_probability == 0.0 else
-            self.control_rng.random() < self.model_choice_probability
-        )
+        use_model, mixture_event_index = self._next_control_branch()
         if not use_model:
             self.base_control_events += 1
             before = fingerprint(ind)
@@ -443,6 +463,8 @@ class PPOController(MutationLogger):
                 "decision_kind": "base_mixture_choice",
                 "control_branch": "paired_base",
                 "model_choice_probability": self.model_choice_probability,
+                "model_choice_event": self.model_choice_event,
+                "mixture_event_index": mixture_event_index,
                 "operator": result[0],
                 "decision_changed": bool(changed),
                 "reward_recorded_for_policy": False,
@@ -513,6 +535,9 @@ class PPOController(MutationLogger):
                 self._record_pending_offspring(ind)
             return result
         row = self.pending[-1][1]
+        row.update(
+            model_choice_event=self.model_choice_event,
+            mixture_event_index=mixture_event_index)
         individual_fingerprint = fingerprint(ind)
         reward_diagnostics = self.archive.diagnose_candidate(
             ind.objectives, bool(ind.feasible), individual_fingerprint)
@@ -580,6 +605,8 @@ class PPOController(MutationLogger):
                 "mutation_control": self.mutation_control,
                 "credit_assignment": self.credit_assignment,
                 "model_choice_probability": self.model_choice_probability,
+                "model_choice_event": self.model_choice_event,
+                "mixture_event_count": self.mixture_event_count,
                 "model_control_events": self.model_control_events,
                 "base_control_events": self.base_control_events,
                 "candidate_audit_state_count": self.candidate_audit_state_count,
