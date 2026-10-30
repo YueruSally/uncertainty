@@ -48,6 +48,7 @@ class PPOController(MutationLogger):
         self.positive_reward_actions = 0
         self.model_control_events = 0
         self.base_control_events = 0
+        self.base_passthrough_events = 0
         self.model_choice_probability = validate_model_choice_probability(
             model_choice_probability)
         self.model_choice_event = (
@@ -538,6 +539,14 @@ class PPOController(MutationLogger):
         row.update(
             model_choice_event=self.model_choice_event,
             mixture_event_index=mixture_event_index)
+        if row.get("base_passthrough"):
+            # The probability gate fired, but the paired Base operator was not
+            # replace.  MutationLogger has executed the exact Base continuation;
+            # it is not a policy action and must not alter the reward archive.
+            self.base_passthrough_events += 1
+            if self.phase == "offspring":
+                self._record_pending_offspring(ind)
+            return result
         individual_fingerprint = fingerprint(ind)
         reward_diagnostics = self.archive.diagnose_candidate(
             ind.objectives, bool(ind.feasible), individual_fingerprint)
@@ -609,6 +618,7 @@ class PPOController(MutationLogger):
                 "mixture_event_count": self.mixture_event_count,
                 "model_control_events": self.model_control_events,
                 "base_control_events": self.base_control_events,
+                "base_passthrough_events": self.base_passthrough_events,
                 "candidate_audit_state_count": self.candidate_audit_state_count,
                 "candidate_audit_evaluation_count": (
                     self.candidate_audit_evaluation_count),

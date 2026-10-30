@@ -326,10 +326,35 @@ class MutationLogger:
                 shadow_choice != decision.chosen_index)
         target = chosen["target"]
         batch = next(b for b in batches if b.batch_id == target.batch_id)
+        base_passthrough = bool(chosen.get("base_passthrough"))
         ok = base.apply_mutation_op(ind, op, batch, path_lib, tt_dict, arc_lookup,
-                                    reliable_options=reliable_options, target=target)
+                                    reliable_options=reliable_options,
+                                    target=None if base_passthrough else target)
         raw_hash = fingerprint(ind)
-        repair = repair_after_mutation(ind, before, batches, path_lib, tt_dict, arc_lookup)
+        if base_passthrough:
+            # This branch is outside the learned replace-path action.  Reproduce
+            # mutate_fixed exactly: failed attempts return without repair or an
+            # intermediate evaluation; successful attempts receive only Base's
+            # missing-allocation repair before evaluation.
+            if ok:
+                before_repair = fingerprint(ind)
+                base.repair_missing_allocations(ind, batches, path_lib)
+                after_repair = fingerprint(ind)
+                base.evaluate_individual(
+                    ind, batches, arcs, tt_dict, waiting_cost,
+                    waiting_emission, **kwargs)
+            else:
+                before_repair = after_repair = raw_hash
+            repair = dict(
+                repair_called=bool(ok), repair_success=True,
+                repair_action_count=int(after_repair != before_repair),
+                duplicate_paths_merged=0, shares_removed=0,
+                share_normalised=False,
+                missing_allocation_restored=int(after_repair != before_repair),
+                invalid_path_detected=False, mutation_reverted=False)
+        else:
+            repair = repair_after_mutation(
+                ind, before, batches, path_lib, tt_dict, arc_lookup)
         after_hash = fingerprint(ind)
         raw_changed = raw_hash != before_hash
         repair_changed = after_hash != raw_hash
@@ -337,7 +362,10 @@ class MutationLogger:
         repair_only_change = not raw_changed and changed
         effective_mutation = bool(ok and raw_changed and changed)
         outcome_attributable = not repair_only_change and (bool(ok) or not raw_changed)
-        base.evaluate_individual(ind, batches, arcs, tt_dict, waiting_cost, waiting_emission, **kwargs)
+        if not base_passthrough:
+            base.evaluate_individual(
+                ind, batches, arcs, tt_dict, waiting_cost, waiting_emission,
+                **kwargs)
         executed_replacement_path_id = None
         if op == "replace":
             executed_allocations = ind.od_allocations.get(
@@ -356,6 +384,7 @@ class MutationLogger:
             parent_id=before_hash, child_id=after_hash,
             method=self.method, generation=self.generation, phase=self.phase,
             decision_kind=decision_kind,
+            base_passthrough=base_passthrough,
             operator=op, operator_probability=0.2, selection_policy=self.policy.name,
             shadow_base_operator=shadow_base_operator,
             different_from_shadow_base_operator=(op != shadow_base_operator),
