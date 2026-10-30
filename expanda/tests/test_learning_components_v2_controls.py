@@ -136,6 +136,7 @@ class V2ControlTests(unittest.TestCase):
                 self.assertTrue(trainer.asserted_candidates[0]["base_passthrough"])
                 self.assertEqual(base_repair.call_count, 1)
                 self.assertEqual(base_evaluate.call_count, 1)
+                self.assertIsNone(controller.pending[-1][1]["evaluation_after"])
                 self.assertEqual(controller.base_passthrough_events, 1)
                 self.assertEqual(controller.positive_reward_actions, 0)
                 self.assertEqual(controller.reward_total, 0.0)

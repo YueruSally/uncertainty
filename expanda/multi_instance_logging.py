@@ -435,7 +435,7 @@ class MutationLogger:
                 ind.vio_breakdown, "cap_excess", "border_cap_excess"),
             evaluation_before=(getattr(before, "_learning_eval_id", None)
                                if before_evaluated else None),
-            evaluation_after=ind._learning_eval_id,
+            evaluation_after=getattr(ind, "_learning_eval_id", None),
             extra_after_evaluations=self.evaluations-before_count,
             ccp_evaluation_count=self.evaluations,
             finite_after_objectives=finite_after,
