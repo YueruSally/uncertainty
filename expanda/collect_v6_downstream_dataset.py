@@ -167,6 +167,11 @@ def main(argv=None):
     if not args.normalization.is_file():
         parser.error(f"normalization file is missing: {args.normalization}")
 
+    # A resumed/expanded collection must not expose a stale success marker
+    # while new state/action branches are still running.
+    completion_marker = args.out / "COLLECTION_COMPLETE.json"
+    completion_marker.unlink(missing_ok=True)
+
     specifications = []
     for instance_id in args.instance_ids:
         short = _short_id(instance_id)
@@ -240,7 +245,7 @@ def main(argv=None):
         "branch_status_counts": branch_counts,
         "manifest": str((args.out / "collection_manifest.json").resolve()),
     }
-    (args.out / "COLLECTION_COMPLETE.json").write_text(
+    completion_marker.write_text(
         json.dumps(summary, indent=2, allow_nan=False) + "\n",
         encoding="utf-8")
     print(json.dumps(summary, indent=2, allow_nan=False), flush=True)

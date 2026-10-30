@@ -9,6 +9,8 @@ from pathlib import Path
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPRegressor
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 
@@ -120,7 +122,53 @@ def _fit(rows, seed):
     }
 
 
-def _evaluate(rows, weights, alpha, temperature):
+def _fit_mlp(rows, seed):
+    by_state = defaultdict(list)
+    for row in rows:
+        by_state[row["state_key"]].append(row)
+    selected = []
+    targets = []
+    informative_states = 0
+    pair_count = 0
+    for state_rows in by_state.values():
+        values = np.asarray([row[TARGET] for row in state_rows], dtype=float)
+        span = float(values.max() - values.min())
+        if span <= EPSILON:
+            continue
+        informative_states += 1
+        pair_count += sum(
+            abs(values[left] - values[right]) > EPSILON
+            for left in range(len(values))
+            for right in range(left + 1, len(values)))
+        # A within-state percentile target avoids letting large-HV instances
+        # dominate while retaining the state features needed for interactions.
+        ranks = _average_ranks(values)
+        ranks /= max(1, len(values) - 1)
+        selected.extend(state_rows)
+        targets.extend(ranks.tolist())
+    if len(selected) < 8:
+        raise ValueError("too few informative candidates for MLP probe")
+    matrix = np.stack([
+        np.asarray(row["features"], dtype=float) for row in selected])
+    model = make_pipeline(
+        StandardScaler(),
+        MLPRegressor(
+            hidden_layer_sizes=(64, 32), activation="relu",
+            alpha=0.01, learning_rate_init=0.001,
+            max_iter=2_000, early_stopping=len(selected) >= 40,
+            validation_fraction=0.15, n_iter_no_change=30,
+            random_state=seed),
+    ).fit(matrix, np.asarray(targets, dtype=float))
+    return model, {
+        "training_candidate_count": len(rows),
+        "informative_training_candidate_count": len(selected),
+        "training_state_count": len(by_state),
+        "informative_training_state_count": informative_states,
+        "training_pair_count": int(pair_count),
+    }
+
+
+def _evaluate(rows, scorer, alpha, temperature):
     by_state = defaultdict(list)
     for row in rows:
         by_state[row["state_key"]].append(row)
@@ -129,7 +177,9 @@ def _evaluate(rows, weights, alpha, temperature):
     for state_key, state_rows in sorted(by_state.items()):
         matrix = np.stack([
             np.asarray(row["features"], dtype=float) for row in state_rows])
-        scores = matrix.dot(weights)
+        scores = (
+            scorer.predict(matrix)
+            if hasattr(scorer, "predict") else matrix.dot(scorer))
         targets = np.asarray([row[TARGET] for row in state_rows], dtype=float)
         finals = np.asarray([row[FINAL] for row in state_rows], dtype=float)
         base = _conditional([row["base_probability"] for row in state_rows])
@@ -251,6 +301,9 @@ def main(argv=None):
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--temperature", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=9701)
+    parser.add_argument(
+        "--model", choices=("pairwise_linear", "small_mlp"),
+        default="pairwise_linear")
     args = parser.parse_args(argv)
     if not 0.0 <= args.alpha <= 1.0 or args.temperature <= 0.0:
         parser.error("invalid alpha or temperature")
@@ -266,18 +319,24 @@ def main(argv=None):
     for fold_index, heldout in enumerate(instances):
         training = [row for row in rows if row["instance"] != heldout]
         validation = [row for row in rows if row["instance"] == heldout]
-        weights, training_summary = _fit(training, args.seed + fold_index)
+        scorer, training_summary = (
+            _fit_mlp(training, args.seed + fold_index)
+            if args.model == "small_mlp"
+            else _fit(training, args.seed + fold_index))
         folds.append({
             "heldout_instance": heldout,
             **training_summary,
             "validation": _evaluate(
-                validation, weights, args.alpha, args.temperature),
+                validation, scorer, args.alpha, args.temperature),
         })
     report = {
         "completed": True,
         "dataset": str(args.dataset.resolve()),
         "target": TARGET,
-        "model": "pairwise_logistic_linear_score",
+        "model": (
+            "small_mlp_state_candidate_score"
+            if args.model == "small_mlp"
+            else "pairwise_logistic_linear_score"),
         "feature_mode": "state_relative",
         "feature_dimension": dimensions.pop(),
         "alpha": args.alpha,

@@ -125,9 +125,18 @@ def _branch_record(instance, seed, event, run, base_run, base_progress):
     branch_progress = _progress(run)
     base_complete = _read(base_run / "COMPLETE.json")
     branch_complete = _read(run / "COMPLETE.json")
-    base_prior = observation.get(
-        "base_action_prior", observation["action_prior"])
-    supervised_prior = observation["action_prior"]
+    event_id = outcome.get("event_id")
+    logged_candidates = [
+        row for row in _jsonl(run / "mutation_candidates.jsonl")
+        if row.get("event_id") == event_id
+    ]
+    logged_by_id = {
+        int(row["candidate_id"]): row for row in logged_candidates
+    }
+    if len(logged_by_id) != len(state["candidates"]):
+        raise ValueError(
+            f"logged candidate set differs from policy state: {run}")
+    selected_log = logged_by_id[candidate_index]
     return {
         "instance": instance,
         "algorithm_seed": seed,
@@ -145,8 +154,9 @@ def _branch_record(instance, seed, event, run, base_run, base_progress):
             f"{outcome['replacement_path_id']}"),
         "feature_dimension": int(len(feature_vector)),
         "features": feature_vector.astype(float).tolist(),
-        "base_probability": float(base_prior[candidate_index]),
-        "proposal_probability": float(supervised_prior[candidate_index]),
+        "base_probability": float(
+            selected_log["baseline_selection_probability"]),
+        "proposal_probability": float(selected_log["selection_probability"]),
         "immediate_archive_delta": float(outcome.get("reward_hv_delta", 0.0)),
         "survived_environmental_selection": bool(
             outcome.get("survived_environmental_selection")),
