@@ -33,6 +33,8 @@ class PPOController(MutationLogger):
                  forced_operator_probability=1.0,
                  forced_operator_positive_probe=False,
                  forced_operator_reversible_probe=False,
+                 forced_operator_probe_max_attempts=1,
+                 forced_operator_probe_retry_events=0,
                  continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
@@ -93,9 +95,16 @@ class PPOController(MutationLogger):
             forced_operator_positive_probe)
         self.forced_operator_reversible_probe = bool(
             forced_operator_reversible_probe)
+        self.forced_operator_probe_max_attempts = int(
+            forced_operator_probe_max_attempts)
+        self.forced_operator_probe_retry_events = int(
+            forced_operator_probe_retry_events)
         self.forced_operator_probe_completed = False
         self.forced_operator_probe_positive = False
         self.forced_operator_probe_delta_hv = None
+        self.forced_operator_probe_deltas_hv = []
+        self.forced_operator_probe_attempts = 0
+        self.forced_operator_probe_next_event = 0
         self.forced_operator_probe_fallbacks = 0
         self.forced_operator_probe_evaluations = 0
         if self.forced_operator_min_generation is not None:
@@ -124,6 +133,17 @@ class PPOController(MutationLogger):
                 and not self.forced_operator_positive_probe):
             raise ValueError(
                 "reversible operator probe requires positive operator probe")
+        if self.forced_operator_probe_max_attempts < 1:
+            raise ValueError("operator probe maximum attempts must be positive")
+        if self.forced_operator_probe_retry_events < 0:
+            raise ValueError("operator probe retry events cannot be negative")
+        if self.forced_operator_probe_max_attempts > 1:
+            if not self.forced_operator_reversible_probe:
+                raise ValueError(
+                    "repeated operator probes require a reversible probe")
+            if self.forced_operator_probe_retry_events < 1:
+                raise ValueError(
+                    "repeated operator probes require a positive retry interval")
         if (continuation_event is None) != (continuation_seed is None):
             raise ValueError(
                 "M continuation event and seed must be supplied together")
@@ -193,10 +213,16 @@ class PPOController(MutationLogger):
             eligible = self.generation >= self.forced_operator_min_generation
             probability = self.forced_operator_probability
             if self.forced_operator_positive_probe:
+                probe_due = bool(
+                    self.forced_operator_probe_attempts
+                    < self.forced_operator_probe_max_attempts
+                    and (
+                        self.forced_operator_probe_attempts == 0
+                        or self.mixture_event_count
+                        >= self.forced_operator_probe_next_event))
                 use_model = bool(
                     eligible
-                    and (not self.forced_operator_probe_completed
-                         or self.forced_operator_probe_positive))
+                    and (self.forced_operator_probe_positive or probe_due))
             else:
                 use_model = bool(
                     eligible and (
@@ -241,9 +267,14 @@ class PPOController(MutationLogger):
         self._inside_mutation = True
         before_id = fingerprint(ind)
         archive_hv_before = float(self.archive.hypervolume)
+        operator_probe_attempt = bool(
+            self.forced_operator_positive_probe
+            and not self.forced_operator_probe_positive
+            and self.forced_operator_probe_attempts
+            < self.forced_operator_probe_max_attempts)
         reversible_probe = bool(
             self.forced_operator_reversible_probe
-            and not self.forced_operator_probe_completed)
+            and operator_probe_attempt)
         probe_parent = deepcopy(ind) if reversible_probe else None
         candidates = self._operator_candidates(
             ind, batches, path_lib, tt_dict, arc_lookup, reliable_options)
@@ -293,12 +324,18 @@ class PPOController(MutationLogger):
         else:
             archive_hv_after = float(self.archive.hypervolume)
             immediate_archive_delta = archive_hv_after - archive_hv_before
-        if (self.forced_operator_positive_probe
-                and not self.forced_operator_probe_completed):
+        if operator_probe_attempt:
+            self.forced_operator_probe_attempts += 1
             self.forced_operator_probe_completed = True
             self.forced_operator_probe_delta_hv = immediate_archive_delta
+            self.forced_operator_probe_deltas_hv.append(
+                immediate_archive_delta)
             self.forced_operator_probe_positive = (
                 immediate_archive_delta > 0.0)
+            if not self.forced_operator_probe_positive:
+                self.forced_operator_probe_next_event = (
+                    mixture_event_index
+                    + self.forced_operator_probe_retry_events + 1)
         probe_reverted_to_base = bool(
             reversible_probe and immediate_archive_delta <= 0.0)
         executed_operator = self.forced_operator
@@ -920,6 +957,16 @@ class PPOController(MutationLogger):
                     self.forced_operator_probe_positive),
                 "forced_operator_probe_delta_hv": (
                     self.forced_operator_probe_delta_hv),
+                "forced_operator_probe_deltas_hv": list(
+                    self.forced_operator_probe_deltas_hv),
+                "forced_operator_probe_attempts": (
+                    self.forced_operator_probe_attempts),
+                "forced_operator_probe_max_attempts": (
+                    self.forced_operator_probe_max_attempts),
+                "forced_operator_probe_retry_events": (
+                    self.forced_operator_probe_retry_events),
+                "forced_operator_probe_next_event": (
+                    self.forced_operator_probe_next_event),
                 "forced_operator_probe_fallbacks": (
                     self.forced_operator_probe_fallbacks),
                 "forced_operator_probe_evaluations": (

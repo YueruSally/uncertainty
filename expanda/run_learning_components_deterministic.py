@@ -91,6 +91,13 @@ def main(argv=None):
               "its archive-HV delta is nonpositive, restore and execute the "
               "exact Base mutation instead."))
     parser.add_argument(
+        "--m-forced-operator-probe-max-attempts", type=int, default=1,
+        help="Maximum number of reversible operator-probe attempts.")
+    parser.add_argument(
+        "--m-forced-operator-probe-retry-events", type=int, default=0,
+        help=("Mutation events to skip before retrying a rejected reversible "
+              "operator probe."))
+    parser.add_argument(
         "--m-continuation-event", type=int,
         help=("M-only paired-continuation diagnostic: after this global "
               "mutation call, start --m-continuation-seed."))
@@ -222,9 +229,25 @@ def main(argv=None):
                     and not args.m_forced_operator_positive_probe):
                 raise ValueError(
                     "reversible operator probe requires positive probe")
+            if args.m_forced_operator_probe_max_attempts < 1:
+                raise ValueError(
+                    "operator probe maximum attempts must be positive")
+            if args.m_forced_operator_probe_retry_events < 0:
+                raise ValueError(
+                    "operator probe retry events cannot be negative")
+            if args.m_forced_operator_probe_max_attempts > 1:
+                if not args.m_forced_operator_reversible_probe:
+                    raise ValueError(
+                        "repeated operator probes require reversible probe")
+                if args.m_forced_operator_probe_retry_events < 1:
+                    raise ValueError(
+                        "repeated operator probes require a positive retry "
+                        "interval")
         elif (args.m_forced_operator_min_generation is not None
               or args.m_forced_operator_positive_probe
-              or args.m_forced_operator_reversible_probe):
+              or args.m_forced_operator_reversible_probe
+              or args.m_forced_operator_probe_max_attempts != 1
+              or args.m_forced_operator_probe_retry_events != 0):
             raise ValueError(
                 "forced M operator probe/schedule requires "
                 "--m-forced-operator")
@@ -288,6 +311,10 @@ def main(argv=None):
                 args.m_forced_operator_positive_probe),
             m_forced_operator_reversible_probe=(
                 args.m_forced_operator_reversible_probe),
+            m_forced_operator_probe_max_attempts=(
+                args.m_forced_operator_probe_max_attempts),
+            m_forced_operator_probe_retry_events=(
+                args.m_forced_operator_probe_retry_events),
             m_continuation_event=args.m_continuation_event,
             m_continuation_seed=args.m_continuation_seed,
             model_choice_probabilities=(

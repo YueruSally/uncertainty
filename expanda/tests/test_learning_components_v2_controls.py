@@ -305,6 +305,43 @@ class V2ControlTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_reversible_m_operator_probe_retry_schedule(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20,
+                trainer=trainer, archive=RewardArchive(normalizer),
+                reward_config=RewardConfig(), batches=[], generations=20,
+                pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy"}, seeds={"algorithm": 7},
+                forced_operator="replace",
+                forced_operator_min_generation=15,
+                forced_operator_probability=1.0,
+                forced_operator_positive_probe=True,
+                forced_operator_reversible_probe=True,
+                forced_operator_probe_max_attempts=2,
+                forced_operator_probe_retry_events=5)
+            controller.generation = 15
+            try:
+                self.assertEqual(controller._next_control_branch(), (True, 1))
+                controller.forced_operator_probe_attempts = 1
+                controller.forced_operator_probe_completed = True
+                controller.forced_operator_probe_positive = False
+                controller.forced_operator_probe_next_event = 7
+                for event in range(2, 7):
+                    self.assertEqual(
+                        controller._next_control_branch(), (False, event))
+                self.assertEqual(controller._next_control_branch(), (True, 7))
+                controller.forced_operator_probe_attempts = 2
+                self.assertEqual(controller._next_control_branch(), (False, 8))
+                controller.forced_operator_probe_positive = True
+                self.assertEqual(controller._next_control_branch(), (True, 9))
+            finally:
+                controller.close()
+
     def test_replace_path_nonreplace_gate_uses_exact_base_passthrough(self):
         class ReplacePathTrainer(_Trainer):
             def __init__(self):

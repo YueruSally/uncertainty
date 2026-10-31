@@ -15,13 +15,17 @@ import sys
 
 EPSILON = 1e-12
 STRATEGIES = {
-    "BASE": (None, False, False),
-    "REPLACE_LATE_P050": (0.50, False, False),
-    "REPLACE_LATE_P100": (1.00, False, False),
-    "REPLACE_LATE_POSITIVE_PROBE": (1.00, True, False),
+    "BASE": (None, False, False, 1, 0),
+    "REPLACE_LATE_P050": (0.50, False, False, 1, 0),
+    "REPLACE_LATE_P100": (1.00, False, False, 1, 0),
+    "REPLACE_LATE_POSITIVE_PROBE": (1.00, True, False, 1, 0),
 }
 REVERSIBLE_STRATEGY = {
-    "REPLACE_LATE_REVERSIBLE_PROBE": (1.00, True, True),
+    "REPLACE_LATE_REVERSIBLE_PROBE": (1.00, True, True, 1, 0),
+}
+RETRY_STRATEGIES = {
+    "REPLACE_LATE_REVERSIBLE_RETRY_E05": (1.00, True, True, 2, 5),
+    "REPLACE_LATE_REVERSIBLE_RETRY_E10": (1.00, True, True, 2, 10),
 }
 
 
@@ -30,7 +34,7 @@ def _read(path):
 
 
 def _command(args, instance, out, seed, probability, positive_probe,
-             reversible_probe):
+             reversible_probe, probe_max_attempts, probe_retry_events):
     command = [
         sys.executable, "-u", str(args.runner),
         "--instance", str(instance),
@@ -62,11 +66,18 @@ def _command(args, instance, out, seed, probability, positive_probe,
             command.append("--m-forced-operator-positive-probe")
         if reversible_probe:
             command.append("--m-forced-operator-reversible-probe")
+        if probe_max_attempts != 1:
+            command.extend([
+                "--m-forced-operator-probe-max-attempts",
+                str(probe_max_attempts),
+                "--m-forced-operator-probe-retry-events",
+                str(probe_retry_events),
+            ])
     return command
 
 
 def _valid(run, seed, probability, positive_probe, reversible_probe,
-           minimum_generation):
+           probe_max_attempts, probe_retry_events, minimum_generation):
     run = Path(run)
     if not (run / "COMPLETE.json").is_file():
         return False
@@ -96,6 +107,12 @@ def _valid(run, seed, probability, positive_probe, reversible_probe,
             == positive_probe
             and bool(control.get("m_forced_operator_reversible_probe"))
             == reversible_probe
+            and int(control.get(
+                "m_forced_operator_probe_max_attempts", 1))
+            == probe_max_attempts
+            and int(control.get(
+                "m_forced_operator_probe_retry_events", 0))
+            == probe_retry_events
             and (not positive_probe
                  or complete.get("forced_operator_probe_completed") is True))
     except (KeyError, OSError, TypeError, ValueError):
@@ -104,10 +121,10 @@ def _valid(run, seed, probability, positive_probe, reversible_probe,
 
 def _run(job):
     (run, log, command, seed, probability, positive_probe, reversible_probe,
-     minimum_generation) = job
+     probe_max_attempts, probe_retry_events, minimum_generation) = job
     if _valid(
             run, seed, probability, positive_probe, reversible_probe,
-            minimum_generation):
+            probe_max_attempts, probe_retry_events, minimum_generation):
         return run, "existing"
     if Path(run).exists():
         raise RuntimeError(f"incomplete output exists; use a fresh root: {run}")
@@ -122,7 +139,7 @@ def _run(job):
             env=environment, check=False)
     if result.returncode != 0 or not _valid(
             run, seed, probability, positive_probe, reversible_probe,
-            minimum_generation):
+            probe_max_attempts, probe_retry_events, minimum_generation):
         raise RuntimeError(f"run failed with exit {result.returncode}: {log}")
     return run, "complete"
 
@@ -136,6 +153,10 @@ def _strategy_run(args, instance, seed, strategy):
             and strategy == "REPLACE_LATE_POSITIVE_PROBE"):
         return (
             args.positive_probe_root / instance / f"seed_{seed}" / strategy)
+    if (args.reversible_probe_root is not None
+            and strategy == "REPLACE_LATE_REVERSIBLE_PROBE"):
+        return (
+            args.reversible_probe_root / instance / f"seed_{seed}" / strategy)
     return args.out / instance / f"seed_{seed}" / strategy
 
 
@@ -173,6 +194,16 @@ def _summary(args, status_counts, instance_names, strategy_specs):
                         "forced_operator_probe_positive"),
                     "operator_probe_delta_hv": complete.get(
                         "forced_operator_probe_delta_hv"),
+                    "operator_probe_deltas_hv": complete.get(
+                        "forced_operator_probe_deltas_hv",
+                        ([complete.get("forced_operator_probe_delta_hv")]
+                         if complete.get("forced_operator_probe_completed")
+                         else [])),
+                    "operator_probe_attempts": int(
+                        complete.get(
+                            "forced_operator_probe_attempts",
+                            int(bool(complete.get(
+                                "forced_operator_probe_completed"))))),
                     "operator_probe_fallbacks": int(
                         complete.get("forced_operator_probe_fallbacks", 0)),
                     "operator_probe_evaluations": int(
@@ -198,6 +229,8 @@ def _summary(args, status_counts, instance_names, strategy_specs):
                 row["model_control_events"] for row in rows),
             "positive_probes": sum(
                 row["operator_probe_positive"] is True for row in rows),
+            "probe_attempts": sum(
+                row["operator_probe_attempts"] for row in rows),
             "probe_fallbacks": sum(
                 row["operator_probe_fallbacks"] for row in rows),
             "probe_evaluations": sum(
@@ -212,7 +245,9 @@ def _summary(args, status_counts, instance_names, strategy_specs):
             "50%, 100%, and immediate-positive-probe replace schedules from "
             "generation 15"
             + (", including a budget-counted reversible probe"
-               if args.include_reversible_probe else "")),
+               if args.include_reversible_probe else "")
+            + (" and two-attempt retry intervals of 5 and 10 M events"
+               if args.include_reversible_retry_probes else "")),
         "instance_count": len(instance_names),
         "algorithm_seed_count": len(args.algorithm_seeds),
         "run_count": len(runs),
@@ -222,6 +257,9 @@ def _summary(args, status_counts, instance_names, strategy_specs):
         "positive_probe_root": (
             None if args.positive_probe_root is None
             else str(args.positive_probe_root)),
+        "reversible_probe_root": (
+            None if args.reversible_probe_root is None
+            else str(args.reversible_probe_root)),
         "scenario_exact": not scenario_failures,
         "scenario_failures": scenario_failures,
         "strategies": strategies,
@@ -261,9 +299,16 @@ def main(argv=None):
         "--positive-probe-root", type=Path,
         help="Reuse completed positive-probe runs from this compatible root.")
     parser.add_argument(
+        "--reversible-probe-root", type=Path,
+        help="Reuse completed one-attempt reversible-probe runs.")
+    parser.add_argument(
         "--include-reversible-probe", action="store_true",
         help=("Also evaluate the budget-counted reversible positive-probe "
               "strategy."))
+    parser.add_argument(
+        "--include-reversible-retry-probes", action="store_true",
+        help=("Also evaluate two-attempt reversible probes with 5- and "
+              "10-event retry intervals."))
     parser.add_argument("--instance-ids", nargs="+", required=True)
     parser.add_argument("--algorithm-seeds", nargs="+", type=int,
                         required=True)
@@ -298,18 +343,26 @@ def main(argv=None):
     strategy_specs = dict(STRATEGIES)
     if args.include_reversible_probe:
         strategy_specs.update(REVERSIBLE_STRATEGY)
+    if args.include_reversible_retry_probes:
+        if not args.include_reversible_probe:
+            parser.error(
+                "retry probes require --include-reversible-probe")
+        strategy_specs.update(RETRY_STRATEGIES)
     jobs = []
     for instance, instance_path in sorted(instance_paths.items()):
         for seed in args.algorithm_seeds:
             for strategy, specification in strategy_specs.items():
-                probability, positive_probe, reversible_probe = specification
+                (probability, positive_probe, reversible_probe,
+                 probe_max_attempts, probe_retry_events) = specification
                 run = _strategy_run(args, instance, seed, strategy)
                 jobs.append((
                     run, run.with_suffix(".nohup.log"),
                     _command(
                         args, instance_path, run, seed, probability,
-                        positive_probe, reversible_probe),
+                        positive_probe, reversible_probe,
+                        probe_max_attempts, probe_retry_events),
                     seed, probability, positive_probe, reversible_probe,
+                    probe_max_attempts, probe_retry_events,
                     args.minimum_generation))
     counts = Counter()
     print(f"[FREQUENCY] jobs={len(jobs)} workers={args.max_workers}", flush=True)

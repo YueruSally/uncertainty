@@ -170,6 +170,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 m_forced_operator_probability=1.0,
                 m_forced_operator_positive_probe=False,
                 m_forced_operator_reversible_probe=False,
+                m_forced_operator_probe_max_attempts=1,
+                m_forced_operator_probe_retry_events=0,
                 m_continuation_event=None,
                 m_continuation_seed=None,
                 learning_protocol_version=None,
@@ -323,6 +325,10 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             m_forced_operator_positive_probe)
         m_forced_operator_reversible_probe = bool(
             m_forced_operator_reversible_probe)
+        m_forced_operator_probe_max_attempts = int(
+            m_forced_operator_probe_max_attempts)
+        m_forced_operator_probe_retry_events = int(
+            m_forced_operator_probe_retry_events)
         if (m_forced_operator_positive_probe
                 and m_forced_operator_probability != 1.0):
             raise ValueError(
@@ -331,6 +337,19 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 and not m_forced_operator_positive_probe):
             raise ValueError(
                 "reversible operator probe requires positive operator probe")
+        if m_forced_operator_probe_max_attempts < 1:
+            raise ValueError(
+                "operator probe maximum attempts must be positive")
+        if m_forced_operator_probe_retry_events < 0:
+            raise ValueError(
+                "operator probe retry events cannot be negative")
+        if m_forced_operator_probe_max_attempts > 1:
+            if not m_forced_operator_reversible_probe:
+                raise ValueError(
+                    "repeated operator probes require a reversible probe")
+            if m_forced_operator_probe_retry_events < 1:
+                raise ValueError(
+                    "repeated operator probes require a positive retry interval")
         if m_forced_operator_min_generation is not None:
             m_forced_operator_min_generation = int(
                 m_forced_operator_min_generation)
@@ -339,7 +358,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                     "forced M operator minimum generation cannot be negative")
     elif (m_forced_operator_min_generation is not None
           or m_forced_operator_positive_probe
-          or m_forced_operator_reversible_probe):
+          or m_forced_operator_reversible_probe
+          or m_forced_operator_probe_max_attempts != 1
+          or m_forced_operator_probe_retry_events != 0):
         raise ValueError(
             "forced M operator probe/schedule requires a forced operator")
     if (m_continuation_event is None) != (m_continuation_seed is None):
@@ -551,6 +572,10 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 m_forced_operator_positive_probe),
             "m_forced_operator_reversible_probe": (
                 m_forced_operator_reversible_probe),
+            "m_forced_operator_probe_max_attempts": (
+                m_forced_operator_probe_max_attempts),
+            "m_forced_operator_probe_retry_events": (
+                m_forced_operator_probe_retry_events),
             "m_continuation_event": m_continuation_event,
             "m_continuation_seed": m_continuation_seed,
             "control_random_stream": "private-sha256-seeded",
@@ -622,6 +647,10 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                     m_forced_operator_positive_probe)
                 controller_options["forced_operator_reversible_probe"] = (
                     m_forced_operator_reversible_probe)
+                controller_options["forced_operator_probe_max_attempts"] = (
+                    m_forced_operator_probe_max_attempts)
+                controller_options["forced_operator_probe_retry_events"] = (
+                    m_forced_operator_probe_retry_events)
                 controller_options["continuation_event"] = (
                     m_continuation_event)
                 controller_options["continuation_seed"] = (
