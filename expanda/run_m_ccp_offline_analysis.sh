@@ -34,6 +34,7 @@ python3 -u probe_v6_downstream_dataset.py \
   --dataset "$CANDIDATE_DATASET" \
   --out "$LINEAR_REPORT" \
   --model pairwise_linear \
+  --target-field final_archive_advantage \
   --alpha 0.5 \
   --temperature 0.25 \
   --seed 9961
@@ -42,6 +43,7 @@ python3 -u probe_v6_downstream_dataset.py \
   --dataset "$CANDIDATE_DATASET" \
   --out "$MLP_REPORT" \
   --model small_mlp \
+  --target-field final_archive_advantage \
   --alpha 0.5 \
   --temperature 0.25 \
   --seed 9961
@@ -50,6 +52,7 @@ python3 -u probe_v6_downstream_dataset.py \
   --dataset "$CANDIDATE_DATASET" \
   --out "$EXTRA_REPORT" \
   --model extra_trees \
+  --target-field final_archive_advantage \
   --alpha 0.5 \
   --temperature 0.25 \
   --seed 9961

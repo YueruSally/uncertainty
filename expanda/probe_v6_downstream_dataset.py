@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Leave-one-instance-out probe for one-generation mutation advantages."""
+"""Leave-one-instance-out probe for configurable mutation advantages."""
 from __future__ import annotations
 
 import argparse
@@ -334,6 +334,7 @@ def _weighted(folds, field, weight="informative_state_count"):
 
 
 def main(argv=None):
+    global TARGET, FINAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
@@ -341,12 +342,28 @@ def main(argv=None):
     parser.add_argument("--temperature", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=9701)
     parser.add_argument(
+        "--target-field", default=TARGET,
+        help="Numeric candidate field used for training and target metrics.")
+    parser.add_argument(
+        "--final-field", default=FINAL,
+        help="Numeric candidate field reserved for independent final metrics.")
+    parser.add_argument(
         "--model", choices=("pairwise_linear", "small_mlp", "extra_trees"),
         default="pairwise_linear")
     args = parser.parse_args(argv)
+    TARGET = args.target_field
+    FINAL = args.final_field
     if not 0.0 <= args.alpha <= 1.0 or args.temperature <= 0.0:
         parser.error("invalid alpha or temperature")
     rows = _jsonl(args.dataset)
+    missing_fields = [
+        row.get("state_key", "<unknown>") for row in rows
+        if row.get(TARGET) is None or row.get(FINAL) is None
+    ]
+    if missing_fields:
+        parser.error(
+            f"target/final fields are missing in {len(missing_fields)} rows; "
+            f"first={missing_fields[0]}")
     instances = sorted({row["instance"] for row in rows})
     if len(instances) < 2:
         parser.error("at least two instances are required")
@@ -377,6 +394,7 @@ def main(argv=None):
         "completed": True,
         "dataset": str(args.dataset.resolve()),
         "target": TARGET,
+        "final_field": FINAL,
         "model": (
             "small_mlp_state_candidate_score"
             if args.model == "small_mlp"
