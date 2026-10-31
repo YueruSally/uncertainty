@@ -15,6 +15,14 @@ PROGRESS_FIELDS = (
 )
 
 
+def short_instance_id(value):
+    """Map instance-file identifiers to the directory naming convention."""
+    result = str(value).removeprefix("train-")
+    if result.startswith("S0-"):
+        result = "S0_" + result[3:]
+    return result
+
+
 def _finite(value, default=0.0):
     if value is None:
         return float(default)

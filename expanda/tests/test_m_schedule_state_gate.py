@@ -4,6 +4,7 @@ from m_schedule_state_features import (
     assert_progress_replay,
     pre_intervention_progress,
     progress_features,
+    short_instance_id,
 )
 
 
@@ -22,6 +23,10 @@ def _row(generation, archive_hv, population_hv=None):
 
 
 class MScheduleStateGateTests(unittest.TestCase):
+    def test_instance_id_matches_output_directory(self):
+        self.assertEqual(short_instance_id("train-S0-002"), "S0_002")
+        self.assertEqual(short_instance_id("S0_012"), "S0_012")
+
     def test_pre_intervention_excludes_generation_ten(self):
         rows = [_row(9, 0.3), _row(10, 0.4), _row(8, 0.2)]
         selected = pre_intervention_progress(rows, 10, 400)

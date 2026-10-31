@@ -20,6 +20,7 @@ from m_schedule_state_features import (
     assert_progress_replay,
     pre_intervention_progress,
     progress_features,
+    short_instance_id,
 )
 
 
@@ -333,7 +334,7 @@ def main(argv=None):
     parser.add_argument("--seed", type=int, default=12001)
     args = parser.parse_args(argv)
 
-    instances = [value.removeprefix("train-") for value in args.instance_ids]
+    instances = [short_instance_id(value) for value in args.instance_ids]
     rows, feature_names = _build_rows(
         args.roots, instances, args.algorithm_seeds,
         args.minimum_generation, args.evaluation_budget)
