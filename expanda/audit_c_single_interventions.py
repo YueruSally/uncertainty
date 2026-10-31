@@ -156,7 +156,6 @@ def _spread_events(base_run: Path, count: int):
         row for row in _jsonl(base_run / "crossover_outcomes.jsonl")
         if int(row.get("joint_candidate_count", 0)) >= 2
         and row.get("crossover_event_index") is not None
-        and int(row.get("generation", -1)) >= 0
     ]
     rows.sort(key=lambda row: int(row["crossover_event_index"]))
     if len(rows) < count:
@@ -408,7 +407,8 @@ def main(argv=None):
         for row in selected:
             event = int(row["crossover_event_index"])
             state_rows.append({
-                "event": event, "generation": int(row["generation"]),
+                "event": event,
+                "generation": int(row.get("generation", -1)),
                 "joint_candidate_count": int(row["joint_candidate_count"]),
             })
             for policy_seed in args.policy_seeds:
