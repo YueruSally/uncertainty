@@ -21,7 +21,7 @@ echo "===== TESTS ====="
 python3 -u -m unittest \
   tests.test_m_single_interventions \
   tests.test_transformer_ppo_framework.CheckpointTests.test_forced_candidate_index_executes_requested_eligible_action \
-  tests.test_transformer_ppo_framework.ObservationTests.test_mutation_policy_state_logs_full_observation \
+  tests.test_transformer_ppo_framework.MutationCreditTests.test_policy_state_log_preserves_full_observation_and_event_identity \
   tests.test_transformer_ppo_framework.ObservationTests.test_mutation_v4_exposes_replacement_path_relative_features \
   > "$AUDIT_ROOT/tests.log" 2>&1
 
