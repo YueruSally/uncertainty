@@ -69,6 +69,13 @@ def main(argv=None):
         "--m-forced-candidate-index", type=int,
         help=("M-only one-shot diagnostic: at --model-choice-event execute "
               "this deterministic raw candidate index instead of inference."))
+    parser.add_argument(
+        "--m-continuation-event", type=int,
+        help=("M-only paired-continuation diagnostic: after this global "
+              "mutation call, start --m-continuation-seed."))
+    parser.add_argument(
+        "--m-continuation-seed", type=int,
+        help="M-only post-intervention Python/NumPy continuation seed.")
     parser.add_argument("--checkpoint", type=Path,
                         help="Checkpoint for a single I, C, or M run.")
     parser.add_argument("--i-checkpoint", type=Path)
@@ -170,6 +177,16 @@ def main(argv=None):
                 raise ValueError(
                     "forced M candidate index requires component M and "
                     "--model-choice-event")
+        if ((args.m_continuation_event is None)
+                != (args.m_continuation_seed is None)):
+            raise ValueError(
+                "M continuation event and seed must be supplied together")
+        if args.m_continuation_event is not None:
+            if args.component != "M":
+                raise ValueError("M continuation replay requires component M")
+            if args.m_continuation_event < 1:
+                raise ValueError(
+                    "M continuation event must be a positive integer")
         if args.component in ("BASE", "RULE-I"):
             trainer = None
         elif len(args.component) > 1:
@@ -211,6 +228,8 @@ def main(argv=None):
             c_forced_joint_candidate_index=(
                 args.c_forced_joint_candidate_index),
             m_forced_candidate_index=args.m_forced_candidate_index,
+            m_continuation_event=args.m_continuation_event,
+            m_continuation_seed=args.m_continuation_seed,
             model_choice_probabilities=(
                 {args.component: args.model_choice_probability}
                 if args.component in ("C", "M") else

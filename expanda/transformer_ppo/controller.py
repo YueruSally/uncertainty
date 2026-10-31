@@ -28,6 +28,7 @@ class PPOController(MutationLogger):
                  graph_observation=None, model_choice_probability=1.0,
                  model_choice_event=None,
                  forced_candidate_index=None,
+                 continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
                  **kwargs):
@@ -69,6 +70,16 @@ class PPOController(MutationLogger):
             if self.model_choice_event is None:
                 raise ValueError(
                     "forced M candidate index requires model_choice_event")
+        if (continuation_event is None) != (continuation_seed is None):
+            raise ValueError(
+                "M continuation event and seed must be supplied together")
+        self.continuation_event = (
+            None if continuation_event is None else int(continuation_event))
+        self.continuation_seed = (
+            None if continuation_seed is None else int(continuation_seed))
+        if self.continuation_event is not None and self.continuation_event < 1:
+            raise ValueError("M continuation event must be a positive integer")
+        self.continuation_reseed_count = 0
         self.mixture_event_count = 0
         self.mutation_control = getattr(
             getattr(trainer, "config", None), "mutation_control", "location")
@@ -138,6 +149,18 @@ class PPOController(MutationLogger):
             else None)
         return self.trainer.choose(
             candidates, context, forced_action_index=forced)
+
+    def _reseed_continuation_if_due(self, mixture_event_index):
+        """Start a matched post-intervention random stream once."""
+        if (self.continuation_event is None
+                or mixture_event_index != self.continuation_event):
+            return False
+        if self.continuation_reseed_count:
+            raise RuntimeError("M continuation random stream reseeded twice")
+        random.seed(self.continuation_seed)
+        np.random.seed(self.continuation_seed % (2**32 - 1))
+        self.continuation_reseed_count += 1
+        return True
 
     @staticmethod
     def _mean(rows, name):
@@ -522,6 +545,7 @@ class PPOController(MutationLogger):
             })
             if self.phase == "offspring":
                 self._record_pending_offspring(ind)
+            self._reseed_continuation_if_due(mixture_event_index)
             return result
 
         self.model_control_events += 1
@@ -548,6 +572,7 @@ class PPOController(MutationLogger):
                     base.sample_operator()
                     self.trainer.end_sequence(0.0, done=True)
                     self.no_candidate += 1
+                    self._reseed_continuation_if_due(mixture_event_index)
                     return "none", False
                 selected_operator = operator_candidates[
                     operator_decision.chosen_index]["candidate_operator"]
@@ -584,6 +609,7 @@ class PPOController(MutationLogger):
                 self.trainer.end_sequence(0.0, done=True)
             if self.phase == "offspring":
                 self._record_pending_offspring(ind)
+            self._reseed_continuation_if_due(mixture_event_index)
             return result
         row = self.pending[-1][1]
         row.update(
@@ -596,6 +622,7 @@ class PPOController(MutationLogger):
             self.base_passthrough_events += 1
             if self.phase == "offspring":
                 self._record_pending_offspring(ind)
+            self._reseed_continuation_if_due(mixture_event_index)
             return result
         individual_fingerprint = fingerprint(ind)
         reward_diagnostics = self.archive.diagnose_candidate(
@@ -632,6 +659,7 @@ class PPOController(MutationLogger):
                 reward, done=self.credit_assignment == "operation_terminal")
         if self.phase == "offspring":
             self._record_pending_offspring(ind)
+        self._reseed_continuation_if_due(mixture_event_index)
         return result
 
     def flush_events(self, population):
@@ -666,6 +694,9 @@ class PPOController(MutationLogger):
                 "model_choice_probability": self.model_choice_probability,
                 "model_choice_event": self.model_choice_event,
                 "forced_candidate_index": self.forced_candidate_index,
+                "continuation_event": self.continuation_event,
+                "continuation_seed": self.continuation_seed,
+                "continuation_reseed_count": self.continuation_reseed_count,
                 "mixture_event_count": self.mixture_event_count,
                 "model_control_events": self.model_control_events,
                 "base_control_events": self.base_control_events,

@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+import random
 import sys
 import tempfile
 import unittest
@@ -8,6 +9,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import baseline_uncertainty as base
+import numpy as np
 from multi_instance_policy import Decision
 from transformer_ppo.archive import ObjectiveNormalizer, RewardArchive, RewardConfig
 from transformer_ppo.controller import PPOController
@@ -77,6 +79,55 @@ class V2ControlTests(unittest.TestCase):
                 self.assertTrue(controller.controls_mutation)
             finally:
                 controller.close()
+
+    def test_m_continuation_seed_restarts_python_and_numpy_after_target(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        batch = base.Batch(1, "A", "D", 10.0, 0.0, 24.0)
+        individual = base.Individual()
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20,
+                trainer=trainer, archive=RewardArchive(normalizer),
+                reward_config=RewardConfig(), batches=[batch],
+                generations=2, pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy"}, seeds={"algorithm": 7},
+                model_choice_probability=0.0,
+                continuation_event=1, continuation_seed=31001)
+            try:
+                with patch(
+                        "transformer_ppo.controller.base.mutate_fixed",
+                        return_value=("add", False)):
+                    controller.mutate(
+                        individual, [batch], {}, {}, {}, [], 0.0, 0.0)
+                self.assertAlmostEqual(
+                    random.random(), random.Random(31001).random())
+                self.assertAlmostEqual(
+                    np.random.random(),
+                    np.random.RandomState(31001).random_sample())
+                self.assertEqual(controller.continuation_reseed_count, 1)
+                summary = controller.summary()
+                self.assertEqual(summary["continuation_event"], 1)
+                self.assertEqual(summary["continuation_seed"], 31001)
+            finally:
+                controller.close()
+
+    def test_m_continuation_event_and_seed_are_atomic(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "supplied together"):
+                PPOController(
+                    Path(directory), "run", "scenario", 20,
+                    trainer=trainer, archive=RewardArchive(normalizer),
+                    reward_config=RewardConfig(), batches=[], generations=2,
+                    pop_size=2, method=trainer.name,
+                    instance={"instance_id": "toy"},
+                    seeds={"algorithm": 7}, continuation_event=1)
 
     def test_replace_path_nonreplace_gate_uses_exact_base_passthrough(self):
         class ReplacePathTrainer(_Trainer):
