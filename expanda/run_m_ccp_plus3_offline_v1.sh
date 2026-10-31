@@ -30,6 +30,10 @@ MLP_REPORT="$OUT_ROOT/ranker_mlp.json"
 EXTRA_REPORT="$OUT_ROOT/ranker_extra_trees.json"
 TARGET_FIELD=plus_3_generations_archive_advantage
 
+echo "===== TEST PAIRED HORIZON EXTRACTION ====="
+
+python3 -u -m unittest tests.test_m_plus3_dataset
+
 echo "===== BUILD PAIRED +3-GENERATION DATASET ====="
 
 python3 -u build_m_downstream_gate_dataset.py \
