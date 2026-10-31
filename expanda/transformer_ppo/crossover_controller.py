@@ -67,6 +67,7 @@ class CrossoverPPOController(MutationLogger):
         self._current_parents = None
         self._current_candidates = None
         self._shared_observation = None
+        self._last_observation = None
         self.shared_observation_builds = 0
         self._active_event = None
         self._pending_child_ids = set()
@@ -84,7 +85,8 @@ class CrossoverPPOController(MutationLogger):
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
             log_names=("crossover_outcomes", "crossover_candidates",
-                       "crossover_skips", "generation_summary"),
+                       "crossover_policy_states", "crossover_skips",
+                       "generation_summary"),
             normalizer=archive.normalizer, **kwargs)
         if self.model_choice_probability < 1.0:
             self.decision_counts["base_mixture_choice"] = 0
@@ -134,7 +136,7 @@ class CrossoverPPOController(MutationLogger):
                 self.archive.summary(), self.archive.normalizer, self.budget,
                 self.evaluations, self.generations, self.graph_observation)
             self.shared_observation_builds += 1
-        return build_crossover_observation(
+        observation = build_crossover_observation(
             parent1, parent2, self.batches_for_observation, candidates, enriched,
             self.current_population, self.pending_offspring,
             self.archive.summary(), self.archive.normalizer, self.budget,
@@ -143,6 +145,8 @@ class CrossoverPPOController(MutationLogger):
             candidate_representation=(
                 getattr(getattr(self.trainer, "config", None),
                         "candidate_representation", "legacy")))
+        self._last_observation = observation
+        return observation
 
     def crossover_common_node(self, parent1, parent2, batches, tt_dict, arc_lookup):
         if self._active_event is not None:
@@ -154,6 +158,7 @@ class CrossoverPPOController(MutationLogger):
         self.event_count += 1
         self.total_attempts += 1
         self._shared_observation = None
+        self._last_observation = None
         has_learnable_cut = any(
             len(cut.candidates) >= 2 for cut in cut_decisions)
         representation = getattr(
@@ -398,6 +403,29 @@ class CrossoverPPOController(MutationLogger):
                         int(chosen["joint_candidate_index"]),
                     )
                 kind = decision.metadata.get("decision_kind", "model_choice")
+                if self._last_observation is None:
+                    raise RuntimeError("C policy observation was not captured")
+                self.append("crossover_policy_states", {
+                    "event_id": event_id,
+                    "crossover_event_index": self.event_count,
+                    "instance_id": self.instance.get("instance_id"),
+                    "generation": self.generation,
+                    "evaluation": self.evaluations,
+                    "candidate_count": len(joint_candidates),
+                    "chosen_index": decision.chosen_index,
+                    "probabilities": decision.probabilities,
+                    "actions": [{
+                        "joint_action": candidate.get("joint_action"),
+                        "action_group": candidate.get("action_group"),
+                        "safe_action": candidate.get("safe_action"),
+                        "joint_cut_index": candidate.get("joint_cut_index"),
+                        "joint_candidate_index": candidate.get(
+                            "joint_candidate_index"),
+                        "batch_id": candidate.get("batch_id"),
+                        "join_node": candidate.get("join_node"),
+                    } for candidate in joint_candidates],
+                    "observation": self._last_observation,
+                })
                 self.decision_counts[kind] = self.decision_counts.get(kind, 0) + 1
                 self.inference_seconds += float(
                     decision.metadata.get("inference_seconds", 0.0))
@@ -426,6 +454,7 @@ class CrossoverPPOController(MutationLogger):
                 self._current_parents = None
                 self._current_candidates = None
                 self._shared_observation = None
+                self._last_observation = None
 
         reference_override = None
         reference_action = None
@@ -513,6 +542,8 @@ class CrossoverPPOController(MutationLogger):
             "selected_joint_action": (
                 None if decision is None else
                 joint_candidates[decision.chosen_index]["joint_action"]),
+            "selected_joint_candidate_index": (
+                None if decision is None else int(decision.chosen_index)),
             "policy_metadata": (
                 None if decision is None else dict(decision.metadata)),
             "paired_reference_action": reference_action,

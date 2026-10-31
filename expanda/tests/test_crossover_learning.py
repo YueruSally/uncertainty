@@ -395,6 +395,14 @@ class CrossoverPlanningTests(unittest.TestCase):
                     row["different_from_shadow_base"]
                     for row in event["selected_cuts"]), 1)
                 self.assertEqual(trainer.sequence_policy_actions, 1)
+                state_path = Path(directory) / "crossover_policy_states.jsonl"
+                self.assertTrue(state_path.is_file())
+                state = __import__("json").loads(
+                    state_path.read_text(encoding="utf-8").strip())
+                self.assertEqual(state["chosen_index"], 1)
+                self.assertEqual(state["candidate_count"], 3)
+                self.assertEqual(
+                    len(state["observation"]["candidates"]), 3)
                 child1.objectives, child1.feasible = (2.0, 3.0, 4.0), True
                 child2.objectives, child2.feasible = (3.0, 2.0, 4.0), True
                 controller.settle_crossover(child1, child2)
