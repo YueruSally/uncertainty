@@ -70,6 +70,11 @@ def main(argv=None):
         help=("M-only one-shot diagnostic: at --model-choice-event execute "
               "this deterministic raw candidate index instead of inference."))
     parser.add_argument(
+        "--m-forced-operator", choices=("add", "del", "mod", "mode", "replace"),
+        help=("M-only one-shot operator diagnostic: at --model-choice-event "
+              "force this operator while retaining Base batch and internal "
+              "target selection."))
+    parser.add_argument(
         "--m-continuation-event", type=int,
         help=("M-only paired-continuation diagnostic: after this global "
               "mutation call, start --m-continuation-seed."))
@@ -177,6 +182,14 @@ def main(argv=None):
                 raise ValueError(
                     "forced M candidate index requires component M and "
                     "--model-choice-event")
+        if args.m_forced_operator is not None:
+            if args.component != "M" or args.model_choice_event is None:
+                raise ValueError(
+                    "forced M operator requires component M and "
+                    "--model-choice-event")
+            if args.m_forced_candidate_index is not None:
+                raise ValueError(
+                    "forced M operator and candidate index are mutually exclusive")
         if ((args.m_continuation_event is None)
                 != (args.m_continuation_seed is None)):
             raise ValueError(
@@ -228,6 +241,7 @@ def main(argv=None):
             c_forced_joint_candidate_index=(
                 args.c_forced_joint_candidate_index),
             m_forced_candidate_index=args.m_forced_candidate_index,
+            m_forced_operator=args.m_forced_operator,
             m_continuation_event=args.m_continuation_event,
             m_continuation_seed=args.m_continuation_seed,
             model_choice_probabilities=(

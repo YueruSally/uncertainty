@@ -28,6 +28,7 @@ class PPOController(MutationLogger):
                  graph_observation=None, model_choice_probability=1.0,
                  model_choice_event=None,
                  forced_candidate_index=None,
+                 forced_operator=None,
                  continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
@@ -70,6 +71,17 @@ class PPOController(MutationLogger):
             if self.model_choice_event is None:
                 raise ValueError(
                     "forced M candidate index requires model_choice_event")
+        self.forced_operator = (
+            None if forced_operator is None else str(forced_operator))
+        if self.forced_operator is not None:
+            if self.forced_operator not in OPERATORS:
+                raise ValueError(
+                    f"forced M operator must be one of {tuple(OPERATORS)}")
+            if self.model_choice_event is None:
+                raise ValueError("forced M operator requires model_choice_event")
+            if self.forced_candidate_index is not None:
+                raise ValueError(
+                    "forced M operator and candidate index are mutually exclusive")
         if (continuation_event is None) != (continuation_seed is None):
             raise ValueError(
                 "M continuation event and seed must be supplied together")
@@ -112,7 +124,8 @@ class PPOController(MutationLogger):
         log_names = [
             "mutation_outcomes", "mutation_candidates",
             "mutation_operator_candidates", "mutation_skips",
-            "mutation_policy_states", "generation_summary",
+            "mutation_policy_states", "mutation_operator_intervention_states",
+            "generation_summary",
         ]
         if self.candidate_audit_states:
             log_names.extend((
@@ -161,6 +174,81 @@ class PPOController(MutationLogger):
         np.random.seed(self.continuation_seed % (2**32 - 1))
         self.continuation_reseed_count += 1
         return True
+
+    def _mutate_forced_operator(
+            self, ind, batches, path_lib, tt_dict, arc_lookup, arcs,
+            waiting_cost, waiting_emission, reliable_options,
+            mixture_event_index, kwargs):
+        """Force one operator while leaving Base batch/target logic intact."""
+        self._inside_mutation = True
+        before_id = fingerprint(ind)
+        candidates = self._operator_candidates(
+            ind, batches, path_lib, tt_dict, arc_lookup, reliable_options)
+        operator_index = OPERATORS.index(self.forced_operator)
+        self.append("mutation_operator_intervention_states", {
+            "run_id": self.run_id,
+            "instance_id": self.instance.get("instance_id"),
+            "generation": self.generation,
+            "evaluation": self.evaluations,
+            "mixture_event_index": mixture_event_index,
+            "parent_id": before_id,
+            "forced_operator": self.forced_operator,
+            "operator_candidates": candidates,
+        })
+
+        # Base draws the batch before the operator.  Consume both draws exactly;
+        # only replace the sampled operator.  Passing target=None delegates all
+        # operator-internal target/path randomness to the original Base code.
+        batch = random.choice(batches)
+        shadow_base_operator = base.sample_operator()
+        try:
+            ok = base.apply_mutation_op(
+                ind, self.forced_operator, batch, path_lib, tt_dict, arc_lookup,
+                reliable_options=reliable_options, target=None)
+            if ok:
+                base.repair_missing_allocations(ind, batches, path_lib)
+                base.evaluate_individual(
+                    ind, batches, arcs, tt_dict, waiting_cost, waiting_emission,
+                    **kwargs)
+        finally:
+            self._inside_mutation = False
+        after_id = fingerprint(ind)
+        changed = after_id != before_id
+        self.total_attempts += 1
+        self.total_effective += int(bool(ok) and changed)
+        self.decision_counts["forced_operator_choice"] += 1
+        self.append("mutation_outcomes", {
+            "run_id": self.run_id,
+            "instance_id": self.instance.get("instance_id"),
+            "generation": self.generation,
+            "evaluation": self.evaluations,
+            "decision_kind": "forced_operator_choice",
+            "control_branch": "forced_operator",
+            "model_choice_probability": self.model_choice_probability,
+            "model_choice_event": self.model_choice_event,
+            "forced_candidate_index": None,
+            "forced_operator": self.forced_operator,
+            "mixture_event_index": mixture_event_index,
+            "selected_candidate_index": operator_index,
+            "operator": self.forced_operator,
+            "shadow_base_operator": shadow_base_operator,
+            "different_from_shadow_base_operator": (
+                self.forced_operator != shadow_base_operator),
+            "batch_id": batch.batch_id,
+            "mutation_success": bool(ok),
+            "decision_changed": bool(changed),
+            "parent_id": before_id,
+            "child_id": after_id,
+            "policy_metadata": {
+                "forced_operator": self.forced_operator,
+                "forced_action_index": operator_index,
+            },
+            "reward_recorded_for_policy": False,
+        })
+        if self.phase == "offspring":
+            self._record_pending_offspring(ind)
+        self._reseed_continuation_if_due(mixture_event_index)
+        return self.forced_operator, bool(ok)
 
     @staticmethod
     def _mean(rows, name):
@@ -525,6 +613,7 @@ class PPOController(MutationLogger):
                 self.controls_mutation = True
                 self._inside_mutation = False
             changed = fingerprint(ind) != before
+            after = fingerprint(ind)
             self.total_attempts += 1
             self.total_effective += int(changed)
             self.decision_counts["base_mixture_choice"] += 1
@@ -541,6 +630,8 @@ class PPOController(MutationLogger):
                 "mixture_event_index": mixture_event_index,
                 "operator": result[0],
                 "decision_changed": bool(changed),
+                "parent_id": before,
+                "child_id": after,
                 "reward_recorded_for_policy": False,
             })
             if self.phase == "offspring":
@@ -549,6 +640,11 @@ class PPOController(MutationLogger):
             return result
 
         self.model_control_events += 1
+        if self.forced_operator is not None:
+            return self._mutate_forced_operator(
+                ind, batches, path_lib, tt_dict, arc_lookup, arcs,
+                waiting_cost, waiting_emission, reliable_options,
+                mixture_event_index, kwargs)
         self._inside_mutation = True
         pending_before = len(self.pending)
         self.current_individual = ind
@@ -694,6 +790,7 @@ class PPOController(MutationLogger):
                 "model_choice_probability": self.model_choice_probability,
                 "model_choice_event": self.model_choice_event,
                 "forced_candidate_index": self.forced_candidate_index,
+                "forced_operator": self.forced_operator,
                 "continuation_event": self.continuation_event,
                 "continuation_seed": self.continuation_seed,
                 "continuation_reseed_count": self.continuation_reseed_count,
