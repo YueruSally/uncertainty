@@ -532,7 +532,7 @@ def main(argv=None):
     parser.add_argument("--state-count", type=int, default=12)
     parser.add_argument("--actions-per-state", type=int, default=3)
     parser.add_argument("--minimum-oracle-percent", type=float, default=5.0)
-    parser.add_argument("--max-states-per-instance", type=int, default=2)
+    parser.add_argument("--max-states-per-instance", type=int, default=4)
     parser.add_argument("--max-workers", type=int, default=8)
     parser.add_argument("--evaluation-budget", type=int, default=400)
     parser.add_argument("--evaluation-mode", choices=("ccp", "ccp100"),

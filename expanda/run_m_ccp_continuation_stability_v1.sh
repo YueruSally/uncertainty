@@ -65,7 +65,7 @@ python3 -u collect_m_continuation_stability.py \
   --state-count 12 \
   --actions-per-state 3 \
   --minimum-oracle-percent 5 \
-  --max-states-per-instance 2 \
+  --max-states-per-instance 4 \
   --max-workers 8 \
   --evaluation-budget 400 \
   --evaluation-mode ccp \
