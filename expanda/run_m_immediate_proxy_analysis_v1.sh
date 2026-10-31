@@ -49,15 +49,19 @@ for SCOPE in all late; do
 
     echo "===== $SCOPE / $MODEL ====="
 
-    python3 -u probe_v6_downstream_dataset.py \
-      --dataset "$DATASET" \
-      --out "$REPORT" \
-      --model "$MODEL" \
-      --target-field "$TARGET_FIELD" \
-      --final-field "$FINAL_FIELD" \
-      --alpha 0.5 \
-      --temperature 0.25 \
-      --seed 9991
+    if test -f "$REPORT" && jq -e '.completed == true' "$REPORT" >/dev/null; then
+      echo "REUSE COMPLETE REPORT: $REPORT"
+    else
+      python3 -u probe_v6_downstream_dataset.py \
+        --dataset "$DATASET" \
+        --out "$REPORT" \
+        --model "$MODEL" \
+        --target-field "$TARGET_FIELD" \
+        --final-field "$FINAL_FIELD" \
+        --alpha 0.5 \
+        --temperature 0.25 \
+        --seed 9991
+    fi
   done
 done
 
@@ -94,6 +98,7 @@ jq -n \
   | {
       definition: (
         "leave-one-instance-out prediction of immediate positive M actions; "
+        +
         "final metrics use four-continuation mean CCP HV percent"
       ),
       results: $results,
