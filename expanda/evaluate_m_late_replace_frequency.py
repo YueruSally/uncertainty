@@ -175,7 +175,7 @@ def _run(job):
 def _strategy_run(args, instance, seed, strategy):
     reusable = {
         "BASE", "REPLACE_LATE_P050", "REPLACE_LATE_P100",
-        "REPLACE_G15_P050", "REPLACE_G15_P100",
+        *SCHEDULE_GRID_STRATEGIES,
     }
     if strategy in reusable:
         roots = []
@@ -256,14 +256,24 @@ def _summary(args, status_counts, instance_names, strategy_specs):
     for strategy in strategy_specs:
         rows = [row for row in runs if row["strategy"] == strategy]
         values = [row["paired_percent"] for row in rows]
+        standard_deviation = (
+            statistics.stdev(values) if len(values) >= 2 else 0.0)
+        standard_error = standard_deviation / math.sqrt(len(values))
+        mean_value = statistics.fmean(values)
         strategies.append({
             "strategy": strategy,
             "runs": len(rows),
-            "mean_paired_percent": statistics.fmean(values),
+            "mean_paired_percent": mean_value,
+            "standard_deviation_paired_percent": standard_deviation,
+            "standard_error_paired_percent": standard_error,
+            "mean_95ci_low": mean_value - 1.96 * standard_error,
+            "mean_95ci_high": mean_value + 1.96 * standard_error,
             "median_paired_percent": statistics.median(values),
             "minimum_paired_percent": min(values),
             "maximum_paired_percent": max(values),
             "wins": sum(value > EPSILON for value in values),
+            "win_fraction": (
+                sum(value > EPSILON for value in values) / len(values)),
             "ties": sum(abs(value) <= EPSILON for value in values),
             "losses": sum(value < -EPSILON for value in values),
             "runs_above_5_percent": sum(value >= 5.0 for value in values),

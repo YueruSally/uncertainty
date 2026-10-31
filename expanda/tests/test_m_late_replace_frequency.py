@@ -52,6 +52,11 @@ class MFrequencyReuseTests(unittest.TestCase):
                 / "S0_006/seed_1/REPLACE_LATE_P100")
             reused_grid.mkdir(parents=True)
             (reused_grid / "COMPLETE.json").write_text("{}")
+            reused_g10 = (
+                args.reuse_roots[0]
+                / "S0_007/seed_1/REPLACE_G10_P100")
+            reused_g10.mkdir(parents=True)
+            (reused_g10 / "COMPLETE.json").write_text("{}")
 
             self.assertEqual(
                 _strategy_run(args, "S0_005", 1, "BASE"), reused_base)
@@ -69,6 +74,9 @@ class MFrequencyReuseTests(unittest.TestCase):
             self.assertEqual(
                 _strategy_run(args, "S0_006", 1, "REPLACE_G12_P100"),
                 args.out / "S0_006/seed_1/REPLACE_G12_P100")
+            self.assertEqual(
+                _strategy_run(args, "S0_007", 1, "REPLACE_G10_P100"),
+                reused_g10)
             self.assertEqual(
                 _strategy_run(
                     args, "S0_006", 1,
