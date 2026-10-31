@@ -168,6 +168,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 m_forced_operator=None,
                 m_forced_operator_min_generation=None,
                 m_forced_operator_probability=1.0,
+                m_forced_operator_positive_probe=False,
                 m_continuation_event=None,
                 m_continuation_seed=None,
                 learning_protocol_version=None,
@@ -317,6 +318,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         if not 0.0 <= m_forced_operator_probability <= 1.0:
             raise ValueError(
                 "forced M operator probability must be in [0, 1]")
+        m_forced_operator_positive_probe = bool(
+            m_forced_operator_positive_probe)
+        if (m_forced_operator_positive_probe
+                and m_forced_operator_probability != 1.0):
+            raise ValueError(
+                "positive operator probe requires probability 1")
         if m_forced_operator_min_generation is not None:
             m_forced_operator_min_generation = int(
                 m_forced_operator_min_generation)
@@ -531,6 +538,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             "m_forced_operator_min_generation": (
                 m_forced_operator_min_generation),
             "m_forced_operator_probability": m_forced_operator_probability,
+            "m_forced_operator_positive_probe": (
+                m_forced_operator_positive_probe),
             "m_continuation_event": m_continuation_event,
             "m_continuation_seed": m_continuation_seed,
             "control_random_stream": "private-sha256-seeded",
@@ -598,6 +607,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                     m_forced_operator_min_generation)
                 controller_options["forced_operator_probability"] = (
                     m_forced_operator_probability)
+                controller_options["forced_operator_positive_probe"] = (
+                    m_forced_operator_positive_probe)
                 controller_options["continuation_event"] = (
                     m_continuation_event)
                 controller_options["continuation_seed"] = (

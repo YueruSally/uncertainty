@@ -82,6 +82,10 @@ def main(argv=None):
         "--m-forced-operator-probability", type=float, default=1.0,
         help="Probability of forcing the scheduled M operator (default: 1).")
     parser.add_argument(
+        "--m-forced-operator-positive-probe", action="store_true",
+        help=("After the first scheduled forced operator, continue forcing "
+              "only when that probe immediately increases q90 archive HV."))
+    parser.add_argument(
         "--m-continuation-event", type=int,
         help=("M-only paired-continuation diagnostic: after this global "
               "mutation call, start --m-continuation-seed."))
@@ -205,6 +209,10 @@ def main(argv=None):
             if not 0.0 <= args.m_forced_operator_probability <= 1.0:
                 raise ValueError(
                     "forced M operator probability must be in [0, 1]")
+            if (args.m_forced_operator_positive_probe
+                    and args.m_forced_operator_probability != 1.0):
+                raise ValueError(
+                    "positive operator probe requires probability 1")
         elif args.m_forced_operator_min_generation is not None:
             raise ValueError(
                 "forced M operator schedule requires --m-forced-operator")
@@ -264,6 +272,8 @@ def main(argv=None):
                 args.m_forced_operator_min_generation),
             m_forced_operator_probability=(
                 args.m_forced_operator_probability),
+            m_forced_operator_positive_probe=(
+                args.m_forced_operator_positive_probe),
             m_continuation_event=args.m_continuation_event,
             m_continuation_seed=args.m_continuation_seed,
             model_choice_probabilities=(

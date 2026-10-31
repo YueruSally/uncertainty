@@ -31,6 +31,7 @@ class PPOController(MutationLogger):
                  forced_operator=None,
                  forced_operator_min_generation=None,
                  forced_operator_probability=1.0,
+                 forced_operator_positive_probe=False,
                  continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
@@ -87,6 +88,11 @@ class PPOController(MutationLogger):
             else int(forced_operator_min_generation))
         self.forced_operator_probability = validate_model_choice_probability(
             forced_operator_probability)
+        self.forced_operator_positive_probe = bool(
+            forced_operator_positive_probe)
+        self.forced_operator_probe_completed = False
+        self.forced_operator_probe_positive = False
+        self.forced_operator_probe_delta_hv = None
         if self.forced_operator_min_generation is not None:
             if self.forced_operator is None:
                 raise ValueError(
@@ -102,6 +108,13 @@ class PPOController(MutationLogger):
             raise ValueError(
                 "forced M operator requires model_choice_event or a minimum "
                 "generation schedule")
+        if self.forced_operator_positive_probe:
+            if self.forced_operator_min_generation is None:
+                raise ValueError(
+                    "positive operator probe requires a generation schedule")
+            if self.forced_operator_probability != 1.0:
+                raise ValueError(
+                    "positive operator probe requires schedule probability 1")
         if (continuation_event is None) != (continuation_seed is None):
             raise ValueError(
                 "M continuation event and seed must be supplied together")
@@ -170,11 +183,17 @@ class PPOController(MutationLogger):
         if self.forced_operator_min_generation is not None:
             eligible = self.generation >= self.forced_operator_min_generation
             probability = self.forced_operator_probability
-            use_model = bool(
-                eligible and (
-                    probability == 1.0
-                    or (probability > 0.0
-                        and self.control_rng.random() < probability)))
+            if self.forced_operator_positive_probe:
+                use_model = bool(
+                    eligible
+                    and (not self.forced_operator_probe_completed
+                         or self.forced_operator_probe_positive))
+            else:
+                use_model = bool(
+                    eligible and (
+                        probability == 1.0
+                        or (probability > 0.0
+                            and self.control_rng.random() < probability)))
         elif self.model_choice_event is not None:
             use_model = self.mixture_event_count == self.model_choice_event
         else:
@@ -212,6 +231,7 @@ class PPOController(MutationLogger):
         """Force one operator while leaving Base batch/target logic intact."""
         self._inside_mutation = True
         before_id = fingerprint(ind)
+        archive_hv_before = float(self.archive.hypervolume)
         candidates = self._operator_candidates(
             ind, batches, path_lib, tt_dict, arc_lookup, reliable_options)
         operator_index = OPERATORS.index(self.forced_operator)
@@ -244,6 +264,14 @@ class PPOController(MutationLogger):
             self._inside_mutation = False
         after_id = fingerprint(ind)
         changed = after_id != before_id
+        archive_hv_after = float(self.archive.hypervolume)
+        immediate_archive_delta = archive_hv_after - archive_hv_before
+        if (self.forced_operator_positive_probe
+                and not self.forced_operator_probe_completed):
+            self.forced_operator_probe_completed = True
+            self.forced_operator_probe_delta_hv = immediate_archive_delta
+            self.forced_operator_probe_positive = (
+                immediate_archive_delta > 0.0)
         self.total_attempts += 1
         self.total_effective += int(bool(ok) and changed)
         self.decision_counts["forced_operator_choice"] += 1
@@ -267,6 +295,9 @@ class PPOController(MutationLogger):
             "batch_id": batch.batch_id,
             "mutation_success": bool(ok),
             "decision_changed": bool(changed),
+            "immediate_archive_delta": immediate_archive_delta,
+            "operator_probe_completed": self.forced_operator_probe_completed,
+            "operator_probe_positive": self.forced_operator_probe_positive,
             "parent_id": before_id,
             "child_id": after_id,
             "policy_metadata": {
@@ -824,6 +855,14 @@ class PPOController(MutationLogger):
                 "forced_operator_min_generation": (
                     self.forced_operator_min_generation),
                 "forced_operator_probability": self.forced_operator_probability,
+                "forced_operator_positive_probe": (
+                    self.forced_operator_positive_probe),
+                "forced_operator_probe_completed": (
+                    self.forced_operator_probe_completed),
+                "forced_operator_probe_positive": (
+                    self.forced_operator_probe_positive),
+                "forced_operator_probe_delta_hv": (
+                    self.forced_operator_probe_delta_hv),
                 "continuation_event": self.continuation_event,
                 "continuation_seed": self.continuation_seed,
                 "continuation_reseed_count": self.continuation_reseed_count,

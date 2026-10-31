@@ -20,6 +20,7 @@ echo "===== TEST LATE REPLACE SCHEDULE ====="
 python3 -u -m unittest \
   tests.test_learning_components_v2_controls.V2ControlTests.test_forced_m_operator_generation_schedule \
   tests.test_learning_components_v2_controls.V2ControlTests.test_forced_m_operator_keeps_base_batch_and_internal_target \
+  tests.test_learning_components_v2_controls.V2ControlTests.test_forced_m_operator_positive_probe_gates_later_actions \
   > "$OUT_ROOT/tests.log" 2>&1
 
 echo "===== MATCHED CCP LATE REPLACE FREQUENCY SCREEN ====="
@@ -45,7 +46,7 @@ if ! jq -e '
   .completed == true
   and .instance_count == 3
   and .algorithm_seed_count == 3
-  and .run_count == 27
+  and .run_count == 36
   and .scenario_exact == true
 ' "$OUT_ROOT/COMPLETE.json" >/dev/null; then
   echo "LATE REPLACE FREQUENCY SCREEN FAILED COMPLETENESS CHECK" >&2
