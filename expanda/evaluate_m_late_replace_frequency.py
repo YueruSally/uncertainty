@@ -6,6 +6,7 @@ import argparse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import math
 import os
 from pathlib import Path
 import statistics
@@ -26,6 +27,11 @@ REVERSIBLE_STRATEGY = {
 RETRY_STRATEGIES = {
     "REPLACE_LATE_REVERSIBLE_RETRY_E05": (1.00, True, True, 2, 5),
     "REPLACE_LATE_REVERSIBLE_RETRY_E10": (1.00, True, True, 2, 10),
+}
+ALL_STRATEGIES = {
+    **STRATEGIES,
+    **REVERSIBLE_STRATEGY,
+    **RETRY_STRATEGIES,
 }
 
 
@@ -148,15 +154,21 @@ def _strategy_run(args, instance, seed, strategy):
     if (args.reuse_root is not None
             and strategy in (
                 "BASE", "REPLACE_LATE_P050", "REPLACE_LATE_P100")):
-        return args.reuse_root / instance / f"seed_{seed}" / strategy
+        reused = args.reuse_root / instance / f"seed_{seed}" / strategy
+        if (reused / "COMPLETE.json").is_file():
+            return reused
     if (args.positive_probe_root is not None
             and strategy == "REPLACE_LATE_POSITIVE_PROBE"):
-        return (
+        reused = (
             args.positive_probe_root / instance / f"seed_{seed}" / strategy)
+        if (reused / "COMPLETE.json").is_file():
+            return reused
     if (args.reversible_probe_root is not None
             and strategy == "REPLACE_LATE_REVERSIBLE_PROBE"):
-        return (
+        reused = (
             args.reversible_probe_root / instance / f"seed_{seed}" / strategy)
+        if (reused / "COMPLETE.json").is_file():
+            return reused
     return args.out / instance / f"seed_{seed}" / strategy
 
 
@@ -236,18 +248,35 @@ def _summary(args, status_counts, instance_names, strategy_specs):
             "probe_evaluations": sum(
                 row["operator_probe_evaluations"] for row in rows),
         })
+    per_instance = []
+    for instance in instance_names:
+        instance_rows = [row for row in runs if row["instance"] == instance]
+        instance_result = {"instance": instance, "strategies": []}
+        for strategy in strategy_specs:
+            rows = [
+                row for row in instance_rows if row["strategy"] == strategy]
+            values = [row["paired_percent"] for row in rows]
+            instance_result["strategies"].append({
+                "strategy": strategy,
+                "runs": len(rows),
+                "paired_percent_each": values,
+                "mean_paired_percent": statistics.fmean(values),
+                "median_paired_percent": statistics.median(values),
+                "minimum_paired_percent": min(values),
+                "maximum_paired_percent": max(values),
+                "wins": sum(value > EPSILON for value in values),
+                "ties": sum(abs(value) <= EPSILON for value in values),
+                "losses": sum(value < -EPSILON for value in values),
+            })
+        per_instance.append(instance_result)
     alternatives = [row for row in strategies if row["strategy"] != "BASE"]
     best = max(alternatives, key=lambda row: row["mean_paired_percent"])
+    strategy_names = list(strategy_specs)
     result = {
         "completed": True,
         "definition": (
-            "matched 400-evaluation frozen-CCP comparison of Base against "
-            "50%, 100%, and immediate-positive-probe replace schedules from "
-            "generation 15"
-            + (", including a budget-counted reversible probe"
-               if args.include_reversible_probe else "")
-            + (" and two-attempt retry intervals of 5 and 10 M events"
-               if args.include_reversible_retry_probes else "")),
+            "matched frozen-CCP comparison from generation "
+            f"{args.minimum_generation}: " + ", ".join(strategy_names)),
         "instance_count": len(instance_names),
         "algorithm_seed_count": len(args.algorithm_seeds),
         "run_count": len(runs),
@@ -263,10 +292,12 @@ def _summary(args, status_counts, instance_names, strategy_specs):
         "scenario_exact": not scenario_failures,
         "scenario_failures": scenario_failures,
         "strategies": strategies,
+        "per_instance": per_instance,
         "best_nonbase_strategy": best,
         "screening_thresholds": {
             "minimum_mean_paired_percent": 2.0,
-            "minimum_wins": 6,
+            "minimum_wins": math.ceil(0.60 * len(args.algorithm_seeds)
+                                       * len(instance_names)),
             "minimum_paired_percent": -5.0,
             "minimum_runs_above_5_percent": 1,
         },
@@ -282,6 +313,30 @@ def _summary(args, status_counts, instance_names, strategy_specs):
         thresholds["minimum_paired_percent"]
         and best["runs_above_5_percent"] >=
         thresholds["minimum_runs_above_5_percent"])
+    by_name = {row["strategy"]: row for row in strategies}
+    p100 = by_name.get("REPLACE_LATE_P100")
+    reversible = by_name.get("REPLACE_LATE_REVERSIBLE_PROBE")
+    if p100 is not None and reversible is not None:
+        result["diagnosis"] = {
+            "replace_operator_has_population_signal": bool(
+                p100["mean_paired_percent"] >= 2.0
+                and p100["wins"] >= math.ceil(0.60 * p100["runs"])),
+            "reversible_gate_reduces_losses": bool(
+                reversible["losses"] < p100["losses"]
+                and reversible["minimum_paired_percent"]
+                > p100["minimum_paired_percent"]),
+            "reversible_gate_preserves_mean_gain": bool(
+                reversible["mean_paired_percent"] >= 0.75
+                * max(p100["mean_paired_percent"], 0.0)),
+            "p100_mean_paired_percent": p100["mean_paired_percent"],
+            "reversible_mean_paired_percent": (
+                reversible["mean_paired_percent"]),
+            "p100_losses": p100["losses"],
+            "reversible_losses": reversible["losses"],
+            "p100_minimum_paired_percent": p100["minimum_paired_percent"],
+            "reversible_minimum_paired_percent": (
+                reversible["minimum_paired_percent"]),
+        }
     return result
 
 
@@ -309,6 +364,10 @@ def main(argv=None):
         "--include-reversible-retry-probes", action="store_true",
         help=("Also evaluate two-attempt reversible probes with 5- and "
               "10-event retry intervals."))
+    parser.add_argument(
+        "--strategies", nargs="+", choices=sorted(ALL_STRATEGIES),
+        help=("Explicit strategy subset. When omitted, preserve the legacy "
+              "frequency-screen selection controlled by the include flags."))
     parser.add_argument("--instance-ids", nargs="+", required=True)
     parser.add_argument("--algorithm-seeds", nargs="+", type=int,
                         required=True)
@@ -325,8 +384,8 @@ def main(argv=None):
         default=Path(__file__).resolve().with_name(
             "run_learning_components_deterministic.py"))
     args = parser.parse_args(argv)
-    if len(args.instance_ids) != 3 or len(args.algorithm_seeds) != 3:
-        parser.error("frequency screen requires exactly 3 instances and 3 seeds")
+    if not args.instance_ids or not args.algorithm_seeds:
+        parser.error("at least one instance and one algorithm seed are required")
     for path, name in (
             (args.normalization, "normalization"),
             (args.checkpoint, "checkpoint"), (args.runner, "runner")):
@@ -340,14 +399,24 @@ def main(argv=None):
             parser.error(f"missing instance: {path}")
         instance_paths[instance_id.replace("train-", "").replace("-", "_")] = path
 
-    strategy_specs = dict(STRATEGIES)
-    if args.include_reversible_probe:
-        strategy_specs.update(REVERSIBLE_STRATEGY)
-    if args.include_reversible_retry_probes:
-        if not args.include_reversible_probe:
-            parser.error(
-                "retry probes require --include-reversible-probe")
-        strategy_specs.update(RETRY_STRATEGIES)
+    if args.strategies:
+        if "BASE" not in args.strategies:
+            parser.error("explicit --strategies must include BASE")
+        if len(set(args.strategies)) != len(args.strategies):
+            parser.error("explicit --strategies must not contain duplicates")
+        strategy_specs = {
+            strategy: ALL_STRATEGIES[strategy]
+            for strategy in args.strategies
+        }
+    else:
+        strategy_specs = dict(STRATEGIES)
+        if args.include_reversible_probe:
+            strategy_specs.update(REVERSIBLE_STRATEGY)
+        if args.include_reversible_retry_probes:
+            if not args.include_reversible_probe:
+                parser.error(
+                    "retry probes require --include-reversible-probe")
+            strategy_specs.update(RETRY_STRATEGIES)
     jobs = []
     for instance, instance_path in sorted(instance_paths.items()):
         for seed in args.algorithm_seeds:
@@ -382,7 +451,10 @@ def main(argv=None):
     quick = {key: result[key] for key in (
         "completed", "definition", "instance_count", "algorithm_seed_count",
         "run_count", "status_counts", "scenario_exact", "strategies",
-        "best_nonbase_strategy", "screening_thresholds", "screening_pass")}
+        "per_instance", "best_nonbase_strategy", "screening_thresholds",
+        "screening_pass")}
+    if "diagnosis" in result:
+        quick["diagnosis"] = result["diagnosis"]
     (args.out / "QUICK_RESULT.json").write_text(
         json.dumps(quick, indent=2, allow_nan=False) + "\n",
         encoding="utf-8")
