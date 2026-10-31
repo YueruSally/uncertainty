@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -168,6 +169,44 @@ def _fit_mlp(rows, seed):
     }
 
 
+def _fit_extra_trees(rows, seed):
+    by_state = defaultdict(list)
+    for row in rows:
+        by_state[row["state_key"]].append(row)
+    selected = []
+    targets = []
+    informative_states = 0
+    pair_count = 0
+    for state_rows in by_state.values():
+        values = np.asarray([row[TARGET] for row in state_rows], dtype=float)
+        if float(values.max() - values.min()) <= EPSILON:
+            continue
+        informative_states += 1
+        pair_count += sum(
+            abs(values[left] - values[right]) > EPSILON
+            for left in range(len(values))
+            for right in range(left + 1, len(values)))
+        ranks = _average_ranks(values)
+        ranks /= max(1, len(values) - 1)
+        selected.extend(state_rows)
+        targets.extend(ranks.tolist())
+    if len(selected) < 8:
+        raise ValueError("too few informative candidates for Extra Trees probe")
+    matrix = np.stack([
+        np.asarray(row["features"], dtype=float) for row in selected])
+    model = ExtraTreesRegressor(
+        n_estimators=500, min_samples_leaf=2, max_features="sqrt",
+        n_jobs=-1, random_state=seed).fit(
+            matrix, np.asarray(targets, dtype=float))
+    return model, {
+        "training_candidate_count": len(rows),
+        "informative_training_candidate_count": len(selected),
+        "training_state_count": len(by_state),
+        "informative_training_state_count": informative_states,
+        "training_pair_count": int(pair_count),
+    }
+
+
 def _evaluate(rows, scorer, alpha, temperature):
     by_state = defaultdict(list)
     for row in rows:
@@ -302,7 +341,7 @@ def main(argv=None):
     parser.add_argument("--temperature", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=9701)
     parser.add_argument(
-        "--model", choices=("pairwise_linear", "small_mlp"),
+        "--model", choices=("pairwise_linear", "small_mlp", "extra_trees"),
         default="pairwise_linear")
     args = parser.parse_args(argv)
     if not 0.0 <= args.alpha <= 1.0 or args.temperature <= 0.0:
@@ -319,10 +358,15 @@ def main(argv=None):
     for fold_index, heldout in enumerate(instances):
         training = [row for row in rows if row["instance"] != heldout]
         validation = [row for row in rows if row["instance"] == heldout]
-        scorer, training_summary = (
-            _fit_mlp(training, args.seed + fold_index)
-            if args.model == "small_mlp"
-            else _fit(training, args.seed + fold_index))
+        if args.model == "small_mlp":
+            scorer, training_summary = _fit_mlp(
+                training, args.seed + fold_index)
+        elif args.model == "extra_trees":
+            scorer, training_summary = _fit_extra_trees(
+                training, args.seed + fold_index)
+        else:
+            scorer, training_summary = _fit(
+                training, args.seed + fold_index)
         folds.append({
             "heldout_instance": heldout,
             **training_summary,
@@ -336,6 +380,8 @@ def main(argv=None):
         "model": (
             "small_mlp_state_candidate_score"
             if args.model == "small_mlp"
+            else "extra_trees_state_candidate_score"
+            if args.model == "extra_trees"
             else "pairwise_logistic_linear_score"),
         "feature_mode": "state_relative",
         "feature_dimension": dimensions.pop(),

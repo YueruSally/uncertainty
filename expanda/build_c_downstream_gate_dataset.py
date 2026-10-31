@@ -64,30 +64,95 @@ def _write_jsonl(path: Path, rows):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--root", type=Path, nargs="+", required=True)
     parser.add_argument("--candidate-out", type=Path, required=True)
     parser.add_argument("--state-out", type=Path, required=True)
     parser.add_argument("--summary", type=Path, required=True)
     args = parser.parse_args(argv)
 
-    audit_path = args.root / "AUDIT_COMPLETE.json"
-    manifest_path = args.root / "audit_manifest.json"
-    if not audit_path.is_file() or not manifest_path.is_file():
-        parser.error(f"completed C audit is missing: {args.root}")
-    audit = _read(audit_path)
-    manifest = _read(manifest_path)
-    if audit.get("completed") is not True:
-        parser.error(f"C audit is incomplete: {args.root}")
-
-    manifest_states = {
-        (instance["short_id"], int(state["event"])): state
-        for instance in manifest["instances"]
-        for state in instance["states"]
-    }
     candidate_rows = []
     state_rows = []
     observation_failures = []
-    for summary_state in audit["states"]:
+    source_digests = []
+    seen_state_keys = set()
+    for root in args.root:
+        audit_path = root / "AUDIT_COMPLETE.json"
+        manifest_path = root / "audit_manifest.json"
+        if not audit_path.is_file() or not manifest_path.is_file():
+            parser.error(f"completed C audit is missing: {root}")
+        audit = _read(audit_path)
+        manifest = _read(manifest_path)
+        if audit.get("completed") is not True:
+            parser.error(f"C audit is incomplete: {root}")
+        source_digests.append({
+            "root": str(root.resolve()),
+            "audit_sha256": _sha256(audit_path),
+        })
+        manifest_states = {
+            (instance["short_id"], int(state["event"])): state
+            for instance in manifest["instances"]
+            for state in instance["states"]
+        }
+        for summary_state in audit["states"]:
+            _append_state(
+                root, manifest, manifest_states, summary_state,
+                candidate_rows, state_rows, observation_failures,
+                seen_state_keys)
+
+    if observation_failures:
+        raise ValueError(
+            f"forced branches do not replay an identical state: "
+            f"{observation_failures[:5]}")
+    candidate_rows.sort(key=lambda row: (
+        row["instance"], row["algorithm_seed"], row["event"],
+        row["candidate_id"]))
+    state_rows.sort(key=lambda row: (
+        row["instance"], row["algorithm_seed"], row["event"]))
+    candidate_dimensions = {
+        row["feature_dimension"] for row in candidate_rows}
+    state_dimensions = {row["feature_dimension"] for row in state_rows}
+    if len(candidate_dimensions) != 1 or len(state_dimensions) != 1:
+        raise ValueError("inconsistent C dataset feature dimensions")
+
+    _write_jsonl(args.candidate_out, candidate_rows)
+    _write_jsonl(args.state_out, state_rows)
+    summary = {
+        "completed": True,
+        "source_roots": source_digests,
+        "algorithm_seeds": sorted({
+            row["algorithm_seed"] for row in state_rows}),
+        "instance_count": len({row["instance"] for row in state_rows}),
+        "state_count": len(state_rows),
+        "candidate_count": len(candidate_rows),
+        "override_count": sum(
+            not row["is_base_passthrough"] for row in candidate_rows),
+        "candidate_feature_dimension": candidate_dimensions.pop(),
+        "state_feature_dimension": state_dimensions.pop(),
+        "positive_any_states": sum(row["positive_any"] for row in state_rows),
+        "positive_5_states": sum(row["positive_5"] for row in state_rows),
+        "positive_10_states": sum(row["positive_10"] for row in state_rows),
+        "positive_override_candidates": sum(
+            (not row["is_base_passthrough"] and row["final_percent"] > EPSILON)
+            for row in candidate_rows),
+        "negative_override_candidates": sum(
+            (not row["is_base_passthrough"] and row["final_percent"] < -EPSILON)
+            for row in candidate_rows),
+        "candidate_dataset": str(args.candidate_out.resolve()),
+        "candidate_dataset_sha256": _sha256(args.candidate_out),
+        "state_dataset": str(args.state_out.resolve()),
+        "state_dataset_sha256": _sha256(args.state_out),
+        "fixed_state_replay_consistent": True,
+    }
+    args.summary.parent.mkdir(parents=True, exist_ok=True)
+    args.summary.write_text(
+        json.dumps(summary, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8")
+    print(json.dumps(summary, indent=2, allow_nan=False))
+
+
+def _append_state(root, manifest, manifest_states, summary_state,
+                  candidate_rows, state_rows, observation_failures,
+                  seen_state_keys):
         instance = summary_state["instance"]
         event = int(summary_state["event"])
         key = (instance, event)
@@ -102,7 +167,7 @@ def main(argv=None):
         if not branches:
             raise ValueError(f"state has no forced candidate branches: {key}")
         seed = int(manifest["algorithm_seed"])
-        state_root = args.root / instance / f"seed_{seed}" / f"event_{event}"
+        state_root = root / instance / f"seed_{seed}" / f"event_{event}"
         first_branch = branches[min(branches)]
         first_run = state_root / first_branch["run"]
         first_state = _policy_state(first_run, event)
@@ -117,6 +182,9 @@ def main(argv=None):
             observation, eligible_indices)
         relative = state_relative_features(absolute)
         state_key = f"{instance}:{seed}:{event}"
+        if state_key in seen_state_keys:
+            raise ValueError(f"duplicate state across source roots: {state_key}")
+        seen_state_keys.add(state_key)
         oracle = float(summary_state["audited_oracle_percent"])
         state_rows.append({
             "instance": instance,
@@ -181,54 +249,6 @@ def main(argv=None):
                 "final_percent": final_percent,
                 "is_base_passthrough": candidate_index == 0,
             })
-
-    if observation_failures:
-        raise ValueError(
-            f"forced branches do not replay an identical state: "
-            f"{observation_failures[:5]}")
-    candidate_rows.sort(key=lambda row: (
-        row["instance"], row["event"], row["candidate_id"]))
-    state_rows.sort(key=lambda row: (row["instance"], row["event"]))
-    candidate_dimensions = {
-        row["feature_dimension"] for row in candidate_rows}
-    state_dimensions = {row["feature_dimension"] for row in state_rows}
-    if len(candidate_dimensions) != 1 or len(state_dimensions) != 1:
-        raise ValueError("inconsistent C dataset feature dimensions")
-
-    _write_jsonl(args.candidate_out, candidate_rows)
-    _write_jsonl(args.state_out, state_rows)
-    summary = {
-        "completed": True,
-        "source_root": str(args.root.resolve()),
-        "source_audit_sha256": _sha256(audit_path),
-        "instance_count": len({row["instance"] for row in state_rows}),
-        "state_count": len(state_rows),
-        "candidate_count": len(candidate_rows),
-        "override_count": sum(
-            not row["is_base_passthrough"] for row in candidate_rows),
-        "candidate_feature_dimension": candidate_dimensions.pop(),
-        "state_feature_dimension": state_dimensions.pop(),
-        "positive_any_states": sum(row["positive_any"] for row in state_rows),
-        "positive_5_states": sum(row["positive_5"] for row in state_rows),
-        "positive_10_states": sum(row["positive_10"] for row in state_rows),
-        "positive_override_candidates": sum(
-            (not row["is_base_passthrough"] and row["final_percent"] > EPSILON)
-            for row in candidate_rows),
-        "negative_override_candidates": sum(
-            (not row["is_base_passthrough"] and row["final_percent"] < -EPSILON)
-            for row in candidate_rows),
-        "candidate_dataset": str(args.candidate_out.resolve()),
-        "candidate_dataset_sha256": _sha256(args.candidate_out),
-        "state_dataset": str(args.state_out.resolve()),
-        "state_dataset_sha256": _sha256(args.state_out),
-        "fixed_state_replay_consistent": True,
-    }
-    args.summary.parent.mkdir(parents=True, exist_ok=True)
-    args.summary.write_text(
-        json.dumps(summary, indent=2, allow_nan=False) + "\n",
-        encoding="utf-8")
-    print(json.dumps(summary, indent=2, allow_nan=False))
-
 
 if __name__ == "__main__":
     main()
