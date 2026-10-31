@@ -461,6 +461,10 @@ class CrossoverPlanningTests(unittest.TestCase):
             200, 20, 10, candidate_representation="path_v3")
         self.assertEqual(len(candidates), 2)
         self.assertEqual(candidates[0]["joint_action"], "base_passthrough")
+        self.assertEqual(candidates[0]["action_group"], "base")
+        self.assertTrue(candidates[0]["safe_action"])
+        self.assertEqual(candidates[1]["action_group"], "override")
+        self.assertFalse(candidates[1]["safe_action"])
         self.assertAlmostEqual(observation["action_prior"][0], 0.5)
         self.assertAlmostEqual(sum(observation["action_prior"]), 1.0)
         self.assertTrue(all(
@@ -468,8 +472,53 @@ class CrossoverPlanningTests(unittest.TestCase):
             for row in observation["candidates"]))
 
 
+class CrossoverActionGroupTests(unittest.TestCase):
+    def test_grouped_argmax_compares_total_group_mass(self):
+        from transformer_ppo.action_groups import grouped_argmax
+
+        candidates = [
+            {"action_group": "base", "safe_action": True},
+            {"action_group": "override", "safe_action": False},
+            {"action_group": "override", "safe_action": False},
+            {"action_group": "override", "safe_action": False},
+        ]
+        action, diagnostics = grouped_argmax(
+            candidates, [0.40, 0.25, 0.20, 0.15])
+        self.assertEqual(action, 1)
+        self.assertEqual(diagnostics["selected_group"], "override")
+        self.assertAlmostEqual(diagnostics["masses"]["base"], 0.40)
+        self.assertAlmostEqual(diagnostics["masses"]["override"], 0.60)
+
+    def test_grouped_argmax_margin_falls_back_to_safe_group(self):
+        from transformer_ppo.action_groups import grouped_argmax
+
+        candidates = [
+            {"action_group": "base", "safe_action": True},
+            {"action_group": "override", "safe_action": False},
+            {"action_group": "override", "safe_action": False},
+        ]
+        action, diagnostics = grouped_argmax(
+            candidates, [0.40, 0.35, 0.25], margin=0.25)
+        self.assertEqual(action, 0)
+        self.assertEqual(diagnostics["selected_group"], "base")
+
+    def test_grouped_argmax_tie_falls_back_to_safe_group(self):
+        from transformer_ppo.action_groups import grouped_argmax
+
+        candidates = [
+            {"action_group": "base", "safe_action": True},
+            {"action_group": "override", "safe_action": False},
+            {"action_group": "override", "safe_action": False},
+        ]
+        action, diagnostics = grouped_argmax(
+            candidates, [0.50, 0.30, 0.20])
+        self.assertEqual(action, 0)
+        self.assertEqual(diagnostics["selected_group"], "base")
+
+
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")
 class CrossoverPPOSequenceTests(unittest.TestCase):
+
     def test_one_terminal_reward_is_not_duplicated_across_subdecisions(self):
         from transformer_ppo.config import PPOConfig
         from transformer_ppo.ppo import PPOTrainer

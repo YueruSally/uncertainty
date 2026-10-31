@@ -22,13 +22,14 @@ def _normalizer(path):
 
 
 def _load(path, component, device, inference_action_mode,
-          inference_policy_seed):
+          inference_policy_seed, grouped_argmax_margin):
     if path is None or not path.is_file():
         raise ValueError(f"{component} checkpoint is missing: {path}")
     trainer = PPOTrainer.load(
         path, PPOConfig, lambda *_: None, device=device, training=False,
         inference_action_mode=inference_action_mode,
-        inference_policy_seed=inference_policy_seed)
+        inference_policy_seed=inference_policy_seed,
+        grouped_argmax_margin=grouped_argmax_margin)
     if trainer.component != component:
         raise ValueError(
             f"checkpoint {path} is component {trainer.component}, expected {component}")
@@ -69,6 +70,11 @@ def main(argv=None):
     parser.add_argument(
         "--inference-policy-seed", type=int, default=0,
         help="Private action-sampling seed used only when mode=sample.")
+    parser.add_argument(
+        "--inference-group-margin", type=float, default=0.0,
+        help=("Grouped argmax safety margin. For policies declaring a safe "
+              "action group, an alternative group must exceed its total "
+              "probability by this margin or inference falls back to safe."))
     parser.add_argument("--evaluation-budget", type=int, default=15_000)
     parser.add_argument(
         "--evaluation-mode", choices=("deterministic", "ccp100", "ccp"),
@@ -121,6 +127,8 @@ def main(argv=None):
             raise ValueError("candidate audit replicates must be positive")
         if args.candidate_audit_states and args.component != "M":
             raise ValueError("fixed-state candidate audit currently supports only M")
+        if not 0.0 <= args.inference_group_margin < 1.0:
+            raise ValueError("inference group margin must be in [0, 1)")
         if args.model_choice_event is not None:
             if args.model_choice_event < 1:
                 raise ValueError("model choice event must be a positive integer")
@@ -141,13 +149,15 @@ def main(argv=None):
                 name: _load(
                     checkpoint_paths[name], name, args.device,
                     args.inference_action_mode,
-                    args.inference_policy_seed + "ICM".index(name) + 1)
+                    args.inference_policy_seed + "ICM".index(name) + 1,
+                    args.inference_group_margin)
                 for name in args.component
             }
         else:
             trainer = _load(
                 args.checkpoint, args.component, args.device,
-                args.inference_action_mode, args.inference_policy_seed)
+                args.inference_action_mode, args.inference_policy_seed,
+                args.inference_group_margin)
         summary = run_episode(
             args.data, args.instance, args.out, trainer, normalizer,
             algorithm_seed=args.algorithm_seed,

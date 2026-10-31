@@ -55,6 +55,12 @@ class CrossoverPPOController(MutationLogger):
         self.positive_reward_actions = 0
         self.model_control_events = 0
         self.base_control_events = 0
+        self.joint_action_reward_stats = {
+            "base_passthrough": {"operations": 0, "positive": 0,
+                                 "reward_total": 0.0, "raw_hv_total": 0.0},
+            "single_cut_override": {"operations": 0, "positive": 0,
+                                    "reward_total": 0.0, "raw_hv_total": 0.0},
+        }
         super().__init__(
             *args, policy=trainer, evaluate_before_mutation=False,
             log_names=("crossover_outcomes", "crossover_candidates",
@@ -288,6 +294,8 @@ class CrossoverPPOController(MutationLogger):
                 candidate = dict(source)
                 candidate.update({
                     "joint_action": "single_cut_override",
+                    "action_group": "override",
+                    "safe_action": False,
                     "joint_cut_index": cut_index,
                     "joint_candidate_index": candidate_index,
                     "is_base_passthrough": 0.0,
@@ -307,6 +315,8 @@ class CrossoverPPOController(MutationLogger):
         passthrough = dict(first_cut.candidates[first_cut.shadow_base_index])
         passthrough.update({
             "joint_action": "base_passthrough",
+            "action_group": "base",
+            "safe_action": True,
             "joint_cut_index": None,
             "joint_candidate_index": None,
             "is_base_passthrough": 1.0,
@@ -356,7 +366,7 @@ class CrossoverPPOController(MutationLogger):
                     "control_branch": "model",
                     "model_choice_probability": self.model_choice_probability,
                     "crossover_control": (
-                        "single-joint-override-with-base-passthrough"),
+                        "hierarchical-single-joint-override-with-base-passthrough"),
                 })
                 chosen = joint_candidates[decision.chosen_index]
                 if chosen["joint_action"] == "single_cut_override":
@@ -434,10 +444,12 @@ class CrossoverPPOController(MutationLogger):
             "selected_cuts": selected_rows,
             "changed_by_crossover": bool(changed),
             "crossover_control": (
-                "single-joint-override-with-base-passthrough"),
+                "hierarchical-single-joint-override-with-base-passthrough"),
             "selected_joint_action": (
                 None if decision is None else
                 joint_candidates[decision.chosen_index]["joint_action"]),
+            "policy_metadata": (
+                None if decision is None else dict(decision.metadata)),
             "started": started,
         }
         if not cut_decisions:
@@ -471,6 +483,20 @@ class CrossoverPPOController(MutationLogger):
             (child2.objectives, bool(child2.feasible), child_fingerprints[1]),
         ])
         reward = hv_reward(update.delta_hv, self.reward_config)
+        joint_action = event.get("selected_joint_action")
+        if joint_action in self.joint_action_reward_stats:
+            stats = self.joint_action_reward_stats[joint_action]
+            base_stats = self.joint_action_reward_stats["base_passthrough"]
+            base_mean_before = (
+                None if base_stats["operations"] == 0 else
+                base_stats["reward_total"] / base_stats["operations"])
+            event["prior_base_reward_mean"] = base_mean_before
+            event["reward_minus_prior_base_mean"] = (
+                None if base_mean_before is None else reward - base_mean_before)
+            stats["operations"] += 1
+            stats["positive"] += int(reward > 0.0)
+            stats["reward_total"] += float(reward)
+            stats["raw_hv_total"] += float(update.delta_hv)
         if event["model_decisions"]:
             self.trainer.end_sequence(
                 reward, done=self.credit_assignment == "operation_terminal")
@@ -552,7 +578,7 @@ class CrossoverPPOController(MutationLogger):
             "ppo_updates_total": self.trainer.updates,
             "credit_assignment": self.credit_assignment,
             "crossover_control": (
-                "single-joint-override-with-base-passthrough"
+                "hierarchical-single-joint-override-with-base-passthrough"
                 if getattr(getattr(self.trainer, "config", None),
                            "candidate_representation", "legacy") == "path_v3"
                 else "per-cut"),
@@ -560,6 +586,7 @@ class CrossoverPPOController(MutationLogger):
             "model_choice_probability": self.model_choice_probability,
             "model_control_events": self.model_control_events,
             "base_control_events": self.base_control_events,
+            "joint_action_reward_stats": self.joint_action_reward_stats,
             "feature_construction_seconds": self.feature_construction_seconds,
             "ppo_update_seconds": self.ppo_update_seconds,
         }

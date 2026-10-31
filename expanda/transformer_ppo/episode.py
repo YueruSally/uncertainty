@@ -354,6 +354,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 "sample" if item.training else
                 getattr(item, "inference_action_mode", "argmax")),
             "policy_seed": getattr(item, "policy_seed", None),
+            "grouped_argmax_margin": float(getattr(
+                item, "grouped_argmax_margin", 0.0)),
         }
 
     policy_inference = (

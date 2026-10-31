@@ -163,7 +163,7 @@ def _run_config(args, config, manifests, records):
             "candidate-plus-global-plus-parent-pool"),
         "actor_policy": config.actor_policy,
         "crossover_control": (
-            "single-joint-override-with-base-passthrough"
+            "hierarchical-single-joint-override-with-base-passthrough"
             if args.component == "C"
             and config.candidate_representation == "path_v3" else
             "per-cut" if args.component == "C" else None),

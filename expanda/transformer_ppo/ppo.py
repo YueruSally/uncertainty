@@ -13,6 +13,7 @@ from torch.distributions import Categorical
 
 from multi_instance_policy import Decision
 
+from .action_groups import action_group_diagnostics, grouped_argmax
 from .models import TRANSFORMER_ACTOR_CONDITIONING, build_model
 from .observations import (
     CANDIDATE_FEATURES, GLOBAL_FEATURES, PARENT_FEATURES, pad_observations,
@@ -34,11 +35,14 @@ class Transition:
 class PPOTrainer:
     def __init__(self, architecture, config, observation_provider, device=None,
                  policy_seed=0, training=True, component="M", model_spec=None,
-                 inference_action_mode="argmax", supervised_prior=None):
+                 inference_action_mode="argmax", supervised_prior=None,
+                 grouped_argmax_margin=0.0):
         config.validate()
         if inference_action_mode not in ("argmax", "sample"):
             raise ValueError(
                 "inference_action_mode must be 'argmax' or 'sample'")
+        if not 0.0 <= float(grouped_argmax_margin) < 1.0:
+            raise ValueError("grouped_argmax_margin must be in [0, 1)")
         self.architecture, self.config = architecture, config
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         # The policy owns its random streams.  In particular, PPO minibatch and
@@ -78,6 +82,7 @@ class PPOTrainer:
         self.pending = None
         self.training = bool(training)
         self.inference_action_mode = str(inference_action_mode)
+        self.grouped_argmax_margin = float(grouped_argmax_margin)
         self.policy_seed = int(policy_seed)
         self.updates = 0
         self.sequence_depth = 0
@@ -137,11 +142,22 @@ class PPOTrainer:
             distribution, value = self._distribution(observation)
             sample_action = (
                 self.training or self.inference_action_mode == "sample")
-            action = (torch.multinomial(
-                distribution.probs, 1, generator=self.action_generator).squeeze(-1)
-                if sample_action else torch.argmax(distribution.logits, dim=-1))
+            probabilities_tensor = distribution.probs.squeeze(0)
+            probabilities = probabilities_tensor.cpu().tolist()
+            group_diagnostics = action_group_diagnostics(
+                candidates, probabilities)
+            if sample_action:
+                action = torch.multinomial(
+                    distribution.probs, 1,
+                    generator=self.action_generator).squeeze(-1)
+            else:
+                action_index, grouped_diagnostics = grouped_argmax(
+                    candidates, probabilities, self.grouped_argmax_margin)
+                action = torch.as_tensor(
+                    [action_index], dtype=torch.long, device=self.device)
+                if grouped_diagnostics is not None:
+                    group_diagnostics = grouped_diagnostics
             log_probability = distribution.log_prob(action)
-            probabilities = distribution.probs.squeeze(0).cpu().tolist()
             entropy = distribution.entropy().item()
         self.pending = {
             "observation": observation, "action": int(action.item()),
@@ -149,6 +165,9 @@ class PPOTrainer:
         self.pending["old_probabilities"] = tuple(float(x) for x in probabilities)
         if self.sequence_depth:
             self.sequence_policy_actions += 1
+        selected_group = (
+            None if group_diagnostics is None else
+            group_diagnostics["groups"][int(action.item())])
         return Decision(int(action.item()), probabilities, [None] * len(probabilities), {
             "no_eligible_candidate": False, "fallback": None,
             "decision_kind": "model_choice",
@@ -161,6 +180,13 @@ class PPOTrainer:
             "mutation_control": self.config.mutation_control,
             "supervised_prior": prior_diagnostics,
             "policy_update": self.updates, "architecture": self.architecture,
+            "action_group_probabilities": (
+                None if group_diagnostics is None else
+                group_diagnostics["masses"]),
+            "selected_action_group": selected_group,
+            "grouped_argmax": bool(
+                not sample_action and group_diagnostics is not None),
+            "grouped_argmax_margin": self.grouped_argmax_margin,
             "inference_seconds": time.perf_counter() - inference_started,
         })
 
@@ -469,7 +495,7 @@ class PPOTrainer:
     @classmethod
     def load(cls, path, config_type, observation_provider, device=None,
              training=False, inference_action_mode="argmax",
-             inference_policy_seed=0):
+             inference_policy_seed=0, grouped_argmax_margin=0.0):
         path = Path(path)
         try:
             artifact = torch.load(
@@ -489,6 +515,7 @@ class PPOTrainer:
             artifact["architecture"], config, observation_provider,
             device=device, policy_seed=inference_policy_seed,
             training=training, inference_action_mode=inference_action_mode,
+            grouped_argmax_margin=grouped_argmax_margin,
             component=artifact.get("component", "M"),
             model_spec=artifact.get("model_spec"),
             supervised_prior=artifact.get("supervised_prior"))
