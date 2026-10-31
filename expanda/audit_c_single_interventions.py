@@ -41,7 +41,8 @@ def _short_id(instance_id: str):
 
 
 def _command(args, instance_path, run, seed, component, policy_seed=0,
-             model_choice_probability=None, model_choice_event=None):
+             model_choice_probability=None, model_choice_event=None,
+             forced_candidate_index=None):
     result = [
         sys.executable, "-u", str(args.runner),
         "--instance", str(instance_path),
@@ -69,6 +70,11 @@ def _command(args, instance_path, run, seed, component, policy_seed=0,
             "--model-choice-probability", str(model_choice_probability)])
     if model_choice_event is not None:
         result.extend(["--model-choice-event", str(model_choice_event)])
+    if forced_candidate_index is not None:
+        result.extend([
+            "--c-forced-joint-candidate-index",
+            str(forced_candidate_index),
+        ])
     return result
 
 
@@ -84,7 +90,7 @@ def _target_outcome(run: Path, event: int):
 
 
 def _valid_complete(run: Path, seed: int, component: str,
-                    model_choice_event=None):
+                    model_choice_event=None, forced_candidate_index=None):
     marker_path = run / "COMPLETE.json"
     config_path = run / "configuration.json"
     if not marker_path.is_file() or not config_path.is_file():
@@ -109,14 +115,18 @@ def _valid_complete(run: Path, seed: int, component: str,
                     valid and target.get("model_decisions") == 1
                     and len(model_rows) == 1
                 )
+                if forced_candidate_index is not None:
+                    valid = valid and int(
+                        target.get("selected_joint_candidate_index", -1)
+                    ) == int(forced_candidate_index)
         return bool(valid)
     except (OSError, TypeError, ValueError, RuntimeError):
         return False
 
 
 def _run_job(job):
-    run, log, command, seed, component, event = job
-    if _valid_complete(run, seed, component, event):
+    run, log, command, seed, component, event, forced = job
+    if _valid_complete(run, seed, component, event, forced):
         return run, "existing"
     if run.exists():
         raise RuntimeError(
@@ -131,7 +141,7 @@ def _run_job(job):
             stdout=handle, stderr=subprocess.STDOUT,
             env=environment, check=False)
     if completed.returncode != 0 or not _valid_complete(
-            run, seed, component, event):
+            run, seed, component, event, forced):
         raise RuntimeError(
             f"run failed with exit {completed.returncode}; inspect {log}")
     return run, "complete"
@@ -151,11 +161,13 @@ def _execute(jobs, workers, stage):
     return counts
 
 
-def _spread_events(base_run: Path, count: int):
+def _spread_events(base_run: Path, count: int, maximum_generation=None):
     rows = [
         row for row in _jsonl(base_run / "crossover_outcomes.jsonl")
         if int(row.get("joint_candidate_count", 0)) >= 2
         and row.get("crossover_event_index") is not None
+        and (maximum_generation is None
+             or int(row.get("generation", -1)) <= maximum_generation)
     ]
     rows.sort(key=lambda row: int(row["crossover_event_index"]))
     if len(rows) < count:
@@ -214,8 +226,14 @@ def _analyse(args, manifest):
         for state in instance["states"]:
             event = int(state["event"])
             records = []
-            for policy_seed in args.policy_seeds:
-                run = root / f"event_{event}" / f"policy_{policy_seed}"
+            branches = state.get("branches") or [{
+                "run": f"policy_{policy_seed}",
+                "policy_seed": policy_seed,
+                "forced_candidate_index": None,
+            } for policy_seed in args.policy_seeds]
+            for branch in branches:
+                policy_seed = int(branch["policy_seed"])
+                run = root / f"event_{event}" / branch["run"]
                 marker = _read(run / "COMPLETE.json")
                 config = _read(run / "configuration.json")
                 if config["scenario_digest"] != base_digest:
@@ -225,6 +243,8 @@ def _analyse(args, manifest):
                 signature = _action_signature(outcome)
                 record = {
                     "policy_seed": policy_seed,
+                    "forced_candidate_index": branch.get(
+                        "forced_candidate_index"),
                     "action": outcome.get("selected_joint_action"),
                     "action_signature": signature,
                     "final_hv": final_hv,
@@ -297,11 +317,11 @@ def _analyse(args, manifest):
     summary = {
         "completed": True,
         "definition": (
-            "sampled one-shot C action followed by exact Base control to the "
+            "one-shot C action followed by exact Base control to the "
             "same final search budget"),
         "instance_count": len(manifest["instances"]),
         "state_count": len(states),
-        "branch_run_count": len(states) * len(args.policy_seeds),
+        "branch_run_count": sum(row["sampled_runs"] for row in states),
         "distinct_override_count": sum(
             row["distinct_overrides"] for row in states),
         "mean_audited_oracle_percent": statistics.fmean(oracle_values),
@@ -344,6 +364,13 @@ def main(argv=None):
     parser.add_argument("--policy-seeds", nargs="+", type=int, default=tuple(
         range(29101, 29117)))
     parser.add_argument("--states-per-instance", type=int, default=4)
+    parser.add_argument(
+        "--maximum-generation", type=int,
+        help="Restrict selected crossover states to this generation or earlier.")
+    parser.add_argument(
+        "--force-unique-overrides", action="store_true",
+        help=("Deterministically execute distinct override candidate indices "
+              "instead of repeatedly sampling the policy."))
     parser.add_argument("--max-workers", type=int, default=8)
     parser.add_argument("--evaluation-budget", type=int, default=400)
     parser.add_argument("--evaluation-mode", choices=("ccp", "ccp100"),
@@ -362,6 +389,8 @@ def main(argv=None):
     if (args.states_per_instance < 1 or args.max_workers < 1
             or not args.policy_seeds):
         parser.error("states, workers, and policy seeds must be positive")
+    if args.maximum_generation is not None and args.maximum_generation < 0:
+        parser.error("maximum generation cannot be negative")
     for path, label in ((args.normalization, "normalization"),
                         (args.checkpoint, "checkpoint"),
                         (args.runner, "runner")):
@@ -388,7 +417,7 @@ def main(argv=None):
                 model_choice_probability=probability)
             control_jobs.append((
                 run, run.with_suffix(".nohup.log"), command,
-                args.algorithm_seed, component, None))
+                args.algorithm_seed, component, None, None))
     control_counts = _execute(
         control_jobs, min(args.max_workers, len(control_jobs)), "CONTROL")
 
@@ -402,7 +431,9 @@ def main(argv=None):
     branch_jobs = []
     for instance_id, short, instance_path in specifications:
         root = args.out / short / f"seed_{args.algorithm_seed}"
-        selected = _spread_events(root / "P000", args.states_per_instance)
+        selected = _spread_events(
+            root / "P000", args.states_per_instance,
+            maximum_generation=args.maximum_generation)
         state_rows = []
         for row in selected:
             event = int(row["crossover_event_index"])
@@ -411,14 +442,34 @@ def main(argv=None):
                 "generation": int(row.get("generation", -1)),
                 "joint_candidate_count": int(row["joint_candidate_count"]),
             })
-            for policy_seed in args.policy_seeds:
-                run = root / f"event_{event}" / f"policy_{policy_seed}"
+            forced_indices = (
+                list(range(1, min(
+                    int(row["joint_candidate_count"]),
+                    len(args.policy_seeds) + 1)))
+                if args.force_unique_overrides else
+                [None] * len(args.policy_seeds)
+            )
+            branches = []
+            for policy_seed, forced_index in zip(
+                    args.policy_seeds, forced_indices):
+                leaf = (
+                    f"candidate_{forced_index}"
+                    if forced_index is not None else
+                    f"policy_{policy_seed}")
+                run = root / f"event_{event}" / leaf
                 command = _command(
                     args, instance_path, run, args.algorithm_seed, "C",
-                    policy_seed=policy_seed, model_choice_event=event)
+                    policy_seed=policy_seed, model_choice_event=event,
+                    forced_candidate_index=forced_index)
                 branch_jobs.append((
                     run, run.with_suffix(".nohup.log"), command,
-                    args.algorithm_seed, "C", event))
+                    args.algorithm_seed, "C", event, forced_index))
+                branches.append({
+                    "run": leaf,
+                    "policy_seed": policy_seed,
+                    "forced_candidate_index": forced_index,
+                })
+            state_rows[-1]["branches"] = branches
         manifest["instances"].append({
             "instance_id": instance_id, "short_id": short,
             "states": state_rows,

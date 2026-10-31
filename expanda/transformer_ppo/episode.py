@@ -162,6 +162,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 initialization_learning_rule_top_k=None,
                 model_choice_probabilities=None,
                 model_choice_event=None,
+                c_forced_joint_candidate_index=None,
                 learning_protocol_version=None,
                 candidate_audit=None,
                 scenario_count=None,
@@ -266,6 +267,14 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         if probabilities[component] != 1.0:
             raise ValueError(
                 "model choice event cannot be combined with probability gating")
+    if c_forced_joint_candidate_index is not None:
+        c_forced_joint_candidate_index = int(c_forced_joint_candidate_index)
+        if c_forced_joint_candidate_index < 0:
+            raise ValueError("forced C joint candidate index cannot be negative")
+        if component != "C" or model_choice_event is None:
+            raise ValueError(
+                "forced C joint candidate index requires component C and a "
+                "model choice event")
     if out.exists() and any(out.iterdir()):
         raise ValueError(f"episode output directory must be empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
@@ -454,6 +463,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 for name in sorted(allowed_probability_components)
             },
             "model_choice_event": model_choice_event,
+            "c_forced_joint_candidate_index": c_forced_joint_candidate_index,
             "control_random_stream": "private-sha256-seeded",
         },
         "candidate_audit": (
@@ -507,6 +517,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             if component == "C":
                 controller_options["crossover_reward_mode"] = (
                     crossover_reward_mode)
+                controller_options["forced_joint_candidate_index"] = (
+                    c_forced_joint_candidate_index)
             if component in ("C", "M"):
                 controller_options["model_choice_event"] = model_choice_event
             if component == "M" and audit["states"]:

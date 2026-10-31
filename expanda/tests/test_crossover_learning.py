@@ -442,6 +442,44 @@ class CrossoverPlanningTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_forced_joint_candidate_index_executes_unique_override(self):
+        from transformer_ppo.archive import RewardArchive, RewardConfig
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        trainer = _FakeTrainer()
+        trainer.chosen_index = 0
+        trainer.config = SimpleNamespace(
+            credit_assignment="operation_terminal",
+            candidate_representation="path_v3")
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        lookup = {
+            (arc.from_node, arc.to_node, arc.mode): arc
+            for path in (self.path1, self.path2) for arc in path.arcs
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CrossoverPPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[self.batch], generations=2, pop_size=2,
+                method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0},
+                seeds={"algorithm": 17}, model_choice_event=1,
+                forced_joint_candidate_index=1)
+            try:
+                controller.crossover_common_node(
+                    self.parent1, self.parent2, [self.batch], {}, lookup)
+                event = controller._active_event
+                self.assertEqual(event["selected_joint_candidate_index"], 1)
+                self.assertEqual(
+                    event["selected_joint_action"], "single_cut_override")
+                self.assertEqual(
+                    event["policy_metadata"]["forced_joint_candidate_index"], 1)
+            finally:
+                controller.close()
+
     def test_path_v3_base_passthrough_replays_exact_base_children_and_rng(self):
         from multi_instance_logging import fingerprint
         from transformer_ppo.archive import RewardArchive, RewardConfig

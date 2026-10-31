@@ -57,6 +57,10 @@ def main(argv=None):
         "--model-choice-event", type=int,
         help=("C/M one-shot diagnostic: use the model exactly at this global "
               "component-call index and Base at every other call."))
+    parser.add_argument(
+        "--c-forced-joint-candidate-index", type=int,
+        help=("C-only one-shot diagnostic: at --model-choice-event execute "
+              "this deterministic joint candidate index instead of sampling."))
     parser.add_argument("--checkpoint", type=Path,
                         help="Checkpoint for a single I, C, or M run.")
     parser.add_argument("--i-checkpoint", type=Path)
@@ -137,6 +141,13 @@ def main(argv=None):
             if args.model_choice_probability != 1.0:
                 raise ValueError(
                     "model choice event cannot be combined with probability gating")
+        if args.c_forced_joint_candidate_index is not None:
+            if args.c_forced_joint_candidate_index < 0:
+                raise ValueError("forced C joint candidate index cannot be negative")
+            if args.component != "C" or args.model_choice_event is None:
+                raise ValueError(
+                    "forced C joint candidate index requires component C and "
+                    "--model-choice-event")
         if args.component in ("BASE", "RULE-I"):
             trainer = None
         elif len(args.component) > 1:
@@ -174,6 +185,8 @@ def main(argv=None):
                 if args.initialization_rule_top_k is not None else None),
             initialization_learning_rule_top_k=args.initialization_rule_top_k,
             model_choice_event=args.model_choice_event,
+            c_forced_joint_candidate_index=(
+                args.c_forced_joint_candidate_index),
             model_choice_probabilities=(
                 {args.component: args.model_choice_probability}
                 if args.component in ("C", "M") else

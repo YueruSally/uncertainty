@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import math
 import random
 import time
 
@@ -27,6 +28,7 @@ class CrossoverPPOController(MutationLogger):
                  reward_config: RewardConfig, batches, generations, pop_size,
                  graph_observation=None, model_choice_probability=1.0,
                  model_choice_event=None,
+                 forced_joint_candidate_index=None,
                  crossover_reward_mode="archive_hv",
                  **kwargs):
         self.trainer = trainer
@@ -47,6 +49,15 @@ class CrossoverPPOController(MutationLogger):
                 and self.model_choice_probability != 1.0):
             raise ValueError(
                 "model_choice_event cannot be combined with probability gating")
+        self.forced_joint_candidate_index = (
+            None if forced_joint_candidate_index is None
+            else int(forced_joint_candidate_index))
+        if self.forced_joint_candidate_index is not None:
+            if self.forced_joint_candidate_index < 0:
+                raise ValueError("forced joint candidate index cannot be negative")
+            if self.model_choice_event is None:
+                raise ValueError(
+                    "forced joint candidate index requires model_choice_event")
         if crossover_reward_mode not in (
                 "archive_hv", "paired_base_relative",
                 "paired_archive_then_quality"):
@@ -390,6 +401,29 @@ class CrossoverPPOController(MutationLogger):
             }
             try:
                 decision = self.trainer.choose(joint_candidates, context)
+                if self.forced_joint_candidate_index is not None:
+                    forced = self.forced_joint_candidate_index
+                    if forced >= len(joint_candidates):
+                        raise ValueError(
+                            f"forced C joint candidate index {forced} is out of "
+                            f"range for {len(joint_candidates)} candidates")
+                    decision.chosen_index = forced
+                    decision.metadata.update({
+                        "forced_joint_candidate_index": forced,
+                        "diagnostic_forced_action": True,
+                        "selected_action_group": joint_candidates[forced].get(
+                            "action_group"),
+                    })
+                    forced_probability = float(decision.probabilities[forced])
+                    if forced_probability > 0.0:
+                        forced_log_probability = math.log(forced_probability)
+                        decision.metadata["old_log_probability"] = (
+                            forced_log_probability)
+                        pending = getattr(self.trainer, "pending", None)
+                        if isinstance(pending, dict):
+                            pending["action"] = forced
+                            pending["old_log_probability"] = (
+                                forced_log_probability)
                 decision.metadata.update({
                     "control_branch": "model",
                     "model_choice_probability": self.model_choice_probability,
@@ -530,6 +564,7 @@ class CrossoverPPOController(MutationLogger):
             "event_id": event_id,
             "crossover_event_index": self.event_count,
             "model_choice_event": self.model_choice_event,
+            "forced_joint_candidate_index": self.forced_joint_candidate_index,
             "joint_candidate_count": len(joint_candidates),
             "generation": self.generation,
             "children": (child1, child2),
