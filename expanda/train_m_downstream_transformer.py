@@ -123,10 +123,14 @@ def _rank_loss(torch, logits, targets, target_mask, temperature):
     signs = differences.sign()
     paired_mask = target_mask.unsqueeze(2) & target_mask.unsqueeze(1)
     informative = (differences.abs() > EPSILON) & paired_mask
-    score_differences = logits.unsqueeze(2) - logits.unsqueeze(1)
+    safe_logits = logits.masked_fill(~target_mask, 0.0)
+    score_differences = (
+        safe_logits.unsqueeze(2) - safe_logits.unsqueeze(1))
     pair_losses = torch.nn.functional.softplus(
         -score_differences * signs)
-    pair_loss = pair_losses[informative].mean() if informative.any() else logits.sum() * 0.0
+    pair_loss = (
+        pair_losses[informative].mean()
+        if informative.any() else logits.new_zeros(()))
     # A small listwise term distinguishes the best downstream candidates.
     masked_targets = (targets / temperature).masked_fill(
         ~target_mask, torch.finfo(targets.dtype).min)
@@ -156,6 +160,10 @@ def _evaluate(model, rows, device, batch_size, gate_threshold,
             for offset, item in enumerate(group):
                 labels = np.asarray(item["labels"], dtype=float)
                 candidate_scores = scores[offset, :len(labels)]
+                if not np.isfinite(candidate_scores).all():
+                    raise FloatingPointError(
+                        "non-finite M downstream validation score: "
+                        f"state={item['state_key']} scores={candidate_scores}")
                 if training_objective == "regression_sign":
                     candidate_scores = candidate_scores * score_scale
                     maximum_prediction = float(np.max(candidate_scores))
@@ -322,13 +330,21 @@ def main(argv=None):
                     sign_loss = candidate_sign_loss_function(
                         logits[label_mask],
                         (labels[label_mask] > EPSILON).to(logits.dtype))
-                    gate_loss = logits.sum() * 0.0
+                    gate_loss = logits.new_zeros(())
                     loss = rank_loss + regression_loss + 0.5 * sign_loss
                 else:
-                    regression_loss = logits.sum() * 0.0
-                    sign_loss = logits.sum() * 0.0
+                    regression_loss = logits.new_zeros(())
+                    sign_loss = logits.new_zeros(())
                     gate_loss = gate_loss_function(gate_logits, gate_targets)
                     loss = rank_loss + args.gate_weight * gate_loss
+                if not torch.isfinite(loss):
+                    keys = [item["state_key"] for item in group]
+                    raise FloatingPointError(
+                        "non-finite M downstream loss before optimizer step: "
+                        f"states={keys} rank={float(rank_loss.detach().cpu())} "
+                        f"gate={float(gate_loss.detach().cpu())} "
+                        f"regression={float(regression_loss.detach().cpu())} "
+                        f"sign={float(sign_loss.detach().cpu())}")
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)

@@ -1,6 +1,6 @@
 import unittest
 
-from train_m_downstream_transformer import subset_observation
+from train_m_downstream_transformer import _rank_loss, subset_observation
 
 
 class MutationDownstreamTransformerTests(unittest.TestCase):
@@ -33,6 +33,23 @@ class MutationDownstreamTransformerTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "not eligible"):
             subset_observation(observation, [1])
+
+    def test_rank_loss_is_finite_with_padding_and_no_informative_pairs(self):
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("torch is unavailable")
+        logits = torch.tensor([
+            [0.1, 0.2, torch.finfo(torch.float32).min],
+            [0.3, torch.finfo(torch.float32).min,
+             torch.finfo(torch.float32).min],
+        ])
+        targets = torch.tensor([[1.0, 2.0, 0.0], [0.0, 0.0, 0.0]])
+        mask = torch.tensor([
+            [True, True, False], [True, False, False],
+        ])
+        loss = _rank_loss(torch, logits, targets, mask, 2.0)
+        self.assertTrue(torch.isfinite(loss))
 
 
 if __name__ == "__main__":
