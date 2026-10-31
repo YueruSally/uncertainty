@@ -140,6 +140,8 @@ class PPOController(MutationLogger):
         if (self.model_choice_probability < 1.0
                 or self.model_choice_event is not None):
             self.decision_counts["base_mixture_choice"] = 0
+        if self.forced_operator is not None:
+            self.decision_counts["forced_operator_choice"] = 0
         trainer.observation_provider = self._observation
 
     def _next_control_branch(self):
