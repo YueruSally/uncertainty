@@ -1,6 +1,11 @@
 import unittest
 
-from train_m_downstream_transformer import _rank_loss, subset_observation
+from train_m_downstream_transformer import (
+    _rank_loss,
+    _safe_anchor_loss,
+    _safe_quantile_loss,
+    subset_observation,
+)
 
 
 class MutationDownstreamTransformerTests(unittest.TestCase):
@@ -50,6 +55,28 @@ class MutationDownstreamTransformerTests(unittest.TestCase):
         ])
         loss = _rank_loss(torch, logits, targets, mask, 2.0)
         self.assertTrue(torch.isfinite(loss))
+
+    def test_safe_base_losses_are_finite_and_penalise_false_positive(self):
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("torch is unavailable")
+        mask = torch.tensor([[True, True]])
+        targets = torch.tensor([[5.0, -5.0]])
+        correct = torch.tensor([[1.0, -1.0]])
+        wrong = torch.tensor([[-1.0, 1.0]])
+        correct_anchor = _safe_anchor_loss(
+            torch, correct, targets, mask, 0.1, 3.0)
+        wrong_anchor = _safe_anchor_loss(
+            torch, wrong, targets, mask, 0.1, 3.0)
+        correct_quantile = _safe_quantile_loss(
+            torch, correct, targets, mask, 0.25, 3.0, 10.0)
+        wrong_quantile = _safe_quantile_loss(
+            torch, wrong, targets, mask, 0.25, 3.0, 10.0)
+        self.assertTrue(torch.isfinite(correct_anchor))
+        self.assertTrue(torch.isfinite(correct_quantile))
+        self.assertLess(correct_anchor, wrong_anchor)
+        self.assertLess(correct_quantile, wrong_quantile)
 
 
 if __name__ == "__main__":

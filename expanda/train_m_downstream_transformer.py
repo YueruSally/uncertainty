@@ -2,10 +2,10 @@
 """Train the real path-v4 M Transformer on audited downstream CCP labels.
 
 Each leave-one-instance-out fold starts from the same M checkpoint.  The actor
-ranks the ten audited replacement-path candidates in each saved state, while
-the existing critic context predicts whether the state's audited oracle is at
-least ``gate_threshold`` percent better than exact Base.  No new objective
-evaluation is performed by this script.
+ranks the ten audited replacement-path candidates in each saved state.  The
+``safe_base_anchor`` objective additionally treats exact Base as a fixed
+zero-gain action, so deployment intervenes only when the best predicted
+candidate gain is positive.  No new objective evaluation is performed here.
 """
 from __future__ import annotations
 
@@ -141,6 +141,44 @@ def _rank_loss(torch, logits, targets, target_mask, temperature):
     return pair_loss + 0.25 * list_loss
 
 
+def _safe_anchor_loss(torch, logits, targets, target_mask, margin,
+                      negative_weight):
+    """Rank every audited candidate against a fixed zero-gain Base action."""
+    candidate_logits = logits[target_mask]
+    candidate_targets = targets[target_mask]
+    signs = torch.where(
+        candidate_targets > EPSILON,
+        torch.ones_like(candidate_targets),
+        -torch.ones_like(candidate_targets))
+    weights = torch.where(
+        candidate_targets > EPSILON,
+        torch.ones_like(candidate_targets),
+        torch.full_like(candidate_targets, float(negative_weight)))
+    losses = torch.nn.functional.softplus(
+        -(signs * candidate_logits - float(margin)))
+    return (losses * weights).sum() / weights.sum().clamp_min(1.0)
+
+
+def _safe_quantile_loss(torch, logits, targets, target_mask, quantile,
+                        negative_weight, score_scale):
+    """Conservatively regress candidate gain, penalising overprediction."""
+    candidate_logits = logits[target_mask]
+    candidate_targets = torch.clamp(
+        targets[target_mask] / score_scale, min=-3.0, max=3.0)
+    errors = candidate_targets - candidate_logits
+    losses = torch.maximum(
+        float(quantile) * errors,
+        (float(quantile) - 1.0) * errors)
+    magnitude = 1.0 + torch.clamp(
+        targets[target_mask].abs() / 5.0, max=4.0)
+    safety = torch.where(
+        targets[target_mask] > EPSILON,
+        torch.ones_like(candidate_targets),
+        torch.full_like(candidate_targets, float(negative_weight)))
+    weights = magnitude * safety
+    return (losses * weights).sum() / weights.sum().clamp_min(1.0)
+
+
 def _evaluate(model, rows, device, batch_size, gate_threshold,
               training_objective, score_scale):
     import torch
@@ -164,7 +202,8 @@ def _evaluate(model, rows, device, batch_size, gate_threshold,
                     raise FloatingPointError(
                         "non-finite M downstream validation score: "
                         f"state={item['state_key']} scores={candidate_scores}")
-                if training_objective == "regression_sign":
+                if training_objective in (
+                        "regression_sign", "safe_base_anchor"):
                     candidate_scores = candidate_scores * score_scale
                     maximum_prediction = float(np.max(candidate_scores))
                     gate_probability = 1.0 / (
@@ -186,6 +225,8 @@ def _evaluate(model, rows, device, batch_size, gate_threshold,
                     "selected_position": selected,
                     "selected_candidate_index": item["candidate_indices"][selected],
                     "selected_gain_percent": float(labels[selected]),
+                    "maximum_predicted_gain_percent": float(
+                        np.max(candidate_scores)),
                     "oracle_percent": float(item["oracle_percent"]),
                     "gate_target": bool(item["oracle_percent"] >= gate_threshold),
                     "gate_probability": gate_probability,
@@ -208,14 +249,22 @@ def main(argv=None):
     parser.add_argument("--gate-weight", type=float, default=1.0)
     parser.add_argument(
         "--training-objective",
-        choices=("pairwise_gate", "regression_sign"),
+        choices=(
+            "pairwise_gate", "regression_sign", "safe_base_anchor"),
         default="pairwise_gate")
     parser.add_argument("--score-scale", type=float, default=10.0)
+    parser.add_argument("--safe-quantile", type=float, default=0.25)
+    parser.add_argument("--safe-margin", type=float, default=0.10)
+    parser.add_argument("--safe-negative-weight", type=float, default=3.0)
     parser.add_argument("--seed", type=int, default=9971)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
     if args.epochs < 1 or args.batch_size < 1 or args.score_scale <= 0:
         parser.error("epochs and batch-size must be positive")
+    if not 0.0 < args.safe_quantile < 0.5:
+        parser.error("safe-quantile must be in (0, 0.5)")
+    if args.safe_margin < 0.0 or args.safe_negative_weight < 1.0:
+        parser.error("safe-margin must be nonnegative and safe-negative-weight >= 1")
     if not args.checkpoint.is_file():
         parser.error(f"checkpoint not found: {args.checkpoint}")
 
@@ -258,7 +307,8 @@ def main(argv=None):
         if trainer.config.mutation_control != "replace_path":
             raise ValueError("checkpoint does not use replace_path M control")
         model = trainer.model
-        if args.training_objective == "regression_sign":
+        if args.training_objective in (
+                "regression_sign", "safe_base_anchor"):
             # Predict downstream gain directly rather than adding the old Base
             # action prior to an otherwise uncalibrated residual score.
             model.actor_policy = "direct"
@@ -291,6 +341,7 @@ def main(argv=None):
             epoch_gate = 0.0
             epoch_regression = 0.0
             epoch_sign = 0.0
+            epoch_anchor = 0.0
             numerical_fallback_groups = 0
             steps = 0
             pending_groups = list(_batches(
@@ -336,9 +387,35 @@ def main(argv=None):
                         (labels[label_mask] > EPSILON).to(logits.dtype))
                     gate_loss = logits.new_zeros(())
                     loss = rank_loss + regression_loss + 0.5 * sign_loss
+                    anchor_loss = logits.new_zeros(())
+                elif args.training_objective == "safe_base_anchor":
+                    regression_loss = _safe_quantile_loss(
+                        torch, logits, labels, label_mask,
+                        args.safe_quantile, args.safe_negative_weight,
+                        args.score_scale)
+                    sign_elements = torch.nn.functional.binary_cross_entropy_with_logits(
+                        logits[label_mask],
+                        (labels[label_mask] > EPSILON).to(logits.dtype),
+                        reduction="none")
+                    sign_weights = torch.where(
+                        labels[label_mask] > EPSILON,
+                        torch.ones_like(sign_elements),
+                        torch.full_like(
+                            sign_elements, args.safe_negative_weight))
+                    sign_loss = (
+                        (sign_elements * sign_weights).sum()
+                        / sign_weights.sum().clamp_min(1.0))
+                    anchor_loss = _safe_anchor_loss(
+                        torch, logits, labels, label_mask,
+                        args.safe_margin, args.safe_negative_weight)
+                    gate_loss = logits.new_zeros(())
+                    loss = (
+                        rank_loss + regression_loss
+                        + 0.5 * sign_loss + 0.5 * anchor_loss)
                 else:
                     regression_loss = logits.new_zeros(())
                     sign_loss = logits.new_zeros(())
+                    anchor_loss = logits.new_zeros(())
                     gate_loss = gate_loss_function(gate_logits, gate_targets)
                     loss = rank_loss + args.gate_weight * gate_loss
                 if not torch.isfinite(loss):
@@ -356,7 +433,8 @@ def main(argv=None):
                         f"states={keys} rank={float(rank_loss.detach().cpu())} "
                         f"gate={float(gate_loss.detach().cpu())} "
                         f"regression={float(regression_loss.detach().cpu())} "
-                        f"sign={float(sign_loss.detach().cpu())}")
+                        f"sign={float(sign_loss.detach().cpu())} "
+                        f"anchor={float(anchor_loss.detach().cpu())}")
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 gradient_norm = torch.nn.utils.clip_grad_norm_(
@@ -380,6 +458,7 @@ def main(argv=None):
                 epoch_gate += float(gate_loss.detach().cpu())
                 epoch_regression += float(regression_loss.detach().cpu())
                 epoch_sign += float(sign_loss.detach().cpu())
+                epoch_anchor += float(anchor_loss.detach().cpu())
                 steps += 1
             history.append({
                 "epoch": epoch,
@@ -387,6 +466,7 @@ def main(argv=None):
                 "mean_gate_loss": epoch_gate / max(1, steps),
                 "mean_regression_loss": epoch_regression / max(1, steps),
                 "mean_sign_loss": epoch_sign / max(1, steps),
+                "mean_anchor_loss": epoch_anchor / max(1, steps),
                 "numerical_fallback_groups": numerical_fallback_groups,
             })
             print(
@@ -395,6 +475,7 @@ def main(argv=None):
                 f"gate={history[-1]['mean_gate_loss']:.6f} "
                 f"reg={history[-1]['mean_regression_loss']:.6f} "
                 f"sign={history[-1]['mean_sign_loss']:.6f} "
+                f"anchor={history[-1]['mean_anchor_loss']:.6f} "
                 f"fallback={numerical_fallback_groups}", flush=True)
 
         train_predictions = _evaluate(
@@ -403,12 +484,20 @@ def main(argv=None):
         validation_predictions = _evaluate(
             model, validation_rows, device, args.batch_size,
             args.gate_threshold, args.training_objective, args.score_scale)
-        train_gate = np.asarray([
-            item["gate_probability"] for item in train_predictions], dtype=float)
-        deployment_threshold = float(np.quantile(train_gate, 0.80))
+        if args.training_objective == "safe_base_anchor":
+            deployment_threshold = 0.0
+        else:
+            train_gate = np.asarray([
+                item["gate_probability"] for item in train_predictions], dtype=float)
+            deployment_threshold = float(np.quantile(train_gate, 0.80))
         for item in validation_predictions:
-            item["gate_selected"] = bool(
-                item["gate_probability"] >= deployment_threshold)
+            if args.training_objective == "safe_base_anchor":
+                item["gate_selected"] = bool(
+                    item["maximum_predicted_gain_percent"]
+                    > deployment_threshold)
+            else:
+                item["gate_selected"] = bool(
+                    item["gate_probability"] >= deployment_threshold)
             item["deployed_gain_percent"] = (
                 item["selected_gain_percent"] if item["gate_selected"] else 0.0)
 
@@ -422,6 +511,11 @@ def main(argv=None):
             "gate_threshold_percent": args.gate_threshold,
             "training_objective": args.training_objective,
             "score_scale": args.score_scale,
+            "safe_base_score_percent": (
+                0.0 if args.training_objective == "safe_base_anchor" else None),
+            "safe_quantile": args.safe_quantile,
+            "safe_margin": args.safe_margin,
+            "safe_negative_weight": args.safe_negative_weight,
             "deployed_actor_policy": model.actor_policy,
             "deployment_gate_probability_threshold": deployment_threshold,
             "model_spec": trainer.model_spec,
@@ -439,6 +533,11 @@ def main(argv=None):
             "learning_rate": args.learning_rate,
             "training_objective": args.training_objective,
             "score_scale": args.score_scale,
+            "safe_base_score_percent": (
+                0.0 if args.training_objective == "safe_base_anchor" else None),
+            "safe_quantile": args.safe_quantile,
+            "safe_margin": args.safe_margin,
+            "safe_negative_weight": args.safe_negative_weight,
             "gate_threshold_percent": args.gate_threshold,
             "deployment_gate_probability_threshold": deployment_threshold,
             "history": history,
