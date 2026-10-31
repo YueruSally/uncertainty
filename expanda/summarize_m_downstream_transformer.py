@@ -86,8 +86,11 @@ def main(argv=None):
         parser.error(f"expected 10 completed folds, found {len(reports)}")
     rows = []
     per_fold = []
+    training_objectives = set()
     for path in reports:
         report = json.loads(path.read_text(encoding="utf-8"))
+        training_objectives.add(report.get(
+            "training_objective", "pairwise_gate"))
         fold_rows = report["validation"]
         metrics = _pair_metrics(fold_rows)
         metrics.update({
@@ -102,6 +105,10 @@ def main(argv=None):
         })
         per_fold.append(metrics)
         rows.extend(fold_rows)
+    if len(training_objectives) != 1:
+        parser.error(
+            f"folds use different training objectives: {training_objectives}")
+    training_objective = training_objectives.pop()
     pair = _pair_metrics(rows)
     gate_labels = [row["gate_target"] for row in rows]
     gate_scores = [row["gate_probability"] for row in rows]
@@ -119,6 +126,7 @@ def main(argv=None):
         "definition": (
             "leave-one-instance-out actual path-v4 Transformer trained on "
             "single-intervention final CCP HV percent labels"),
+        "training_objective": training_objective,
         "state_count": len(rows),
         "fold_count": len(per_fold),
         "candidate_ranker": {

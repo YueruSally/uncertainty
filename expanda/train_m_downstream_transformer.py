@@ -13,6 +13,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 import random
 from pathlib import Path
 
@@ -136,7 +137,8 @@ def _rank_loss(torch, logits, targets, target_mask, temperature):
     return pair_loss + 0.25 * list_loss
 
 
-def _evaluate(model, rows, device, batch_size, gate_threshold):
+def _evaluate(model, rows, device, batch_size, gate_threshold,
+              training_objective, score_scale):
     import torch
     from transformer_ppo.observations import pad_observations
 
@@ -148,11 +150,21 @@ def _evaluate(model, rows, device, batch_size, gate_threshold):
             batch = pad_observations(
                 [item["observation"] for item in group], device)
             logits, gate_logits = model(batch)
-            gate_probabilities = torch.sigmoid(gate_logits).cpu().numpy()
             scores = logits.cpu().numpy()
+            critic_gate_probabilities = torch.sigmoid(
+                gate_logits).cpu().numpy()
             for offset, item in enumerate(group):
                 labels = np.asarray(item["labels"], dtype=float)
                 candidate_scores = scores[offset, :len(labels)]
+                if training_objective == "regression_sign":
+                    candidate_scores = candidate_scores * score_scale
+                    maximum_prediction = float(np.max(candidate_scores))
+                    gate_probability = 1.0 / (
+                        1.0 + math.exp(-max(-50.0, min(
+                            50.0, maximum_prediction / 2.0))))
+                else:
+                    gate_probability = float(
+                        critic_gate_probabilities[offset])
                 selected = int(np.argmax(candidate_scores))
                 predictions.append({
                     "instance": item["instance"],
@@ -168,7 +180,7 @@ def _evaluate(model, rows, device, batch_size, gate_threshold):
                     "selected_gain_percent": float(labels[selected]),
                     "oracle_percent": float(item["oracle_percent"]),
                     "gate_target": bool(item["oracle_percent"] >= gate_threshold),
-                    "gate_probability": float(gate_probabilities[offset]),
+                    "gate_probability": gate_probability,
                 })
     return predictions
 
@@ -186,10 +198,15 @@ def main(argv=None):
     parser.add_argument("--rank-temperature", type=float, default=2.0)
     parser.add_argument("--gate-threshold", type=float, default=10.0)
     parser.add_argument("--gate-weight", type=float, default=1.0)
+    parser.add_argument(
+        "--training-objective",
+        choices=("pairwise_gate", "regression_sign"),
+        default="pairwise_gate")
+    parser.add_argument("--score-scale", type=float, default=10.0)
     parser.add_argument("--seed", type=int, default=9971)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
-    if args.epochs < 1 or args.batch_size < 1:
+    if args.epochs < 1 or args.batch_size < 1 or args.score_scale <= 0:
         parser.error("epochs and batch-size must be positive")
     if not args.checkpoint.is_file():
         parser.error(f"checkpoint not found: {args.checkpoint}")
@@ -233,6 +250,10 @@ def main(argv=None):
         if trainer.config.mutation_control != "replace_path":
             raise ValueError("checkpoint does not use replace_path M control")
         model = trainer.model
+        if args.training_objective == "regression_sign":
+            # Predict downstream gain directly rather than adding the old Base
+            # action prior to an otherwise uncalibrated residual score.
+            model.actor_policy = "direct"
         model.train()
         optimizer = torch.optim.AdamW(
             model.parameters(), lr=args.learning_rate,
@@ -244,11 +265,24 @@ def main(argv=None):
         positive_weight = max(1.0, negative / max(1, positive))
         gate_loss_function = torch.nn.BCEWithLogitsLoss(
             pos_weight=torch.tensor(positive_weight, device=device))
+        candidate_positive = sum(
+            label > EPSILON
+            for item in train_rows for label in item["labels"])
+        candidate_nonpositive = sum(
+            label <= EPSILON
+            for item in train_rows for label in item["labels"])
+        candidate_positive_weight = max(
+            1.0, candidate_nonpositive / max(1, candidate_positive))
+        candidate_sign_loss_function = torch.nn.BCEWithLogitsLoss(
+            pos_weight=torch.tensor(
+                candidate_positive_weight, device=device))
         rng = random.Random(fold_seed)
         history = []
         for epoch in range(1, args.epochs + 1):
             epoch_rank = 0.0
             epoch_gate = 0.0
+            epoch_regression = 0.0
+            epoch_sign = 0.0
             steps = 0
             for group in _batches(train_rows, args.batch_size, rng):
                 batch = pad_observations(
@@ -274,30 +308,56 @@ def main(argv=None):
                 rank_loss = _rank_loss(
                     torch, logits, labels, label_mask,
                     args.rank_temperature)
-                gate_loss = gate_loss_function(gate_logits, gate_targets)
-                loss = rank_loss + args.gate_weight * gate_loss
+                if args.training_objective == "regression_sign":
+                    scaled_targets = torch.clamp(
+                        labels / args.score_scale, min=-3.0, max=3.0)
+                    regression_elements = torch.nn.functional.smooth_l1_loss(
+                        logits[label_mask], scaled_targets[label_mask],
+                        reduction="none")
+                    regression_weights = 1.0 + torch.clamp(
+                        labels[label_mask].abs() / 5.0, max=4.0)
+                    regression_loss = (
+                        (regression_elements * regression_weights).sum()
+                        / regression_weights.sum().clamp_min(1.0))
+                    sign_loss = candidate_sign_loss_function(
+                        logits[label_mask],
+                        (labels[label_mask] > EPSILON).to(logits.dtype))
+                    gate_loss = logits.sum() * 0.0
+                    loss = rank_loss + regression_loss + 0.5 * sign_loss
+                else:
+                    regression_loss = logits.sum() * 0.0
+                    sign_loss = logits.sum() * 0.0
+                    gate_loss = gate_loss_function(gate_logits, gate_targets)
+                    loss = rank_loss + args.gate_weight * gate_loss
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 epoch_rank += float(rank_loss.detach().cpu())
                 epoch_gate += float(gate_loss.detach().cpu())
+                epoch_regression += float(regression_loss.detach().cpu())
+                epoch_sign += float(sign_loss.detach().cpu())
                 steps += 1
             history.append({
                 "epoch": epoch,
                 "mean_rank_loss": epoch_rank / max(1, steps),
                 "mean_gate_loss": epoch_gate / max(1, steps),
+                "mean_regression_loss": epoch_regression / max(1, steps),
+                "mean_sign_loss": epoch_sign / max(1, steps),
             })
             print(
                 f"[FOLD {fold}] epoch={epoch}/{args.epochs} "
                 f"rank={history[-1]['mean_rank_loss']:.6f} "
-                f"gate={history[-1]['mean_gate_loss']:.6f}", flush=True)
+                f"gate={history[-1]['mean_gate_loss']:.6f} "
+                f"reg={history[-1]['mean_regression_loss']:.6f} "
+                f"sign={history[-1]['mean_sign_loss']:.6f}", flush=True)
 
         train_predictions = _evaluate(
-            model, train_rows, device, args.batch_size, args.gate_threshold)
+            model, train_rows, device, args.batch_size, args.gate_threshold,
+            args.training_objective, args.score_scale)
         validation_predictions = _evaluate(
             model, validation_rows, device, args.batch_size,
-            args.gate_threshold)
+            args.gate_threshold, args.training_objective, args.score_scale)
         train_gate = np.asarray([
             item["gate_probability"] for item in train_predictions], dtype=float)
         deployment_threshold = float(np.quantile(train_gate, 0.80))
@@ -315,6 +375,9 @@ def main(argv=None):
             "heldout_instance": fold,
             "instances": instances,
             "gate_threshold_percent": args.gate_threshold,
+            "training_objective": args.training_objective,
+            "score_scale": args.score_scale,
+            "deployed_actor_policy": model.actor_policy,
             "deployment_gate_probability_threshold": deployment_threshold,
             "model_spec": trainer.model_spec,
             "ppo_config": trainer.config.__dict__,
@@ -329,6 +392,8 @@ def main(argv=None):
             "epochs": args.epochs,
             "batch_size": args.batch_size,
             "learning_rate": args.learning_rate,
+            "training_objective": args.training_objective,
+            "score_scale": args.score_scale,
             "gate_threshold_percent": args.gate_threshold,
             "deployment_gate_probability_threshold": deployment_threshold,
             "history": history,
