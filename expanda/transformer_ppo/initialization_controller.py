@@ -298,6 +298,14 @@ class InitializationPPOController(MutationLogger):
                         model_decisions += 1
                         if target_model_choice:
                             self.model_control_events += 1
+                            pending = self.trainer.pending
+                            observation = (
+                                pending.get("observation")
+                                if isinstance(pending, dict) else
+                                getattr(self.trainer, "last_observation", None))
+                            if observation is None:
+                                raise RuntimeError(
+                                    "I target policy observation was not retained")
                             self.append("initialization_policy_states", {
                                 "event_id": event_id,
                                 "decision_event_index": decision_event_index,
@@ -310,7 +318,7 @@ class InitializationPPOController(MutationLogger):
                                     shadow_candidate_index),
                                 "forced_candidate_index": (
                                     self.forced_candidate_index),
-                                "observation": self.trainer.pending["observation"],
+                                "observation": observation,
                             })
                     kind = decision.metadata["decision_kind"]
                     self.decision_counts[kind] = self.decision_counts.get(kind, 0) + 1
