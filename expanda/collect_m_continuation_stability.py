@@ -118,6 +118,66 @@ def _select_states(audit, requested, minimum_oracle, max_per_instance):
     return selected
 
 
+def _spread(rows, requested, key):
+    rows = sorted(rows, key=key)
+    if requested == 0:
+        return []
+    if requested >= len(rows):
+        return rows
+    if requested == 1:
+        return [rows[len(rows) // 2]]
+    positions = [
+        round(index * (len(rows) - 1) / (requested - 1))
+        for index in range(requested)
+    ]
+    if len(set(positions)) != requested:
+        raise RuntimeError("evenly spread positions unexpectedly overlap")
+    return [rows[position] for position in positions]
+
+
+def _select_states_stratified(audit, requested):
+    """Select states without consulting any downstream outcome field."""
+    grouped = defaultdict(list)
+    for state in audit["states"]:
+        if state.get("actions"):
+            grouped[state["instance"]].append(state)
+    instances = sorted(grouped)
+    if requested < len(instances):
+        raise ValueError(
+            "stratified selection requires at least one state per instance")
+    base, remainder = divmod(requested, len(instances))
+    selected = []
+    for instance_index, instance in enumerate(instances):
+        quota = base + int(instance_index < remainder)
+        by_seed = defaultdict(list)
+        for state in grouped[instance]:
+            by_seed[int(state["algorithm_seed"])].append(state)
+        seeds = sorted(by_seed)
+        seed_base, seed_remainder = divmod(quota, len(seeds))
+        instance_rows = []
+        for seed_index, seed in enumerate(seeds):
+            seed_quota = seed_base + int(seed_index < seed_remainder)
+            if seed_quota > len(by_seed[seed]):
+                raise ValueError(
+                    f"{instance}/{seed} has only {len(by_seed[seed])} "
+                    f"states; requested {seed_quota}")
+            instance_rows.extend(_spread(
+                by_seed[seed], seed_quota,
+                key=lambda row: (int(row["generation"]), int(row["event"])),
+            ))
+        if len(instance_rows) != quota:
+            raise RuntimeError(
+                f"stratified quota mismatch for {instance}: "
+                f"{len(instance_rows)} != {quota}")
+        selected.extend(instance_rows)
+    if len(selected) != requested:
+        raise RuntimeError(
+            f"stratified state count mismatch: {len(selected)} != {requested}")
+    return sorted(selected, key=lambda row: (
+        row["instance"], int(row["algorithm_seed"]),
+        int(row["generation"]), int(row["event"])))
+
+
 def _select_actions(state, requested):
     actions = [
         action for action in state["actions"]
@@ -144,6 +204,27 @@ def _select_actions(state, requested):
     if len(deduplicated) != requested:
         raise ValueError("top/bottom action selection produced duplicates")
     return deduplicated
+
+
+def _select_actions_index_spread(state, requested):
+    """Select executable candidates without consulting their outcome labels."""
+    actions = [
+        action for action in state["actions"]
+        if action.get("candidate_index") is not None
+        and action.get("selected_replacement_executed") is True
+    ]
+    if len(actions) < requested:
+        raise ValueError(
+            f"state {state['instance']}:{state['algorithm_seed']}:"
+            f"{state['event']} has {len(actions)} executable actions; "
+            f"requested {requested}")
+    selected = _spread(
+        actions, requested,
+        key=lambda row: int(row["candidate_index"]),
+    )
+    if len({int(row["candidate_index"]) for row in selected}) != requested:
+        raise RuntimeError("index-spread action selection produced duplicates")
+    return selected
 
 
 def _command(args, instance_path, run, algorithm_seed, event,
@@ -484,6 +565,7 @@ def _analyse(args, manifest, status_counts):
             "same pre-intervention M state/action with matched Base reference "
             "and shared post-operation continuation seed under frozen CCP"),
         "source_audit": str(args.audit_root),
+        "selection": manifest["selection"],
         "selected_state_count": len(manifest["states"]),
         "selected_action_count": len(action_stability),
         "continuation_seed_count": len(manifest["continuation_seeds"]),
@@ -533,6 +615,12 @@ def main(argv=None):
     parser.add_argument("--actions-per-state", type=int, default=3)
     parser.add_argument("--minimum-oracle-percent", type=float, default=5.0)
     parser.add_argument("--max-states-per-instance", type=int, default=4)
+    parser.add_argument(
+        "--state-selection", choices=("oracle", "stratified"),
+        default="oracle")
+    parser.add_argument(
+        "--action-selection", choices=("outcome", "index_spread"),
+        default="outcome")
     parser.add_argument("--max-workers", type=int, default=8)
     parser.add_argument("--evaluation-budget", type=int, default=400)
     parser.add_argument("--evaluation-mode", choices=("ccp", "ccp100"),
@@ -569,19 +657,31 @@ def main(argv=None):
             "duplicate_replay_consistent", "forced_execution_exact"):
         if audit.get(field) is not True:
             parser.error(f"source audit failed prerequisite: {field}")
-    states = _select_states(
-        audit, args.state_count, args.minimum_oracle_percent,
-        args.max_states_per_instance)
+    states = (
+        _select_states_stratified(audit, args.state_count)
+        if args.state_selection == "stratified"
+        else _select_states(
+            audit, args.state_count, args.minimum_oracle_percent,
+            args.max_states_per_instance)
+    )
     manifest_states = []
     for state in states:
-        actions = _select_actions(state, args.actions_per_state)
+        actions = (
+            _select_actions_index_spread(state, args.actions_per_state)
+            if args.action_selection == "index_spread"
+            else _select_actions(state, args.actions_per_state)
+        )
         action_rows = []
         for index, action in enumerate(actions):
             row = dict(action)
-            row["selection_role"] = (
-                "top_1" if index == 0 else
-                f"top_{index + 1}" if index < args.actions_per_state - 1
-                else "bottom_1")
+            if args.action_selection == "index_spread":
+                row["selection_role"] = f"index_spread_{index + 1}"
+            elif index == 0:
+                row["selection_role"] = "top_1"
+            elif index < args.actions_per_state - 1:
+                row["selection_role"] = f"top_{index + 1}"
+            else:
+                row["selection_role"] = "bottom_1"
             action_rows.append(row)
         manifest_states.append({
             "instance": state["instance"],
@@ -595,11 +695,16 @@ def main(argv=None):
         "schema_version": 1,
         "source_audit": str(args.audit_root),
         "selection": {
+            "state_selection": args.state_selection,
+            "action_selection": args.action_selection,
             "state_count": args.state_count,
             "minimum_oracle_percent": args.minimum_oracle_percent,
             "max_states_per_instance": args.max_states_per_instance,
             "actions_per_state": args.actions_per_state,
-            "action_rule": "top actions plus one bottom contrast action",
+            "action_rule": (
+                "outcome-independent evenly spaced candidate indices"
+                if args.action_selection == "index_spread"
+                else "top actions plus one bottom contrast action"),
         },
         "continuation_seeds": list(args.continuation_seeds),
         "states": manifest_states,

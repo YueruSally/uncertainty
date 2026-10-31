@@ -48,19 +48,22 @@ def _evaluate_label(rows, label, seed):
         training = [row for row in rows if row["instance"] != heldout]
         validation = [row for row in rows if row["instance"] == heldout]
         train_y = np.asarray([row[label] for row in training], dtype=int)
-        if len(set(train_y.tolist())) != 2:
-            raise ValueError(
-                f"training fold {heldout} lacks both classes for {label}")
-        model = make_pipeline(
-            StandardScaler(),
-            LogisticRegression(
-                C=0.1, class_weight="balanced", max_iter=5_000,
-                random_state=seed + fold_index),
-        ).fit(
-            np.asarray([row["features"] for row in training], dtype=float),
-            train_y)
-        probabilities = model.predict_proba(np.asarray(
-            [row["features"] for row in validation], dtype=float))[:, 1]
+        if len(set(train_y.tolist())) == 2:
+            model = make_pipeline(
+                StandardScaler(),
+                LogisticRegression(
+                    C=0.1, class_weight="balanced", max_iter=5_000,
+                    random_state=seed + fold_index),
+            ).fit(
+                np.asarray([row["features"] for row in training], dtype=float),
+                train_y)
+            probabilities = model.predict_proba(np.asarray(
+                [row["features"] for row in validation], dtype=float))[:, 1]
+            fold_mode = "logistic"
+        else:
+            probabilities = np.full(
+                len(validation), float(train_y[0]), dtype=float)
+            fold_mode = "constant_single_class_training"
         validation_y = np.asarray([
             row[label] for row in validation], dtype=int)
         for row, score in zip(validation, probabilities):
@@ -70,6 +73,7 @@ def _evaluate_label(rows, label, seed):
             "state_count": len(validation),
             "positive_states": int(validation_y.sum()),
             "mean_probability": float(probabilities.mean()),
+            "mode": fold_mode,
         })
 
     ordered_scores = np.asarray([
@@ -84,9 +88,12 @@ def _evaluate_label(rows, label, seed):
         "state_count": len(rows),
         "positive_states": positives,
         "prevalence": float(labels.mean()),
-        "loo_roc_auc": float(roc_auc_score(labels, ordered_scores)),
-        "loo_average_precision": float(
-            average_precision_score(labels, ordered_scores)),
+        "loo_roc_auc": (
+            float(roc_auc_score(labels, ordered_scores))
+            if len(set(labels.tolist())) == 2 else None),
+        "loo_average_precision": (
+            float(average_precision_score(labels, ordered_scores))
+            if labels.sum() > 0 else None),
         "threshold_0_5": {
             "selected_states": selected,
             "precision": true_positive / selected if selected else None,
@@ -113,6 +120,10 @@ def main(argv=None):
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=9941)
+    parser.add_argument(
+        "--labels", nargs="+",
+        choices=("positive_any", "positive_5", "positive_10"),
+        default=("positive_any", "positive_5", "positive_10"))
     args = parser.parse_args(argv)
     rows = _jsonl(args.dataset)
     if len({row["instance"] for row in rows}) < 2:
@@ -128,8 +139,7 @@ def main(argv=None):
         "feature_dimension": dimensions.pop(),
         "labels": {
             label: _evaluate_label(rows, label, args.seed + offset * 100)
-            for offset, label in enumerate(
-                ("positive_any", "positive_5", "positive_10"))
+            for offset, label in enumerate(args.labels)
         },
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)

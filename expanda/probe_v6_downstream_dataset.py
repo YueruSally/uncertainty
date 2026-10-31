@@ -253,6 +253,8 @@ def _evaluate(rows, scorer, alpha, temperature):
         base_final = float(base.dot(finals))
         proposal_final = float(proposal.dot(finals))
         model_final = float(model.dot(finals))
+        model_top_target = float(np.mean(targets[model_top]))
+        model_top_final = float(np.mean(finals[model_top]))
         oracle_gap = float(targets.max()) - base_target
         state_results.append({
             "state_key": state_key,
@@ -268,6 +270,10 @@ def _evaluate(rows, scorer, alpha, temperature):
                 index in target_top for index in model_top),
             "model_top_matches_final": any(
                 index in final_top for index in model_top),
+            "model_top_target": model_top_target,
+            "model_top_final": model_top_final,
+            "model_top_target_positive": model_top_target > EPSILON,
+            "model_top_final_positive": model_top_final > EPSILON,
             "base_expected_target": base_target,
             "proposal_expected_target": proposal_target,
             "model_expected_target": model_target,
@@ -300,6 +306,14 @@ def _evaluate(rows, scorer, alpha, temperature):
             row["model_top_matches_target"] for row in informative]),
         "final_top_1_accuracy": _mean([
             row["model_top_matches_final"] for row in final_informative]),
+        "mean_model_top_target": _mean([
+            row["model_top_target"] for row in state_results]),
+        "mean_model_top_final": _mean([
+            row["model_top_final"] for row in state_results]),
+        "model_top_target_positive_fraction": _mean([
+            row["model_top_target_positive"] for row in state_results]),
+        "model_top_final_positive_fraction": _mean([
+            row["model_top_final_positive"] for row in state_results]),
         "mean_model_minus_base_expected_target": _mean([
             row["model_minus_base_expected_target"] for row in informative]),
         "mean_proposal_minus_base_expected_target": _mean([
@@ -418,6 +432,12 @@ def main(argv=None):
                 (fold["validation"][
                     "mean_model_minus_base_expected_final"] or 0.0) > 0.0
                 for fold in folds),
+            "positive_model_top_target_folds": sum(
+                (fold["validation"]["mean_model_top_target"] or 0.0) > 0.0
+                for fold in folds),
+            "positive_model_top_final_folds": sum(
+                (fold["validation"]["mean_model_top_final"] or 0.0) > 0.0
+                for fold in folds),
             "weighted_pairwise_accuracy": _weighted(
                 folds, "pairwise_accuracy", "pair_count"),
             "weighted_mean_state_spearman": _weighted(
@@ -426,6 +446,14 @@ def main(argv=None):
                 folds, "target_top_1_accuracy"),
             "weighted_final_top_1_accuracy": _weighted(
                 folds, "final_top_1_accuracy", "final_informative_state_count"),
+            "weighted_mean_model_top_target": _weighted(
+                folds, "mean_model_top_target", "state_count"),
+            "weighted_mean_model_top_final": _weighted(
+                folds, "mean_model_top_final", "state_count"),
+            "weighted_model_top_target_positive_fraction": _weighted(
+                folds, "model_top_target_positive_fraction", "state_count"),
+            "weighted_model_top_final_positive_fraction": _weighted(
+                folds, "model_top_final_positive_fraction", "state_count"),
             "weighted_model_minus_base_expected_target": _weighted(
                 folds, "mean_model_minus_base_expected_target"),
             "weighted_proposal_minus_base_expected_target": _weighted(
