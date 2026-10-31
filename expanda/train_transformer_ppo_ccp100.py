@@ -167,6 +167,7 @@ def _run_config(args, config, manifests, records):
             if args.component == "C"
             and config.candidate_representation == "path_v3" else
             "per-cut" if args.component == "C" else None),
+        "crossover_reward_mode": args.crossover_reward_mode,
         "policy_seed": args.policy_seed,
         "ppo": asdict(config),
         "ppo_digest": config.digest(),
@@ -346,6 +347,13 @@ def main():
         "--credit-assignment", choices=("continuous", "operation_terminal"),
         help=("Trajectory boundary. operation_terminal is the V3 C setting: "
               "one complete crossover is one terminal credit sequence."))
+    parser.add_argument(
+        "--crossover-reward-mode",
+        choices=("archive_hv", "paired_base_relative"),
+        default="archive_hv",
+        help=("C reward. paired_base_relative compares the selected joint "
+              "action with a same-state Base/override reference before mutation; "
+              "its extra label evaluations are reported outside search budget."))
     parser.add_argument("--gae-horizon", type=int)
     parser.add_argument("--rollout-steps", type=int)
     parser.add_argument(
@@ -413,6 +421,12 @@ def main():
             and args.credit_assignment != "operation_terminal"):
         parser.error(
             "C path_v3 joint override requires operation_terminal credit")
+    if (args.crossover_reward_mode == "paired_base_relative" and not (
+            args.component == "C"
+            and args.candidate_representation == "path_v3"
+            and args.credit_assignment == "operation_terminal")):
+        parser.error(
+            "paired_base_relative requires C path_v3 operation_terminal")
     if args.initialization_control is not None and args.component != "I":
         parser.error("--initialization-control is valid only for I")
     if args.initialization_control == "path_count" and (
@@ -544,7 +558,8 @@ def main():
             learning_protocol_version=2,
             scenario_count=args.scenario_count,
             ccp_confidence=args.ccp_confidence,
-            uncertainty_profile=args.uncertainty_profile)
+            uncertainty_profile=args.uncertainty_profile,
+            crossover_reward_mode=args.crossover_reward_mode)
         summaries.append({"instance": manifest.stem, **summary})
         completed = index + 1
         previous_checkpoint = checkpoint
@@ -570,6 +585,8 @@ def main():
         "elapsed_seconds": elapsed,
         "total_actual_evaluations": sum(
             x["real_objective_evaluation_count"] for x in summaries),
+        "total_counterfactual_evaluations": sum(
+            x.get("counterfactual_evaluation_count", 0) for x in summaries),
     }
     _atomic_json(args.out / "training_summary.json", final_summary)
     print(f"[TRAIN] complete episodes={len(summaries)} checkpoint={final_checkpoint}",

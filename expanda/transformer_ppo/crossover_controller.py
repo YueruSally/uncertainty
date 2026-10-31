@@ -1,13 +1,14 @@
 """PPO controller for common-node crossover-cut selection."""
 from __future__ import annotations
 
+from copy import deepcopy
 import random
 import time
 
 from multi_instance_logging import MutationLogger, fingerprint
 from multi_instance_policy import Decision
 
-from .archive import RewardArchive, RewardConfig, hv_reward
+from .archive import RewardArchive, RewardConfig, hv_reward, signed_hv_reward
 from .crossover import apply_cut, finalize_children, prepare_common_node_crossover
 from .crossover_observations import (
     build_crossover_observation,
@@ -25,6 +26,7 @@ class CrossoverPPOController(MutationLogger):
     def __init__(self, *args, trainer, archive: RewardArchive,
                  reward_config: RewardConfig, batches, generations, pop_size,
                  graph_observation=None, model_choice_probability=1.0,
+                 crossover_reward_mode="archive_hv",
                  **kwargs):
         self.trainer = trainer
         self._ppo_updates_at_start = int(trainer.updates)
@@ -36,6 +38,12 @@ class CrossoverPPOController(MutationLogger):
         self.graph_observation = graph_observation
         self.model_choice_probability = validate_model_choice_probability(
             model_choice_probability)
+        if crossover_reward_mode not in ("archive_hv", "paired_base_relative"):
+            raise ValueError(
+                "crossover_reward_mode must be archive_hv or paired_base_relative")
+        self.crossover_reward_mode = str(crossover_reward_mode)
+        self.counterfactual_evaluations = 0
+        self.counterfactual_evaluation_seconds = 0.0
         self.credit_assignment = getattr(
             getattr(trainer, "config", None), "credit_assignment", "continuous")
         self.control_rng = random.Random(private_seed(
@@ -404,6 +412,31 @@ class CrossoverPPOController(MutationLogger):
                 self._current_candidates = None
                 self._shared_observation = None
 
+        reference_override = None
+        reference_action = None
+        if (decision is not None
+                and self.crossover_reward_mode == "paired_base_relative"):
+            if selected_override is None:
+                override_indices = [
+                    index for index, candidate in enumerate(joint_candidates)
+                    if candidate["joint_action"] == "single_cut_override"
+                ]
+                reference_index = max(
+                    override_indices,
+                    key=lambda index: decision.probabilities[index])
+                reference_candidate = joint_candidates[reference_index]
+                reference_override = (
+                    int(reference_candidate["joint_cut_index"]),
+                    int(reference_candidate["joint_candidate_index"]),
+                )
+                reference_action = "single_cut_override"
+            else:
+                reference_action = "base_passthrough"
+
+        reference_children = None
+        if reference_action is not None:
+            reference_children = (deepcopy(child1), deepcopy(child2))
+
         selected_rows = []
         changed = False
         for cut_index, cut in enumerate(cut_decisions):
@@ -433,7 +466,19 @@ class CrossoverPPOController(MutationLogger):
                     decision.metadata if decision is not None else None),
             })
 
+            if reference_children is not None:
+                reference_index = (
+                    reference_override[1]
+                    if reference_override is not None
+                    and reference_override[0] == cut_index else
+                    cut.shadow_base_index)
+                apply_cut(
+                    reference_children[0], reference_children[1], cut,
+                    cut.candidates[reference_index], tt_dict, arc_lookup)
+
         finalize_children(child1, child2)
+        if reference_children is not None:
+            finalize_children(*reference_children)
         self.total_effective += int(changed)
         self._pending_child_ids = {id(child1), id(child2)}
         self._active_event = {
@@ -450,6 +495,8 @@ class CrossoverPPOController(MutationLogger):
                 joint_candidates[decision.chosen_index]["joint_action"]),
             "policy_metadata": (
                 None if decision is None else dict(decision.metadata)),
+            "paired_reference_action": reference_action,
+            "paired_reference_children": reference_children,
             "started": started,
         }
         if not cut_decisions:
@@ -464,6 +511,47 @@ class CrossoverPPOController(MutationLogger):
                 "decision_kind": "no_candidate",
             })
         return child1, child2
+
+    def evaluate_crossover_counterfactual(
+            self, function, child1, child2, *args, **kwargs):
+        """Evaluate selected/reference pre-mutation children outside search budget."""
+        event = self._active_event
+        if (event is None or self.crossover_reward_mode != "paired_base_relative"
+                or not event.get("model_decisions")):
+            return
+        reference_children = event.get("paired_reference_children")
+        if reference_children is None:
+            raise RuntimeError("paired crossover reward is missing its reference action")
+
+        selected = (deepcopy(child1), deepcopy(child2))
+        reference = tuple(deepcopy(item) for item in reference_children)
+        started = time.perf_counter()
+        for individual in (*selected, *reference):
+            function(individual, *args, **kwargs)
+        self.counterfactual_evaluation_seconds += time.perf_counter() - started
+        self.counterfactual_evaluations += 4
+
+        selected_candidates = [
+            (item.objectives, bool(item.feasible), fingerprint(item))
+            for item in selected
+        ]
+        reference_candidates = [
+            (item.objectives, bool(item.feasible), fingerprint(item))
+            for item in reference
+        ]
+        selected_update = self.archive.preview_many(selected_candidates)
+        reference_update = self.archive.preview_many(reference_candidates)
+        relative_delta = (
+            selected_update.delta_hv - reference_update.delta_hv)
+        event["paired_reward"] = signed_hv_reward(
+            relative_delta, self.reward_config)
+        event["paired_selected_hv_delta"] = float(
+            selected_update.delta_hv)
+        event["paired_reference_hv_delta"] = float(
+            reference_update.delta_hv)
+        event["paired_selected_minus_reference_hv"] = float(relative_delta)
+        event["paired_counterfactual_evaluations"] = 4
+        event["paired_reference_children"] = None
 
     def settle_crossover(self, child1, child2):
         event = self._active_event
@@ -482,7 +570,15 @@ class CrossoverPPOController(MutationLogger):
             (child1.objectives, bool(child1.feasible), child_fingerprints[0]),
             (child2.objectives, bool(child2.feasible), child_fingerprints[1]),
         ])
-        reward = hv_reward(update.delta_hv, self.reward_config)
+        archive_reward = hv_reward(update.delta_hv, self.reward_config)
+        if (self.crossover_reward_mode == "paired_base_relative"
+                and event["model_decisions"]):
+            if "paired_reward" not in event:
+                raise RuntimeError(
+                    "paired crossover reward was not evaluated before mutation")
+            reward = float(event["paired_reward"])
+        else:
+            reward = archive_reward
         joint_action = event.get("selected_joint_action")
         if joint_action in self.joint_action_reward_stats:
             stats = self.joint_action_reward_stats[joint_action]
@@ -496,7 +592,8 @@ class CrossoverPPOController(MutationLogger):
             stats["operations"] += 1
             stats["positive"] += int(reward > 0.0)
             stats["reward_total"] += float(reward)
-            stats["raw_hv_total"] += float(update.delta_hv)
+            stats["raw_hv_total"] += float(event.get(
+                "paired_selected_minus_reference_hv", update.delta_hv))
         if event["model_decisions"]:
             self.trainer.end_sequence(
                 reward, done=self.credit_assignment == "operation_terminal")
@@ -504,6 +601,8 @@ class CrossoverPPOController(MutationLogger):
             self.positive_reward_actions += int(reward > 0.0)
         event.update({
             "reward": float(reward), "reward_hv_delta": float(update.delta_hv),
+            "archive_reward": float(archive_reward),
+            "crossover_reward_mode": self.crossover_reward_mode,
             "reward_diagnostics": reward_diagnostics,
             "reward_positive_hv": bool(update.delta_hv > 0.0),
             "reward_archive_changed_without_hv": bool(
@@ -522,6 +621,7 @@ class CrossoverPPOController(MutationLogger):
             "action_wall_seconds": time.perf_counter() - event["started"],
         })
         event.pop("children", None)
+        event.pop("paired_reference_children", None)
         event.pop("started", None)
         self._settled_outcomes.append(event)
         if self.phase == "offspring":
@@ -577,6 +677,10 @@ class CrossoverPPOController(MutationLogger):
             "ppo_updates_before_run": self._ppo_updates_at_start,
             "ppo_updates_total": self.trainer.updates,
             "credit_assignment": self.credit_assignment,
+            "crossover_reward_mode": self.crossover_reward_mode,
+            "counterfactual_evaluation_count": self.counterfactual_evaluations,
+            "counterfactual_evaluation_seconds": (
+                self.counterfactual_evaluation_seconds),
             "crossover_control": (
                 "hierarchical-single-joint-override-with-base-passthrough"
                 if getattr(getattr(self.trainer, "config", None),

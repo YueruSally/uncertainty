@@ -296,3 +296,18 @@ def hv_reward(delta_hv: float, config: RewardConfig) -> float:
         raise ValueError("delta_hv cannot be materially negative")
     return 0.0 if delta_hv <= config.floating_tolerance else float(
         delta_hv / config.positive_hv_scale)
+
+
+def signed_hv_reward(delta_hv: float, config: RewardConfig) -> float:
+    """Scale a paired HV advantage while preserving its direction.
+
+    Unlike an archive insertion, a selected action can be worse than its
+    same-state reference action.  Keeping that negative signal is essential:
+    clipping it to zero would teach PPO that damaging overrides are harmless.
+    """
+    config.validate()
+    if not np.isfinite(delta_hv):
+        raise ValueError("delta_hv must be finite")
+    if abs(delta_hv) <= config.floating_tolerance:
+        return 0.0
+    return float(delta_hv / config.positive_hv_scale)

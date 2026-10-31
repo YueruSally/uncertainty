@@ -166,7 +166,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 candidate_audit=None,
                 scenario_count=None,
                 ccp_confidence=0.90,
-                uncertainty_profile="legacy"):
+                uncertainty_profile="legacy",
+                crossover_reward_mode="archive_hv"):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
@@ -177,6 +178,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if not 0.0 < ccp_confidence <= 1.0:
         raise ValueError("ccp_confidence must be in (0, 1]")
     component = str(component).upper()
+    if crossover_reward_mode not in ("archive_hv", "paired_base_relative"):
+        raise ValueError(
+            "crossover_reward_mode must be archive_hv or paired_base_relative")
+    if crossover_reward_mode != "archive_hv" and component != "C":
+        raise ValueError(
+            "paired crossover reward currently requires component C")
     combined_components = {
         "IC": {"I", "C"},
         "IM": {"I", "M"},
@@ -408,9 +415,16 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "operator_probabilities": dict(zip(base.OPS, base._FIXED_OP_PROBS)),
         "crossover_rate": base.CROSSOVER_RATE, "mutation_rate": base.MUTATION_RATE,
         "external_archive_role": "reward-only; excluded from environmental selection",
-        "reward_definition": "scaled positive joint archive HV increment only",
+        "reward_definition": (
+            "signed same-state selected-minus-reference pre-mutation archive HV"
+            if crossover_reward_mode == "paired_base_relative" else
+            "scaled positive joint archive HV increment only"),
+        "crossover_reward_mode": crossover_reward_mode,
+        "counterfactual_training_evaluations_excluded_from_search_budget": (
+            crossover_reward_mode == "paired_base_relative"),
         "reward_clipping": False,
-        "intermediate_post_crossover_evaluation": False,
+        "intermediate_post_crossover_evaluation": (
+            crossover_reward_mode == "paired_base_relative"),
         "policy_training": policy_training,
         "policy_checkpoint": policy_checkpoint,
         "policy_inference": policy_inference,
@@ -482,6 +496,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 rule_top_k=initialization_learning_rule_top_k)
         elif component in ("C", "M"):
             controller_options["model_choice_probability"] = probabilities[component]
+            if component == "C":
+                controller_options["crossover_reward_mode"] = (
+                    crossover_reward_mode)
             if component == "M":
                 controller_options["model_choice_event"] = model_choice_event
             if component == "M" and audit["states"]:
@@ -527,6 +544,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     optimisation_seconds = time.perf_counter() - started
     measured_seconds = (
         controller.objective_evaluation_seconds
+        + float(getattr(
+            controller, "counterfactual_evaluation_seconds", 0.0))
         + controller.feature_construction_seconds
         + controller.inference_seconds
         + controller.ppo_update_seconds

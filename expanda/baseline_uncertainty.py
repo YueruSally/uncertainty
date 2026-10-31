@@ -3607,6 +3607,15 @@ def run_nsga2(
             for child in (c1, c2):
                 repair_missing_allocations(child, batches, path_lib)
 
+            if (ACTIVE_MUTATION_LOGGER is not None
+                    and hasattr(
+                        ACTIVE_MUTATION_LOGGER,
+                        "evaluate_crossover_counterfactual")):
+                ACTIVE_MUTATION_LOGGER.evaluate_crossover_counterfactual(
+                    _evaluate_individual_impl, c1, c2, batches, arcs, tt_dict,
+                    waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
+                    **eval_kwargs)
+
             if random.random() < MUTATION_RATE:
                 mutate_fixed(c1, batches, path_lib, tt_dict, arc_lookup,
                              arcs, waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
