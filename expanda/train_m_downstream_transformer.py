@@ -291,8 +291,12 @@ def main(argv=None):
             epoch_gate = 0.0
             epoch_regression = 0.0
             epoch_sign = 0.0
+            numerical_fallback_groups = 0
             steps = 0
-            for group in _batches(train_rows, args.batch_size, rng):
+            pending_groups = list(_batches(
+                train_rows, args.batch_size, rng))
+            while pending_groups:
+                group = pending_groups.pop(0)
                 batch = pad_observations(
                     [item["observation"] for item in group], device)
                 maximum_candidates = max(len(item["labels"]) for item in group)
@@ -339,15 +343,38 @@ def main(argv=None):
                     loss = rank_loss + args.gate_weight * gate_loss
                 if not torch.isfinite(loss):
                     keys = [item["state_key"] for item in group]
+                    if len(group) > 1:
+                        pending_groups[0:0] = [[item] for item in group]
+                        numerical_fallback_groups += 1
+                        print(
+                            f"[FOLD {fold}] split non-finite loss batch "
+                            f"into {len(group)} microbatches: {keys}",
+                            flush=True)
+                        continue
                     raise FloatingPointError(
-                        "non-finite M downstream loss before optimizer step: "
+                        "non-finite single-state M downstream loss: "
                         f"states={keys} rank={float(rank_loss.detach().cpu())} "
                         f"gate={float(gate_loss.detach().cpu())} "
                         f"regression={float(regression_loss.detach().cpu())} "
                         f"sign={float(sign_loss.detach().cpu())}")
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                gradient_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), 1.0)
+                if not torch.isfinite(gradient_norm):
+                    keys = [item["state_key"] for item in group]
+                    optimizer.zero_grad(set_to_none=True)
+                    if len(group) > 1:
+                        pending_groups[0:0] = [[item] for item in group]
+                        numerical_fallback_groups += 1
+                        print(
+                            f"[FOLD {fold}] split non-finite gradient batch "
+                            f"into {len(group)} microbatches: {keys}",
+                            flush=True)
+                        continue
+                    raise FloatingPointError(
+                        "non-finite single-state M downstream gradient: "
+                        f"states={keys}")
                 optimizer.step()
                 epoch_rank += float(rank_loss.detach().cpu())
                 epoch_gate += float(gate_loss.detach().cpu())
@@ -360,13 +387,15 @@ def main(argv=None):
                 "mean_gate_loss": epoch_gate / max(1, steps),
                 "mean_regression_loss": epoch_regression / max(1, steps),
                 "mean_sign_loss": epoch_sign / max(1, steps),
+                "numerical_fallback_groups": numerical_fallback_groups,
             })
             print(
                 f"[FOLD {fold}] epoch={epoch}/{args.epochs} "
                 f"rank={history[-1]['mean_rank_loss']:.6f} "
                 f"gate={history[-1]['mean_gate_loss']:.6f} "
                 f"reg={history[-1]['mean_regression_loss']:.6f} "
-                f"sign={history[-1]['mean_sign_loss']:.6f}", flush=True)
+                f"sign={history[-1]['mean_sign_loss']:.6f} "
+                f"fallback={numerical_fallback_groups}", flush=True)
 
         train_predictions = _evaluate(
             model, train_rows, device, args.batch_size, args.gate_threshold,
