@@ -28,10 +28,31 @@ RETRY_STRATEGIES = {
     "REPLACE_LATE_REVERSIBLE_RETRY_E05": (1.00, True, True, 2, 5),
     "REPLACE_LATE_REVERSIBLE_RETRY_E10": (1.00, True, True, 2, 10),
 }
+SCHEDULE_GRID_STRATEGIES = {
+    "REPLACE_G10_P050": (0.50, False, False, 1, 0),
+    "REPLACE_G10_P100": (1.00, False, False, 1, 0),
+    "REPLACE_G12_P050": (0.50, False, False, 1, 0),
+    "REPLACE_G12_P100": (1.00, False, False, 1, 0),
+    "REPLACE_G15_P050": (0.50, False, False, 1, 0),
+    "REPLACE_G15_P100": (1.00, False, False, 1, 0),
+}
+STRATEGY_MINIMUM_GENERATIONS = {
+    "REPLACE_G10_P050": 10,
+    "REPLACE_G10_P100": 10,
+    "REPLACE_G12_P050": 12,
+    "REPLACE_G12_P100": 12,
+    "REPLACE_G15_P050": 15,
+    "REPLACE_G15_P100": 15,
+}
+REUSE_STRATEGY_ALIASES = {
+    "REPLACE_G15_P050": "REPLACE_LATE_P050",
+    "REPLACE_G15_P100": "REPLACE_LATE_P100",
+}
 ALL_STRATEGIES = {
     **STRATEGIES,
     **REVERSIBLE_STRATEGY,
     **RETRY_STRATEGIES,
+    **SCHEDULE_GRID_STRATEGIES,
 }
 
 
@@ -40,7 +61,8 @@ def _read(path):
 
 
 def _command(args, instance, out, seed, probability, positive_probe,
-             reversible_probe, probe_max_attempts, probe_retry_events):
+             reversible_probe, probe_max_attempts, probe_retry_events,
+             minimum_generation):
     command = [
         sys.executable, "-u", str(args.runner),
         "--instance", str(instance),
@@ -65,7 +87,7 @@ def _command(args, instance, out, seed, probability, positive_probe,
         command.extend([
             "--m-forced-operator", "replace",
             "--m-forced-operator-min-generation",
-            str(args.minimum_generation),
+            str(minimum_generation),
             "--m-forced-operator-probability", str(probability),
         ])
         if positive_probe:
@@ -151,12 +173,21 @@ def _run(job):
 
 
 def _strategy_run(args, instance, seed, strategy):
-    if (args.reuse_root is not None
-            and strategy in (
-                "BASE", "REPLACE_LATE_P050", "REPLACE_LATE_P100")):
-        reused = args.reuse_root / instance / f"seed_{seed}" / strategy
-        if (reused / "COMPLETE.json").is_file():
-            return reused
+    reusable = {
+        "BASE", "REPLACE_LATE_P050", "REPLACE_LATE_P100",
+        "REPLACE_G15_P050", "REPLACE_G15_P100",
+    }
+    if strategy in reusable:
+        roots = []
+        reuse_root = getattr(args, "reuse_root", None)
+        if reuse_root is not None:
+            roots.append(reuse_root)
+        roots.extend(getattr(args, "reuse_roots", None) or [])
+        reused_strategy = REUSE_STRATEGY_ALIASES.get(strategy, strategy)
+        for root in roots:
+            reused = root / instance / f"seed_{seed}" / reused_strategy
+            if (reused / "COMPLETE.json").is_file():
+                return reused
     if (args.positive_probe_root is not None
             and strategy == "REPLACE_LATE_POSITIVE_PROBE"):
         reused = (
@@ -272,17 +303,23 @@ def _summary(args, status_counts, instance_names, strategy_specs):
     alternatives = [row for row in strategies if row["strategy"] != "BASE"]
     best = max(alternatives, key=lambda row: row["mean_paired_percent"])
     strategy_names = list(strategy_specs)
+    schedule_grid = any(
+        strategy in SCHEDULE_GRID_STRATEGIES for strategy in strategy_names)
     result = {
         "completed": True,
         "definition": (
-            "matched frozen-CCP comparison from generation "
-            f"{args.minimum_generation}: " + ", ".join(strategy_names)),
+            ("matched frozen-CCP replace timing/probability grid: "
+             if schedule_grid else
+             "matched frozen-CCP comparison from generation "
+             f"{args.minimum_generation}: ")
+            + ", ".join(strategy_names)),
         "instance_count": len(instance_names),
         "algorithm_seed_count": len(args.algorithm_seeds),
         "run_count": len(runs),
         "status_counts": status_counts,
         "reuse_root": (
             None if args.reuse_root is None else str(args.reuse_root)),
+        "reuse_roots": [str(path) for path in (args.reuse_roots or [])],
         "positive_probe_root": (
             None if args.positive_probe_root is None
             else str(args.positive_probe_root)),
@@ -337,6 +374,40 @@ def _summary(args, status_counts, instance_names, strategy_specs):
             "reversible_minimum_paired_percent": (
                 reversible["minimum_paired_percent"]),
         }
+    grid_rows = [
+        row for row in strategies
+        if row["strategy"] in SCHEDULE_GRID_STRATEGIES]
+    if grid_rows:
+        best_mean = max(grid_rows, key=lambda row: row["mean_paired_percent"])
+        best_median = max(
+            grid_rows,
+            key=lambda row: (
+                row["median_paired_percent"], row["mean_paired_percent"]))
+        safest = max(
+            grid_rows,
+            key=lambda row: (
+                row["minimum_paired_percent"],
+                row["mean_paired_percent"]))
+        result["schedule_grid_diagnosis"] = {
+            "best_mean_strategy": best_mean["strategy"],
+            "best_mean_paired_percent": best_mean["mean_paired_percent"],
+            "best_mean_median_paired_percent": (
+                best_mean["median_paired_percent"]),
+            "best_mean_minimum_paired_percent": (
+                best_mean["minimum_paired_percent"]),
+            "best_mean_wins": best_mean["wins"],
+            "best_mean_losses": best_mean["losses"],
+            "best_median_strategy": best_median["strategy"],
+            "best_median_paired_percent": (
+                best_median["median_paired_percent"]),
+            "safest_strategy": safest["strategy"],
+            "safest_minimum_paired_percent": (
+                safest["minimum_paired_percent"]),
+            "any_schedule_mean_above_5_percent": any(
+                row["mean_paired_percent"] >= 5.0 for row in grid_rows),
+            "any_schedule_mean_above_10_percent": any(
+                row["mean_paired_percent"] >= 10.0 for row in grid_rows),
+        }
     return result
 
 
@@ -350,6 +421,10 @@ def main(argv=None):
         "--reuse-root", type=Path,
         help=("Reuse completed BASE/P050/P100 runs from this compatible root; "
               "only the positive-probe strategy is written to --out."))
+    parser.add_argument(
+        "--reuse-roots", nargs="+", type=Path,
+        help=("Search these compatible roots in order for reusable Base and "
+              "generation-15 P050/P100 runs; missing runs go to --out."))
     parser.add_argument(
         "--positive-probe-root", type=Path,
         help="Reuse completed positive-probe runs from this compatible root.")
@@ -424,15 +499,18 @@ def main(argv=None):
                 (probability, positive_probe, reversible_probe,
                  probe_max_attempts, probe_retry_events) = specification
                 run = _strategy_run(args, instance, seed, strategy)
+                minimum_generation = STRATEGY_MINIMUM_GENERATIONS.get(
+                    strategy, args.minimum_generation)
                 jobs.append((
                     run, run.with_suffix(".nohup.log"),
                     _command(
                         args, instance_path, run, seed, probability,
                         positive_probe, reversible_probe,
-                        probe_max_attempts, probe_retry_events),
+                        probe_max_attempts, probe_retry_events,
+                        minimum_generation),
                     seed, probability, positive_probe, reversible_probe,
                     probe_max_attempts, probe_retry_events,
-                    args.minimum_generation))
+                    minimum_generation))
     counts = Counter()
     print(f"[FREQUENCY] jobs={len(jobs)} workers={args.max_workers}", flush=True)
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
@@ -455,6 +533,9 @@ def main(argv=None):
         "screening_pass")}
     if "diagnosis" in result:
         quick["diagnosis"] = result["diagnosis"]
+    if "schedule_grid_diagnosis" in result:
+        quick["schedule_grid_diagnosis"] = (
+            result["schedule_grid_diagnosis"])
     (args.out / "QUICK_RESULT.json").write_text(
         json.dumps(quick, indent=2, allow_nan=False) + "\n",
         encoding="utf-8")
