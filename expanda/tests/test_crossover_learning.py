@@ -15,7 +15,7 @@ from transformer_ppo.crossover import (
 )
 from transformer_ppo.crossover_observations import (
     CROSSOVER_MODEL_SPEC, build_crossover_observation,
-    build_crossover_shared_observation,
+    CROSSOVER_GRAPH_MODEL_SPEC_V3, build_crossover_shared_observation,
 )
 from multi_instance_policy import Decision
 
@@ -37,6 +37,7 @@ class _FakeTrainer:
         self.rewards = []
         self.done = []
         self.observation_provider = None
+        self.chosen_index = 0
 
     def begin_sequence(self):
         self.sequence_depth = 1
@@ -46,8 +47,9 @@ class _FakeTrainer:
         self.observation_provider(candidates, context or {})
         self.pending = True
         self.sequence_policy_actions += 1
-        probabilities = [1.0] + [0.0] * (len(candidates) - 1)
-        return Decision(0, probabilities, [None] * len(candidates), {
+        probabilities = [0.0] * len(candidates)
+        probabilities[self.chosen_index] = 1.0
+        return Decision(self.chosen_index, probabilities, [None] * len(candidates), {
             "decision_kind": "model_choice", "inference_seconds": 0.001,
         })
 
@@ -348,6 +350,122 @@ class CrossoverPlanningTests(unittest.TestCase):
                 self.assertEqual(random.getstate(), expected_state)
             finally:
                 controller.close()
+
+    def test_path_v3_joint_override_is_one_policy_action_with_direct_credit(self):
+        from transformer_ppo.archive import RewardArchive, RewardConfig
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        second_batch = base.Batch(8, "A", "D", 8.0, 0.0, 24.0)
+        key1, key2 = ("A", "D", 7), ("A", "D", 8)
+        parent1 = base.Individual({
+            key1: [base.PathAllocation(self.path1, 1.0)],
+            key2: [base.PathAllocation(self.path1, 1.0)],
+        })
+        parent2 = base.Individual({
+            key1: [base.PathAllocation(self.path2, 1.0)],
+            key2: [base.PathAllocation(self.path2, 1.0)],
+        })
+        trainer = _FakeTrainer()
+        trainer.chosen_index = 1
+        trainer.config = SimpleNamespace(
+            credit_assignment="operation_terminal",
+            candidate_representation="path_v3")
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        lookup = {
+            (arc.from_node, arc.to_node, arc.mode): arc
+            for path in (self.path1, self.path2) for arc in path.arcs
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CrossoverPPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[self.batch, second_batch], generations=2, pop_size=2,
+                method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={})
+            try:
+                child1, child2 = controller.crossover_common_node(
+                    parent1, parent2, [self.batch, second_batch], {}, lookup)
+                event = controller._active_event
+                self.assertEqual(event["model_decisions"], 1)
+                self.assertEqual(
+                    event["selected_joint_action"], "single_cut_override")
+                self.assertEqual(sum(
+                    row["different_from_shadow_base"]
+                    for row in event["selected_cuts"]), 1)
+                self.assertEqual(trainer.sequence_policy_actions, 1)
+                child1.objectives, child1.feasible = (2.0, 3.0, 4.0), True
+                child2.objectives, child2.feasible = (3.0, 2.0, 4.0), True
+                controller.settle_crossover(child1, child2)
+                self.assertEqual(len(trainer.rewards), 1)
+                self.assertTrue(trainer.done[-1])
+            finally:
+                controller.close()
+
+    def test_path_v3_base_passthrough_replays_exact_base_children_and_rng(self):
+        from multi_instance_logging import fingerprint
+        from transformer_ppo.archive import RewardArchive, RewardConfig
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        lookup = {
+            (arc.from_node, arc.to_node, arc.mode): arc
+            for path in (self.path1, self.path2) for arc in path.arcs
+        }
+        random.seed(6317)
+        expected = base.crossover_common_node(
+            self.parent1, self.parent2, [self.batch], {}, lookup)
+        expected_fingerprints = tuple(map(fingerprint, expected))
+        expected_state = random.getstate()
+
+        trainer = _FakeTrainer()
+        trainer.config = SimpleNamespace(
+            credit_assignment="operation_terminal",
+            candidate_representation="path_v3")
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CrossoverPPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[self.batch], generations=2, pop_size=2,
+                method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={})
+            try:
+                random.seed(6317)
+                actual = controller.crossover_common_node(
+                    self.parent1, self.parent2, [self.batch], {}, lookup)
+                self.assertEqual(
+                    controller._active_event["selected_joint_action"],
+                    "base_passthrough")
+                self.assertEqual(
+                    tuple(map(fingerprint, actual)), expected_fingerprints)
+                self.assertEqual(random.getstate(), expected_state)
+            finally:
+                controller.close()
+
+    def test_path_v3_joint_candidate_schema_and_prior_are_declared(self):
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        parent1, parent2, decisions = prepare_common_node_crossover(
+            self.parent1, self.parent2, [self.batch], _FixedRng())
+        candidates = CrossoverPPOController._joint_override_candidates(decisions)
+        observation = build_crossover_observation(
+            parent1, parent2, [self.batch], candidates,
+            {"K": 1, "deadline_window_alpha": 1.0, "generation": 0},
+            [], [], {"archive_size": 0, "archive_hv": 0.0},
+            ObjectiveNormalizer((0.0, 0.0, 0.0), (10.0, 10.0, 10.0)),
+            200, 20, 10, candidate_representation="path_v3")
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(candidates[0]["joint_action"], "base_passthrough")
+        self.assertAlmostEqual(observation["action_prior"][0], 0.5)
+        self.assertAlmostEqual(sum(observation["action_prior"]), 1.0)
+        self.assertTrue(all(
+            len(row) == CROSSOVER_GRAPH_MODEL_SPEC_V3["candidate_dim"]
+            for row in observation["candidates"]))
 
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "PyTorch not installed")

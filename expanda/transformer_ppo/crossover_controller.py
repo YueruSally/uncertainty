@@ -119,6 +119,13 @@ class CrossoverPPOController(MutationLogger):
         self._shared_observation = None
         has_learnable_cut = any(
             len(cut.candidates) >= 2 for cut in cut_decisions)
+        representation = getattr(
+            getattr(self.trainer, "config", None),
+            "candidate_representation", "legacy")
+        if representation == "path_v3":
+            return self._crossover_joint_override(
+                parent1, parent2, child1, child2, cut_decisions, event_id,
+                has_learnable_cut, started, tt_dict, arc_lookup)
         event_uses_model = (
             has_learnable_cut and (
                 True if self.model_choice_probability == 1.0 else
@@ -262,6 +269,190 @@ class CrossoverPPOController(MutationLogger):
             })
         return child1, child2
 
+    @staticmethod
+    def _joint_override_candidates(cut_decisions):
+        """Expose Base passthrough plus every single-cut deviation from Base."""
+        overrides = []
+        learnable = [
+            (cut_index, cut)
+            for cut_index, cut in enumerate(cut_decisions)
+            if len(cut.candidates) >= 2
+        ]
+        cut_denominator = max(1, len(cut_decisions) - 1)
+        largest_candidate_count = max(
+            (len(cut.candidates) for _, cut in learnable), default=1)
+        for cut_index, cut in learnable:
+            for candidate_index, source in enumerate(cut.candidates):
+                if candidate_index == cut.shadow_base_index:
+                    continue
+                candidate = dict(source)
+                candidate.update({
+                    "joint_action": "single_cut_override",
+                    "joint_cut_index": cut_index,
+                    "joint_candidate_index": candidate_index,
+                    "is_base_passthrough": 0.0,
+                    "cut_index_fraction": cut_index / cut_denominator,
+                    "cut_candidate_count_fraction": (
+                        len(cut.candidates) / largest_candidate_count),
+                    "is_shadow_base": 0.0,
+                })
+                overrides.append(candidate)
+        if not overrides:
+            return []
+
+        # The dedicated flag makes the safe action identifiable.  Retaining a
+        # real shadow candidate supplies well-formed numerical/path tokens;
+        # execution still applies every Base shadow cut, not just this row.
+        _, first_cut = learnable[0]
+        passthrough = dict(first_cut.candidates[first_cut.shadow_base_index])
+        passthrough.update({
+            "joint_action": "base_passthrough",
+            "joint_cut_index": None,
+            "joint_candidate_index": None,
+            "is_base_passthrough": 1.0,
+            "cut_index_fraction": 0.0,
+            "cut_candidate_count_fraction": (
+                len(first_cut.candidates) / largest_candidate_count),
+            "is_shadow_base": 1.0,
+        })
+        override_prior = 0.5 / len(overrides)
+        passthrough["selection_probability"] = 0.5
+        for candidate in overrides:
+            candidate["selection_probability"] = override_prior
+        return [passthrough, *overrides]
+
+    def _crossover_joint_override(
+            self, parent1, parent2, child1, child2, cut_decisions, event_id,
+            has_learnable_cut, started, tt_dict, arc_lookup):
+        """Let one PPO action replace at most one cut in the paired Base plan."""
+        joint_candidates = self._joint_override_candidates(cut_decisions)
+        event_uses_model = (
+            bool(joint_candidates) and has_learnable_cut and (
+                True if self.model_choice_probability == 1.0 else
+                False if self.model_choice_probability == 0.0 else
+                self.control_rng.random() < self.model_choice_probability
+            )
+        )
+        if has_learnable_cut:
+            self.model_control_events += int(event_uses_model)
+            self.base_control_events += int(not event_uses_model)
+
+        decision = None
+        selected_override = None
+        if event_uses_model:
+            self._current_parents = (parent1, parent2)
+            self._current_candidates = joint_candidates
+            self.trainer.begin_sequence()
+            context = {
+                "component": "C", "operator": "common_node_joint_override",
+                "generation": self.generation, "phase": self.phase,
+                "K": self.instance.get("K"),
+                "deadline_window_alpha": self.instance.get(
+                    "deadline_window_alpha"),
+            }
+            try:
+                decision = self.trainer.choose(joint_candidates, context)
+                decision.metadata.update({
+                    "control_branch": "model",
+                    "model_choice_probability": self.model_choice_probability,
+                    "crossover_control": (
+                        "single-joint-override-with-base-passthrough"),
+                })
+                chosen = joint_candidates[decision.chosen_index]
+                if chosen["joint_action"] == "single_cut_override":
+                    selected_override = (
+                        int(chosen["joint_cut_index"]),
+                        int(chosen["joint_candidate_index"]),
+                    )
+                kind = decision.metadata.get("decision_kind", "model_choice")
+                self.decision_counts[kind] = self.decision_counts.get(kind, 0) + 1
+                self.inference_seconds += float(
+                    decision.metadata.get("inference_seconds", 0.0))
+                for candidate_index, candidate in enumerate(joint_candidates):
+                    self.append("crossover_candidates", {
+                        "event_id": event_id,
+                        "cut_index": candidate.get("joint_cut_index"),
+                        "candidate_id": candidate_index,
+                        "instance_id": self.instance.get("instance_id"),
+                        "generation": self.generation,
+                        "evaluation": self.evaluations,
+                        "decision_kind": kind,
+                        **candidate,
+                        "baseline_selection_probability": candidate[
+                            "selection_probability"],
+                        "selection_probability": decision.probabilities[
+                            candidate_index],
+                        "chosen": candidate_index == decision.chosen_index,
+                    })
+            except Exception:
+                self.trainer.sequence_depth = 0
+                self.trainer.sequence_policy_actions = 0
+                self.trainer.pending = None
+                raise
+            finally:
+                self._current_parents = None
+                self._current_candidates = None
+                self._shared_observation = None
+
+        selected_rows = []
+        changed = False
+        for cut_index, cut in enumerate(cut_decisions):
+            candidate_index = (
+                selected_override[1]
+                if selected_override is not None
+                and selected_override[0] == cut_index else
+                cut.shadow_base_index)
+            candidate = cut.candidates[candidate_index]
+            changed = apply_cut(
+                child1, child2, cut, candidate, tt_dict, arc_lookup) or changed
+            selected_rows.append({
+                "cut_index": cut_index,
+                "batch_id": cut.batch.batch_id,
+                "candidate_count": len(cut.candidates),
+                "chosen_index": candidate_index,
+                "join_node": candidate["join_node"],
+                "decision_kind": (
+                    "model_single_cut_override"
+                    if selected_override is not None
+                    and selected_override[0] == cut_index else
+                    "paired_base_cut"),
+                "shadow_base_index": cut.shadow_base_index,
+                "different_from_shadow_base": (
+                    candidate_index != cut.shadow_base_index),
+                "policy_metadata": (
+                    decision.metadata if decision is not None else None),
+            })
+
+        finalize_children(child1, child2)
+        self.total_effective += int(changed)
+        self._pending_child_ids = {id(child1), id(child2)}
+        self._active_event = {
+            "event_id": event_id,
+            "children": (child1, child2),
+            "model_decisions": int(event_uses_model),
+            "cut_decision_count": len(cut_decisions),
+            "selected_cuts": selected_rows,
+            "changed_by_crossover": bool(changed),
+            "crossover_control": (
+                "single-joint-override-with-base-passthrough"),
+            "selected_joint_action": (
+                None if decision is None else
+                joint_candidates[decision.chosen_index]["joint_action"]),
+            "started": started,
+        }
+        if not cut_decisions:
+            self.no_candidate += 1
+            self.decision_counts["no_candidate"] += 1
+            self.append("crossover_skips", {
+                "event_id": event_id,
+                "instance_id": self.instance.get("instance_id"),
+                "generation": self.generation,
+                "evaluation": self.evaluations,
+                "reason": "no_legal_common_node",
+                "decision_kind": "no_candidate",
+            })
+        return child1, child2
+
     def settle_crossover(self, child1, child2):
         event = self._active_event
         if event is None:
@@ -360,6 +551,11 @@ class CrossoverPPOController(MutationLogger):
             "ppo_updates_before_run": self._ppo_updates_at_start,
             "ppo_updates_total": self.trainer.updates,
             "credit_assignment": self.credit_assignment,
+            "crossover_control": (
+                "single-joint-override-with-base-passthrough"
+                if getattr(getattr(self.trainer, "config", None),
+                           "candidate_representation", "legacy") == "path_v3"
+                else "per-cut"),
             "shared_observation_builds": self.shared_observation_builds,
             "model_choice_probability": self.model_choice_probability,
             "model_control_events": self.model_control_events,

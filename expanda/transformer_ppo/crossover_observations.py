@@ -35,6 +35,12 @@ CROSSOVER_CANDIDATE_FEATURES_V2 = (
     "child_2_rail_fraction", "child_2_water_fraction",
     "child_border_fraction", "deadline_window_h",
 )
+CROSSOVER_CANDIDATE_FEATURES_V3 = (
+    *CROSSOVER_CANDIDATE_FEATURES_V2,
+    "is_base_passthrough", "cut_index_fraction",
+    "cut_candidate_count_fraction", "is_shadow_base",
+    "declared_action_prior",
+)
 CROSSOVER_GLOBAL_FEATURES = (
     "K", "deadline_window_alpha", "generation_fraction", "evaluation_fraction",
     "remaining_fraction", "offspring_fraction", "parent_1_feasible",
@@ -55,6 +61,11 @@ CROSSOVER_GRAPH_MODEL_SPEC = {**CROSSOVER_MODEL_SPEC, **GRAPH_MODEL_SPEC}
 CROSSOVER_GRAPH_MODEL_SPEC_V2 = {
     **CROSSOVER_MODEL_SPEC,
     "candidate_dim": len(CROSSOVER_CANDIDATE_FEATURES_V2),
+    **GRAPH_MODEL_SPEC_V2,
+}
+CROSSOVER_GRAPH_MODEL_SPEC_V3 = {
+    **CROSSOVER_MODEL_SPEC,
+    "candidate_dim": len(CROSSOVER_CANDIDATE_FEATURES_V3),
     **GRAPH_MODEL_SPEC_V2,
 }
 
@@ -111,6 +122,12 @@ def _candidate_tokens(candidates, representation="legacy"):
                 "child_2_rail_fraction", "child_2_water_fraction",
                 "child_border_fraction", "deadline_window_h",
             ))
+            if representation == "path_v3":
+                candidate.extend(_finite(row.get(name)) for name in (
+                    "is_base_passthrough", "cut_index_fraction",
+                    "cut_candidate_count_fraction", "is_shadow_base",
+                    "selection_probability",
+                ))
         elif representation != "legacy":
             raise ValueError("unknown candidate representation")
         values.append(candidate)
@@ -182,15 +199,17 @@ def build_crossover_observation(parent1, parent2, batches, candidates, context,
     observation = dict(shared)
     observation["candidates"] = candidate_values
     observation["eligible"] = eligible
-    # Base draws the common join node uniformly.
+    # V2 mirrors Base's uniform common-node draw.  V3 is one joint override
+    # action with an explicit safe Base-passthrough prior.
     observation["action_prior"] = action_prior(
-        candidates, eligible, use_candidate_probability=False)
+        candidates, eligible,
+        use_candidate_probability=candidate_representation == "path_v3")
     if "graph" in observation:
         graph_observation = observation["graph"]
         node_index = graph_observation["node_index"]
         observation["candidate_graph_nodes"] = [
-            ([node_index[row["join_node"]]]
-             if row["join_node"] in node_index else [])
+            ([node_index[row.get("join_node")]]
+             if row.get("join_node") in node_index else [])
             for row in candidates
         ]
         if candidate_representation in ("path_v2", "path_v3"):

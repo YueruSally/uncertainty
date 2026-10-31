@@ -12,6 +12,7 @@ from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.config import PPOConfig, SCENARIOS, episode_seeds
 from transformer_ppo.crossover_observations import (
     CROSSOVER_GRAPH_MODEL_SPEC, CROSSOVER_GRAPH_MODEL_SPEC_V2,
+    CROSSOVER_GRAPH_MODEL_SPEC_V3,
 )
 from transformer_ppo.graph_features import GRAPH_MODEL_SPEC, GRAPH_MODEL_SPEC_V2
 from transformer_ppo.initialization_observations import (
@@ -111,8 +112,11 @@ def _model_spec(component, candidate_representation="legacy"):
     path_encoded = candidate_representation in (
         "path_v2", "path_v3", "path_v4")
     if component == "C":
-        return dict(CROSSOVER_GRAPH_MODEL_SPEC_V2 if path_encoded
-                    else CROSSOVER_GRAPH_MODEL_SPEC)
+        return dict(
+            CROSSOVER_GRAPH_MODEL_SPEC_V3
+            if candidate_representation == "path_v3" else
+            CROSSOVER_GRAPH_MODEL_SPEC_V2 if path_encoded else
+            CROSSOVER_GRAPH_MODEL_SPEC)
     if component == "I":
         return dict(
             INITIALIZATION_GRAPH_MODEL_SPEC_V3
@@ -158,6 +162,11 @@ def _run_config(args, config, manifests, records):
             if args.architecture == "transformer" else
             "candidate-plus-global-plus-parent-pool"),
         "actor_policy": config.actor_policy,
+        "crossover_control": (
+            "single-joint-override-with-base-passthrough"
+            if args.component == "C"
+            and config.candidate_representation == "path_v3" else
+            "per-cut" if args.component == "C" else None),
         "policy_seed": args.policy_seed,
         "ppo": asdict(config),
         "ppo_digest": config.digest(),
@@ -395,10 +404,15 @@ def main():
             and args.gae_horizon is not None and args.gae_horizon < 64):
         parser.error("C operation_terminal requires --gae-horizon >= 64")
     if (args.candidate_representation in ("path_v3", "path_v4")
-            and args.component not in ("I", "M")):
-        parser.error("path_v3/path_v4 are valid only for I or M")
+            and args.component not in ("I", "C", "M")):
+        parser.error("path_v3/path_v4 require I, C, or M")
     if args.candidate_representation == "path_v4" and args.component != "M":
         parser.error("path_v4 is valid only for M")
+    if (args.component == "C"
+            and args.candidate_representation == "path_v3"
+            and args.credit_assignment != "operation_terminal"):
+        parser.error(
+            "C path_v3 joint override requires operation_terminal credit")
     if args.initialization_control is not None and args.component != "I":
         parser.error("--initialization-control is valid only for I")
     if args.initialization_control == "path_count" and (
