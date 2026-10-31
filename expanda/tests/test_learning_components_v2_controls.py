@@ -235,6 +235,76 @@ class V2ControlTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_reversible_m_operator_probe_falls_back_to_base(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        batch = base.Batch(1, "A", "D", 10.0, 0.0, 24.0)
+        individual = base.Individual()
+        path = base.Path(1, "A", "D", ["A", "D"], ["road"], [],
+                         1.0, 1.0, 1.0)
+        operator_target = {
+            "target": {}, "eligible": True,
+            "selection_probability": 1.0,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20,
+                trainer=trainer, archive=RewardArchive(normalizer),
+                reward_config=RewardConfig(), batches=[batch], generations=20,
+                pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy"}, seeds={"algorithm": 7},
+                forced_operator="replace",
+                forced_operator_min_generation=15,
+                forced_operator_probability=1.0,
+                forced_operator_positive_probe=True,
+                forced_operator_reversible_probe=True)
+            controller.archive.observe((1.0, 1.0, 1.0), True, "baseline")
+            controller.generation = 15
+
+            def apply(probe, *_args, **_kwargs):
+                probe.od_allocations[("A", "D", 1)] = [
+                    base.PathAllocation(path, 1.0)]
+                return True
+
+            def evaluate(probe, *_args, **_kwargs):
+                probe.objectives = (2.0, 2.0, 2.0)
+                probe.feasible = True
+
+            def fallback(replayed, *_args, **_kwargs):
+                self.assertEqual(replayed.od_allocations, {})
+                self.assertEqual(
+                    replayed.objectives,
+                    (float("inf"), float("inf"), float("inf")))
+                return "replace", False
+
+            try:
+                with patch(
+                        "transformer_ppo.controller.candidates_for",
+                        return_value=[operator_target]), patch(
+                        "transformer_ppo.controller.base.sample_operator",
+                        return_value="replace"), patch(
+                        "transformer_ppo.controller.base.apply_mutation_op",
+                        side_effect=apply), patch(
+                        "transformer_ppo.controller.base.repair_missing_allocations"
+                        ), patch(
+                        "transformer_ppo.controller.base.evaluate_individual",
+                        side_effect=evaluate), patch(
+                        "transformer_ppo.controller.base.mutate_fixed",
+                        side_effect=fallback) as fallback_mock:
+                    result = controller.mutate(
+                        individual, [batch], {}, {}, {}, [], 0.0, 0.0)
+                self.assertEqual(result, ("replace", False))
+                self.assertEqual(fallback_mock.call_count, 1)
+                self.assertTrue(controller.forced_operator_probe_completed)
+                self.assertFalse(controller.forced_operator_probe_positive)
+                self.assertEqual(controller.forced_operator_probe_delta_hv, 0.0)
+                self.assertEqual(controller.forced_operator_probe_fallbacks, 1)
+                self.assertEqual(individual.od_allocations, {})
+            finally:
+                controller.close()
+
     def test_replace_path_nonreplace_gate_uses_exact_base_passthrough(self):
         class ReplacePathTrainer(_Trainer):
             def __init__(self):

@@ -86,6 +86,11 @@ def main(argv=None):
         help=("After the first scheduled forced operator, continue forcing "
               "only when that probe immediately increases q90 archive HV."))
     parser.add_argument(
+        "--m-forced-operator-reversible-probe", action="store_true",
+        help=("Count and preview the first forced-operator evaluation; when "
+              "its archive-HV delta is nonpositive, restore and execute the "
+              "exact Base mutation instead."))
+    parser.add_argument(
         "--m-continuation-event", type=int,
         help=("M-only paired-continuation diagnostic: after this global "
               "mutation call, start --m-continuation-seed."))
@@ -213,9 +218,16 @@ def main(argv=None):
                     and args.m_forced_operator_probability != 1.0):
                 raise ValueError(
                     "positive operator probe requires probability 1")
-        elif args.m_forced_operator_min_generation is not None:
+            if (args.m_forced_operator_reversible_probe
+                    and not args.m_forced_operator_positive_probe):
+                raise ValueError(
+                    "reversible operator probe requires positive probe")
+        elif (args.m_forced_operator_min_generation is not None
+              or args.m_forced_operator_positive_probe
+              or args.m_forced_operator_reversible_probe):
             raise ValueError(
-                "forced M operator schedule requires --m-forced-operator")
+                "forced M operator probe/schedule requires "
+                "--m-forced-operator")
         if ((args.m_continuation_event is None)
                 != (args.m_continuation_seed is None)):
             raise ValueError(
@@ -274,6 +286,8 @@ def main(argv=None):
                 args.m_forced_operator_probability),
             m_forced_operator_positive_probe=(
                 args.m_forced_operator_positive_probe),
+            m_forced_operator_reversible_probe=(
+                args.m_forced_operator_reversible_probe),
             m_continuation_event=args.m_continuation_event,
             m_continuation_seed=args.m_continuation_seed,
             model_choice_probabilities=(

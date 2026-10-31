@@ -32,6 +32,7 @@ class PPOController(MutationLogger):
                  forced_operator_min_generation=None,
                  forced_operator_probability=1.0,
                  forced_operator_positive_probe=False,
+                 forced_operator_reversible_probe=False,
                  continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
@@ -90,9 +91,13 @@ class PPOController(MutationLogger):
             forced_operator_probability)
         self.forced_operator_positive_probe = bool(
             forced_operator_positive_probe)
+        self.forced_operator_reversible_probe = bool(
+            forced_operator_reversible_probe)
         self.forced_operator_probe_completed = False
         self.forced_operator_probe_positive = False
         self.forced_operator_probe_delta_hv = None
+        self.forced_operator_probe_fallbacks = 0
+        self.forced_operator_probe_evaluations = 0
         if self.forced_operator_min_generation is not None:
             if self.forced_operator is None:
                 raise ValueError(
@@ -115,6 +120,10 @@ class PPOController(MutationLogger):
             if self.forced_operator_probability != 1.0:
                 raise ValueError(
                     "positive operator probe requires schedule probability 1")
+        if (self.forced_operator_reversible_probe
+                and not self.forced_operator_positive_probe):
+            raise ValueError(
+                "reversible operator probe requires positive operator probe")
         if (continuation_event is None) != (continuation_seed is None):
             raise ValueError(
                 "M continuation event and seed must be supplied together")
@@ -232,6 +241,10 @@ class PPOController(MutationLogger):
         self._inside_mutation = True
         before_id = fingerprint(ind)
         archive_hv_before = float(self.archive.hypervolume)
+        reversible_probe = bool(
+            self.forced_operator_reversible_probe
+            and not self.forced_operator_probe_completed)
+        probe_parent = deepcopy(ind) if reversible_probe else None
         candidates = self._operator_candidates(
             ind, batches, path_lib, tt_dict, arc_lookup, reliable_options)
         operator_index = OPERATORS.index(self.forced_operator)
@@ -249,9 +262,15 @@ class PPOController(MutationLogger):
         # Base draws the batch before the operator.  Consume both draws exactly;
         # only replace the sampled operator.  Passing target=None delegates all
         # operator-internal target/path randomness to the original Base code.
+        base_python_state = random.getstate() if reversible_probe else None
+        base_numpy_state = np.random.get_state() if reversible_probe else None
         batch = random.choice(batches)
         shadow_base_operator = base.sample_operator()
+        previous_suppress_archive = self._suppress_archive
+        evaluations_before_probe = self.evaluations
         try:
+            if reversible_probe:
+                self._suppress_archive = True
             ok = base.apply_mutation_op(
                 ind, self.forced_operator, batch, path_lib, tt_dict, arc_lookup,
                 reliable_options=reliable_options, target=None)
@@ -261,17 +280,52 @@ class PPOController(MutationLogger):
                     ind, batches, arcs, tt_dict, waiting_cost, waiting_emission,
                     **kwargs)
         finally:
+            self._suppress_archive = previous_suppress_archive
             self._inside_mutation = False
         after_id = fingerprint(ind)
         changed = after_id != before_id
-        archive_hv_after = float(self.archive.hypervolume)
-        immediate_archive_delta = archive_hv_after - archive_hv_before
+        if reversible_probe and ok:
+            preview = self.archive.preview_many([(
+                ind.objectives, bool(ind.feasible), after_id)])
+            immediate_archive_delta = float(preview.delta_hv)
+            self.forced_operator_probe_evaluations += (
+                self.evaluations - evaluations_before_probe)
+        else:
+            archive_hv_after = float(self.archive.hypervolume)
+            immediate_archive_delta = archive_hv_after - archive_hv_before
         if (self.forced_operator_positive_probe
                 and not self.forced_operator_probe_completed):
             self.forced_operator_probe_completed = True
             self.forced_operator_probe_delta_hv = immediate_archive_delta
             self.forced_operator_probe_positive = (
                 immediate_archive_delta > 0.0)
+        probe_reverted_to_base = bool(
+            reversible_probe and immediate_archive_delta <= 0.0)
+        executed_operator = self.forced_operator
+        if probe_reverted_to_base:
+            ind.__dict__.clear()
+            ind.__dict__.update(deepcopy(probe_parent.__dict__))
+            random.setstate(base_python_state)
+            np.random.set_state(base_numpy_state)
+            self._inside_mutation = True
+            self.controls_mutation = False
+            try:
+                executed_operator, ok = base.mutate_fixed(
+                    ind, batches, path_lib, tt_dict, arc_lookup, arcs,
+                    waiting_cost, waiting_emission,
+                    reliable_options=reliable_options, **kwargs)
+            finally:
+                self.controls_mutation = True
+                self._inside_mutation = False
+            if executed_operator != shadow_base_operator:
+                raise RuntimeError(
+                    "reversible M probe failed to replay the Base operator")
+            self.forced_operator_probe_fallbacks += 1
+            after_id = fingerprint(ind)
+            changed = after_id != before_id
+        elif reversible_probe:
+            self.archive.observe(
+                ind.objectives, bool(ind.feasible), after_id)
         self.total_attempts += 1
         self.total_effective += int(bool(ok) and changed)
         self.decision_counts["forced_operator_choice"] += 1
@@ -288,7 +342,7 @@ class PPOController(MutationLogger):
             "forced_operator": self.forced_operator,
             "mixture_event_index": mixture_event_index,
             "selected_candidate_index": operator_index,
-            "operator": self.forced_operator,
+            "operator": executed_operator,
             "shadow_base_operator": shadow_base_operator,
             "different_from_shadow_base_operator": (
                 self.forced_operator != shadow_base_operator),
@@ -298,6 +352,7 @@ class PPOController(MutationLogger):
             "immediate_archive_delta": immediate_archive_delta,
             "operator_probe_completed": self.forced_operator_probe_completed,
             "operator_probe_positive": self.forced_operator_probe_positive,
+            "probe_reverted_to_base": probe_reverted_to_base,
             "parent_id": before_id,
             "child_id": after_id,
             "policy_metadata": {
@@ -309,7 +364,7 @@ class PPOController(MutationLogger):
         if self.phase == "offspring":
             self._record_pending_offspring(ind)
         self._reseed_continuation_if_due(mixture_event_index)
-        return self.forced_operator, bool(ok)
+        return executed_operator, bool(ok)
 
     @staticmethod
     def _mean(rows, name):
@@ -857,12 +912,18 @@ class PPOController(MutationLogger):
                 "forced_operator_probability": self.forced_operator_probability,
                 "forced_operator_positive_probe": (
                     self.forced_operator_positive_probe),
+                "forced_operator_reversible_probe": (
+                    self.forced_operator_reversible_probe),
                 "forced_operator_probe_completed": (
                     self.forced_operator_probe_completed),
                 "forced_operator_probe_positive": (
                     self.forced_operator_probe_positive),
                 "forced_operator_probe_delta_hv": (
                     self.forced_operator_probe_delta_hv),
+                "forced_operator_probe_fallbacks": (
+                    self.forced_operator_probe_fallbacks),
+                "forced_operator_probe_evaluations": (
+                    self.forced_operator_probe_evaluations),
                 "continuation_event": self.continuation_event,
                 "continuation_seed": self.continuation_seed,
                 "continuation_reseed_count": self.continuation_reseed_count,

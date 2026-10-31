@@ -169,6 +169,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 m_forced_operator_min_generation=None,
                 m_forced_operator_probability=1.0,
                 m_forced_operator_positive_probe=False,
+                m_forced_operator_reversible_probe=False,
                 m_continuation_event=None,
                 m_continuation_seed=None,
                 learning_protocol_version=None,
@@ -320,19 +321,27 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 "forced M operator probability must be in [0, 1]")
         m_forced_operator_positive_probe = bool(
             m_forced_operator_positive_probe)
+        m_forced_operator_reversible_probe = bool(
+            m_forced_operator_reversible_probe)
         if (m_forced_operator_positive_probe
                 and m_forced_operator_probability != 1.0):
             raise ValueError(
                 "positive operator probe requires probability 1")
+        if (m_forced_operator_reversible_probe
+                and not m_forced_operator_positive_probe):
+            raise ValueError(
+                "reversible operator probe requires positive operator probe")
         if m_forced_operator_min_generation is not None:
             m_forced_operator_min_generation = int(
                 m_forced_operator_min_generation)
             if m_forced_operator_min_generation < 0:
                 raise ValueError(
                     "forced M operator minimum generation cannot be negative")
-    elif m_forced_operator_min_generation is not None:
+    elif (m_forced_operator_min_generation is not None
+          or m_forced_operator_positive_probe
+          or m_forced_operator_reversible_probe):
         raise ValueError(
-            "forced M operator schedule requires a forced operator")
+            "forced M operator probe/schedule requires a forced operator")
     if (m_continuation_event is None) != (m_continuation_seed is None):
         raise ValueError(
             "M continuation event and seed must be supplied together")
@@ -540,6 +549,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             "m_forced_operator_probability": m_forced_operator_probability,
             "m_forced_operator_positive_probe": (
                 m_forced_operator_positive_probe),
+            "m_forced_operator_reversible_probe": (
+                m_forced_operator_reversible_probe),
             "m_continuation_event": m_continuation_event,
             "m_continuation_seed": m_continuation_seed,
             "control_random_stream": "private-sha256-seeded",
@@ -609,6 +620,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                     m_forced_operator_probability)
                 controller_options["forced_operator_positive_probe"] = (
                     m_forced_operator_positive_probe)
+                controller_options["forced_operator_reversible_probe"] = (
+                    m_forced_operator_reversible_probe)
                 controller_options["continuation_event"] = (
                     m_continuation_event)
                 controller_options["continuation_seed"] = (

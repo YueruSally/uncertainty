@@ -15,10 +15,13 @@ import sys
 
 EPSILON = 1e-12
 STRATEGIES = {
-    "BASE": (None, False),
-    "REPLACE_LATE_P050": (0.50, False),
-    "REPLACE_LATE_P100": (1.00, False),
-    "REPLACE_LATE_POSITIVE_PROBE": (1.00, True),
+    "BASE": (None, False, False),
+    "REPLACE_LATE_P050": (0.50, False, False),
+    "REPLACE_LATE_P100": (1.00, False, False),
+    "REPLACE_LATE_POSITIVE_PROBE": (1.00, True, False),
+}
+REVERSIBLE_STRATEGY = {
+    "REPLACE_LATE_REVERSIBLE_PROBE": (1.00, True, True),
 }
 
 
@@ -26,7 +29,8 @@ def _read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def _command(args, instance, out, seed, probability, positive_probe):
+def _command(args, instance, out, seed, probability, positive_probe,
+             reversible_probe):
     command = [
         sys.executable, "-u", str(args.runner),
         "--instance", str(instance),
@@ -56,10 +60,13 @@ def _command(args, instance, out, seed, probability, positive_probe):
         ])
         if positive_probe:
             command.append("--m-forced-operator-positive-probe")
+        if reversible_probe:
+            command.append("--m-forced-operator-reversible-probe")
     return command
 
 
-def _valid(run, seed, probability, positive_probe, minimum_generation):
+def _valid(run, seed, probability, positive_probe, reversible_probe,
+           minimum_generation):
     run = Path(run)
     if not (run / "COMPLETE.json").is_file():
         return False
@@ -87,6 +94,8 @@ def _valid(run, seed, probability, positive_probe, minimum_generation):
                     - probability) <= EPSILON
             and bool(control.get("m_forced_operator_positive_probe"))
             == positive_probe
+            and bool(control.get("m_forced_operator_reversible_probe"))
+            == reversible_probe
             and (not positive_probe
                  or complete.get("forced_operator_probe_completed") is True))
     except (KeyError, OSError, TypeError, ValueError):
@@ -94,9 +103,11 @@ def _valid(run, seed, probability, positive_probe, minimum_generation):
 
 
 def _run(job):
-    (run, log, command, seed, probability, positive_probe,
+    (run, log, command, seed, probability, positive_probe, reversible_probe,
      minimum_generation) = job
-    if _valid(run, seed, probability, positive_probe, minimum_generation):
+    if _valid(
+            run, seed, probability, positive_probe, reversible_probe,
+            minimum_generation):
         return run, "existing"
     if Path(run).exists():
         raise RuntimeError(f"incomplete output exists; use a fresh root: {run}")
@@ -110,19 +121,25 @@ def _run(job):
             stdout=handle, stderr=subprocess.STDOUT,
             env=environment, check=False)
     if result.returncode != 0 or not _valid(
-            run, seed, probability, positive_probe, minimum_generation):
+            run, seed, probability, positive_probe, reversible_probe,
+            minimum_generation):
         raise RuntimeError(f"run failed with exit {result.returncode}: {log}")
     return run, "complete"
 
 
 def _strategy_run(args, instance, seed, strategy):
     if (args.reuse_root is not None
-            and strategy != "REPLACE_LATE_POSITIVE_PROBE"):
+            and strategy in (
+                "BASE", "REPLACE_LATE_P050", "REPLACE_LATE_P100")):
         return args.reuse_root / instance / f"seed_{seed}" / strategy
+    if (args.positive_probe_root is not None
+            and strategy == "REPLACE_LATE_POSITIVE_PROBE"):
+        return (
+            args.positive_probe_root / instance / f"seed_{seed}" / strategy)
     return args.out / instance / f"seed_{seed}" / strategy
 
 
-def _summary(args, status_counts, instance_names):
+def _summary(args, status_counts, instance_names, strategy_specs):
     runs = []
     scenario_failures = []
     for instance in instance_names:
@@ -131,7 +148,7 @@ def _summary(args, status_counts, instance_names):
             base_complete = _read(base_run / "COMPLETE.json")
             base_config = _read(base_run / "configuration.json")
             base_hv = float(base_complete["final_hypervolume"])
-            for strategy in STRATEGIES:
+            for strategy in strategy_specs:
                 run = _strategy_run(args, instance, seed, strategy)
                 complete = _read(run / "COMPLETE.json")
                 config = _read(run / "configuration.json")
@@ -156,9 +173,13 @@ def _summary(args, status_counts, instance_names):
                         "forced_operator_probe_positive"),
                     "operator_probe_delta_hv": complete.get(
                         "forced_operator_probe_delta_hv"),
+                    "operator_probe_fallbacks": int(
+                        complete.get("forced_operator_probe_fallbacks", 0)),
+                    "operator_probe_evaluations": int(
+                        complete.get("forced_operator_probe_evaluations", 0)),
                 })
     strategies = []
-    for strategy in STRATEGIES:
+    for strategy in strategy_specs:
         rows = [row for row in runs if row["strategy"] == strategy]
         values = [row["paired_percent"] for row in rows]
         strategies.append({
@@ -177,6 +198,10 @@ def _summary(args, status_counts, instance_names):
                 row["model_control_events"] for row in rows),
             "positive_probes": sum(
                 row["operator_probe_positive"] is True for row in rows),
+            "probe_fallbacks": sum(
+                row["operator_probe_fallbacks"] for row in rows),
+            "probe_evaluations": sum(
+                row["operator_probe_evaluations"] for row in rows),
         })
     alternatives = [row for row in strategies if row["strategy"] != "BASE"]
     best = max(alternatives, key=lambda row: row["mean_paired_percent"])
@@ -185,13 +210,18 @@ def _summary(args, status_counts, instance_names):
         "definition": (
             "matched 400-evaluation frozen-CCP comparison of Base against "
             "50%, 100%, and immediate-positive-probe replace schedules from "
-            "generation 15"),
+            "generation 15"
+            + (", including a budget-counted reversible probe"
+               if args.include_reversible_probe else "")),
         "instance_count": len(instance_names),
         "algorithm_seed_count": len(args.algorithm_seeds),
         "run_count": len(runs),
         "status_counts": status_counts,
         "reuse_root": (
             None if args.reuse_root is None else str(args.reuse_root)),
+        "positive_probe_root": (
+            None if args.positive_probe_root is None
+            else str(args.positive_probe_root)),
         "scenario_exact": not scenario_failures,
         "scenario_failures": scenario_failures,
         "strategies": strategies,
@@ -227,6 +257,13 @@ def main(argv=None):
         "--reuse-root", type=Path,
         help=("Reuse completed BASE/P050/P100 runs from this compatible root; "
               "only the positive-probe strategy is written to --out."))
+    parser.add_argument(
+        "--positive-probe-root", type=Path,
+        help="Reuse completed positive-probe runs from this compatible root.")
+    parser.add_argument(
+        "--include-reversible-probe", action="store_true",
+        help=("Also evaluate the budget-counted reversible positive-probe "
+              "strategy."))
     parser.add_argument("--instance-ids", nargs="+", required=True)
     parser.add_argument("--algorithm-seeds", nargs="+", type=int,
                         required=True)
@@ -258,18 +295,21 @@ def main(argv=None):
             parser.error(f"missing instance: {path}")
         instance_paths[instance_id.replace("train-", "").replace("-", "_")] = path
 
+    strategy_specs = dict(STRATEGIES)
+    if args.include_reversible_probe:
+        strategy_specs.update(REVERSIBLE_STRATEGY)
     jobs = []
     for instance, instance_path in sorted(instance_paths.items()):
         for seed in args.algorithm_seeds:
-            for strategy, specification in STRATEGIES.items():
-                probability, positive_probe = specification
+            for strategy, specification in strategy_specs.items():
+                probability, positive_probe, reversible_probe = specification
                 run = _strategy_run(args, instance, seed, strategy)
                 jobs.append((
                     run, run.with_suffix(".nohup.log"),
                     _command(
                         args, instance_path, run, seed, probability,
-                        positive_probe),
-                    seed, probability, positive_probe,
+                        positive_probe, reversible_probe),
+                    seed, probability, positive_probe, reversible_probe,
                     args.minimum_generation))
     counts = Counter()
     print(f"[FREQUENCY] jobs={len(jobs)} workers={args.max_workers}", flush=True)
@@ -281,7 +321,8 @@ def main(argv=None):
             print(
                 f"[FREQUENCY] {index}/{len(jobs)} {status}: {run}",
                 flush=True)
-    result = _summary(args, dict(counts), sorted(instance_paths))
+    result = _summary(
+        args, dict(counts), sorted(instance_paths), strategy_specs)
     (args.out / "COMPLETE.json").write_text(
         json.dumps(result, indent=2, allow_nan=False) + "\n",
         encoding="utf-8")
