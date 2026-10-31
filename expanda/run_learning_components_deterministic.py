@@ -61,6 +61,10 @@ def main(argv=None):
         "--c-forced-joint-candidate-index", type=int,
         help=("C-only one-shot diagnostic: at --model-choice-event execute "
               "this deterministic joint candidate index instead of sampling."))
+    parser.add_argument(
+        "--m-forced-candidate-index", type=int,
+        help=("M-only one-shot diagnostic: at --model-choice-event execute "
+              "this deterministic raw candidate index instead of inference."))
     parser.add_argument("--checkpoint", type=Path,
                         help="Checkpoint for a single I, C, or M run.")
     parser.add_argument("--i-checkpoint", type=Path)
@@ -148,6 +152,13 @@ def main(argv=None):
                 raise ValueError(
                     "forced C joint candidate index requires component C and "
                     "--model-choice-event")
+        if args.m_forced_candidate_index is not None:
+            if args.m_forced_candidate_index < 0:
+                raise ValueError("forced M candidate index cannot be negative")
+            if args.component != "M" or args.model_choice_event is None:
+                raise ValueError(
+                    "forced M candidate index requires component M and "
+                    "--model-choice-event")
         if args.component in ("BASE", "RULE-I"):
             trainer = None
         elif len(args.component) > 1:
@@ -187,6 +198,7 @@ def main(argv=None):
             model_choice_event=args.model_choice_event,
             c_forced_joint_candidate_index=(
                 args.c_forced_joint_candidate_index),
+            m_forced_candidate_index=args.m_forced_candidate_index,
             model_choice_probabilities=(
                 {args.component: args.model_choice_probability}
                 if args.component in ("C", "M") else

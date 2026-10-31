@@ -209,6 +209,15 @@ class MutationLogger:
         ind._learning_eval_key = key
         ind._learning_eval_id = self.evaluations
 
+    def choose_mutation_candidate(self, candidates, context):
+        """Select one mutation candidate.
+
+        Controllers may override this narrow hook for deterministic
+        counterfactual diagnostics while the ordinary logger continues to use
+        the configured policy unchanged.
+        """
+        return self.policy.choose(candidates, context)
+
     def mutate(self, ind, batches, path_lib, tt_dict, arc_lookup,
                arcs, waiting_cost, waiting_emission, reliable_options=None,
                operator_override=None, **kwargs):
@@ -270,7 +279,7 @@ class MutationLogger:
             q90_cost_before=(before.objectives[0] if before_evaluated else None),
             q90_emission_before=(before.objectives[1] if before_evaluated else None),
             q90_makespan_before=(before.objectives[2] if before_evaluated else None))
-        decision = self.policy.choose(candidates, context)
+        decision = self.choose_mutation_candidate(candidates, context)
         decision_kind = decision.metadata.get("decision_kind")
         if decision_kind not in self.decision_counts:
             decision_kind = (
@@ -384,6 +393,7 @@ class MutationLogger:
             parent_id=before_hash, child_id=after_hash,
             method=self.method, generation=self.generation, phase=self.phase,
             decision_kind=decision_kind,
+            selected_candidate_index=decision.chosen_index,
             base_passthrough=base_passthrough,
             operator=op, operator_probability=0.2, selection_policy=self.policy.name,
             shadow_base_operator=shadow_base_operator,

@@ -628,6 +628,34 @@ class CheckpointTests(unittest.TestCase):
         self.assertIsNone(trainer.pending)
         self.assertEqual(trainer.buffer, [])
 
+    def test_forced_candidate_index_executes_requested_eligible_action(self):
+        from transformer_ppo.ppo import PPOTrainer
+
+        config = PPOConfig(
+            hidden_dim=16, attention_heads=4, transformer_layers=1,
+            dropout=0.0)
+        observation = {
+            "parent": [[0.0] * len(PARENT_FEATURES)],
+            "candidates": [[0.0] * len(CANDIDATE_FEATURES)] * 3,
+            "eligible": [True, False, True], "operator_id": 4,
+            "global": [0.0] * len(GLOBAL_FEATURES),
+        }
+        trainer = PPOTrainer(
+            "mlp", config, lambda *_: observation,
+            device="cpu", policy_seed=123, training=False,
+            inference_action_mode="sample")
+        decision = trainer.choose(
+            [{"eligible": True}, {"eligible": False}, {"eligible": True}],
+            forced_action_index=2)
+        self.assertEqual(decision.chosen_index, 2)
+        self.assertEqual(decision.metadata["forced_action_index"], 2)
+        self.assertEqual(trainer.pending["action"], 2)
+        trainer.observe_outcome(0.0, done=True)
+        with self.assertRaisesRegex(ValueError, "not eligible"):
+            trainer.choose(
+                [{"eligible": True}, {"eligible": False}],
+                forced_action_index=1)
+
     def test_model_choice_reports_measured_inference_time(self):
         from transformer_ppo.ppo import PPOTrainer
 

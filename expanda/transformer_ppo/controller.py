@@ -27,6 +27,7 @@ class PPOController(MutationLogger):
                  reward_config: RewardConfig, batches, generations, pop_size,
                  graph_observation=None, model_choice_probability=1.0,
                  model_choice_event=None,
+                 forced_candidate_index=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
                  **kwargs):
@@ -59,6 +60,15 @@ class PPOController(MutationLogger):
                 and self.model_choice_probability != 1.0):
             raise ValueError(
                 "model_choice_event cannot be combined with probability gating")
+        self.forced_candidate_index = (
+            None if forced_candidate_index is None
+            else int(forced_candidate_index))
+        if self.forced_candidate_index is not None:
+            if self.forced_candidate_index < 0:
+                raise ValueError("forced M candidate index cannot be negative")
+            if self.model_choice_event is None:
+                raise ValueError(
+                    "forced M candidate index requires model_choice_event")
         self.mixture_event_count = 0
         self.mutation_control = getattr(
             getattr(trainer, "config", None), "mutation_control", "location")
@@ -120,6 +130,14 @@ class PPOController(MutationLogger):
                 self.control_rng.random() < self.model_choice_probability
             )
         return use_model, self.mixture_event_count
+
+    def choose_mutation_candidate(self, candidates, context):
+        forced = (
+            self.forced_candidate_index
+            if self._active_mixture_event_index == self.model_choice_event
+            else None)
+        return self.trainer.choose(
+            candidates, context, forced_action_index=forced)
 
     @staticmethod
     def _mean(rows, name):
@@ -496,6 +514,7 @@ class PPOController(MutationLogger):
                 "control_branch": "paired_base",
                 "model_choice_probability": self.model_choice_probability,
                 "model_choice_event": self.model_choice_event,
+                "forced_candidate_index": self.forced_candidate_index,
                 "mixture_event_index": mixture_event_index,
                 "operator": result[0],
                 "decision_changed": bool(changed),
@@ -646,6 +665,7 @@ class PPOController(MutationLogger):
                 "credit_assignment": self.credit_assignment,
                 "model_choice_probability": self.model_choice_probability,
                 "model_choice_event": self.model_choice_event,
+                "forced_candidate_index": self.forced_candidate_index,
                 "mixture_event_count": self.mixture_event_count,
                 "model_control_events": self.model_control_events,
                 "base_control_events": self.base_control_events,

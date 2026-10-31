@@ -105,15 +105,25 @@ class PPOTrainer:
         logits, value = self.model(batch)
         return Categorical(logits=logits), value
 
-    def choose(self, candidates, context=None):
+    def choose(self, candidates, context=None, forced_action_index=None):
         if self.pending is not None:
             raise RuntimeError("previous policy action has not received an outcome")
         eligible = [i for i, row in enumerate(candidates) if row.get("eligible")]
+        forced = (
+            None if forced_action_index is None else int(forced_action_index))
+        if forced is not None and self.training:
+            raise ValueError(
+                "forced action index is a frozen-policy diagnostic only")
+        if forced is not None and (forced < 0 or forced >= len(candidates)):
+            raise ValueError(
+                f"forced action index {forced} is outside {len(candidates)} candidates")
+        if forced is not None and forced not in eligible:
+            raise ValueError(f"forced action index {forced} is not eligible")
         if not eligible:
             return Decision(None, [0.0] * len(candidates), [None] * len(candidates),
                             {"no_eligible_candidate": True, "fallback": None,
                              "decision_kind": "no_candidate"})
-        if len(eligible) == 1:
+        if len(eligible) == 1 and forced is None:
             probabilities = [0.0] * len(candidates)
             probabilities[eligible[0]] = 1.0
             # A forced move is execution logic, not a sampled policy action.
@@ -141,12 +151,16 @@ class PPOTrainer:
         with torch.no_grad():
             distribution, value = self._distribution(observation)
             sample_action = (
-                self.training or self.inference_action_mode == "sample")
+                forced is None
+                and (self.training or self.inference_action_mode == "sample"))
             probabilities_tensor = distribution.probs.squeeze(0)
             probabilities = probabilities_tensor.cpu().tolist()
             group_diagnostics = action_group_diagnostics(
                 candidates, probabilities)
-            if sample_action:
+            if forced is not None:
+                action = torch.as_tensor(
+                    [forced], dtype=torch.long, device=self.device)
+            elif sample_action:
                 action = torch.multinomial(
                     distribution.probs, 1,
                     generator=self.action_generator).squeeze(-1)
@@ -187,6 +201,7 @@ class PPOTrainer:
             "grouped_argmax": bool(
                 not sample_action and group_diagnostics is not None),
             "grouped_argmax_margin": self.grouped_argmax_margin,
+            "forced_action_index": forced,
             "inference_seconds": time.perf_counter() - inference_started,
         })
 
