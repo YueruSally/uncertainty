@@ -181,6 +181,33 @@ class V2ControlTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_forced_m_operator_generation_schedule(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20,
+                trainer=trainer, archive=RewardArchive(normalizer),
+                reward_config=RewardConfig(), batches=[], generations=20,
+                pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy"}, seeds={"algorithm": 7},
+                forced_operator="replace",
+                forced_operator_min_generation=15,
+                forced_operator_probability=1.0)
+            try:
+                controller.generation = 14
+                self.assertEqual(controller._next_control_branch(), (False, 1))
+                controller.generation = 15
+                self.assertEqual(controller._next_control_branch(), (True, 2))
+                summary = controller.summary()
+                self.assertEqual(
+                    summary["forced_operator_min_generation"], 15)
+                self.assertEqual(summary["forced_operator_probability"], 1.0)
+            finally:
+                controller.close()
+
     def test_replace_path_nonreplace_gate_uses_exact_base_passthrough(self):
         class ReplacePathTrainer(_Trainer):
             def __init__(self):

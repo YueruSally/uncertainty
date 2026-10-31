@@ -75,6 +75,13 @@ def main(argv=None):
               "force this operator while retaining Base batch and internal "
               "target selection."))
     parser.add_argument(
+        "--m-forced-operator-min-generation", type=int,
+        help=("M-only schedule: from this generation onward, force "
+              "--m-forced-operator according to its schedule probability."))
+    parser.add_argument(
+        "--m-forced-operator-probability", type=float, default=1.0,
+        help="Probability of forcing the scheduled M operator (default: 1).")
+    parser.add_argument(
         "--m-continuation-event", type=int,
         help=("M-only paired-continuation diagnostic: after this global "
               "mutation call, start --m-continuation-seed."))
@@ -183,13 +190,24 @@ def main(argv=None):
                     "forced M candidate index requires component M and "
                     "--model-choice-event")
         if args.m_forced_operator is not None:
-            if args.component != "M" or args.model_choice_event is None:
+            if args.component != "M":
                 raise ValueError(
-                    "forced M operator requires component M and "
-                    "--model-choice-event")
+                    "forced M operator requires component M")
+            if ((args.model_choice_event is None)
+                    == (args.m_forced_operator_min_generation is None)):
+                raise ValueError(
+                    "forced M operator requires exactly one of "
+                    "--model-choice-event and "
+                    "--m-forced-operator-min-generation")
             if args.m_forced_candidate_index is not None:
                 raise ValueError(
                     "forced M operator and candidate index are mutually exclusive")
+            if not 0.0 <= args.m_forced_operator_probability <= 1.0:
+                raise ValueError(
+                    "forced M operator probability must be in [0, 1]")
+        elif args.m_forced_operator_min_generation is not None:
+            raise ValueError(
+                "forced M operator schedule requires --m-forced-operator")
         if ((args.m_continuation_event is None)
                 != (args.m_continuation_seed is None)):
             raise ValueError(
@@ -242,6 +260,10 @@ def main(argv=None):
                 args.c_forced_joint_candidate_index),
             m_forced_candidate_index=args.m_forced_candidate_index,
             m_forced_operator=args.m_forced_operator,
+            m_forced_operator_min_generation=(
+                args.m_forced_operator_min_generation),
+            m_forced_operator_probability=(
+                args.m_forced_operator_probability),
             m_continuation_event=args.m_continuation_event,
             m_continuation_seed=args.m_continuation_seed,
             model_choice_probabilities=(

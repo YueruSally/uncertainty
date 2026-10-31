@@ -166,6 +166,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 c_forced_joint_candidate_index=None,
                 m_forced_candidate_index=None,
                 m_forced_operator=None,
+                m_forced_operator_min_generation=None,
+                m_forced_operator_probability=1.0,
                 m_continuation_event=None,
                 m_continuation_seed=None,
                 learning_protocol_version=None,
@@ -300,12 +302,30 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         m_forced_operator = str(m_forced_operator)
         if m_forced_operator not in ("add", "del", "mod", "mode", "replace"):
             raise ValueError("invalid forced M operator")
-        if component != "M" or model_choice_event is None:
+        if component != "M":
             raise ValueError(
-                "forced M operator requires component M and a model choice event")
+                "forced M operator requires component M")
+        if ((model_choice_event is None)
+                == (m_forced_operator_min_generation is None)):
+            raise ValueError(
+                "forced M operator requires exactly one of a model choice "
+                "event and a minimum generation schedule")
         if m_forced_candidate_index is not None:
             raise ValueError(
                 "forced M operator and candidate index are mutually exclusive")
+        m_forced_operator_probability = float(m_forced_operator_probability)
+        if not 0.0 <= m_forced_operator_probability <= 1.0:
+            raise ValueError(
+                "forced M operator probability must be in [0, 1]")
+        if m_forced_operator_min_generation is not None:
+            m_forced_operator_min_generation = int(
+                m_forced_operator_min_generation)
+            if m_forced_operator_min_generation < 0:
+                raise ValueError(
+                    "forced M operator minimum generation cannot be negative")
+    elif m_forced_operator_min_generation is not None:
+        raise ValueError(
+            "forced M operator schedule requires a forced operator")
     if (m_continuation_event is None) != (m_continuation_seed is None):
         raise ValueError(
             "M continuation event and seed must be supplied together")
@@ -508,6 +528,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             "c_forced_joint_candidate_index": c_forced_joint_candidate_index,
             "m_forced_candidate_index": m_forced_candidate_index,
             "m_forced_operator": m_forced_operator,
+            "m_forced_operator_min_generation": (
+                m_forced_operator_min_generation),
+            "m_forced_operator_probability": m_forced_operator_probability,
             "m_continuation_event": m_continuation_event,
             "m_continuation_seed": m_continuation_seed,
             "control_random_stream": "private-sha256-seeded",
@@ -571,6 +594,10 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 controller_options["forced_candidate_index"] = (
                     m_forced_candidate_index)
                 controller_options["forced_operator"] = m_forced_operator
+                controller_options["forced_operator_min_generation"] = (
+                    m_forced_operator_min_generation)
+                controller_options["forced_operator_probability"] = (
+                    m_forced_operator_probability)
                 controller_options["continuation_event"] = (
                     m_continuation_event)
                 controller_options["continuation_seed"] = (

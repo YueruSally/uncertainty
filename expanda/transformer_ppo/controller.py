@@ -29,6 +29,8 @@ class PPOController(MutationLogger):
                  model_choice_event=None,
                  forced_candidate_index=None,
                  forced_operator=None,
+                 forced_operator_min_generation=None,
+                 forced_operator_probability=1.0,
                  continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
@@ -77,11 +79,29 @@ class PPOController(MutationLogger):
             if self.forced_operator not in OPERATORS:
                 raise ValueError(
                     f"forced M operator must be one of {tuple(OPERATORS)}")
-            if self.model_choice_event is None:
-                raise ValueError("forced M operator requires model_choice_event")
             if self.forced_candidate_index is not None:
                 raise ValueError(
                     "forced M operator and candidate index are mutually exclusive")
+        self.forced_operator_min_generation = (
+            None if forced_operator_min_generation is None
+            else int(forced_operator_min_generation))
+        self.forced_operator_probability = validate_model_choice_probability(
+            forced_operator_probability)
+        if self.forced_operator_min_generation is not None:
+            if self.forced_operator is None:
+                raise ValueError(
+                    "forced operator schedule requires forced M operator")
+            if self.forced_operator_min_generation < 0:
+                raise ValueError(
+                    "forced operator minimum generation cannot be negative")
+            if self.model_choice_event is not None:
+                raise ValueError(
+                    "forced operator schedule and model_choice_event are "
+                    "mutually exclusive")
+        elif self.forced_operator is not None and self.model_choice_event is None:
+            raise ValueError(
+                "forced M operator requires model_choice_event or a minimum "
+                "generation schedule")
         if (continuation_event is None) != (continuation_seed is None):
             raise ValueError(
                 "M continuation event and seed must be supplied together")
@@ -147,7 +167,15 @@ class PPOController(MutationLogger):
     def _next_control_branch(self):
         """Return the branch and globally ordered mutation-call index."""
         self.mixture_event_count += 1
-        if self.model_choice_event is not None:
+        if self.forced_operator_min_generation is not None:
+            eligible = self.generation >= self.forced_operator_min_generation
+            probability = self.forced_operator_probability
+            use_model = bool(
+                eligible and (
+                    probability == 1.0
+                    or (probability > 0.0
+                        and self.control_rng.random() < probability)))
+        elif self.model_choice_event is not None:
             use_model = self.mixture_event_count == self.model_choice_event
         else:
             use_model = (
@@ -793,6 +821,9 @@ class PPOController(MutationLogger):
                 "model_choice_event": self.model_choice_event,
                 "forced_candidate_index": self.forced_candidate_index,
                 "forced_operator": self.forced_operator,
+                "forced_operator_min_generation": (
+                    self.forced_operator_min_generation),
+                "forced_operator_probability": self.forced_operator_probability,
                 "continuation_event": self.continuation_event,
                 "continuation_seed": self.continuation_seed,
                 "continuation_reseed_count": self.continuation_reseed_count,
