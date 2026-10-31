@@ -897,7 +897,7 @@ def load_carbon_tax_applicability(xls):
         print(f"[WARN] Failed to load Carbon_Tax_Applicability ({e}).")
     return out
 
-def load_border_delay_map(xls):
+def load_border_delay_map(xls, include_customs: bool = True):
     """[V1 WIRING] Reads PER-MODE border delay columns.
 
     The expanded data has `BorderDelay_road_h / _rail_h / _water_h`
@@ -925,13 +925,18 @@ def load_border_delay_map(xls):
             for _, row in nb.iterrows():
                 n = str(row.get(nc, "")).strip()
                 if not n: continue
-                cc = safe_float(row.get(cc_col), default=0.0) if cc_col else 0.0
+                cc = (
+                    safe_float(row.get(cc_col), default=0.0)
+                    if include_customs and cc_col else 0.0)
                 for m, col in permode.items():
                     if col in nb.columns:
                         d = safe_float(row.get(col), default=0.0)
                         if d > 0.0 or cc > 0.0:
                             out[(n, m)] = d + cc
-            print(f"[INFO] Loaded border delay map (per-mode +customs): {len(out)} entries.")
+            suffix = " + customs" if include_customs else " only"
+            print(
+                f"[INFO] Loaded border delay map (per-mode{suffix}): "
+                f"{len(out)} entries.")
         else:
             mc = next((c for c in ["Mode","mode"] if c in nb.columns), None)
             dc = next((c for c in ["BorderDelay_h","Delay_h","BD"] if c in nb.columns), None)
@@ -945,6 +950,13 @@ def load_border_delay_map(xls):
     except Exception as e:
         print(f"[WARN] Failed to load border delay ({e}).")
     return out
+
+
+def load_border_delay_map_from_workbook(
+        workbook_path, include_customs: bool = True):
+    """Read Node_Border delay means directly from one workbook path."""
+    with pd.ExcelFile(workbook_path) as xls:
+        return load_border_delay_map(xls, include_customs=include_customs)
 
 
 def load_border_capacity_map(xls):

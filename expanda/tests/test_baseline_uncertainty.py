@@ -207,6 +207,29 @@ class FrozenScenarioTests(unittest.TestCase):
         self.assertAlmostEqual(
             float(scenarios.border_delay_h[event_key][0]), 81.2)
 
+    def test_border_loader_can_exclude_customs_from_mode_delay_means(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            workbook = os.path.join(temporary, "border.xlsx")
+            frame = model.pd.DataFrame([{
+                "EnglishName": "Port",
+                "CustomsClearance_h": 2.0,
+                "BorderDelay_road_h": 4.2,
+                "BorderDelay_rail_h": 40.6,
+                "BorderDelay_water_h": 0.0,
+            }])
+            with model.pd.ExcelWriter(workbook, engine="openpyxl") as writer:
+                frame.to_excel(writer, sheet_name="Node_Border", index=False)
+            pure = model.load_border_delay_map_from_workbook(
+                workbook, include_customs=False)
+            legacy = model.load_border_delay_map_from_workbook(
+                workbook, include_customs=True)
+        self.assertEqual(pure[("Port", "road")], 4.2)
+        self.assertEqual(pure[("Port", "rail")], 40.6)
+        self.assertNotIn(("Port", "water"), pure)
+        self.assertEqual(legacy[("Port", "road")], 6.2)
+        self.assertEqual(legacy[("Port", "rail")], 42.6)
+        self.assertEqual(legacy[("Port", "water")], 2.0)
+
     def test_explicit_uncertainty_overrides_control_draws(self):
         arcs = [
             model.Arc(

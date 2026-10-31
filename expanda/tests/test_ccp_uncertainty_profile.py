@@ -18,6 +18,7 @@ class CCPUncertaintyProfileTests(unittest.TestCase):
             "road": 0.50, "rail": 0.50, "water": 0.50})
         self.assertEqual(profile["border_delay_max_factor"], 3.5)
         self.assertEqual(profile["border_mean_source"], "node_border")
+        self.assertFalse(profile["border_include_customs"])
 
     def test_explicit_scenario_count_overrides_profile_default(self):
         profile = resolve_uncertainty_profile(

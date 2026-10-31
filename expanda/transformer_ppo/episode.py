@@ -34,6 +34,7 @@ CCP_UNCERTAINTY_PROFILES = {
         "border_delay_cv": {"road": 0.45, "rail": 0.60, "water": 0.40},
         "border_delay_max_factor": 3.5,
         "border_mean_source": "directional_csv",
+        "border_include_customs": True,
     },
     "transport_border_saa_v1": {
         "default_scenario_count": 200,
@@ -42,6 +43,7 @@ CCP_UNCERTAINTY_PROFILES = {
         "border_delay_cv": {"road": 0.50, "rail": 0.50, "water": 0.50},
         "border_delay_max_factor": 3.5,
         "border_mean_source": "node_border",
+        "border_include_customs": False,
     },
 }
 
@@ -267,6 +269,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     (nodes, regions, hold, proc, trans_cost, arcs, timetables, _raw,
      wait_cost, wait_emission, carbon, emission_factors, speeds, trans_map,
      border_delay, theta, _) = network
+    active_border_delay = (
+        base.load_border_delay_map_from_workbook(
+            data,
+            include_customs=resolved_uncertainty["border_include_customs"])
+        if resolved_uncertainty["border_mean_source"] == "node_border"
+        else border_delay)
     for batch in batches:
         batch.penalty_per_teu_h = base.DEFAULT_LATE_PENALTY_USD_PER_TEU_H
     timetable = base.build_timetable_dict(timetables)
@@ -278,7 +286,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if evaluation_mode == "deterministic":
         scenario_seed = 0
         scenarios = base.build_scenario_set(
-            arcs, border_delay, 1, scenario_seed, stochastic=False,
+            arcs, active_border_delay, 1, scenario_seed, stochastic=False,
             border_event_definitions=base.BORDER_EVENT_DEFINITIONS,
             border_mean_source=resolved_uncertainty["border_mean_source"])
         option_scenarios = scenarios
@@ -287,7 +295,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     else:
         scenario_seed = instance["ccp100_seed"]
         scenarios = base.build_scenario_set(
-            arcs, border_delay, resolved_uncertainty["scenario_count"],
+            arcs, active_border_delay, resolved_uncertainty["scenario_count"],
             scenario_seed, stochastic=True,
             border_event_definitions=base.BORDER_EVENT_DEFINITIONS,
             mode_time_cv=resolved_uncertainty["mode_time_cv"],
@@ -298,13 +306,13 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 resolved_uncertainty["border_delay_max_factor"]),
             border_mean_source=resolved_uncertainty["border_mean_source"])
         option_scenarios = base.build_expected_value_scenario_set(
-            arcs, border_delay, seed=0,
+            arcs, active_border_delay, seed=0,
             border_event_definitions=base.BORDER_EVENT_DEFINITIONS,
             border_mean_source=resolved_uncertainty["border_mean_source"])
         option_mode = "ev"
         risk_metric = "ccp"
     options = base.build_reliable_path_options(
-        batches, paths, timetable, trans_map, border_delay,
+        batches, paths, timetable, trans_map, active_border_delay,
         option_scenarios, mode=option_mode)
     base.ACTIVE_SCENARIO_SET = scenarios
     base._PATH_SCENARIO_CACHE = {}
@@ -492,7 +500,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         population = base.run_nsga2(
             nodes, regions, hold, proc, trans_cost, arcs, timetables, batches,
             wait_cost, wait_emission, carbon, emission_factors, speeds, trans_map,
-            border_delay, theta, paths, options, pop_size=pop_size,
+            active_border_delay, theta, paths, options, pop_size=pop_size,
             generations=generations)[0]
         controller.flush_events(population)
         controller.finish_episode()
