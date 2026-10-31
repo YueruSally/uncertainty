@@ -162,6 +162,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 initialization_learning_rule_top_k=None,
                 model_choice_probabilities=None,
                 model_choice_event=None,
+                i_forced_candidate_index=None,
                 c_forced_joint_candidate_index=None,
                 m_forced_candidate_index=None,
                 learning_protocol_version=None,
@@ -263,11 +264,19 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         model_choice_event = int(model_choice_event)
         if model_choice_event < 1:
             raise ValueError("model choice event must be a positive integer")
-        if component not in ("C", "M"):
-            raise ValueError("model choice event currently supports only C or M")
-        if probabilities[component] != 1.0:
+        if component not in ("I", "C", "M"):
+            raise ValueError("model choice event supports only I, C, or M")
+        if component in probabilities and probabilities[component] != 1.0:
             raise ValueError(
                 "model choice event cannot be combined with probability gating")
+    if i_forced_candidate_index is not None:
+        i_forced_candidate_index = int(i_forced_candidate_index)
+        if i_forced_candidate_index < 0:
+            raise ValueError("forced I candidate index cannot be negative")
+        if component != "I" or model_choice_event is None:
+            raise ValueError(
+                "forced I candidate index requires component I and a "
+                "model choice event")
     if c_forced_joint_candidate_index is not None:
         c_forced_joint_candidate_index = int(c_forced_joint_candidate_index)
         if c_forced_joint_candidate_index < 0:
@@ -472,6 +481,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 for name in sorted(allowed_probability_components)
             },
             "model_choice_event": model_choice_event,
+            "i_forced_candidate_index": i_forced_candidate_index,
             "c_forced_joint_candidate_index": c_forced_joint_candidate_index,
             "m_forced_candidate_index": m_forced_candidate_index,
             "control_random_stream": "private-sha256-seeded",
@@ -521,7 +531,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         if component == "I":
             controller_options.update(
                 rule_normalization=initialization_learning_rule_normalization,
-                rule_top_k=initialization_learning_rule_top_k)
+                rule_top_k=initialization_learning_rule_top_k,
+                model_choice_event=model_choice_event,
+                forced_candidate_index=i_forced_candidate_index)
         elif component in ("C", "M"):
             controller_options["model_choice_probability"] = probabilities[component]
             if component == "C":

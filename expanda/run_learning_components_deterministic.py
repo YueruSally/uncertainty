@@ -55,8 +55,12 @@ def main(argv=None):
     parser.add_argument("--m-model-choice-probability", type=float, default=1.0)
     parser.add_argument(
         "--model-choice-event", type=int,
-        help=("C/M one-shot diagnostic: use the model exactly at this global "
+        help=("I/C/M one-shot diagnostic: use the model exactly at this global "
               "component-call index and Base at every other call."))
+    parser.add_argument(
+        "--i-forced-candidate-index", type=int,
+        help=("I-only one-shot diagnostic: at --model-choice-event execute "
+              "this deterministic path candidate index instead of inference."))
     parser.add_argument(
         "--c-forced-joint-candidate-index", type=int,
         help=("C-only one-shot diagnostic: at --model-choice-event execute "
@@ -140,11 +144,18 @@ def main(argv=None):
         if args.model_choice_event is not None:
             if args.model_choice_event < 1:
                 raise ValueError("model choice event must be a positive integer")
-            if args.component not in ("C", "M"):
-                raise ValueError("model choice event currently supports only C or M")
+            if args.component not in ("I", "C", "M"):
+                raise ValueError("model choice event supports only I, C, or M")
             if args.model_choice_probability != 1.0:
                 raise ValueError(
                     "model choice event cannot be combined with probability gating")
+        if args.i_forced_candidate_index is not None:
+            if args.i_forced_candidate_index < 0:
+                raise ValueError("forced I candidate index cannot be negative")
+            if args.component != "I" or args.model_choice_event is None:
+                raise ValueError(
+                    "forced I candidate index requires component I and "
+                    "--model-choice-event")
         if args.c_forced_joint_candidate_index is not None:
             if args.c_forced_joint_candidate_index < 0:
                 raise ValueError("forced C joint candidate index cannot be negative")
@@ -196,6 +207,7 @@ def main(argv=None):
                 if args.initialization_rule_top_k is not None else None),
             initialization_learning_rule_top_k=args.initialization_rule_top_k,
             model_choice_event=args.model_choice_event,
+            i_forced_candidate_index=args.i_forced_candidate_index,
             c_forced_joint_candidate_index=(
                 args.c_forced_joint_candidate_index),
             m_forced_candidate_index=args.m_forced_candidate_index,

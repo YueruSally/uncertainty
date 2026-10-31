@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import random
 import sys
 import tempfile
@@ -26,6 +27,7 @@ class _FakeTrainer:
     name = "fake-ppo-i-masked"
     component = "I"
     updates = 0
+    training = False
 
     def __init__(self, fail_on_choose=False):
         self.fail_on_choose = fail_on_choose
@@ -40,14 +42,16 @@ class _FakeTrainer:
         self.sequence_depth = 1
         self.sequence_policy_actions = 0
 
-    def choose(self, candidates, context=None):
+    def choose(self, candidates, context=None, forced_action_index=None):
         if self.fail_on_choose:
             raise AssertionError("forced path must not invoke the model")
         observation = self.observation_provider(candidates, context or {})
         self.last_observation = observation
         self.pending = True
         self.sequence_policy_actions += 1
-        chosen = len(candidates) - 1
+        chosen = (
+            len(candidates) - 1
+            if forced_action_index is None else int(forced_action_index))
         probabilities = [0.0] * len(candidates)
         probabilities[chosen] = 1.0
         return Decision(chosen, probabilities, [None] * len(candidates), {
@@ -192,6 +196,102 @@ class InitializationControllerTests(unittest.TestCase):
                 self.assertEqual(count_log.read_text(), "")
                 self.assertEqual(
                     len(trainer.last_observation["candidates"][0]), 50)
+            finally:
+                controller.close()
+
+    def test_one_shot_path_diagnostic_replays_base_except_forced_choice(self):
+        random.seed(42)
+        base_individual = base.random_initial_individual(
+            [self.batch], self.path_lib, max_paths=3)
+        expected_state = random.getstate()
+        shadow_first = base_individual.od_allocations[("A", "D", 4)][0].path
+        shadow_index = self.paths.index(shadow_first)
+        forced_index = (shadow_index + 1) % len(self.paths)
+
+        trainer = _FakeTrainer()
+        trainer.config = SimpleNamespace(
+            candidate_representation="path_v3",
+            initialization_control="auto")
+        with tempfile.TemporaryDirectory() as directory:
+            controller = InitializationPPOController(
+                Path(directory), "run", "scenario", 50, trainer=trainer,
+                archive=RewardArchive(self.normalizer),
+                reward_config=RewardConfig(), batches=[self.batch],
+                generations=2, pop_size=4, method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={},
+                model_choice_event=1,
+                forced_candidate_index=forced_index)
+            try:
+                random.seed(42)
+                individual = controller.initial_individual(
+                    [self.batch], self.path_lib, max_paths=3)
+                self.assertEqual(random.getstate(), expected_state)
+                allocations = individual.od_allocations[("A", "D", 4)]
+                self.assertEqual(
+                    allocations[0].path.path_id,
+                    self.paths[forced_index].path_id)
+                individual.objectives, individual.feasible = (
+                    (2.0, 3.0, 4.0), True)
+                controller.settle_initialization(individual)
+                self.assertEqual(controller.model_control_events, 1)
+                states = [
+                    json.loads(line)
+                    for line in (Path(directory)
+                                 / "initialization_policy_states.jsonl")
+                    .read_text().splitlines()
+                ]
+                self.assertEqual(len(states), 1)
+                self.assertEqual(states[0]["decision_event_index"], 1)
+                self.assertEqual(states[0]["forced_candidate_index"], forced_index)
+                outcome = json.loads(
+                    (Path(directory) / "initialization_outcomes.jsonl")
+                    .read_text().splitlines()[0])
+                target = [
+                    row for row in outcome["selected_paths"]
+                    if row["target_model_choice"]
+                ]
+                self.assertEqual(len(target), 1)
+                self.assertEqual(
+                    target[0]["selected_candidate_index"], forced_index)
+            finally:
+                controller.close()
+
+    def test_one_shot_path_diagnostic_without_target_is_exact_base(self):
+        random.seed(19)
+        expected = base.random_initial_individual(
+            [self.batch], self.path_lib, max_paths=3)
+        expected_state = random.getstate()
+        expected_rows = [
+            (allocation.path.path_id, round(allocation.share, 12))
+            for allocation in expected.od_allocations[("A", "D", 4)]
+        ]
+
+        trainer = _FakeTrainer(fail_on_choose=True)
+        trainer.config = SimpleNamespace(
+            candidate_representation="path_v3",
+            initialization_control="auto")
+        with tempfile.TemporaryDirectory() as directory:
+            controller = InitializationPPOController(
+                Path(directory), "run", "scenario", 50, trainer=trainer,
+                archive=RewardArchive(self.normalizer),
+                reward_config=RewardConfig(), batches=[self.batch],
+                generations=2, pop_size=4, method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0}, seeds={},
+                model_choice_event=999)
+            try:
+                random.seed(19)
+                actual = controller.initial_individual(
+                    [self.batch], self.path_lib, max_paths=3)
+                actual_rows = [
+                    (allocation.path.path_id, round(allocation.share, 12))
+                    for allocation in actual.od_allocations[("A", "D", 4)]
+                ]
+                self.assertEqual(actual_rows, expected_rows)
+                self.assertEqual(random.getstate(), expected_state)
+                self.assertEqual(controller.model_control_events, 0)
+                self.assertGreater(controller.base_passthrough_events, 0)
             finally:
                 controller.close()
 

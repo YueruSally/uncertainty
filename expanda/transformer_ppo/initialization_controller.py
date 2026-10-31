@@ -31,7 +31,8 @@ class InitializationPPOController(MutationLogger):
     def __init__(self, *args, trainer, archive: RewardArchive,
                  reward_config: RewardConfig, batches, generations, pop_size,
                  graph_observation=None, rule_normalization=None,
-                 rule_top_k=None, **kwargs):
+                 rule_top_k=None, model_choice_event=None,
+                 forced_candidate_index=None, **kwargs):
         self.trainer = trainer
         self._ppo_updates_at_start = int(trainer.updates)
         self.archive = archive
@@ -51,6 +52,29 @@ class InitializationPPOController(MutationLogger):
             None if rule_top_k is None else int(rule_top_k))
         if self.rule_normalization is not None:
             validate_rule_normalization(self.rule_normalization)
+        self.model_choice_event = (
+            None if model_choice_event is None else int(model_choice_event))
+        self.forced_candidate_index = (
+            None if forced_candidate_index is None
+            else int(forced_candidate_index))
+        if self.model_choice_event is not None:
+            if self.model_choice_event < 1:
+                raise ValueError("I model choice event must be positive")
+            if trainer.training:
+                raise ValueError(
+                    "I one-shot model choice is a frozen-policy diagnostic")
+            if self.rule_top_k is not None:
+                raise ValueError(
+                    "I one-shot model choice requires the full Base path set")
+        if self.forced_candidate_index is not None:
+            if self.forced_candidate_index < 0:
+                raise ValueError("forced I candidate index cannot be negative")
+            if self.model_choice_event is None:
+                raise ValueError(
+                    "forced I candidate index requires model_choice_event")
+        self.initialization_decision_count = 0
+        self.model_control_events = 0
+        self.base_passthrough_events = 0
         self.current_population = []
         self._current_partial = None
         self._current_context = None
@@ -61,6 +85,7 @@ class InitializationPPOController(MutationLogger):
             *args, policy=trainer, evaluate_before_mutation=False,
             log_names=("initialization_outcomes", "initialization_candidates",
                        "initialization_count_candidates",
+                       "initialization_policy_states",
                        "initialization_skips", "generation_summary"),
             normalizer=archive.normalizer, **kwargs)
         trainer.observation_provider = self._observation
@@ -130,7 +155,8 @@ class InitializationPPOController(MutationLogger):
                     initialization_control == "path_count"
                     or (initialization_control == "auto"
                         and representation == "path_v3"))
-                if controls_path_count and maximum_path_count > 1:
+                if (controls_path_count and maximum_path_count > 1
+                        and self.model_choice_event is None):
                     count_candidates = [
                         {"eligible": True, "path_count": count}
                         for count in range(1, maximum_path_count + 1)]
@@ -188,6 +214,7 @@ class InitializationPPOController(MutationLogger):
                     for value in raw_shares]
                 remaining = list(paths)
                 selected = []
+                shadow_plan = list(shadow_paths)
                 for step in range(k):
                     candidate_paths = remaining
                     if self.rule_top_k is not None:
@@ -221,6 +248,21 @@ class InitializationPPOController(MutationLogger):
                     }
                     self._current_partial = individual
                     self._current_context = context
+                    decision_event_index = None
+                    target_model_choice = False
+                    if len(candidates) > 1:
+                        self.initialization_decision_count += 1
+                        decision_event_index = self.initialization_decision_count
+                        target_model_choice = (
+                            self.model_choice_event is not None
+                            and decision_event_index == self.model_choice_event)
+                    shadow_path = shadow_plan[step]
+                    shadow_candidate_index = None
+                    if self.model_choice_event is not None:
+                        shadow_candidate_index = next(
+                            index for index, path in enumerate(candidate_paths)
+                            if (_path_signature(path)
+                                == _path_signature(shadow_path)))
                     if len(candidates) == 1:
                         decision = Decision(
                             0, [1.0], [None], {
@@ -228,14 +270,48 @@ class InitializationPPOController(MutationLogger):
                                 "fallback": None,
                                 "decision_kind": "single_candidate",
                             })
+                    elif self.model_choice_event is not None and not target_model_choice:
+                        probabilities = [0.0] * len(candidates)
+                        probabilities[shadow_candidate_index] = 1.0
+                        decision = Decision(
+                            shadow_candidate_index, probabilities,
+                            [None] * len(candidates), {
+                                "no_eligible_candidate": False,
+                                "fallback": "exact_base_passthrough",
+                                "decision_kind": "base_passthrough",
+                                "forced_action_index": None,
+                            })
+                        self.base_passthrough_events += 1
                     else:
                         if not sequence_started:
                             self.trainer.begin_sequence()
                             sequence_started = True
                         elif self.trainer.pending is not None:
                             self.trainer.observe_outcome(0.0, done=False)
-                        decision = self.trainer.choose(candidates, context)
+                        if target_model_choice:
+                            decision = self.trainer.choose(
+                                candidates, context,
+                                forced_action_index=(
+                                    self.forced_candidate_index))
+                        else:
+                            decision = self.trainer.choose(candidates, context)
                         model_decisions += 1
+                        if target_model_choice:
+                            self.model_control_events += 1
+                            self.append("initialization_policy_states", {
+                                "event_id": event_id,
+                                "decision_event_index": decision_event_index,
+                                "batch_id": batch.batch_id,
+                                "selection_step": step,
+                                "required_path_count": k,
+                                "candidate_path_ids": [
+                                    str(path.path_id) for path in candidate_paths],
+                                "shadow_base_candidate_index": (
+                                    shadow_candidate_index),
+                                "forced_candidate_index": (
+                                    self.forced_candidate_index),
+                                "observation": self.trainer.pending["observation"],
+                            })
                     kind = decision.metadata["decision_kind"]
                     self.decision_counts[kind] = self.decision_counts.get(kind, 0) + 1
                     self.inference_seconds += float(
@@ -244,6 +320,13 @@ class InitializationPPOController(MutationLogger):
                     if chosen_index is None:
                         raise RuntimeError("non-empty initialization candidates were rejected")
                     chosen = candidate_paths[chosen_index]
+                    if target_model_choice and chosen_index != shadow_candidate_index:
+                        chosen_signature = _path_signature(chosen)
+                        for future_step in range(step + 1, len(shadow_plan)):
+                            if (_path_signature(shadow_plan[future_step])
+                                    == chosen_signature):
+                                shadow_plan[future_step] = shadow_path
+                                break
                     remaining.remove(chosen)
                     selected.append(chosen)
                     individual.od_allocations[key] = [
@@ -257,6 +340,8 @@ class InitializationPPOController(MutationLogger):
                     for candidate_index, candidate in enumerate(candidates):
                         self.append("initialization_candidates", {
                             "event_id": event_id, "batch_id": batch.batch_id,
+                            "decision_stage": "path",
+                            "decision_event_index": decision_event_index,
                             "selection_step": step, "required_path_count": k,
                             "planned_share": normalized_shares[step],
                             "candidate_id": candidate_index,
@@ -266,6 +351,12 @@ class InitializationPPOController(MutationLogger):
                             "rule_prefilter_top_k": self.rule_top_k,
                             "candidate_count_before_prefilter": len(remaining) + 1,
                             "decision_kind": kind,
+                            "shadow_base_chosen": (
+                                candidate_index == shadow_candidate_index),
+                            "target_model_choice": target_model_choice,
+                            "forced_candidate_index": (
+                                self.forced_candidate_index
+                                if target_model_choice else None),
                             "baseline_selection_probability": (
                                 1.0 / len(candidates)),
                             "selection_probability": decision.probabilities[candidate_index],
@@ -273,7 +364,14 @@ class InitializationPPOController(MutationLogger):
                         })
                     selected_rows.append({
                         "batch_id": batch.batch_id, "selection_step": step,
+                        "decision_event_index": decision_event_index,
                         "required_path_count": k, "chosen_path_id": chosen.path_id,
+                        "selected_candidate_index": chosen_index,
+                        "shadow_base_candidate_index": shadow_candidate_index,
+                        "target_model_choice": target_model_choice,
+                        "forced_candidate_index": (
+                            self.forced_candidate_index
+                            if target_model_choice else None),
                         "planned_share": normalized_shares[step],
                         "decision_kind": kind,
                     })
@@ -383,6 +481,11 @@ class InitializationPPOController(MutationLogger):
             "ppo_updates_total": self.trainer.updates,
             "rule_prefilter_top_k": self.rule_top_k,
             "rule_prefilter_enabled": self.rule_top_k is not None,
+            "initialization_decision_count": self.initialization_decision_count,
+            "model_choice_event": self.model_choice_event,
+            "model_control_events": self.model_control_events,
+            "base_passthrough_events": self.base_passthrough_events,
+            "forced_candidate_index": self.forced_candidate_index,
             "feature_construction_seconds": self.feature_construction_seconds,
             "ppo_update_seconds": self.ppo_update_seconds,
         }
