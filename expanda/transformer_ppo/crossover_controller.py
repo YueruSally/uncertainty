@@ -38,9 +38,12 @@ class CrossoverPPOController(MutationLogger):
         self.graph_observation = graph_observation
         self.model_choice_probability = validate_model_choice_probability(
             model_choice_probability)
-        if crossover_reward_mode not in ("archive_hv", "paired_base_relative"):
+        if crossover_reward_mode not in (
+                "archive_hv", "paired_base_relative",
+                "paired_archive_then_quality"):
             raise ValueError(
-                "crossover_reward_mode must be archive_hv or paired_base_relative")
+                "crossover_reward_mode must be archive_hv, paired_base_relative, "
+                "or paired_archive_then_quality")
         self.crossover_reward_mode = str(crossover_reward_mode)
         self.counterfactual_evaluations = 0
         self.counterfactual_evaluation_seconds = 0.0
@@ -415,7 +418,8 @@ class CrossoverPPOController(MutationLogger):
         reference_override = None
         reference_action = None
         if (decision is not None
-                and self.crossover_reward_mode == "paired_base_relative"):
+                and self.crossover_reward_mode in (
+                    "paired_base_relative", "paired_archive_then_quality")):
             if selected_override is None:
                 override_indices = [
                     index for index, candidate in enumerate(joint_candidates)
@@ -516,7 +520,8 @@ class CrossoverPPOController(MutationLogger):
             self, function, child1, child2, *args, **kwargs):
         """Evaluate selected/reference pre-mutation children outside search budget."""
         event = self._active_event
-        if (event is None or self.crossover_reward_mode != "paired_base_relative"
+        if (event is None or self.crossover_reward_mode not in (
+                "paired_base_relative", "paired_archive_then_quality")
                 or not event.get("model_decisions")):
             return
         reference_children = event.get("paired_reference_children")
@@ -541,14 +546,40 @@ class CrossoverPPOController(MutationLogger):
         ]
         selected_update = self.archive.preview_many(selected_candidates)
         reference_update = self.archive.preview_many(reference_candidates)
-        relative_delta = (
+        archive_relative_delta = (
             selected_update.delta_hv - reference_update.delta_hv)
+        selected_quality_hv = self.archive.standalone_hv(selected_candidates)
+        reference_quality_hv = self.archive.standalone_hv(reference_candidates)
+        quality_relative_delta = selected_quality_hv - reference_quality_hv
+        if self.crossover_reward_mode == "paired_archive_then_quality":
+            if abs(archive_relative_delta) > self.reward_config.floating_tolerance:
+                relative_delta = archive_relative_delta
+                label_source = "archive"
+            elif abs(quality_relative_delta) > self.reward_config.floating_tolerance:
+                relative_delta = quality_relative_delta
+                label_source = "standalone_quality"
+            else:
+                relative_delta = 0.0
+                label_source = "tie"
+        else:
+            relative_delta = archive_relative_delta
+            label_source = "archive" if abs(relative_delta) > (
+                self.reward_config.floating_tolerance) else "tie"
         event["paired_reward"] = signed_hv_reward(
             relative_delta, self.reward_config)
         event["paired_selected_hv_delta"] = float(
             selected_update.delta_hv)
         event["paired_reference_hv_delta"] = float(
             reference_update.delta_hv)
+        event["paired_archive_relative_hv"] = float(
+            archive_relative_delta)
+        event["paired_selected_standalone_hv"] = float(
+            selected_quality_hv)
+        event["paired_reference_standalone_hv"] = float(
+            reference_quality_hv)
+        event["paired_standalone_quality_relative_hv"] = float(
+            quality_relative_delta)
+        event["paired_reward_label_source"] = label_source
         event["paired_selected_minus_reference_hv"] = float(relative_delta)
         event["paired_counterfactual_evaluations"] = 4
         event["paired_reference_children"] = None
@@ -571,7 +602,8 @@ class CrossoverPPOController(MutationLogger):
             (child2.objectives, bool(child2.feasible), child_fingerprints[1]),
         ])
         archive_reward = hv_reward(update.delta_hv, self.reward_config)
-        if (self.crossover_reward_mode == "paired_base_relative"
+        if (self.crossover_reward_mode in (
+                "paired_base_relative", "paired_archive_then_quality")
                 and event["model_decisions"]):
             if "paired_reward" not in event:
                 raise RuntimeError(

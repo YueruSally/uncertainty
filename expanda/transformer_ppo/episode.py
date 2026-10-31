@@ -178,9 +178,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if not 0.0 < ccp_confidence <= 1.0:
         raise ValueError("ccp_confidence must be in (0, 1]")
     component = str(component).upper()
-    if crossover_reward_mode not in ("archive_hv", "paired_base_relative"):
+    if crossover_reward_mode not in (
+            "archive_hv", "paired_base_relative",
+            "paired_archive_then_quality"):
         raise ValueError(
-            "crossover_reward_mode must be archive_hv or paired_base_relative")
+            "crossover_reward_mode must be archive_hv, paired_base_relative, "
+            "or paired_archive_then_quality")
     if crossover_reward_mode != "archive_hv" and component != "C":
         raise ValueError(
             "paired crossover reward currently requires component C")
@@ -416,15 +419,20 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "crossover_rate": base.CROSSOVER_RATE, "mutation_rate": base.MUTATION_RATE,
         "external_archive_role": "reward-only; excluded from environmental selection",
         "reward_definition": (
+            "signed same-state archive HV difference with standalone-set HV "
+            "tie-break"
+            if crossover_reward_mode == "paired_archive_then_quality" else
             "signed same-state selected-minus-reference pre-mutation archive HV"
             if crossover_reward_mode == "paired_base_relative" else
             "scaled positive joint archive HV increment only"),
         "crossover_reward_mode": crossover_reward_mode,
         "counterfactual_training_evaluations_excluded_from_search_budget": (
-            crossover_reward_mode == "paired_base_relative"),
+            crossover_reward_mode in (
+                "paired_base_relative", "paired_archive_then_quality")),
         "reward_clipping": False,
         "intermediate_post_crossover_evaluation": (
-            crossover_reward_mode == "paired_base_relative"),
+            crossover_reward_mode in (
+                "paired_base_relative", "paired_archive_then_quality")),
         "policy_training": policy_training,
         "policy_checkpoint": policy_checkpoint,
         "policy_inference": policy_inference,

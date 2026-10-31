@@ -349,11 +349,14 @@ def main():
               "one complete crossover is one terminal credit sequence."))
     parser.add_argument(
         "--crossover-reward-mode",
-        choices=("archive_hv", "paired_base_relative"),
+        choices=("archive_hv", "paired_base_relative",
+                 "paired_archive_then_quality"),
         default="archive_hv",
-        help=("C reward. paired_base_relative compares the selected joint "
-              "action with a same-state Base/override reference before mutation; "
-              "its extra label evaluations are reported outside search budget."))
+        help=("C reward. Paired modes compare the selected joint action with "
+              "a same-state Base/override reference before mutation; the "
+              "archive-then-quality mode uses standalone normalized HV when "
+              "both actions tie against the archive. Extra label evaluations "
+              "are reported outside search budget."))
     parser.add_argument("--gae-horizon", type=int)
     parser.add_argument("--rollout-steps", type=int)
     parser.add_argument(
@@ -421,12 +424,12 @@ def main():
             and args.credit_assignment != "operation_terminal"):
         parser.error(
             "C path_v3 joint override requires operation_terminal credit")
-    if (args.crossover_reward_mode == "paired_base_relative" and not (
+    if (args.crossover_reward_mode != "archive_hv" and not (
             args.component == "C"
             and args.candidate_representation == "path_v3"
             and args.credit_assignment == "operation_terminal")):
         parser.error(
-            "paired_base_relative requires C path_v3 operation_terminal")
+            "paired crossover reward requires C path_v3 operation_terminal")
     if args.initialization_control is not None and args.component != "I":
         parser.error("--initialization-control is valid only for I")
     if args.initialization_control == "path_count" and (

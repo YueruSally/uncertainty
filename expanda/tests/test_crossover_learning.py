@@ -470,7 +470,7 @@ class CrossoverPlanningTests(unittest.TestCase):
             len(row) == CROSSOVER_GRAPH_MODEL_SPEC_V3["candidate_dim"]
             for row in observation["candidates"]))
 
-    def test_paired_reward_compares_same_state_action_before_mutation(self):
+    def test_paired_quality_breaks_archive_ties_before_mutation(self):
         from transformer_ppo.archive import RewardArchive, RewardConfig
         from transformer_ppo.crossover_controller import CrossoverPPOController
 
@@ -490,8 +490,10 @@ class CrossoverPlanningTests(unittest.TestCase):
                 method=trainer.name,
                 instance={"instance_id": "toy", "K": 1,
                           "deadline_window_alpha": 1.0}, seeds={},
-                crossover_reward_mode="paired_base_relative")
+                crossover_reward_mode="paired_archive_then_quality")
             try:
+                controller.archive.observe(
+                    (1.0, 1.0, 1.0), True, "strong-archive-anchor")
                 lookup = {
                     (arc.from_node, arc.to_node, arc.mode): arc
                     for path in (self.path1, self.path2) for arc in path.arcs
@@ -525,7 +527,13 @@ class CrossoverPlanningTests(unittest.TestCase):
                 self.assertGreater(
                     outcome["paired_selected_minus_reference_hv"], 0.0)
                 self.assertEqual(
-                    outcome["crossover_reward_mode"], "paired_base_relative")
+                    outcome["paired_archive_relative_hv"], 0.0)
+                self.assertEqual(
+                    outcome["paired_reward_label_source"],
+                    "standalone_quality")
+                self.assertEqual(
+                    outcome["crossover_reward_mode"],
+                    "paired_archive_then_quality")
             finally:
                 controller.close()
 

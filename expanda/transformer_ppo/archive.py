@@ -256,6 +256,23 @@ class RewardArchive:
         update, _, _ = self._evaluate_additions(candidates)
         return update
 
+    def standalone_hv(self, candidates: Iterable[ArchiveCandidate]) -> float:
+        """Return feasible candidate-set quality without the current archive.
+
+        This supplies a dense, normalized tie-break label when two same-state
+        actions both fail to change the global reward archive.  It never
+        mutates the archive and uses the same reference point as final HV.
+        """
+        points = []
+        for objectives, feasible, _ in candidates:
+            if not feasible:
+                continue
+            try:
+                points.append(self.normalizer.transform(objectives))
+            except ValueError:
+                continue
+        return exact_hv_3d(points, self.normalizer.reference)
+
     def observe_many(self, candidates: Iterable[ArchiveCandidate]) -> ArchiveUpdate:
         """Atomically settle all feasible new solutions from one action.
 
