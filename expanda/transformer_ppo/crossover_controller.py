@@ -26,6 +26,7 @@ class CrossoverPPOController(MutationLogger):
     def __init__(self, *args, trainer, archive: RewardArchive,
                  reward_config: RewardConfig, batches, generations, pop_size,
                  graph_observation=None, model_choice_probability=1.0,
+                 model_choice_event=None,
                  crossover_reward_mode="archive_hv",
                  **kwargs):
         self.trainer = trainer
@@ -38,6 +39,14 @@ class CrossoverPPOController(MutationLogger):
         self.graph_observation = graph_observation
         self.model_choice_probability = validate_model_choice_probability(
             model_choice_probability)
+        self.model_choice_event = (
+            None if model_choice_event is None else int(model_choice_event))
+        if self.model_choice_event is not None and self.model_choice_event < 1:
+            raise ValueError("model_choice_event must be a positive integer")
+        if (self.model_choice_event is not None
+                and self.model_choice_probability != 1.0):
+            raise ValueError(
+                "model_choice_event cannot be combined with probability gating")
         if crossover_reward_mode not in (
                 "archive_hv", "paired_base_relative",
                 "paired_archive_then_quality"):
@@ -80,6 +89,17 @@ class CrossoverPPOController(MutationLogger):
         if self.model_choice_probability < 1.0:
             self.decision_counts["base_mixture_choice"] = 0
         trainer.observation_provider = self._observation
+
+    def _event_uses_model(self, has_learnable_cut):
+        if not has_learnable_cut:
+            return False
+        if self.model_choice_event is not None:
+            return self.event_count == self.model_choice_event
+        if self.model_choice_probability == 1.0:
+            return True
+        if self.model_choice_probability == 0.0:
+            return False
+        return self.control_rng.random() < self.model_choice_probability
 
     def evaluate(self, function, ind, *args, **kwargs):
         previous = self.evaluations
@@ -143,13 +163,7 @@ class CrossoverPPOController(MutationLogger):
             return self._crossover_joint_override(
                 parent1, parent2, child1, child2, cut_decisions, event_id,
                 has_learnable_cut, started, tt_dict, arc_lookup)
-        event_uses_model = (
-            has_learnable_cut and (
-                True if self.model_choice_probability == 1.0 else
-                False if self.model_choice_probability == 0.0 else
-                self.control_rng.random() < self.model_choice_probability
-            )
-        )
+        event_uses_model = self._event_uses_model(has_learnable_cut)
         # One crossover is one environment action and one joint reward.  The
         # mixture branch is therefore sampled once for the whole event, not
         # independently for its sub-decisions.
@@ -269,6 +283,8 @@ class CrossoverPPOController(MutationLogger):
         self._pending_child_ids = {id(child1), id(child2)}
         self._active_event = {
             "event_id": event_id,
+            "crossover_event_index": self.event_count,
+            "model_choice_event": self.model_choice_event,
             "children": (child1, child2),
             "model_decisions": model_decisions,
             "cut_decision_count": len(cut_decisions),
@@ -347,13 +363,8 @@ class CrossoverPPOController(MutationLogger):
             has_learnable_cut, started, tt_dict, arc_lookup):
         """Let one PPO action replace at most one cut in the paired Base plan."""
         joint_candidates = self._joint_override_candidates(cut_decisions)
-        event_uses_model = (
-            bool(joint_candidates) and has_learnable_cut and (
-                True if self.model_choice_probability == 1.0 else
-                False if self.model_choice_probability == 0.0 else
-                self.control_rng.random() < self.model_choice_probability
-            )
-        )
+        event_uses_model = self._event_uses_model(
+            bool(joint_candidates) and has_learnable_cut)
         if has_learnable_cut:
             self.model_control_events += int(event_uses_model)
             self.base_control_events += int(not event_uses_model)
@@ -487,6 +498,9 @@ class CrossoverPPOController(MutationLogger):
         self._pending_child_ids = {id(child1), id(child2)}
         self._active_event = {
             "event_id": event_id,
+            "crossover_event_index": self.event_count,
+            "model_choice_event": self.model_choice_event,
+            "joint_candidate_count": len(joint_candidates),
             "children": (child1, child2),
             "model_decisions": int(event_uses_model),
             "cut_decision_count": len(cut_decisions),

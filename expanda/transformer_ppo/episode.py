@@ -261,9 +261,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         model_choice_event = int(model_choice_event)
         if model_choice_event < 1:
             raise ValueError("model choice event must be a positive integer")
-        if component != "M":
-            raise ValueError("model choice event currently supports only M")
-        if probabilities["M"] != 1.0:
+        if component not in ("C", "M"):
+            raise ValueError("model choice event currently supports only C or M")
+        if probabilities[component] != 1.0:
             raise ValueError(
                 "model choice event cannot be combined with probability gating")
     if out.exists() and any(out.iterdir()):
@@ -507,7 +507,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             if component == "C":
                 controller_options["crossover_reward_mode"] = (
                     crossover_reward_mode)
-            if component == "M":
+            if component in ("C", "M"):
                 controller_options["model_choice_event"] = model_choice_event
             if component == "M" and audit["states"]:
                 controller_options.update(

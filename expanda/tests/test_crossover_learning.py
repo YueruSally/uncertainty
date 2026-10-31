@@ -403,6 +403,37 @@ class CrossoverPlanningTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_crossover_model_choice_event_uses_policy_only_at_target(self):
+        from transformer_ppo.archive import RewardArchive, RewardConfig
+        from transformer_ppo.crossover_controller import CrossoverPPOController
+
+        trainer = _FakeTrainer()
+        trainer.config = SimpleNamespace(
+            credit_assignment="operation_terminal",
+            candidate_representation="path_v3")
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            controller = CrossoverPPOController(
+                Path(directory), "run", "scenario", 20, trainer=trainer,
+                archive=RewardArchive(normalizer), reward_config=RewardConfig(),
+                batches=[self.batch], generations=2, pop_size=2,
+                method=trainer.name,
+                instance={"instance_id": "toy", "K": 1,
+                          "deadline_window_alpha": 1.0},
+                seeds={"algorithm": 17}, model_choice_event=2)
+            try:
+                controller.event_count = 1
+                self.assertFalse(controller._event_uses_model(True))
+                controller.event_count = 2
+                self.assertTrue(controller._event_uses_model(True))
+                self.assertFalse(controller._event_uses_model(False))
+                controller.event_count = 3
+                self.assertFalse(controller._event_uses_model(True))
+            finally:
+                controller.close()
+
     def test_path_v3_base_passthrough_replays_exact_base_children_and_rng(self):
         from multi_instance_logging import fingerprint
         from transformer_ppo.archive import RewardArchive, RewardConfig
