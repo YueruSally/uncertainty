@@ -1,0 +1,33 @@
+{
+  "release_name": "ccp_i_directed_balanced_v1",
+  "implementation_commit": "62bec13",
+  "branch": "codex/ppo-global-actor-audit",
+  "created_date": "2026-11-01",
+  "formal_profile": "joint_balanced",
+  "rejected_profiles_not_for_formal_use": ["joint_balanced_hv_gate"],
+  "core_files_sha256": {
+    "expanda/baseline_uncertainty.py": "09fcd8a1b0b4b3336e6f1383e06eb3fcf361afb3add211b40d4bb01d27d9af75",
+    "expanda/transformer_ppo/initialization_rule.py": "a828bd78612cb1729e881c1564f9c869cde7674797c1fab3d65cdd696fe90179",
+    "expanda/transformer_ppo/initialization_rule_features.py": "b8f71b9aaba6674353ba407a99ea343838fc14a0bd818236fb5a2bc11144a086",
+    "expanda/transformer_ppo/episode.py": "a676a888acfd749dde3a84f6c4389056dd7b0399f09f629b04d10413f6088555",
+    "expanda/run_learning_components_deterministic.py": "9414f53e0c15246741bba6ce4999a684cd64ca5f734e568131689011d1223d06",
+    "expanda/evaluate_i_directed_initialization.py": "c697d797c7a8ce859a9bfb6f73606aae0e2f70f14a98df9458980584fed25263",
+    "expanda/run_i_directed_initialization_screen_v1.sh": "73b1bad22d6dba9ae826f2d35022849ceffdf30d41809bff68ced4b8d828f939",
+    "expanda/run_i_balanced_strength_grid_v1.sh": "bfb1bec0b1e3cc2233ec6597626fc997bafdddc41652d2834f86b0f4f1136567",
+    "expanda/run_i_directed_balanced_validation_v1.sh": "ddd44d046cb78ccfc9621ebe4edc834cead022c283895b44cdee43e21f6b6158",
+    "expanda/evaluate_m_directed_balanced_oos.py": "763d08661cd9a3ae29a82ab524c0bd9e1d93c8a126fcc9932e80339125bd5208",
+    "expanda/run_i_directed_balanced_oos_v1.sh": "798e7f1a637394f4f89abb731813f9ab6f2533a73f52da2409e1316e71dba6b3",
+    "expanda/tests/test_initialization_rule.py": "a22d24e8a901451d03609bc1cea98dd4e840e01c06080f85d6a625f1268b1949",
+    "expanda/tests/test_m_directed_balanced_oos.py": "214b9097b2420ad1fbbee5c89b365877c73988ce019d756f4284690e6add3a3b"
+  },
+  "external_inputs_not_bundled": [
+    "server instance JSON files",
+    "training-only reward_normalization.json",
+    "raw per-run optimization outputs",
+    "raw per-candidate OOS scenario arrays"
+  ],
+  "entry_points": [
+    "expanda/run_i_directed_balanced_validation_v1.sh",
+    "expanda/run_i_directed_balanced_oos_v1.sh"
+  ]
+}

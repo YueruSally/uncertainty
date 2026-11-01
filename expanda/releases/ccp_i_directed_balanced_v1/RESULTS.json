@@ -1,0 +1,125 @@
+{
+  "version": "ccp-i-directed-balanced-v1",
+  "status": "frozen_teacher_with_safety_caveat",
+  "claim_boundary": "deterministic directed-balanced I teacher/rule; not a learned PPO policy",
+  "strategy": {
+    "name": "I_DIRECTED_BALANCED",
+    "profile": "joint_balanced",
+    "component": "I",
+    "population": 20,
+    "unchanged_base_seed_count": 12,
+    "directed_random_initialization_count": 8,
+    "extra_objective_evaluations": 0,
+    "preserves_base_path_counts": true,
+    "preserves_base_allocation_shares": true,
+    "preserves_base_random_stream": true
+  },
+  "optimization_protocol": {
+    "evaluation_mode": "ccp",
+    "uncertainty_profile": "transport_border_saa_v1",
+    "scenario_count": 200,
+    "alpha": 0.9,
+    "evaluation_budget": 400,
+    "population": 20,
+    "maximum_generations": 1000,
+    "instance_count": 10,
+    "development_algorithm_seeds": [777001, 777002, 777003],
+    "heldout_algorithm_seeds": [777004, 777005, 777006, 777007, 777008, 777009, 777010]
+  },
+  "development_screen_30_pairs": {
+    "mean_paired_percent": 20.671616373647467,
+    "mean_95ci_low": 13.159753218003502,
+    "mean_95ci_high": 28.183479529291432,
+    "median_paired_percent": 12.027708760453475,
+    "minimum_paired_percent": -8.147309435961224,
+    "maximum_paired_percent": 79.01270298586044,
+    "wins": 27,
+    "ties": 0,
+    "losses": 3,
+    "runs_above_5_percent": 23,
+    "runs_above_10_percent": 20
+  },
+  "optimization_heldout_70_pairs": {
+    "mean_paired_percent": 22.456693765292922,
+    "standard_deviation_paired_percent": 27.472926326686615,
+    "mean_95ci_low": 16.02075396984571,
+    "mean_95ci_high": 28.892633560740133,
+    "median_paired_percent": 11.51887396959187,
+    "minimum_paired_percent": -27.164581042248376,
+    "maximum_paired_percent": 99.78138465109302,
+    "wins": 58,
+    "ties": 0,
+    "losses": 12,
+    "runs_above_5_percent": 47,
+    "runs_above_10_percent": 38
+  },
+  "independent_oos_protocol": {
+    "fixed_decisions_no_reoptimization": true,
+    "scenario_count": 1000,
+    "oos_seed": 880101,
+    "alpha": 0.9,
+    "oos_distinct_from_training": true,
+    "one_common_oos_scenario_set": true,
+    "comparison_strategy": "I_DIRECTED_BALANCED"
+  },
+  "independent_oos_heldout_70_pairs": {
+    "mean_paired_oos_percent": 16.345071753510165,
+    "standard_deviation_paired_oos_percent": 18.2845615874835,
+    "mean_95ci_low": 12.061642454284758,
+    "mean_95ci_high": 20.628501052735572,
+    "median_paired_oos_percent": 15.80992357610317,
+    "minimum_paired_oos_percent": -22.252717891835342,
+    "maximum_paired_oos_percent": 61.75682276982991,
+    "wins": 53,
+    "ties": 0,
+    "losses": 17,
+    "runs_above_5_percent": 47,
+    "runs_above_10_percent": 41,
+    "per_instance_mean_percent": {
+      "S0_002": 12.434530674608654,
+      "S0_005": 33.77021072462349,
+      "S0_006": 32.10420336147423,
+      "S0_007": 2.569074395484646,
+      "S0_008": 10.468860735085267,
+      "S0_009": 8.136337042578296,
+      "S0_010": 20.686865214348362,
+      "S0_011": 6.453156518238376,
+      "S0_012": 3.2191429892720542,
+      "S0_013": 33.6083358793883
+    }
+  },
+  "rejected_hv_gate": {
+    "strategy": "I_DIRECTED_BALANCED_HV_GATE",
+    "reason": "eight counterfactual initialization evaluations reduce the remaining search budget and initial HV is not a stable predictor of final HV",
+    "fresh_pairs": 70,
+    "mean_paired_percent": 13.707592147545789,
+    "median_paired_percent": 0.0,
+    "minimum_paired_percent": -22.740750893593848,
+    "wins": 33,
+    "ties": 6,
+    "losses": 31,
+    "gate_selected_directed": 37,
+    "gate_selected_base": 33,
+    "counterfactual_evaluations_per_run": 8,
+    "accepted_for_release": false
+  },
+  "admission_thresholds": {
+    "minimum_mean_paired_oos_percent": 10.0,
+    "minimum_95ci_low": 0.0,
+    "minimum_win_fraction": 0.8,
+    "maximum_loss_fraction": 0.2
+  },
+  "interpretation": {
+    "mean_effect_pass": true,
+    "independent_oos_generalization_pass": true,
+    "strict_run_level_safety_pass": false,
+    "win_fraction": 0.7571428571428571,
+    "loss_fraction": 0.24285714285714285,
+    "ppo_has_learned_this_result": false
+  },
+  "server_evidence_roots": {
+    "optimization": "transformer_ppo_runs/diagnostics/ccp_i_directed_balanced_validation_v1_10inst_holdout7seed_b400",
+    "independent_oos": "transformer_ppo_runs/diagnostics/ccp_i_directed_balanced_oos_v1_10inst_holdout7seed_s1000",
+    "rejected_hv_gate": "transformer_ppo_runs/diagnostics/ccp_i_directed_balanced_hv_gate_v1_10inst_fresh7seed_b400"
+  }
+}
