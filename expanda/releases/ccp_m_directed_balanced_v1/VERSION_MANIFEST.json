@@ -1,0 +1,30 @@
+{
+  "release_name": "ccp_m_directed_balanced_v1",
+  "git_tag": "ccp-m-directed-balanced-v1",
+  "implementation_commit": "bce8532",
+  "branch": "codex/ppo-global-actor-audit",
+  "created_date": "2026-11-01",
+  "core_files_sha256": {
+    "expanda/transformer_ppo/controller.py": "b845e0f4a8c562adfc7661c1fc5ed5eb30c5006325de37217f954e66484d13a4",
+    "expanda/transformer_ppo/episode.py": "c7b712651c764df458f1d50e35766b3ed84559629df4af42f56cdfc38ef43a7b",
+    "expanda/run_learning_components_deterministic.py": "10cf3c14e4f970a5bc3a7267a429376fef8633d8276437103ce4079c6e666750",
+    "expanda/evaluate_m_late_replace_frequency.py": "f12071aa907232645bd06275c0c23e282996520355bed5155c7f04911104469c",
+    "expanda/run_m_directed_balanced_validation_v1.sh": "f90fd71683b9d6a23ebe515f7d3df4e0b88c6501017649e5f3f43913085f4732",
+    "expanda/evaluate_m_directed_balanced_oos.py": "4fd4bfd3b8bfa6b7e9239750805b7a174977d90220434121e6c7af6ca314ed4e",
+    "expanda/run_m_directed_balanced_oos_v1.sh": "664e3a5d99e4776a49b88409005ff3b021713b0da09685a44168a6e15fd5769b",
+    "expanda/tests/test_learning_components_v2_controls.py": "5efba6c6633bf831bdfdd5ff5cfbf7a319787a7f7bab915521f4a37dbe8cb65c",
+    "expanda/tests/test_m_late_replace_frequency.py": "56149ac72344e3aeeb738d80ef7baeb322925b7039d3b1e0dcf014a8c9e2a448",
+    "expanda/tests/test_m_directed_balanced_oos.py": "7ea16401afd18b337abb76b92e2c572218e415154ec5b60072e73fd2ac0a51a2"
+  },
+  "external_inputs_not_bundled": [
+    "server instance JSON files",
+    "training-only reward_normalization.json",
+    "M checkpoint used by the generic runner",
+    "raw per-run optimization outputs",
+    "raw per-candidate OOS scenario arrays"
+  ],
+  "entry_points": [
+    "expanda/run_m_directed_balanced_validation_v1.sh",
+    "expanda/run_m_directed_balanced_oos_v1.sh"
+  ]
+}

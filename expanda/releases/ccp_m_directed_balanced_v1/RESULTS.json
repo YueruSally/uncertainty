@@ -1,0 +1,101 @@
+{
+  "version": "ccp-m-directed-balanced-v1",
+  "status": "frozen",
+  "claim_boundary": "deterministic directed-balanced M teacher/rule; not a learned PPO policy",
+  "strategy": {
+    "name": "REPLACE_G10_JOINT_BALANCED",
+    "component": "M",
+    "operator": "replace",
+    "minimum_generation": 10,
+    "probability": 1.0,
+    "selector": "joint_balanced",
+    "extra_objective_evaluations_per_action": 0
+  },
+  "optimization_protocol": {
+    "evaluation_mode": "ccp",
+    "uncertainty_profile": "transport_border_saa_v1",
+    "scenario_count": 200,
+    "alpha": 0.9,
+    "evaluation_budget": 400,
+    "population": 20,
+    "maximum_generations": 1000,
+    "instance_count": 10,
+    "development_algorithm_seeds": [777001, 777002, 777003],
+    "heldout_algorithm_seeds": [777004, 777005, 777006, 777007, 777008, 777009, 777010]
+  },
+  "optimization_heldout_70_pairs": {
+    "mean_paired_percent": 12.815517806903152,
+    "standard_deviation_paired_percent": 11.167284400313205,
+    "standard_error_paired_percent": 1.334745780382802,
+    "mean_95ci_low": 10.19941607735286,
+    "mean_95ci_high": 15.431619536453445,
+    "median_paired_percent": 9.206654121052248,
+    "minimum_paired_percent": -2.5795594269869304,
+    "maximum_paired_percent": 48.431601736196974,
+    "wins": 68,
+    "ties": 0,
+    "losses": 2,
+    "runs_above_5_percent": 53,
+    "runs_above_10_percent": 34
+  },
+  "independent_oos_protocol": {
+    "fixed_decisions_no_reoptimization": true,
+    "scenario_count": 1000,
+    "oos_seed": 880001,
+    "alpha": 0.9,
+    "oos_scenario_digest_prefix_recorded_in_handoff": "9ec1a",
+    "oos_distinct_from_training": true,
+    "one_common_oos_scenario_set": true,
+    "common_hv_reference": [2.568138864227569, 1.3301480349470935, 1.1],
+    "reference_rule": "componentwise max(original reference, pooled Base+Balanced OOS nadir + max(0.05, 10% pooled axis range))"
+  },
+  "independent_oos_all_100_pairs": {
+    "mean_paired_oos_percent": 8.9442,
+    "mean_95ci_low": 7.4138,
+    "mean_95ci_high": 10.4746,
+    "median_paired_oos_percent": 8.0432,
+    "minimum_paired_oos_percent": -7.3582,
+    "maximum_paired_oos_percent": 34.9341,
+    "wins": 90,
+    "ties": 1,
+    "losses": 9,
+    "runs_above_5_percent": 68,
+    "runs_above_10_percent": 38
+  },
+  "independent_oos_heldout_70_pairs": {
+    "mean_paired_oos_percent": 9.4172,
+    "mean_95ci_low": 7.4831,
+    "mean_95ci_high": 11.3512,
+    "median_paired_oos_percent": 8.077,
+    "minimum_paired_oos_percent": -7.3582,
+    "maximum_paired_oos_percent": 34.9341,
+    "wins": 64,
+    "ties": 0,
+    "losses": 6,
+    "runs_above_5_percent": 49,
+    "runs_above_10_percent": 27,
+    "per_instance_mean_percent": {
+      "S0_002": 8.453,
+      "S0_005": 19.504,
+      "S0_006": 12.264,
+      "S0_007": 8.443,
+      "S0_008": 13.731,
+      "S0_009": 5.448,
+      "S0_010": 8.565,
+      "S0_011": 0.0835,
+      "S0_012": 7.589,
+      "S0_013": 10.091
+    }
+  },
+  "server_evidence_roots": {
+    "optimization": "transformer_ppo_runs/diagnostics/ccp_m_directed_balanced_validation_v1_10inst_10seed_b400",
+    "independent_oos": "transformer_ppo_runs/diagnostics/ccp_m_directed_balanced_oos_v1_10inst_10seed_s1000"
+  },
+  "interpretation": {
+    "five_percent_achieved": true,
+    "heldout_oos_mean_exceeds_five_percent": true,
+    "heldout_oos_ci_excludes_zero": true,
+    "ppo_has_learned_this_result": false,
+    "admission_pass_false_reason": "the predeclared mean>=10% gate missed by about 0.583 percentage points; CI, win fraction, and loss fraction criteria passed"
+  }
+}
