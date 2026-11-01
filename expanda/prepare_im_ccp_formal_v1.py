@@ -13,6 +13,7 @@ from im_ccp_formal_plan import (
     ALGORITHM_SEEDS,
     CCP_CONFIDENCE,
     EVALUATION_BUDGET,
+    FINAL_INSTANCE_COUNT,
     FINAL_INSTANCE_CCP_SEED_BASE,
     FINAL_INSTANCE_MASTER_SEED,
     FINAL_INSTANCE_OOS_SEED_BASE,
@@ -26,6 +27,7 @@ from im_ccp_formal_plan import (
     OOS_SCENARIO_COUNT,
     POPULATION,
     SHARD_COUNT,
+    TASKS_PER_SHARD,
     TRAINING_SCENARIO_COUNT,
     UNCERTAINTY_PROFILE,
     build_schedule,
@@ -86,7 +88,8 @@ def _verify_catalog(instances, data):
     if not digest or canonical_digest(payload) != digest:
         raise ValueError("final-instance catalog digest mismatch")
     records = catalog.get("instances", [])
-    if (catalog.get("instance_count") != 10 or len(records) != 10
+    if (catalog.get("instance_count") != FINAL_INSTANCE_COUNT
+            or len(records) != FINAL_INSTANCE_COUNT
             or catalog.get("master_seed") != FINAL_INSTANCE_MASTER_SEED
             or catalog.get("ccp_seed_base") != FINAL_INSTANCE_CCP_SEED_BASE
             or catalog.get("oos_seed_base") != FINAL_INSTANCE_OOS_SEED_BASE
@@ -142,6 +145,9 @@ def main(argv=None):
         if (existing.get("population") != POPULATION
                 or existing.get("generations") != GENERATIONS
                 or existing.get("evaluation_budget") != EVALUATION_BUDGET
+                or existing.get("algorithm_seeds") != list(ALGORITHM_SEEDS)
+                or existing.get("final_test_instances", {}).get(
+                    "instance_count") != FINAL_INSTANCE_COUNT
                 or existing.get("m_rule", {}).get("minimum_generation")
                 != M_MINIMUM_GENERATION):
             parser.error("existing formal plan uses a different protocol")
@@ -172,7 +178,7 @@ def main(argv=None):
             "--data", str(args.data),
             "--source-instances", str(args.source_instances),
             "--out", str(instances),
-            "--count", "10",
+            "--count", str(FINAL_INSTANCE_COUNT),
             "--master-seed", str(FINAL_INSTANCE_MASTER_SEED),
             "--ccp-seed-base", str(FINAL_INSTANCE_CCP_SEED_BASE),
             "--oos-seed-base", str(FINAL_INSTANCE_OOS_SEED_BASE),
@@ -212,7 +218,8 @@ def main(argv=None):
         "algorithm_seeds": list(ALGORITHM_SEEDS),
         "independent_unit": "previously unseen final-test instance",
         "inference_replication_rule": (
-            "average three algorithm seeds within each of ten instances"),
+            f"average {len(ALGORITHM_SEEDS)} algorithm seeds within each of "
+            f"{FINAL_INSTANCE_COUNT} instances"),
         "i_rule": {
             "component": "RULE-I",
             "profile": I_PROFILE,
@@ -249,6 +256,7 @@ def main(argv=None):
                 "is fixed to zero"),
         },
         "final_test_instances": {
+            "instance_count": FINAL_INSTANCE_COUNT,
             "directory": str(instances),
             "catalog_path": str(instances / "catalog.json"),
             "catalog_sha256": _sha256(instances / "catalog.json"),
@@ -258,7 +266,7 @@ def main(argv=None):
         "implementation_sha256": implementation,
         "execution": {
             "shard_count": SHARD_COUNT,
-            "tasks_per_shard": 30,
+            "tasks_per_shard": TASKS_PER_SHARD,
             "recommended_workers_per_shard": 2,
         },
         "schedule": schedule,
@@ -273,7 +281,7 @@ def main(argv=None):
         "plan_digest": plan["plan_digest"],
         "instance_count": len(records),
         "task_count": len(schedule),
-        "tasks_per_shard": 30,
+        "tasks_per_shard": TASKS_PER_SHARD,
     }, indent=2, allow_nan=False))
 
 

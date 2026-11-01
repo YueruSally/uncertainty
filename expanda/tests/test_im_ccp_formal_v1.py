@@ -4,10 +4,14 @@ from pathlib import Path
 from im_ccp_formal_plan import (
     ALGORITHM_SEEDS,
     EVALUATION_BUDGET,
+    FINAL_INSTANCE_COUNT,
     GENERATIONS,
     M_MINIMUM_GENERATION,
     METHODS,
     POPULATION,
+    SHARD_COUNT,
+    TASKS_PER_SHARD,
+    TOTAL_TASK_COUNT,
     build_schedule,
     expected_rule_i_attempts,
 )
@@ -15,17 +19,19 @@ from run_im_ccp_formal_shard_v1 import _command, _smoke_tasks
 
 
 class ImCcpFormalPlanTest(unittest.TestCase):
-    def test_schedule_is_exactly_three_balanced_paired_shards(self):
-        instances = [f"final-test-S0-{index:03d}" for index in range(1, 11)]
+    def test_schedule_is_exactly_five_balanced_paired_shards(self):
+        instances = [
+            f"final-test-S0-{index:03d}"
+            for index in range(1, FINAL_INSTANCE_COUNT + 1)]
         schedule = build_schedule(instances)
-        self.assertEqual(len(schedule), 90)
+        self.assertEqual(len(schedule), TOTAL_TASK_COUNT)
         self.assertEqual({row["method"] for row in schedule}, set(METHODS))
         self.assertEqual(
             {row["algorithm_seed"] for row in schedule},
             set(ALGORITHM_SEEDS))
-        for shard in range(3):
+        for shard in range(SHARD_COUNT):
             rows = [row for row in schedule if row["execution_shard"] == shard]
-            self.assertEqual(len(rows), 30)
+            self.assertEqual(len(rows), TASKS_PER_SHARD)
             self.assertEqual(len({row["algorithm_seed"] for row in rows}), 1)
             for instance in instances:
                 self.assertEqual(
@@ -34,6 +40,9 @@ class ImCcpFormalPlanTest(unittest.TestCase):
                     set(METHODS))
 
     def test_formal_budget_and_scaled_controls_are_frozen(self):
+        self.assertEqual(FINAL_INSTANCE_COUNT, 20)
+        self.assertEqual(len(ALGORITHM_SEEDS), 5)
+        self.assertEqual(TOTAL_TASK_COUNT, 300)
         self.assertEqual(POPULATION, 250)
         self.assertEqual(GENERATIONS, 200)
         self.assertEqual(EVALUATION_BUDGET, 50_250)
@@ -62,7 +71,9 @@ class ImCcpFormalPlanTest(unittest.TestCase):
         self.assertIn("--pop 250 --gens 200", joined)
 
     def test_smoke_selects_one_exact_paired_triplet(self):
-        instances = [f"final-test-S0-{index:03d}" for index in range(1, 11)]
+        instances = [
+            f"final-test-S0-{index:03d}"
+            for index in range(1, FINAL_INSTANCE_COUNT + 1)]
         shard = [
             row for row in build_schedule(instances)
             if row["execution_shard"] == 0]

@@ -6,7 +6,9 @@ import json
 
 
 METHODS = ("BASE", "I_DIRECTED_BALANCED", "M_DIRECTED_BALANCED")
-ALGORITHM_SEEDS = (79_000_001, 79_000_002, 79_000_003)
+ALGORITHM_SEEDS = (
+    79_000_001, 79_000_002, 79_000_003, 79_000_004, 79_000_005)
+FINAL_INSTANCE_COUNT = 20
 POPULATION = 250
 GENERATIONS = 200
 EVALUATION_BUDGET = POPULATION * (GENERATIONS + 1)
@@ -22,7 +24,9 @@ M_SELECTOR = "joint_balanced"
 FINAL_INSTANCE_MASTER_SEED = 71_000_000
 FINAL_INSTANCE_CCP_SEED_BASE = 73_000_000
 FINAL_INSTANCE_OOS_SEED_BASE = 74_000_000
-SHARD_COUNT = 3
+SHARD_COUNT = len(ALGORITHM_SEEDS)
+TASKS_PER_SHARD = FINAL_INSTANCE_COUNT * len(METHODS)
+TOTAL_TASK_COUNT = TASKS_PER_SHARD * SHARD_COUNT
 
 
 def canonical_digest(value) -> str:
@@ -33,8 +37,11 @@ def canonical_digest(value) -> str:
 
 def build_schedule(instance_ids):
     instance_ids = list(instance_ids)
-    if len(instance_ids) != 10 or len(set(instance_ids)) != 10:
-        raise ValueError("formal CCP I/M test requires ten unique instances")
+    if (len(instance_ids) != FINAL_INSTANCE_COUNT
+            or len(set(instance_ids)) != FINAL_INSTANCE_COUNT):
+        raise ValueError(
+            f"formal CCP I/M test requires {FINAL_INSTANCE_COUNT} "
+            "unique instances")
     tasks = []
     for repeat, seed in enumerate(ALGORITHM_SEEDS, 1):
         for instance_id in instance_ids:

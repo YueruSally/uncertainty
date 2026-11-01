@@ -15,8 +15,10 @@ import sys
 import time
 
 from im_ccp_formal_plan import (
+    ALGORITHM_SEEDS,
     CCP_CONFIDENCE,
     EVALUATION_BUDGET,
+    FINAL_INSTANCE_COUNT,
     GENERATIONS,
     I_PROFILE,
     METHODS,
@@ -26,6 +28,8 @@ from im_ccp_formal_plan import (
     M_SELECTOR,
     POPULATION,
     SHARD_COUNT,
+    TASKS_PER_SHARD,
+    TOTAL_TASK_COUNT,
     TRAINING_SCENARIO_COUNT,
     UNCERTAINTY_PROFILE,
     canonical_digest,
@@ -70,10 +74,16 @@ def _verify_plan(path):
             or plan.get("evaluation_budget") != EVALUATION_BUDGET
             or plan.get("training_scenario_count")
             != TRAINING_SCENARIO_COUNT
-            or len(schedule) != 90
+            or plan.get("algorithm_seeds") != list(ALGORITHM_SEEDS)
+            or plan.get("final_test_instances", {}).get("instance_count")
+            != FINAL_INSTANCE_COUNT
+            or len(schedule) != TOTAL_TASK_COUNT
             or canonical_digest(schedule) != plan.get("schedule_digest")
-            or plan.get("execution", {}).get("shard_count") != SHARD_COUNT):
-        raise ValueError("plan is not the frozen 90-run formal CCP design")
+            or plan.get("execution", {}).get("shard_count") != SHARD_COUNT
+            or plan.get("execution", {}).get("tasks_per_shard")
+            != TASKS_PER_SHARD):
+        raise ValueError(
+            f"plan is not the frozen {TOTAL_TASK_COUNT}-run formal CCP design")
     for relative, expected in plan["implementation_sha256"].items():
         target = ROOT / relative
         if not target.is_file() or _sha256(target) != expected:
@@ -312,8 +322,10 @@ def main(argv=None):
         tasks = [
             task for task in plan["schedule"]
             if task["execution_shard"] == args.shard]
-        if len(tasks) != 30:
-            raise ValueError("each formal shard must contain exactly 30 tasks")
+        if len(tasks) != TASKS_PER_SHARD:
+            raise ValueError(
+                "each formal shard must contain exactly "
+                f"{TASKS_PER_SHARD} tasks")
     except (KeyError, OSError, TypeError, ValueError,
             json.JSONDecodeError) as error:
         parser.error(str(error))

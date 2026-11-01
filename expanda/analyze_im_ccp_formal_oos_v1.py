@@ -25,9 +25,12 @@ from im_ccp_formal_plan import (
     ALGORITHM_SEEDS,
     CCP_CONFIDENCE,
     EVALUATION_BUDGET,
+    FINAL_INSTANCE_COUNT,
     METHODS,
     OOS_SCENARIO_COUNT,
     SHARD_COUNT,
+    TASKS_PER_SHARD,
+    TOTAL_TASK_COUNT,
     TRAINING_SCENARIO_COUNT,
     UNCERTAINTY_PROFILE,
     canonical_digest,
@@ -68,11 +71,17 @@ def _verify_plan(path):
         raise ValueError("formal plan digest mismatch")
     if (plan.get("formal") is not True
             or tuple(plan.get("methods", ())) != METHODS
-            or len(plan.get("schedule", ())) != 90
+            or plan.get("algorithm_seeds") != list(ALGORITHM_SEEDS)
+            or plan.get("final_test_instances", {}).get("instance_count")
+            != FINAL_INSTANCE_COUNT
+            or len(plan.get("schedule", ())) != TOTAL_TASK_COUNT
             or plan.get("evaluation_budget") != EVALUATION_BUDGET
             or plan.get("training_scenario_count")
             != TRAINING_SCENARIO_COUNT
-            or plan.get("oos_scenario_count") != OOS_SCENARIO_COUNT):
+            or plan.get("oos_scenario_count") != OOS_SCENARIO_COUNT
+            or plan.get("execution", {}).get("shard_count") != SHARD_COUNT
+            or plan.get("execution", {}).get("tasks_per_shard")
+            != TASKS_PER_SHARD):
         raise ValueError("plan is not the frozen formal CCP I/M design")
     for relative, expected in plan["implementation_sha256"].items():
         target = ROOT / relative
@@ -107,14 +116,14 @@ def _load_results(formal_root, plan):
                 or complete.get("shard") != shard
                 or complete.get("plan_digest") != plan["plan_digest"]
                 or complete.get("schedule_digest") != plan["schedule_digest"]
-                or complete.get("task_count") != 30
+                or complete.get("task_count") != TASKS_PER_SHARD
                 or complete.get("results_sha256") != _sha256(results_path)
-                or len(shard_rows) != 30):
+                or len(shard_rows) != TASKS_PER_SHARD):
             raise ValueError(f"invalid formal shard {shard}")
         rows.extend(shard_rows)
     schedule = {task["task_id"]: task for task in plan["schedule"]}
     actual = {row["task_id"]: row for row in rows}
-    if len(actual) != 90 or set(actual) != set(schedule):
+    if len(actual) != TOTAL_TASK_COUNT or set(actual) != set(schedule):
         raise ValueError("formal results do not exactly cover the frozen schedule")
     for task_id, row in actual.items():
         task = schedule[task_id]
@@ -179,7 +188,8 @@ def _evaluate_instance(task):
                 and cached.get("oos_scenario_count") == OOS_SCENARIO_COUNT
                 and cached.get("oos_seed") == oos_seed
                 and cached.get("oos_scenario_digest") == digest
-                and len(cached.get("runs", ())) == 9):
+                and len(cached.get("runs", ()))
+                == len(METHODS) * len(ALGORITHM_SEEDS)):
             return cached
         raise ValueError(f"incompatible OOS cache exists: {target}")
 
@@ -352,7 +362,8 @@ def _report(result):
         "# Formal frozen-CCP Base/I/M result",
         "",
         "The independent unit is one previously unseen final-test instance. "
-        "Three algorithm seeds are averaged within each instance before "
+        f"{len(ALGORITHM_SEEDS)} algorithm seeds are averaged within each "
+        "instance before "
         "paired inference.",
         "",
         "## Protocol",
@@ -440,7 +451,7 @@ def main(argv=None):
             print(
                 f"[FORMAL OOS] {index}/{len(tasks)} "
                 f"{value['instance']} complete", flush=True)
-    if len(evaluated) != 10:
+    if len(evaluated) != FINAL_INSTANCE_COUNT:
         raise RuntimeError("independent OOS evaluation is incomplete")
     oos_runs = []
     for value in evaluated:
@@ -494,7 +505,7 @@ def main(argv=None):
         "schedule_digest": plan["schedule_digest"],
         "claim_boundary": plan["claim_boundary"],
         "protocol": {
-            "instance_count": 10,
+            "instance_count": FINAL_INSTANCE_COUNT,
             "algorithm_seed_count": len(ALGORITHM_SEEDS),
             "method_count": len(METHODS),
             "optimization_run_count": len(optimization_rows),
@@ -507,10 +518,11 @@ def main(argv=None):
             "uncertainty_profile": UNCERTAINTY_PROFILE,
             "independent_unit": "previously unseen final-test instance",
             "seed_averaging": (
-                "three algorithm seeds averaged within each instance"),
+                f"{len(ALGORITHM_SEEDS)} algorithm seeds averaged within "
+                "each instance"),
             "oos_pairing": (
                 "one independent 5000-scenario set per instance, common to "
-                "Base, I, M and all three algorithm seeds"),
+                f"Base, I, M and all {len(ALGORITHM_SEEDS)} algorithm seeds"),
         },
         "scenario_validation": {
             "training_exactly_paired_within_instance_seed": True,
