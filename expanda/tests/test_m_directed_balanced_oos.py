@@ -1,0 +1,74 @@
+import json
+import sys
+import tempfile
+from pathlib import Path
+import types
+import unittest
+
+# The workspace test runtime intentionally omits plotting libraries.  This
+# evaluator never plots, so lightweight stubs keep the unit tests focused on
+# run discovery and statistical aggregation.
+matplotlib = types.ModuleType("matplotlib")
+matplotlib.use = lambda *_args, **_kwargs: None
+pyplot = types.ModuleType("matplotlib.pyplot")
+mpl_toolkits = types.ModuleType("mpl_toolkits")
+mplot3d = types.ModuleType("mpl_toolkits.mplot3d")
+mplot3d.Axes3D = object
+sys.modules.setdefault("matplotlib", matplotlib)
+sys.modules.setdefault("matplotlib.pyplot", pyplot)
+sys.modules.setdefault("mpl_toolkits", mpl_toolkits)
+sys.modules.setdefault("mpl_toolkits.mplot3d", mplot3d)
+
+from evaluate_m_directed_balanced_oos import (
+    _aggregate, discover_run_roots, resolve_run,
+)
+
+
+class DirectedBalancedOOSTests(unittest.TestCase):
+    def test_discovers_nested_reuse_roots_and_resolves_one_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            primary = root / "primary"
+            secondary = root / "secondary"
+            nested = root / "nested"
+            primary.mkdir()
+            secondary.mkdir()
+            nested.mkdir()
+            (primary / "COMPLETE.json").write_text(json.dumps({
+                "reuse_roots": [str(secondary)],
+            }))
+            (secondary / "COMPLETE.json").write_text(json.dumps({
+                "reuse_roots": [str(nested)],
+            }))
+            run = nested / "S0_002/seed_1/BASE"
+            run.mkdir(parents=True)
+            for name in (
+                    "COMPLETE.json", "configuration.json",
+                    "final_feasible_nondominated.json"):
+                (run / name).write_text("{}")
+            roots = discover_run_roots(primary)
+            self.assertEqual(roots, [primary, secondary, nested])
+            self.assertEqual(resolve_run(roots, "S0_002", 1, "BASE"), run)
+
+    def test_aggregate_reports_paired_percentages(self):
+        rows = [
+            {"instance": "S0_002", "algorithm_seed": 1,
+             "paired_oos_percent": 10.0},
+            {"instance": "S0_002", "algorithm_seed": 2,
+             "paired_oos_percent": -2.0},
+            {"instance": "S0_005", "algorithm_seed": 1,
+             "paired_oos_percent": 4.0},
+            {"instance": "S0_005", "algorithm_seed": 2,
+             "paired_oos_percent": 0.0},
+        ]
+        result = _aggregate(rows, {1, 2})
+        self.assertEqual(result["run_count"], 4)
+        self.assertEqual(result["mean_paired_oos_percent"], 3.0)
+        self.assertEqual(result["wins"], 2)
+        self.assertEqual(result["ties"], 1)
+        self.assertEqual(result["losses"], 1)
+        self.assertEqual(len(result["per_instance"]), 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
