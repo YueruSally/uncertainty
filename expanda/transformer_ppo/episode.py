@@ -16,6 +16,10 @@ from .archive import RewardArchive, RewardConfig, exact_hv_3d
 from .comparison_controllers import BaseBudgetController, CombinedPPOController
 from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
+from .crossover_rule import (
+    CROSSOVER_RULE_PROFILES,
+    CrossoverRuleController,
+)
 from .initialization_controller import InitializationPPOController
 from .initialization_rule import InitializationRuleController
 from .initialization_rule import INITIALIZATION_RULE_PROFILES
@@ -160,6 +164,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 evaluation_mode="ccp100", component="M",
                 rule_initialization_normalization=None,
                 rule_initialization_profile="legacy",
+                rule_crossover_profile="joint_balanced",
+                rule_crossover_min_generation=0,
                 initialization_learning_rule_normalization=None,
                 initialization_learning_rule_top_k=None,
                 model_choice_probabilities=None,
@@ -209,9 +215,11 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "CM": {"C", "M"},
         "ICM": {"I", "C", "M"},
     }
-    if component not in ("M", "C", "I", *combined_components, "BASE", "RULE-I"):
+    if component not in (
+            "M", "C", "I", *combined_components, "BASE", "RULE-I", "RULE-C"):
         raise ValueError(
-            "component must be a single/combined learning component, BASE, or RULE-I")
+            "component must be a single/combined learning component, BASE, "
+            "RULE-I, or RULE-C")
     if component in ("M", "C", "I") and trainer.component != component:
         raise ValueError("trainer component does not match episode component")
     if component in combined_components and (
@@ -219,7 +227,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             or set(trainer) != combined_components[component]
             or any(item.component != name for name, item in trainer.items())):
         raise ValueError(f"{component} requires matching component trainers")
-    if component in ("BASE", "RULE-I") and trainer is not None:
+    if component in ("BASE", "RULE-I", "RULE-C") and trainer is not None:
         raise ValueError(f"{component} does not accept a policy trainer")
     episode_trainers = (
         tuple(trainer.values()) if component in combined_components else
@@ -242,6 +250,13 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if (component != "RULE-I"
             and rule_initialization_profile != "legacy"):
         raise ValueError("directed initialization profile requires RULE-I")
+    rule_crossover_profile = str(rule_crossover_profile)
+    if rule_crossover_profile not in CROSSOVER_RULE_PROFILES:
+        raise ValueError(
+            f"invalid crossover rule profile: {rule_crossover_profile}")
+    rule_crossover_min_generation = int(rule_crossover_min_generation)
+    if rule_crossover_min_generation < 0:
+        raise ValueError("crossover rule minimum generation cannot be negative")
     if learning_protocol_version not in (None, 1, 2):
         raise ValueError("learning protocol version must be 1 or 2")
     audit = dict(candidate_audit or {})
@@ -496,16 +511,17 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     method = (
         "base-nsga2" if component == "BASE" else
         "rule-initialization" if component == "RULE-I" else
+        "rule-crossover" if component == "RULE-C" else
         f"transformer-ppo-{'+'.join(component.lower())}-frozen"
         if component in combined_components else
         trainer.name)
     policy_training = (
-        False if component in ("BASE", "RULE-I") else
+        False if component in ("BASE", "RULE-I", "RULE-C") else
         any(item.training for item in trainer.values())
         if component in combined_components else
         bool(trainer.training))
     policy_checkpoint = (
-        None if component in ("BASE", "RULE-I") else
+        None if component in ("BASE", "RULE-I", "RULE-C") else
         {name: item.checkpoint_provenance for name, item in trainer.items()}
         if component in combined_components else trainer.checkpoint_provenance)
     def inference_metadata(item):
@@ -519,7 +535,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         }
 
     policy_inference = (
-        None if component in ("BASE", "RULE-I") else
+        None if component in ("BASE", "RULE-I", "RULE-C") else
         {name: inference_metadata(item) for name, item in trainer.items()}
         if component in combined_components else inference_metadata(trainer))
     policy_trainers = (
@@ -592,6 +608,10 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             rule_initialization_normalization if component == "RULE-I" else None),
         "initialization_rule_profile": (
             rule_initialization_profile if component == "RULE-I" else None),
+        "crossover_rule_profile": (
+            rule_crossover_profile if component == "RULE-C" else None),
+        "crossover_rule_min_generation": (
+            rule_crossover_min_generation if component == "RULE-C" else None),
         "learning_control": {
             "version": 2 if v2_active else 1,
             "initialization_rule_prefilter": (
@@ -656,6 +676,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             rule_normalization=rule_initialization_normalization,
             reliable_options=options,
             profile=rule_initialization_profile)
+    elif component == "RULE-C":
+        controller = CrossoverRuleController(
+            out, instance["instance_id"], config["scenario_digest"],
+            evaluation_budget, method=method, instance=instance, seeds=seeds,
+            normalizer=episode_normalizer, profile=rule_crossover_profile,
+            min_generation=rule_crossover_min_generation)
     elif component in combined_components:
         controller = CombinedPPOController(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
@@ -790,7 +816,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if component == "M":
         summary["mutation_attempts"] = controller.total_attempts
         summary["effective_modifications"] = controller.total_effective
-    elif component == "C":
+    elif component in ("C", "RULE-C"):
         summary["crossover_attempts"] = controller.total_attempts
         summary["effective_crossovers"] = controller.total_effective
     elif component == "I":

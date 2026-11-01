@@ -9,6 +9,7 @@ from pathlib import Path
 from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.config import PPOConfig
 from transformer_ppo.episode import CCP_UNCERTAINTY_PROFILES, run_episode
+from transformer_ppo.crossover_rule import CROSSOVER_RULE_PROFILES
 from transformer_ppo.initialization_rule import INITIALIZATION_RULE_PROFILES
 from transformer_ppo.ppo import PPOTrainer
 
@@ -45,7 +46,7 @@ def main(argv=None):
     parser.add_argument("--normalization", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--component", choices=(
-        "BASE", "RULE-I", "I", "C", "M", "IC", "IM", "CM", "ICM"),
+        "BASE", "RULE-I", "RULE-C", "I", "C", "M", "IC", "IM", "CM", "ICM"),
                         required=True)
     parser.add_argument("--initialization-rule-normalization", type=Path)
     parser.add_argument(
@@ -55,6 +56,13 @@ def main(argv=None):
               "cost/emission/time/lateness/reliability scaling."))
     parser.add_argument("--initialization-rule-top-k", type=int,
                         help="V2 learned-I Rule-I prefilter size.")
+    parser.add_argument(
+        "--crossover-rule-profile",
+        choices=CROSSOVER_RULE_PROFILES, default="joint_balanced",
+        help="RULE-C deterministic legal-cut selector.")
+    parser.add_argument(
+        "--crossover-rule-min-generation", type=int, default=0,
+        help="First generation in which RULE-C replaces Base cut choices.")
     parser.add_argument("--model-choice-probability", type=float, default=1.0,
                         help="V2 single C/M probability of using the model.")
     parser.add_argument("--c-model-choice-probability", type=float, default=1.0)
@@ -305,7 +313,9 @@ def main(argv=None):
             if args.m_continuation_event < 1:
                 raise ValueError(
                     "M continuation event must be a positive integer")
-        if args.component in ("BASE", "RULE-I"):
+        if args.crossover_rule_min_generation < 0:
+            raise ValueError("crossover rule minimum generation cannot be negative")
+        if args.component in ("BASE", "RULE-I", "RULE-C"):
             trainer = None
         elif len(args.component) > 1:
             checkpoint_paths = {
@@ -338,6 +348,9 @@ def main(argv=None):
             rule_initialization_normalization=(
                 rule_normalization if args.component == "RULE-I" else None),
             rule_initialization_profile=args.initialization_rule_profile,
+            rule_crossover_profile=args.crossover_rule_profile,
+            rule_crossover_min_generation=(
+                args.crossover_rule_min_generation),
             initialization_learning_rule_normalization=(
                 rule_normalization
                 if args.initialization_rule_top_k is not None else None),
