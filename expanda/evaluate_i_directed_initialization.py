@@ -21,6 +21,7 @@ STRATEGY_PROFILES = {
     "I_DIRECTED_BALANCED_P025": "joint_balanced_p025",
     "I_DIRECTED_BALANCED_P050": "joint_balanced_p050",
     "I_DIRECTED_BALANCED_P075": "joint_balanced_p075",
+    "I_DIRECTED_BALANCED_HV_GATE": "joint_balanced_hv_gate",
     "I_DIRECTED_DIVERSE": "diverse_cycle",
     "I_DIRECTED_RELIABILITY": "time_reliability",
 }
@@ -165,6 +166,16 @@ def _aggregate(args, instance_names, statuses):
                             "initializations_different_from_shadow_base", 0)),
                     "effective_profile_counts": complete.get(
                         "initialization_effective_profile_counts", {}),
+                    "initialization_hv_gate_selected": complete.get(
+                        "initialization_hv_gate_selected"),
+                    "initialization_hv_gate_base_hv": complete.get(
+                        "initialization_hv_gate_base_hv"),
+                    "initialization_hv_gate_directed_hv": complete.get(
+                        "initialization_hv_gate_directed_hv"),
+                    "counterfactual_initialization_evaluation_count": int(
+                        complete.get(
+                            "counterfactual_initialization_evaluation_count",
+                            0)),
                     "run_path": str(run),
                 })
 
@@ -193,6 +204,16 @@ def _aggregate(args, instance_names, statuses):
             "runs_above_10_percent": sum(value >= 10.0 for value in values),
             "mean_initialization_attempts": statistics.fmean(
                 row["initialization_attempts"] for row in rows),
+            "gate_selected_directed": sum(
+                row["initialization_hv_gate_selected"] == "directed"
+                for row in rows),
+            "gate_selected_base": sum(
+                row["initialization_hv_gate_selected"] == "base"
+                for row in rows),
+            "mean_counterfactual_initialization_evaluations": (
+                statistics.fmean(
+                    row["counterfactual_initialization_evaluation_count"]
+                    for row in rows)),
         })
 
     per_instance = []

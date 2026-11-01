@@ -3550,6 +3550,24 @@ def run_nsga2(
             ACTIVE_MUTATION_LOGGER.settle_initialization(ind)
         population.append(ind)
 
+        if (ACTIVE_MUTATION_LOGGER is not None
+                and hasattr(
+                    ACTIVE_MUTATION_LOGGER,
+                    "initialization_counterfactual")):
+            counterfactual = (
+                ACTIVE_MUTATION_LOGGER.initialization_counterfactual(ind))
+            if counterfactual is not None:
+                repair_missing_allocations(counterfactual, batches, path_lib)
+                evaluate_individual(
+                    counterfactual, batches, arcs, tt_dict,
+                    waiting_cost_per_teu_h, wait_emis_g_per_teu_h,
+                    **eval_kwargs)
+
+    if (ACTIVE_MUTATION_LOGGER is not None
+            and hasattr(ACTIVE_MUTATION_LOGGER, "select_initial_population")):
+        population = ACTIVE_MUTATION_LOGGER.select_initial_population(
+            population)
+
     initial_feasible = sum(1 for ind in population if ind.feasible)
     print(f"[FEAS-INIT] Capacity-aware seeds={n_feasibility_seeds}  "
           f"zero-excess={seed_zero_excess}  "

@@ -7,6 +7,7 @@ import random
 
 import baseline_uncertainty as base
 
+from .archive import exact_hv_3d
 from .comparison_controllers import BaseBudgetController
 from .initialization_rule_features import (
     path_rule_score,
@@ -19,6 +20,7 @@ DIRECTED_INITIALIZATION_PROFILES = (
     "joint_balanced_p025",
     "joint_balanced_p050",
     "joint_balanced_p075",
+    "joint_balanced_hv_gate",
     "diverse_cycle",
     "time_reliability",
 )
@@ -161,18 +163,29 @@ class InitializationRuleController(BaseBudgetController):
         if self.profile != "legacy" and not self.reliable_options:
             raise ValueError("directed Rule-I requires reliable path options")
         self.profile_counts = Counter()
+        self.hv_gate_enabled = self.profile == "joint_balanced_hv_gate"
+        self._gate_pending = None
+        self._gate_pairs = []
+        self.gate_selected = None
+        self.gate_base_hv = None
+        self.gate_directed_hv = None
+        self.counterfactual_initialization_evaluations = 0
         self.total_attempts = 0
         self.total_effective = 0
         self.no_candidate = 0
         self.rule_choices = 0
         super().__init__(
             *args,
-            log_names=("initialization_rule_actions", "generation_summary"),
+            log_names=("initialization_rule_actions", "initialization_gate",
+                       "generation_summary"),
             **kwargs,
         )
+        if self.hv_gate_enabled and self.normalizer is None:
+            raise ValueError("initialization HV gate requires a normalizer")
 
     def initial_individual(self, batches, path_lib, max_paths=3):
         individual = base.Individual()
+        shadow_individual = base.Individual() if self.hv_gate_enabled else None
         event_id = f"{self.run_id}:RULE-I:{self.total_attempts + 1}"
         self.total_attempts += 1
         initial_individual_index = self.total_attempts - 1
@@ -187,6 +200,11 @@ class InitializationRuleController(BaseBudgetController):
             k = random.randint(1, min(int(max_paths), len(paths)))
             shadow_paths = random.sample(paths, k)
             raw_shares = [random.random() for _ in range(k)]
+            if shadow_individual is not None:
+                shadow_individual.od_allocations[key] = base.merge_and_normalize([
+                    base.PathAllocation(path=path, share=raw_shares[index])
+                    for index, path in enumerate(shadow_paths)
+                ])
             if self.profile == "legacy":
                 ranked_rows = [{
                     "path": path,
@@ -221,7 +239,8 @@ class InitializationRuleController(BaseBudgetController):
                     paths, batch,
                     self.reliable_options.get(key, ()),
                     ("joint_balanced"
-                     if self.profile in BALANCED_FRACTION_PATTERNS
+                     if (self.profile in BALANCED_FRACTION_PATTERNS
+                         or self.hv_gate_enabled)
                      else self.profile),
                     initial_individual_index)
             selected_rows = ranked_rows[:k]
@@ -257,7 +276,79 @@ class InitializationRuleController(BaseBudgetController):
             "different_from_shadow_base": bool(differs_from_shadow),
             "actions": actions,
         })
+        if self.hv_gate_enabled:
+            if self._gate_pending is not None:
+                raise RuntimeError("previous initialization pair was not registered")
+            self._gate_pending = (individual, shadow_individual)
         return individual
+
+    def initialization_counterfactual(self, individual):
+        """Return the paired Base-random individual for fixed-budget gating."""
+        if not self.hv_gate_enabled:
+            return None
+        if self._gate_pending is None:
+            return None
+        if self._gate_pending[0] is not individual:
+            raise RuntimeError("directed initialization does not match gate pair")
+        directed, shadow = self._gate_pending
+        self._gate_pairs.append((directed, shadow))
+        self._gate_pending = None
+        self.counterfactual_initialization_evaluations += 1
+        return shadow
+
+    def select_initial_population(self, directed_population):
+        """Choose the full Base or directed initial population by exact HV."""
+        if not self.hv_gate_enabled:
+            return directed_population
+        if self._gate_pending is not None:
+            raise RuntimeError("unregistered initialization gate pair")
+        base_by_directed_id = {
+            id(directed): shadow for directed, shadow in self._gate_pairs
+        }
+        base_population = [
+            base_by_directed_id.get(id(individual), individual)
+            for individual in directed_population
+        ]
+
+        def population_hv(population):
+            points = [
+                self.normalizer.transform(individual.objectives)
+                for individual in population if individual.feasible
+            ]
+            return exact_hv_3d(points, self.normalizer.reference)
+
+        self.gate_directed_hv = population_hv(directed_population)
+        self.gate_base_hv = population_hv(base_population)
+        use_directed = self.gate_directed_hv >= self.gate_base_hv - 1e-12
+        self.gate_selected = "directed" if use_directed else "base"
+        selected = directed_population if use_directed else base_population
+
+        # BaseBudgetController observed both alternatives as they were
+        # evaluated.  Rebuild its reward-only archive queue from the selected
+        # population so search-progress diagnostics never include rejected
+        # counterfactual individuals.
+        # MutationLogger's canonical fingerprint is needed here; import it
+        # lazily to avoid changing baseline_uncertainty's public surface.
+        from multi_instance_logging import fingerprint
+        self._archive_pending = [
+            (individual.objectives, bool(individual.feasible),
+             fingerprint(individual))
+            for individual in selected
+        ]
+        self.append("initialization_gate", {
+            "base_initial_hv": self.gate_base_hv,
+            "directed_initial_hv": self.gate_directed_hv,
+            "directed_minus_base_initial_hv": (
+                self.gate_directed_hv - self.gate_base_hv),
+            "selected": self.gate_selected,
+            "shared_population_members": (
+                len(directed_population) - len(self._gate_pairs)),
+            "paired_random_population_members": len(self._gate_pairs),
+            "counterfactual_initialization_evaluations": (
+                self.counterfactual_initialization_evaluations),
+            "real_objective_evaluation_count": self.evaluations,
+        })
+        return selected
 
     def summary(self):
         result = super().summary()
@@ -269,5 +360,11 @@ class InitializationRuleController(BaseBudgetController):
             "initializations_different_from_shadow_base": self.total_effective,
             "no_eligible_candidate": self.no_candidate,
             "rule_choices": self.rule_choices,
+            "initialization_hv_gate_enabled": self.hv_gate_enabled,
+            "initialization_hv_gate_selected": self.gate_selected,
+            "initialization_hv_gate_base_hv": self.gate_base_hv,
+            "initialization_hv_gate_directed_hv": self.gate_directed_hv,
+            "counterfactual_initialization_evaluation_count": (
+                self.counterfactual_initialization_evaluations),
         })
         return result

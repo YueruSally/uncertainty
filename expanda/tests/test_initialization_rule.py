@@ -9,6 +9,7 @@ from transformer_ppo.initialization_rule import (
     InitializationRuleController,
     path_rule_score,
 )
+from transformer_ppo.archive import ObjectiveNormalizer
 
 
 NORMALIZATION = {
@@ -167,6 +168,47 @@ class InitializationRuleTest(unittest.TestCase):
                     controller.profile_counts["joint_balanced"], 4)
                 self.assertEqual(
                     controller.profile_counts["base_passthrough"], 4)
+            finally:
+                controller.close()
+
+    def test_hv_gate_selects_better_paired_initial_population(self):
+        batch = base.Batch(0, "A", "B", 10.0, 0.0, 10.0)
+        candidates = [
+            path(1, 1.0, 9.0, 9.0),
+            path(2, 9.0, 1.0, 8.0),
+            path(3, 5.0, 5.0, 1.0),
+        ]
+        options = {
+            ("A", "B", 0): [
+                option(candidates[0], 0.2, 8.0),
+                option(candidates[1], 0.4, 5.0),
+                option(candidates[2], 1.0, 0.0),
+            ]
+        }
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0))
+        with tempfile.TemporaryDirectory() as temporary:
+            controller = InitializationRuleController(
+                Path(temporary), "run", "scenario", 100,
+                normalizer=normalizer, reliable_options=options,
+                profile="joint_balanced_hv_gate", method="rule",
+                instance={}, seeds={})
+            try:
+                random.seed(19)
+                directed = controller.initial_individual(
+                    [batch], {("A", "B"): candidates}, max_paths=3)
+                shadow = controller.initialization_counterfactual(directed)
+                directed.objectives = (1.0, 1.0, 1.0)
+                directed.feasible = True
+                shadow.objectives = (5.0, 5.0, 5.0)
+                shadow.feasible = True
+                selected = controller.select_initial_population([directed])
+                self.assertIs(selected[0], directed)
+                self.assertEqual(controller.gate_selected, "directed")
+                self.assertGreater(
+                    controller.gate_directed_hv, controller.gate_base_hv)
+                self.assertEqual(
+                    controller.counterfactual_initialization_evaluations, 1)
             finally:
                 controller.close()
 
