@@ -50,6 +50,26 @@ class DirectedBalancedOOSTests(unittest.TestCase):
             self.assertEqual(roots, [primary, secondary, nested])
             self.assertEqual(resolve_run(roots, "S0_002", 1, "BASE"), run)
 
+    def test_discovers_initialization_reuse_base_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            primary = root / "i_validation"
+            base_root = root / "base_validation"
+            primary.mkdir()
+            base_root.mkdir()
+            (primary / "COMPLETE.json").write_text(json.dumps({
+                "reuse_base_root": str(base_root),
+            }))
+            run = base_root / "S0_002/seed_7/BASE"
+            run.mkdir(parents=True)
+            for name in (
+                    "COMPLETE.json", "configuration.json",
+                    "final_feasible_nondominated.json"):
+                (run / name).write_text("{}")
+            roots = discover_run_roots(primary)
+            self.assertEqual(roots, [primary, base_root])
+            self.assertEqual(resolve_run(roots, "S0_002", 7, "BASE"), run)
+
     def test_aggregate_reports_paired_percentages(self):
         rows = [
             {"instance": "S0_002", "algorithm_seed": 1,

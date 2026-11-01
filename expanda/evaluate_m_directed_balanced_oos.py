@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Re-evaluate frozen Base and directed-M fronts on independent CCP scenarios."""
+"""Re-evaluate frozen Base and one comparison front on independent CCP scenarios."""
 from __future__ import annotations
 
 import argparse
@@ -91,7 +91,7 @@ def discover_run_roots(primary_root):
         references = []
         references.extend(value.get("reuse_roots") or [])
         for field in (
-                "reuse_root", "positive_probe_root",
+                "reuse_root", "reuse_base_root", "positive_probe_root",
                 "reversible_probe_root"):
             if value.get(field):
                 references.append(value[field])
@@ -296,17 +296,20 @@ def _evaluate_instance(task):
     )
     instance_normalizer = normalizer.with_divisor(objective_divisor)
     rows = []
+    comparison_strategy = task["comparison_strategy"]
     for seed in task["algorithm_seeds"]:
         target = out / instance_name / f"seed_{seed}.json"
         if target.is_file():
             value = _read(target)
             if (value.get("oos_metric_schema") == 2
                     and value.get("completed") is True
-                    and value.get("oos_scenario_digest") == digest):
+                    and value.get("oos_scenario_digest") == digest
+                    and set(value.get("methods", ()))
+                    == {BASE_STRATEGY, comparison_strategy}):
                 rows.append(value)
                 continue
         methods = {}
-        for strategy in (BASE_STRATEGY, BALANCED_STRATEGY):
+        for strategy in (BASE_STRATEGY, comparison_strategy):
             run = resolve_run(roots, instance_name, seed, strategy)
             methods[strategy] = _evaluate_front(
                 run, instance, batches, network, scenarios,
@@ -391,6 +394,9 @@ def main(argv=None):
     parser.add_argument("--instance-ids", nargs="+", required=True)
     parser.add_argument("--algorithm-seeds", nargs="+", type=int, required=True)
     parser.add_argument("--holdout-seeds", nargs="+", type=int)
+    parser.add_argument(
+        "--comparison-strategy", default=BALANCED_STRATEGY,
+        help="Run-directory strategy compared with BASE.")
     parser.add_argument("--scenario-count", type=int, default=1000)
     parser.add_argument("--oos-seed", type=int, default=880001)
     parser.add_argument("--alpha", type=float, default=0.90)
@@ -424,7 +430,7 @@ def main(argv=None):
         instance_paths[instance_id.replace("train-", "").replace("-", "_")] = path
     for instance in instance_paths:
         for seed in args.algorithm_seeds:
-            for strategy in (BASE_STRATEGY, BALANCED_STRATEGY):
+            for strategy in (BASE_STRATEGY, args.comparison_strategy):
                 resolve_run(roots, instance, seed, strategy)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -440,6 +446,7 @@ def main(argv=None):
         "oos_seed": args.oos_seed,
         "alpha": args.alpha,
         "uncertainty_profile": args.uncertainty_profile,
+        "comparison_strategy": args.comparison_strategy,
     } for instance, path in sorted(instance_paths.items())]
 
     results = []
@@ -478,8 +485,8 @@ def main(argv=None):
             row["methods"][BASE_STRATEGY][
                 "oos_normalized_nondominated_points"],
             reference)
-        balanced_hv = exact_hv_3d(
-            row["methods"][BALANCED_STRATEGY][
+        comparison_hv = exact_hv_3d(
+            row["methods"][args.comparison_strategy][
                 "oos_normalized_nondominated_points"],
             reference)
         if base_hv <= 0.0:
@@ -488,9 +495,15 @@ def main(argv=None):
                 f"{row['instance']}:seed_{row['algorithm_seed']}")
         row["hv_reference"] = reference
         row["base_oos_hv"] = base_hv
-        row["balanced_oos_hv"] = balanced_hv
+        row["comparison_strategy"] = args.comparison_strategy
+        row["comparison_oos_hv"] = comparison_hv
+        # Retain the historical field for the frozen M release and old
+        # downstream readers.  New component-specific runs should consume
+        # comparison_oos_hv together with comparison_strategy.
+        if args.comparison_strategy == BALANCED_STRATEGY:
+            row["balanced_oos_hv"] = comparison_hv
         row["paired_oos_percent"] = 100.0 * (
-            balanced_hv - base_hv) / base_hv
+            comparison_hv - base_hv) / base_hv
         _write(
             args.out / row["instance"]
             / f"seed_{row['algorithm_seed']}.json",
@@ -499,8 +512,9 @@ def main(argv=None):
     result = {
         "completed": True,
         "definition": (
-            "frozen Base and directed-balanced final decisions re-evaluated "
+            "frozen Base and comparison final decisions re-evaluated "
             "without re-optimisation on one common independent CCP scenario set"),
+        "comparison_strategy": args.comparison_strategy,
         "instance_count": len(instance_paths),
         "algorithm_seed_count": len(args.algorithm_seeds),
         "paired_run_count": len(results),
@@ -540,6 +554,7 @@ def main(argv=None):
         "paired_run_count", "oos_scenario_count", "oos_seed",
         "oos_scenario_digest", "oos_distinct_from_training",
         "one_common_oos_scenario_set", "uncertainty_profile", "alpha",
+        "comparison_strategy",
         "hv_reference", "all_seeds", "held_out_seeds", "admission_thresholds",
         "admission_pass")}
     _write(args.out / "QUICK_RESULT.json", quick)
