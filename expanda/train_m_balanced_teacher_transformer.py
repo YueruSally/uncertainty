@@ -143,6 +143,7 @@ def main(argv=None):
     parser.add_argument("--validation-instances", nargs="+", required=True)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=2)
+    parser.add_argument("--early-stopping-patience", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=3e-5)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--seed", type=int, default=62001)
@@ -150,8 +151,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not args.checkpoint.is_file():
         parser.error(f"missing checkpoint: {args.checkpoint}")
-    if args.epochs < 1 or args.batch_size < 1 or args.learning_rate <= 0:
-        parser.error("epochs, batch size and learning rate must be positive")
+    if (args.epochs < 1 or args.batch_size < 1
+            or args.early_stopping_patience < 1
+            or args.learning_rate <= 0):
+        parser.error(
+            "epochs, batch size, patience and learning rate must be positive")
 
     import torch
     from transformer_ppo.config import PPOConfig
@@ -199,6 +203,8 @@ def main(argv=None):
     history = []
     best_validation = -1.0
     best_state = None
+    epochs_without_improvement = 0
+    stopped_early = False
     for epoch in range(1, args.epochs + 1):
         model.train()
         total_loss = 0.0
@@ -267,12 +273,23 @@ def main(argv=None):
             f"valid_top1={validation_metrics['top_1_accuracy']:.4f} "
             f"fallback={numerical_fallback_groups}",
             flush=True)
-        if validation_metrics["top_1_accuracy"] > best_validation:
+        if validation_metrics["top_1_accuracy"] > best_validation + 1e-12:
             best_validation = validation_metrics["top_1_accuracy"]
             best_state = {
                 name: value.detach().cpu().clone()
                 for name, value in model.state_dict().items()
             }
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
+        if epochs_without_improvement >= args.early_stopping_patience:
+            stopped_early = True
+            print(
+                "[M-TEACHER-TRAIN] early-stop "
+                f"epoch={epoch} best_validation_top1={best_validation:.4f} "
+                f"patience={args.early_stopping_patience}",
+                flush=True)
+            break
     model.load_state_dict(best_state)
     final_train = _accuracy(torch, model, training, device, args.batch_size)
     final_validation = _accuracy(
@@ -300,6 +317,10 @@ def main(argv=None):
         "training": final_train,
         "validation": final_validation,
         "best_validation_top_1": best_validation,
+        "requested_epochs": args.epochs,
+        "completed_epochs": len(history),
+        "early_stopping_patience": args.early_stopping_patience,
+        "stopped_early": stopped_early,
         "selected_epoch": max(
             history, key=lambda row: row["validation"]["top_1_accuracy"])[
                 "epoch"],

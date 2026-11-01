@@ -79,7 +79,8 @@ python3 -u train_m_balanced_teacher_transformer.py \
   --out "$TRAIN_ROOT" \
   --validation-instances S0_011 \
   --epochs 20 \
-  --batch-size 2 \
+  --batch-size 1 \
+  --early-stopping-patience 4 \
   --learning-rate 3e-5 \
   --weight-decay 1e-4 \
   --seed 62001 \
