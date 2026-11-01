@@ -388,7 +388,7 @@ def main(argv=None):
                         ("M", args.m_model_choice_probability),
                     ) if name in args.component
                 }
-                if len(args.component) > 1 else None),
+                if args.component in ("IC", "IM", "CM", "ICM") else None),
             candidate_audit=(
                 {
                     "states": args.candidate_audit_states,
