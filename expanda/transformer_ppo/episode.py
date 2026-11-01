@@ -166,6 +166,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 rule_initialization_profile="legacy",
                 rule_crossover_profile="joint_balanced",
                 rule_crossover_min_generation=0,
+                rule_crossover_max_generation=None,
                 initialization_learning_rule_normalization=None,
                 initialization_learning_rule_top_k=None,
                 model_choice_probabilities=None,
@@ -257,6 +258,13 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     rule_crossover_min_generation = int(rule_crossover_min_generation)
     if rule_crossover_min_generation < 0:
         raise ValueError("crossover rule minimum generation cannot be negative")
+    rule_crossover_max_generation = (
+        None if rule_crossover_max_generation is None
+        else int(rule_crossover_max_generation))
+    if (rule_crossover_max_generation is not None
+            and rule_crossover_max_generation < rule_crossover_min_generation):
+        raise ValueError(
+            "crossover rule maximum generation cannot precede its minimum")
     if learning_protocol_version not in (None, 1, 2):
         raise ValueError("learning protocol version must be 1 or 2")
     audit = dict(candidate_audit or {})
@@ -612,6 +620,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             rule_crossover_profile if component == "RULE-C" else None),
         "crossover_rule_min_generation": (
             rule_crossover_min_generation if component == "RULE-C" else None),
+        "crossover_rule_max_generation": (
+            rule_crossover_max_generation if component == "RULE-C" else None),
         "learning_control": {
             "version": 2 if v2_active else 1,
             "initialization_rule_prefilter": (
@@ -681,7 +691,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             out, instance["instance_id"], config["scenario_digest"],
             evaluation_budget, method=method, instance=instance, seeds=seeds,
             normalizer=episode_normalizer, profile=rule_crossover_profile,
-            min_generation=rule_crossover_min_generation)
+            min_generation=rule_crossover_min_generation,
+            max_generation=rule_crossover_max_generation)
     elif component in combined_components:
         controller = CombinedPPOController(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,

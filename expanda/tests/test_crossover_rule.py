@@ -139,7 +139,7 @@ class CrossoverRuleTests(unittest.TestCase):
             finally:
                 controller.close()
 
-    def test_pre_schedule_rule_replays_exact_base_children(self):
+    def test_outside_schedule_rule_replays_exact_base_children(self):
         batch = base.Batch(7, "A", "D", 10.0, 0.0, 24.0)
         path1 = path(1, ["A", "X", "J", "D"], [9.0, 9.0, 9.0])
         path2 = path(2, ["A", "X", "K", "J", "D"], [1.0, 1.0, 1.0, 1.0])
@@ -156,22 +156,34 @@ class CrossoverRuleTests(unittest.TestCase):
         expected1, expected2 = base.crossover_common_node(
             parent1, parent2, [batch], {}, lookup)
         expected_state = random.getstate()
-        with tempfile.TemporaryDirectory() as directory:
-            controller = CrossoverRuleController(
-                Path(directory), "run", "scenario", 20,
-                normalizer=None, profile="joint_balanced", min_generation=10,
-                method="rule-c", instance={}, seeds={})
-            try:
-                controller.generation = 0
-                random.seed(73)
-                actual1, actual2 = controller.crossover_common_node(
-                    parent1, parent2, [batch], {}, lookup)
-                self.assertEqual(actual1.od_allocations, expected1.od_allocations)
-                self.assertEqual(actual2.od_allocations, expected2.od_allocations)
-                self.assertEqual(random.getstate(), expected_state)
-                self.assertEqual(controller.directed_cut_count, 0)
-            finally:
-                controller.close()
+        schedules = [
+            {"profile": "joint_balanced", "minimum": 10,
+             "maximum": None, "generation": 0},
+            {"profile": "joint_balanced_single", "minimum": 0,
+             "maximum": 4, "generation": 5},
+        ]
+        for schedule in schedules:
+            with self.subTest(schedule=schedule):
+                with tempfile.TemporaryDirectory() as directory:
+                    controller = CrossoverRuleController(
+                        Path(directory), "run", "scenario", 20,
+                        normalizer=None, profile=schedule["profile"],
+                        min_generation=schedule["minimum"],
+                        max_generation=schedule["maximum"], method="rule-c",
+                        instance={}, seeds={})
+                    try:
+                        controller.generation = schedule["generation"]
+                        random.seed(73)
+                        actual1, actual2 = controller.crossover_common_node(
+                            parent1, parent2, [batch], {}, lookup)
+                        self.assertEqual(
+                            actual1.od_allocations, expected1.od_allocations)
+                        self.assertEqual(
+                            actual2.od_allocations, expected2.od_allocations)
+                        self.assertEqual(random.getstate(), expected_state)
+                        self.assertEqual(controller.directed_cut_count, 0)
+                    finally:
+                        controller.close()
 
 
 if __name__ == "__main__":

@@ -63,6 +63,9 @@ def main(argv=None):
     parser.add_argument(
         "--crossover-rule-min-generation", type=int, default=0,
         help="First generation in which RULE-C replaces Base cut choices.")
+    parser.add_argument(
+        "--crossover-rule-max-generation", type=int,
+        help="Last generation in which RULE-C may replace Base cut choices.")
     parser.add_argument("--model-choice-probability", type=float, default=1.0,
                         help="V2 single C/M probability of using the model.")
     parser.add_argument("--c-model-choice-probability", type=float, default=1.0)
@@ -351,6 +354,8 @@ def main(argv=None):
             rule_crossover_profile=args.crossover_rule_profile,
             rule_crossover_min_generation=(
                 args.crossover_rule_min_generation),
+            rule_crossover_max_generation=(
+                args.crossover_rule_max_generation),
             initialization_learning_rule_normalization=(
                 rule_normalization
                 if args.initialization_rule_top_k is not None else None),

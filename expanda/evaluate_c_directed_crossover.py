@@ -18,17 +18,29 @@ EPSILON = 1e-12
 STRATEGY_SPECS = {
     "BASE": None,
     "C_DIRECTED_BALANCED_G0": {
-        "profile": "joint_balanced", "min_generation": 0},
+        "profile": "joint_balanced", "min_generation": 0,
+        "max_generation": None},
     "C_DIRECTED_BALANCED_G10": {
-        "profile": "joint_balanced", "min_generation": 10},
+        "profile": "joint_balanced", "min_generation": 10,
+        "max_generation": None},
     "C_SAFE_BALANCED_ALL_G0": {
-        "profile": "joint_balanced_safe_all", "min_generation": 0},
+        "profile": "joint_balanced_safe_all", "min_generation": 0,
+        "max_generation": None},
     "C_JOINT_BALANCED_SINGLE_G0": {
-        "profile": "joint_balanced_single", "min_generation": 0},
+        "profile": "joint_balanced_single", "min_generation": 0,
+        "max_generation": None},
     "C_JOINT_BALANCED_SAFE_SINGLE_G0": {
-        "profile": "joint_balanced_safe_single", "min_generation": 0},
+        "profile": "joint_balanced_safe_single", "min_generation": 0,
+        "max_generation": None},
+    "C_JOINT_BALANCED_SINGLE_EARLY04": {
+        "profile": "joint_balanced_single", "min_generation": 0,
+        "max_generation": 4},
+    "C_JOINT_BALANCED_SAFE_SINGLE_EARLY04": {
+        "profile": "joint_balanced_safe_single", "min_generation": 0,
+        "max_generation": 4},
     "C_SAFE_BALANCED_SINGLE_G0": {
-        "profile": "joint_balanced_safe_single", "min_generation": 0},
+        "profile": "joint_balanced_safe_single", "min_generation": 0,
+        "max_generation": None},
 }
 
 
@@ -63,7 +75,9 @@ def _valid(run, seed, spec, args):
             and (spec is None or (
                 config.get("crossover_rule_profile") == spec["profile"]
                 and config.get("crossover_rule_min_generation")
-                == spec["min_generation"])))
+                == spec["min_generation"]
+                and config.get("crossover_rule_max_generation")
+                == spec["max_generation"])))
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
         return False
 
@@ -99,6 +113,11 @@ def _command(args, instance_path, run, seed, spec):
             "--crossover-rule-profile", spec["profile"],
             "--crossover-rule-min-generation", str(spec["min_generation"]),
         ])
+        if spec["max_generation"] is not None:
+            command.extend([
+                "--crossover-rule-max-generation",
+                str(spec["max_generation"]),
+            ])
     return command
 
 
@@ -146,6 +165,8 @@ def _strategy_summary(strategy, rows):
         "profile": None if spec is None else spec["profile"],
         "minimum_generation": (
             None if spec is None else spec["min_generation"]),
+        "maximum_generation": (
+            None if spec is None else spec["max_generation"]),
         "runs": len(rows),
         "mean_paired_percent": mean,
         "standard_deviation_paired_percent": sd,

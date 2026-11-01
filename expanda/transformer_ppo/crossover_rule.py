@@ -180,13 +180,19 @@ class CrossoverRuleController(BaseBudgetController):
     controls_crossover = True
 
     def __init__(self, *args, profile="joint_balanced", min_generation=0,
-                 **kwargs):
+                 max_generation=None, **kwargs):
         if profile not in CROSSOVER_RULE_PROFILES:
             raise ValueError(f"invalid directed C profile: {profile}")
         self.profile = str(profile)
         self.min_generation = int(min_generation)
         if self.min_generation < 0:
             raise ValueError("directed C minimum generation cannot be negative")
+        self.max_generation = (
+            None if max_generation is None else int(max_generation))
+        if (self.max_generation is not None
+                and self.max_generation < self.min_generation):
+            raise ValueError(
+                "directed C maximum generation cannot precede its minimum")
         self.directed_events = 0
         self.directed_cut_count = 0
         self.overridden_cut_count = 0
@@ -201,7 +207,10 @@ class CrossoverRuleController(BaseBudgetController):
         child1, child2, decisions = prepare_common_node_crossover(
             parent1, parent2, batches, tt_dict=tt_dict)
         self.total_attempts += 1
-        directed = self.generation >= self.min_generation
+        directed = (
+            self.generation >= self.min_generation
+            and (self.max_generation is None
+                 or self.generation <= self.max_generation))
         self.directed_events += int(directed and bool(decisions))
         eligible_cut_count = sum(
             len(cut.candidates) >= 2 for cut in decisions)
@@ -305,6 +314,7 @@ class CrossoverRuleController(BaseBudgetController):
             **super().summary(),
             "crossover_rule_profile": self.profile,
             "crossover_rule_min_generation": self.min_generation,
+            "crossover_rule_max_generation": self.max_generation,
             "directed_crossover_events": self.directed_events,
             "directed_cut_count": self.directed_cut_count,
             "overridden_cut_count": self.overridden_cut_count,
