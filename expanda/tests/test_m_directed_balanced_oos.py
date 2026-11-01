@@ -20,7 +20,7 @@ sys.modules.setdefault("mpl_toolkits", mpl_toolkits)
 sys.modules.setdefault("mpl_toolkits.mplot3d", mplot3d)
 
 from evaluate_m_directed_balanced_oos import (
-    _aggregate, discover_run_roots, resolve_run,
+    _aggregate, derive_common_oos_reference, discover_run_roots, resolve_run,
 )
 
 
@@ -68,6 +68,23 @@ class DirectedBalancedOOSTests(unittest.TestCase):
         self.assertEqual(result["ties"], 1)
         self.assertEqual(result["losses"], 1)
         self.assertEqual(len(result["per_instance"]), 2)
+
+    def test_common_reference_dominates_pooled_points(self):
+        rows = [{
+            "methods": {
+                "BASE": {
+                    "oos_normalized_nondominated_points": [
+                        [0.2, 1.2, 0.4], [0.4, 0.8, 0.6]]},
+                "REPLACE_G10_JOINT_BALANCED": {
+                    "oos_normalized_nondominated_points": [
+                        [0.1, 0.9, 1.3]]},
+            },
+        }]
+        result = derive_common_oos_reference(rows, (1.1, 1.1, 1.1))
+        self.assertEqual(result["reference"][0], 1.1)
+        self.assertGreater(result["reference"][1], 1.2)
+        self.assertGreater(result["reference"][2], 1.3)
+        self.assertEqual(result["pooled_point_count"], 3)
 
 
 if __name__ == "__main__":

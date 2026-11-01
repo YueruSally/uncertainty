@@ -136,6 +136,36 @@ def _nondominated(points):
     ]
 
 
+def derive_common_oos_reference(rows, original_reference):
+    """Return one pooled OOS nadir-plus-margin reference for every pair."""
+    points = []
+    for row in rows:
+        for method in row["methods"].values():
+            points.extend(method["oos_normalized_nondominated_points"])
+    values = np.asarray(points, dtype=float)
+    if (values.ndim != 2 or values.shape[1] != 3
+            or not np.all(np.isfinite(values))):
+        raise ValueError("invalid pooled normalized OOS points")
+    minima = values.min(axis=0)
+    maxima = values.max(axis=0)
+    margins = np.maximum(0.05, 0.10 * (maxima - minima))
+    reference = np.maximum(
+        np.asarray(original_reference, dtype=float), maxima + margins)
+    if not np.all(values < reference):
+        raise RuntimeError("derived OOS reference does not dominate all points")
+    return {
+        "rule": (
+            "componentwise maximum of the original reference and the pooled "
+            "Base+Balanced OOS nadir plus max(0.05, 10% pooled axis range)"),
+        "original_reference": [float(value) for value in original_reference],
+        "pooled_minimum": minima.tolist(),
+        "pooled_maximum": maxima.tolist(),
+        "margin": margins.tolist(),
+        "reference": reference.tolist(),
+        "pooled_point_count": int(len(values)),
+    }
+
+
 def _evaluate_front(source_path, instance, batches, network, scenarios,
                     active_border_delay, normalizer, alpha,
                     expected_uncertainty):
@@ -212,8 +242,9 @@ def _evaluate_front(source_path, instance, batches, network, scenarios,
         "source_front_size": len(source),
         "oos_nondominated_size": len(front),
         "unchanged_decisions": unchanged,
-        "oos_hypervolume": exact_hv_3d(normalized, normalizer.reference),
         "oos_q90_nondominated_points": [list(point) for point in front],
+        "oos_normalized_nondominated_points": [
+            list(point) for point in normalized],
         "candidates": candidate_rows,
     }
 
@@ -269,7 +300,8 @@ def _evaluate_instance(task):
         target = out / instance_name / f"seed_{seed}.json"
         if target.is_file():
             value = _read(target)
-            if (value.get("completed") is True
+            if (value.get("oos_metric_schema") == 2
+                    and value.get("completed") is True
                     and value.get("oos_scenario_digest") == digest):
                 rows.append(value)
                 continue
@@ -280,12 +312,8 @@ def _evaluate_instance(task):
                 run, instance, batches, network, scenarios,
                 active_border_delay, instance_normalizer, task["alpha"],
                 profile)
-        base_hv = methods[BASE_STRATEGY]["oos_hypervolume"]
-        balanced_hv = methods[BALANCED_STRATEGY]["oos_hypervolume"]
-        if base_hv <= 0.0:
-            raise ValueError(
-                f"nonpositive OOS Base HV for {instance_name}:seed_{seed}")
         result = {
+            "oos_metric_schema": 2,
             "completed": True,
             "instance": instance_name,
             "algorithm_seed": seed,
@@ -295,9 +323,6 @@ def _evaluate_instance(task):
             "uncertainty_profile": profile,
             "alpha": task["alpha"],
             "normalization_divisor": list(objective_divisor),
-            "base_oos_hv": base_hv,
-            "balanced_oos_hv": balanced_hv,
-            "paired_oos_percent": 100.0 * (balanced_hv - base_hv) / base_hv,
             "methods": methods,
         }
         _write(target, result)
@@ -445,6 +470,32 @@ def main(argv=None):
     if digests & training_digests:
         raise RuntimeError("independent scenario set reuses a training digest")
 
+    original_reference = _normalizer(args.normalization).reference
+    hv_reference = derive_common_oos_reference(results, original_reference)
+    reference = hv_reference["reference"]
+    for row in results:
+        base_hv = exact_hv_3d(
+            row["methods"][BASE_STRATEGY][
+                "oos_normalized_nondominated_points"],
+            reference)
+        balanced_hv = exact_hv_3d(
+            row["methods"][BALANCED_STRATEGY][
+                "oos_normalized_nondominated_points"],
+            reference)
+        if base_hv <= 0.0:
+            raise RuntimeError(
+                "pooled OOS reference produced a nonpositive Base HV for "
+                f"{row['instance']}:seed_{row['algorithm_seed']}")
+        row["hv_reference"] = reference
+        row["base_oos_hv"] = base_hv
+        row["balanced_oos_hv"] = balanced_hv
+        row["paired_oos_percent"] = 100.0 * (
+            balanced_hv - base_hv) / base_hv
+        _write(
+            args.out / row["instance"]
+            / f"seed_{row['algorithm_seed']}.json",
+            row)
+
     result = {
         "completed": True,
         "definition": (
@@ -461,6 +512,7 @@ def main(argv=None):
         "one_common_oos_scenario_set": len(digests) == 1,
         "uncertainty_profile": args.uncertainty_profile,
         "alpha": args.alpha,
+        "hv_reference": hv_reference,
         "all_seeds": _aggregate(results, set(args.algorithm_seeds)),
         "held_out_seeds": _aggregate(results, set(holdout_seeds)),
         "runs": sorted(
@@ -488,7 +540,7 @@ def main(argv=None):
         "paired_run_count", "oos_scenario_count", "oos_seed",
         "oos_scenario_digest", "oos_distinct_from_training",
         "one_common_oos_scenario_set", "uncertainty_profile", "alpha",
-        "all_seeds", "held_out_seeds", "admission_thresholds",
+        "hv_reference", "all_seeds", "held_out_seeds", "admission_thresholds",
         "admission_pass")}
     _write(args.out / "QUICK_RESULT.json", quick)
     print(json.dumps(quick, indent=2, allow_nan=False))
