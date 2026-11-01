@@ -105,6 +105,11 @@ def _groups(rows, batch_size, rng):
         yield [rows[index] for index in order[start:start + batch_size]]
 
 
+def _state_key(row):
+    return (
+        f"{row['instance']}:g{row['generation']}:e{row['evaluation']}")
+
+
 def _accuracy(torch, model, rows, device, batch_size):
     from transformer_ppo.observations import pad_observations
 
@@ -198,7 +203,10 @@ def main(argv=None):
         model.train()
         total_loss = 0.0
         steps = 0
-        for group in _groups(training, args.batch_size, rng):
+        numerical_fallback_groups = 0
+        pending_groups = list(_groups(training, args.batch_size, rng))
+        while pending_groups:
+            group = pending_groups.pop(0)
             batch = pad_observations(
                 [item["observation"] for item in group], device)
             targets = torch.as_tensor(
@@ -207,15 +215,36 @@ def main(argv=None):
             logits, _ = model(batch)
             loss = torch.nn.functional.cross_entropy(logits, targets)
             if not torch.isfinite(loss):
+                keys = [_state_key(item) for item in group]
+                if len(group) > 1:
+                    pending_groups[0:0] = [[item] for item in group]
+                    numerical_fallback_groups += 1
+                    print(
+                        "[M-TEACHER-TRAIN] split non-finite loss batch "
+                        f"into {len(group)} microbatches: {keys}",
+                        flush=True)
+                    continue
                 raise FloatingPointError(
-                    "non-finite Balanced-teacher imitation loss")
+                    "non-finite single-state Balanced-teacher imitation "
+                    f"loss: {keys}")
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             gradient_norm = torch.nn.utils.clip_grad_norm_(
                 model.parameters(), 1.0)
             if not torch.isfinite(gradient_norm):
+                keys = [_state_key(item) for item in group]
+                optimizer.zero_grad(set_to_none=True)
+                if len(group) > 1:
+                    pending_groups[0:0] = [[item] for item in group]
+                    numerical_fallback_groups += 1
+                    print(
+                        "[M-TEACHER-TRAIN] split non-finite gradient batch "
+                        f"into {len(group)} microbatches: {keys}",
+                        flush=True)
+                    continue
                 raise FloatingPointError(
-                    "non-finite Balanced-teacher imitation gradient")
+                    "non-finite single-state Balanced-teacher imitation "
+                    f"gradient: {keys}")
             optimizer.step()
             total_loss += float(loss.detach().cpu())
             steps += 1
@@ -226,6 +255,7 @@ def main(argv=None):
         record = {
             "epoch": epoch,
             "mean_training_loss": total_loss / max(1, steps),
+            "numerical_fallback_groups": numerical_fallback_groups,
             "training": train_metrics,
             "validation": validation_metrics,
         }
@@ -234,7 +264,8 @@ def main(argv=None):
             f"[M-TEACHER-TRAIN] epoch={epoch}/{args.epochs} "
             f"loss={record['mean_training_loss']:.6f} "
             f"train_top1={train_metrics['top_1_accuracy']:.4f} "
-            f"valid_top1={validation_metrics['top_1_accuracy']:.4f}",
+            f"valid_top1={validation_metrics['top_1_accuracy']:.4f} "
+            f"fallback={numerical_fallback_groups}",
             flush=True)
         if validation_metrics["top_1_accuracy"] > best_validation:
             best_validation = validation_metrics["top_1_accuracy"]
