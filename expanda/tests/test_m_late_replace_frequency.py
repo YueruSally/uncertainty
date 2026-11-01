@@ -7,6 +7,25 @@ from evaluate_m_late_replace_frequency import _command, _strategy_run
 
 
 class MFrequencyReuseTests(unittest.TestCase):
+    def test_early_schedule_uses_generation_four(self):
+        args = SimpleNamespace(
+            runner=Path("runner.py"),
+            normalization=Path("normalization.json"),
+            checkpoint=Path("checkpoint.pt"),
+            scenario_count=200,
+            ccp_confidence=0.9,
+            evaluation_budget=400,
+            pop=20,
+            gens=1000,
+            device="cpu",
+        )
+        command = _command(
+            args, Path("instance.json"), Path("output"), 777001,
+            1.0, False, False, 1, 0, 4)
+        generation_flag = command.index(
+            "--m-forced-operator-min-generation")
+        self.assertEqual(command[generation_flag + 1], "4")
+
     def test_command_uses_schedule_specific_generation(self):
         args = SimpleNamespace(
             runner=Path("runner.py"),

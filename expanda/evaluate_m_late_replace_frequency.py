@@ -29,6 +29,9 @@ RETRY_STRATEGIES = {
     "REPLACE_LATE_REVERSIBLE_RETRY_E10": (1.00, True, True, 2, 10),
 }
 SCHEDULE_GRID_STRATEGIES = {
+    "REPLACE_G04_P100": (1.00, False, False, 1, 0),
+    "REPLACE_G06_P100": (1.00, False, False, 1, 0),
+    "REPLACE_G08_P100": (1.00, False, False, 1, 0),
     "REPLACE_G10_P050": (0.50, False, False, 1, 0),
     "REPLACE_G10_P100": (1.00, False, False, 1, 0),
     "REPLACE_G12_P050": (0.50, False, False, 1, 0),
@@ -37,6 +40,9 @@ SCHEDULE_GRID_STRATEGIES = {
     "REPLACE_G15_P100": (1.00, False, False, 1, 0),
 }
 STRATEGY_MINIMUM_GENERATIONS = {
+    "REPLACE_G04_P100": 4,
+    "REPLACE_G06_P100": 6,
+    "REPLACE_G08_P100": 8,
     "REPLACE_G10_P050": 10,
     "REPLACE_G10_P100": 10,
     "REPLACE_G12_P050": 12,
