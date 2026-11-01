@@ -70,6 +70,34 @@ class DirectedBalancedOOSTests(unittest.TestCase):
             self.assertEqual(roots, [primary, base_root])
             self.assertEqual(resolve_run(roots, "S0_002", 7, "BASE"), run)
 
+    def test_recorded_provenance_wins_over_conflicting_discovered_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            primary = root / "i_validation"
+            reused = root / "m_validation"
+            primary.mkdir()
+            reused.mkdir()
+            recorded_run = reused / "S0_002/seed_7/BASE"
+            other_run = primary / "S0_002/seed_7/BASE"
+            for run, front in ((recorded_run, "recorded"),
+                               (other_run, "other")):
+                run.mkdir(parents=True)
+                (run / "COMPLETE.json").write_text("{}")
+                (run / "configuration.json").write_text("{}")
+                (run / "final_feasible_nondominated.json").write_text(front)
+            (primary / "COMPLETE.json").write_text(json.dumps({
+                "reuse_base_root": str(reused),
+                "runs": [{
+                    "instance": "S0_002",
+                    "algorithm_seed": 7,
+                    "strategy": "BASE",
+                    "run_path": str(recorded_run),
+                }],
+            }))
+            roots = discover_run_roots(primary)
+            self.assertEqual(
+                resolve_run(roots, "S0_002", 7, "BASE"), recorded_run)
+
     def test_aggregate_reports_paired_percentages(self):
         rows = [
             {"instance": "S0_002", "algorithm_seed": 1,

@@ -100,6 +100,45 @@ def discover_run_roots(primary_root):
 
 
 def resolve_run(roots, instance, seed, strategy):
+    # Aggregate validation files record the exact run used for every paired
+    # comparison.  Prefer that provenance over directory discovery: an older
+    # diagnostic root may contain another valid BASE run for the same
+    # instance/seed but with a different final archive.
+    for root in roots:
+        aggregate = root / "COMPLETE.json"
+        if not aggregate.is_file():
+            continue
+        try:
+            value = _read(aggregate)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            continue
+        recorded = [
+            Path(row["run_path"])
+            for row in value.get("runs", ())
+            if row.get("instance") == instance
+            and int(row.get("algorithm_seed", -1)) == int(seed)
+            and row.get("strategy") == strategy
+            and row.get("run_path")
+        ]
+        valid_recorded = [
+            run for run in recorded
+            if ((run / "COMPLETE.json").is_file()
+                and (run / "configuration.json").is_file()
+                and (run / "final_feasible_nondominated.json").is_file())
+        ]
+        if valid_recorded:
+            fingerprints = {
+                hashlib.sha256(
+                    (run / "final_feasible_nondominated.json").read_bytes()
+                ).hexdigest()
+                for run in valid_recorded
+            }
+            if len(fingerprints) != 1:
+                raise RuntimeError(
+                    f"conflicting recorded {strategy} runs for "
+                    f"{instance}:seed_{seed}: {valid_recorded}")
+            return valid_recorded[0]
+
     matches = []
     for root in roots:
         candidate = root / instance / f"seed_{seed}" / strategy
