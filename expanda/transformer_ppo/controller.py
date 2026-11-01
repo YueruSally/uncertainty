@@ -12,7 +12,7 @@ import numpy as np
 import baseline_uncertainty as base
 from learning_mutation import repair_after_mutation
 from multi_instance_logging import MutationLogger, fingerprint
-from multi_instance_mutation import candidates_for
+from multi_instance_mutation import candidates_for, replacement_path_candidates
 
 from .archive import RewardArchive, RewardConfig, exact_hv_3d, hv_reward
 from .config import OPERATORS
@@ -36,6 +36,7 @@ class PPOController(MutationLogger):
                  forced_operator_probe_max_attempts=1,
                  forced_operator_probe_retry_events=0,
                  forced_operator_best_of=1,
+                 forced_replace_selector="base_random",
                  continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
@@ -101,6 +102,14 @@ class PPOController(MutationLogger):
         self.forced_operator_probe_retry_events = int(
             forced_operator_probe_retry_events)
         self.forced_operator_best_of = int(forced_operator_best_of)
+        self.forced_replace_selector = str(forced_replace_selector)
+        replace_selectors = (
+            "base_random", "joint_extreme_cycle", "joint_balanced",
+            "joint_pareto_cycle")
+        if self.forced_replace_selector not in replace_selectors:
+            raise ValueError(
+                "forced replace selector must be one of "
+                f"{replace_selectors}")
         if self.forced_operator_best_of < 1:
             raise ValueError("forced operator best-of must be positive")
         if (self.forced_operator_best_of > 1
@@ -111,6 +120,17 @@ class PPOController(MutationLogger):
                      or self.forced_operator_reversible_probe)):
             raise ValueError(
                 "forced operator best-of cannot be combined with probes")
+        if (self.forced_replace_selector != "base_random"
+                and self.forced_operator != "replace"):
+            raise ValueError(
+                "directed replace selector requires forced replace")
+        if (self.forced_replace_selector != "base_random"
+                and (self.forced_operator_best_of > 1
+                     or self.forced_operator_positive_probe
+                     or self.forced_operator_reversible_probe)):
+            raise ValueError(
+                "directed replace selector cannot be combined with best-of "
+                "or probes")
         self.forced_operator_candidate_evaluations = 0
         self.forced_operator_probe_completed = False
         self.forced_operator_probe_positive = False
@@ -272,6 +292,102 @@ class PPOController(MutationLogger):
         self.continuation_reseed_count += 1
         return True
 
+    def _directed_replace_candidate(
+            self, ind, batches, reliable_options):
+        """Choose a joint batch/path replacement without objective evaluation."""
+        rows = [
+            row for row in replacement_path_candidates(
+                ind, batches, reliable_options)
+            if row.get("eligible") and row.get("path") is not None
+        ]
+        if not rows:
+            return None, {"eligible_candidate_count": 0}
+
+        def finite(value, default=0.0):
+            value = float(value)
+            return value if math.isfinite(value) else float(default)
+
+        raw = []
+        for row in rows:
+            quantity = finite(row.get("batch_quantity", 0.0))
+            raw.append([
+                quantity * finite(row["replacement_delta_cost_per_teu"]),
+                quantity * finite(
+                    row["replacement_delta_emission_per_teu"]),
+                finite(row["replacement_delta_nominal_time_h"]),
+                finite(row["replacement_max_lateness_h"], 1e9),
+                -finite(row["replacement_on_time_probability"]),
+            ])
+        values = np.asarray(raw, dtype=float)
+        minima = values.min(axis=0)
+        spans = values.max(axis=0) - minima
+        spans[spans <= 1e-15] = 1.0
+        scaled = (values - minima) / spans
+
+        selector = self.forced_replace_selector
+        forced_index = int(self.decision_counts.get(
+            "forced_operator_choice", 0))
+        criterion = None
+        if selector == "joint_extreme_cycle":
+            criterion = ("cost", "emission", "time", "reliability")[
+                forced_index % 4]
+            column = {
+                "cost": 0, "emission": 1, "time": 2,
+                "reliability": 3,
+            }[criterion]
+            indices = list(range(len(rows)))
+            if criterion == "reliability":
+                key = lambda index: (
+                    values[index, 3], values[index, 4],
+                    values[index, 2],
+                    int(rows[index]["target"].batch_id),
+                    str(rows[index].get("path_id")))
+            else:
+                key = lambda index: (
+                    values[index, column],
+                    int(rows[index]["target"].batch_id),
+                    str(rows[index].get("path_id")))
+            selected_index = min(indices, key=key)
+        elif selector == "joint_balanced":
+            scores = (
+                scaled[:, 0] + scaled[:, 1]
+                + (scaled[:, 2] + scaled[:, 3] + scaled[:, 4]) / 3.0)
+            selected_index = min(
+                range(len(rows)),
+                key=lambda index: (
+                    float(scores[index]),
+                    int(rows[index]["target"].batch_id),
+                    str(rows[index].get("path_id"))))
+        elif selector == "joint_pareto_cycle":
+            time_risk = (
+                scaled[:, 2] + scaled[:, 3] + scaled[:, 4]) / 3.0
+            objectives = np.column_stack(
+                (scaled[:, 0], scaled[:, 1], time_risk))
+            front = []
+            for index, vector in enumerate(objectives):
+                dominated = np.any(
+                    np.all(objectives <= vector, axis=1)
+                    & np.any(objectives < vector, axis=1))
+                if not dominated:
+                    front.append(index)
+            front.sort(key=lambda index: (
+                int(rows[index]["target"].batch_id),
+                str(rows[index].get("path_id"))))
+            selected_index = front[forced_index % len(front)]
+        else:
+            raise RuntimeError(
+                f"unsupported directed replace selector: {selector}")
+
+        row = rows[selected_index]
+        return row, {
+            "eligible_candidate_count": len(rows),
+            "criterion": criterion,
+            "selected_batch_id": int(row["target"].batch_id),
+            "selected_path_id": str(row.get("path_id")),
+            "selected_proxy_vector": raw[selected_index],
+            "selected_scaled_vector": scaled[selected_index].tolist(),
+        }
+
     def _mutate_forced_operator(
             self, ind, batches, path_lib, tt_dict, arc_lookup, arcs,
             waiting_cost, waiting_emission, reliable_options,
@@ -308,13 +424,22 @@ class PPOController(MutationLogger):
             "operator_candidates": candidates,
         })
 
-        # Base draws the batch before the operator.  Consume both draws exactly;
-        # only replace the sampled operator.  Passing target=None delegates all
-        # operator-internal target/path randomness to the original Base code.
+        # Base draws the batch before the operator. Consume those shadow draws
+        # even when the directed selector replaces the joint batch/path choice.
         base_python_state = random.getstate() if reversible_probe else None
         base_numpy_state = np.random.get_state() if reversible_probe else None
-        batch = random.choice(batches)
+        shadow_base_batch = random.choice(batches)
         shadow_base_operator = base.sample_operator()
+        batch = shadow_base_batch
+        mutation_target = None
+        selector_metadata = None
+        if self.forced_replace_selector != "base_random":
+            selected, selector_metadata = self._directed_replace_candidate(
+                ind, batches, reliable_options)
+            if selected is not None:
+                batch_by_id = {item.batch_id: item for item in batches}
+                batch = batch_by_id[selected["target"].batch_id]
+                mutation_target = selected["target"]
         previous_suppress_archive = self._suppress_archive
         evaluations_before_probe = self.evaluations
         try:
@@ -322,7 +447,7 @@ class PPOController(MutationLogger):
                 self._suppress_archive = True
             ok = base.apply_mutation_op(
                 ind, self.forced_operator, batch, path_lib, tt_dict, arc_lookup,
-                reliable_options=reliable_options, target=None)
+                reliable_options=reliable_options, target=mutation_target)
             if ok:
                 base.repair_missing_allocations(ind, batches, path_lib)
                 base.evaluate_individual(
@@ -395,6 +520,7 @@ class PPOController(MutationLogger):
             "model_choice_event": self.model_choice_event,
             "forced_candidate_index": None,
             "forced_operator": self.forced_operator,
+            "forced_replace_selector": self.forced_replace_selector,
             "mixture_event_index": mixture_event_index,
             "selected_candidate_index": operator_index,
             "operator": executed_operator,
@@ -402,6 +528,8 @@ class PPOController(MutationLogger):
             "different_from_shadow_base_operator": (
                 self.forced_operator != shadow_base_operator),
             "batch_id": batch.batch_id,
+            "shadow_base_batch_id": shadow_base_batch.batch_id,
+            "replace_selector_metadata": selector_metadata,
             "mutation_success": bool(ok),
             "decision_changed": bool(changed),
             "immediate_archive_delta": immediate_archive_delta,
@@ -1136,6 +1264,7 @@ class PPOController(MutationLogger):
                 "forced_operator_probe_evaluations": (
                     self.forced_operator_probe_evaluations),
                 "forced_operator_best_of": self.forced_operator_best_of,
+                "forced_replace_selector": self.forced_replace_selector,
                 "forced_operator_candidate_evaluations": (
                     self.forced_operator_candidate_evaluations),
                 "continuation_event": self.continuation_event,

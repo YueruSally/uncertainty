@@ -68,6 +68,27 @@ class MFrequencyReuseTests(unittest.TestCase):
         self.assertEqual(command[best_of_flag + 1], "5")
         self.assertEqual(command[budget_flag + 1], "400")
 
+    def test_directed_replace_command_preserves_full_budget(self):
+        args = SimpleNamespace(
+            runner=Path("runner.py"),
+            normalization=Path("normalization.json"),
+            checkpoint=Path("checkpoint.pt"),
+            scenario_count=200,
+            ccp_confidence=0.9,
+            evaluation_budget=400,
+            pop=20,
+            gens=1000,
+            device="cpu",
+        )
+        command = _command(
+            args, Path("instance.json"), Path("output"), 777001,
+            1.0, False, False, 1, 0, 10,
+            replace_selector="joint_extreme_cycle")
+        selector_flag = command.index("--m-forced-replace-selector")
+        budget_flag = command.index("--evaluation-budget")
+        self.assertEqual(command[selector_flag + 1], "joint_extreme_cycle")
+        self.assertEqual(command[budget_flag + 1], "400")
+
     def test_partial_reuse_falls_back_to_fresh_output(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

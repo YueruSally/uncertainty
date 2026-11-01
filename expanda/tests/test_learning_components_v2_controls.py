@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import baseline_uncertainty as base
 import numpy as np
+from learning_mutation import MutationTarget
 from multi_instance_policy import Decision
 from transformer_ppo.archive import ObjectiveNormalizer, RewardArchive, RewardConfig
 from transformer_ppo.controller import PPOController
@@ -296,6 +297,56 @@ class V2ControlTests(unittest.TestCase):
                     seeds={"algorithm": 7}, forced_operator="add",
                     forced_operator_min_generation=10,
                     forced_operator_best_of=3)
+
+    def test_joint_extreme_replace_selects_global_cost_reduction(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        batch_a = base.Batch(1, "A", "D", 10.0, 0.0, 24.0)
+        batch_b = base.Batch(2, "B", "D", 20.0, 0.0, 24.0)
+
+        def row(batch_id, path_id, quantity, cost, emission, time):
+            return {
+                "eligible": True,
+                "path": SimpleNamespace(path_id=path_id),
+                "path_id": path_id,
+                "target": MutationTarget(
+                    batch_id, replacement_path_id=str(path_id)),
+                "batch_quantity": quantity,
+                "replacement_delta_cost_per_teu": cost,
+                "replacement_delta_emission_per_teu": emission,
+                "replacement_delta_nominal_time_h": time,
+                "replacement_max_lateness_h": 0.0,
+                "replacement_on_time_probability": 1.0,
+            }
+
+        rows = [
+            row(1, 101, 10.0, -1.0, -5.0, -2.0),
+            row(2, 202, 20.0, -2.0, -1.0, -1.0),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20,
+                trainer=trainer, archive=RewardArchive(normalizer),
+                reward_config=RewardConfig(), batches=[batch_a, batch_b],
+                generations=20, pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy"}, seeds={"algorithm": 7},
+                forced_operator="replace",
+                forced_operator_min_generation=10,
+                forced_replace_selector="joint_extreme_cycle")
+            try:
+                with patch(
+                        "transformer_ppo.controller.replacement_path_candidates",
+                        return_value=rows):
+                    selected, metadata = (
+                        controller._directed_replace_candidate(
+                            base.Individual(), [batch_a, batch_b], {}))
+                self.assertEqual(selected["target"].batch_id, 2)
+                self.assertEqual(selected["target"].replacement_path_id, "202")
+                self.assertEqual(metadata["criterion"], "cost")
+            finally:
+                controller.close()
 
     def test_forced_m_operator_positive_probe_gates_later_actions(self):
         trainer = _Trainer()

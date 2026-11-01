@@ -103,6 +103,13 @@ def main(argv=None):
               "this many distinct budget-counted candidates, then execute "
               "the best (default: 1)."))
     parser.add_argument(
+        "--m-forced-replace-selector",
+        choices=("base_random", "joint_extreme_cycle", "joint_balanced",
+                 "joint_pareto_cycle"),
+        default="base_random",
+        help=("Zero-extra-evaluation joint batch/path selector used by a "
+              "scheduled forced Replace."))
+    parser.add_argument(
         "--m-continuation-event", type=int,
         help=("M-only paired-continuation diagnostic: after this global "
               "mutation call, start --m-continuation-seed."))
@@ -252,6 +259,17 @@ def main(argv=None):
                          or args.m_forced_operator_reversible_probe)):
                 raise ValueError(
                     "forced M operator best-of cannot be combined with probes")
+            if (args.m_forced_replace_selector != "base_random"
+                    and args.m_forced_operator != "replace"):
+                raise ValueError(
+                    "directed replace selector requires forced replace")
+            if (args.m_forced_replace_selector != "base_random"
+                    and (args.m_forced_operator_best_of > 1
+                         or args.m_forced_operator_positive_probe
+                         or args.m_forced_operator_reversible_probe)):
+                raise ValueError(
+                    "directed replace selector cannot be combined with "
+                    "best-of or probes")
             if args.m_forced_operator_probe_max_attempts > 1:
                 if not args.m_forced_operator_reversible_probe:
                     raise ValueError(
@@ -265,7 +283,8 @@ def main(argv=None):
               or args.m_forced_operator_reversible_probe
               or args.m_forced_operator_probe_max_attempts != 1
               or args.m_forced_operator_probe_retry_events != 0
-              or args.m_forced_operator_best_of != 1):
+              or args.m_forced_operator_best_of != 1
+              or args.m_forced_replace_selector != "base_random"):
             raise ValueError(
                 "forced M operator probe/schedule requires "
                 "--m-forced-operator")
@@ -335,6 +354,8 @@ def main(argv=None):
                 args.m_forced_operator_probe_retry_events),
             m_forced_operator_best_of=(
                 args.m_forced_operator_best_of),
+            m_forced_replace_selector=(
+                args.m_forced_replace_selector),
             m_continuation_event=args.m_continuation_event,
             m_continuation_seed=args.m_continuation_seed,
             model_choice_probabilities=(
