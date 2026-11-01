@@ -46,6 +46,8 @@ def main():
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--count", type=int, default=10)
     parser.add_argument("--master-seed", type=int, default=DEFAULT_MASTER_SEED)
+    parser.add_argument("--ccp-seed-base", type=int, default=CCP100_SEED_BASE)
+    parser.add_argument("--oos-seed-base", type=int, default=OOS5000_SEED_BASE)
     args = parser.parse_args()
     if args.count < 1:
         parser.error("--count must be positive")
@@ -127,8 +129,8 @@ def main():
                 "od_pool": "test",
                 "instance_seed": instance_seed,
                 "path_seed": path_seed,
-                "ccp100_seed": CCP100_SEED_BASE + index,
-                "oos5000_seed": OOS5000_SEED_BASE + index,
+                "ccp100_seed": args.ccp_seed_base + index,
+                "oos5000_seed": args.oos_seed_base + index,
                 "source_data_sha256": data_sha,
                 "source_catalog_digest": source_digest,
                 "batch_signature": signature,
@@ -155,6 +157,8 @@ def main():
         "test_role": "final",
         "instance_count": len(records),
         "master_seed": args.master_seed,
+        "ccp_seed_base": args.ccp_seed_base,
+        "oos_seed_base": args.oos_seed_base,
         "source_data_sha256": data_sha,
         "source_catalog_file": source_catalog_path.name,
         "source_instances_directory_name": args.source_instances.name,
