@@ -348,6 +348,85 @@ class V2ControlTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_forced_replace_model_selector_executes_transformer_candidate(self):
+        class ModelTrainer(_Trainer):
+            def __init__(self):
+                super().__init__()
+                self.config = SimpleNamespace(
+                    mutation_control="replace_path",
+                    credit_assignment="operation_terminal",
+                    candidate_representation="path_v4")
+                self.observed_reward = None
+
+            def choose(self, candidates, context=None):
+                self.choose_calls += 1
+                self.pending = {"action": 1}
+                return Decision(
+                    1, [0.25, 0.75], [None, None],
+                    {"decision_kind": "model_choice", "inference_seconds": 0.1})
+
+            def observe_outcome(self, reward, done=False):
+                self.observed_reward = (reward, done)
+                self.pending = None
+
+        trainer = ModelTrainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        batch_a = base.Batch(1, "A", "D", 10.0, 0.0, 24.0)
+        batch_b = base.Batch(2, "B", "D", 20.0, 0.0, 24.0)
+        individual = base.Individual()
+
+        def row(batch, path_id):
+            return {
+                "target": MutationTarget(
+                    batch.batch_id, replacement_path_id=str(path_id)),
+                "selection_probability": 0.5,
+                "batch_quantity": float(batch.quantity),
+                "path_count": 1,
+                "share": 1.0,
+                "path": SimpleNamespace(path_id=path_id),
+                "path_id": path_id,
+                "eligible": True,
+            }
+
+        rows = [row(batch_a, 101), row(batch_b, 202)]
+        selected = {}
+
+        def apply(_ind, operator, batch, *_args, target=None, **_kwargs):
+            selected.update(operator=operator, batch=batch, target=target)
+            return True
+
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20,
+                trainer=trainer, archive=RewardArchive(normalizer),
+                reward_config=RewardConfig(), batches=[batch_a, batch_b],
+                generations=20, pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy"}, seeds={"algorithm": 7},
+                forced_operator="replace",
+                forced_operator_min_generation=10,
+                forced_replace_selector="model")
+            try:
+                controller.generation = 10
+                with patch(
+                        "transformer_ppo.controller.replacement_path_candidates",
+                        return_value=rows), patch(
+                        "transformer_ppo.controller.base.apply_mutation_op",
+                        side_effect=apply), patch(
+                        "transformer_ppo.controller.base.repair_missing_allocations"), patch(
+                        "transformer_ppo.controller.base.evaluate_individual"):
+                    result = controller.mutate(
+                        individual, [batch_a, batch_b], {}, {}, {}, [], 0.0, 0.0)
+                self.assertEqual(result, ("replace", True))
+                self.assertEqual(trainer.choose_calls, 1)
+                self.assertIs(selected["batch"], batch_b)
+                self.assertEqual(selected["target"].replacement_path_id, "202")
+                self.assertEqual(trainer.observed_reward[1], True)
+                self.assertIsNone(trainer.pending)
+            finally:
+                controller.close()
+
     def test_forced_m_operator_positive_probe_gates_later_actions(self):
         trainer = _Trainer()
         normalizer = ObjectiveNormalizer(

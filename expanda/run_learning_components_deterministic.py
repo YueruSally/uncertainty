@@ -122,7 +122,7 @@ def main(argv=None):
     parser.add_argument(
         "--m-forced-replace-selector",
         choices=("base_random", "joint_extreme_cycle", "joint_balanced",
-                 "joint_pareto_cycle"),
+                 "joint_pareto_cycle", "model"),
         default="base_random",
         help=("Zero-extra-evaluation joint batch/path selector used by a "
               "scheduled forced Replace."))

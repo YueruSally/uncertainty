@@ -370,7 +370,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         m_forced_replace_selector = str(m_forced_replace_selector)
         if m_forced_replace_selector not in (
                 "base_random", "joint_extreme_cycle", "joint_balanced",
-                "joint_pareto_cycle"):
+                "joint_pareto_cycle", "model"):
             raise ValueError("invalid forced M replace selector")
         if (m_forced_operator_positive_probe
                 and m_forced_operator_probability != 1.0):

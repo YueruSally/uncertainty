@@ -105,7 +105,7 @@ class PPOController(MutationLogger):
         self.forced_replace_selector = str(forced_replace_selector)
         replace_selectors = (
             "base_random", "joint_extreme_cycle", "joint_balanced",
-            "joint_pareto_cycle")
+            "joint_pareto_cycle", "model")
         if self.forced_replace_selector not in replace_selectors:
             raise ValueError(
                 "forced replace selector must be one of "
@@ -433,7 +433,56 @@ class PPOController(MutationLogger):
         batch = shadow_base_batch
         mutation_target = None
         selector_metadata = None
-        if self.forced_replace_selector != "base_random":
+        model_decision = None
+        if self.forced_replace_selector == "model":
+            replacement_candidates = replacement_path_candidates(
+                ind, batches, reliable_options)
+            legal_target_count = sum(
+                bool(row["eligible"]) for row in replacement_candidates)
+            for candidate in replacement_candidates:
+                candidate["candidate_operator"] = "replace"
+                candidate["operator_legal_target_count"] = legal_target_count
+                candidate["operator_legal_target_fraction"] = (
+                    legal_target_count / max(1, len(replacement_candidates)))
+            context = {
+                "operator": "replace",
+                "generation": self.generation,
+                "phase": self.phase,
+                "K": self.instance.get("K"),
+                "deadline_window_alpha": self.instance.get(
+                    "deadline_window_alpha"),
+                "parent_objectives_available": False,
+                "feasible_before": None,
+                "violation_before": None,
+                "violation_breakdown_before": None,
+                "candidate_count": len(replacement_candidates),
+                "q90_cost_before": None,
+                "q90_emission_before": None,
+                "q90_makespan_before": None,
+            }
+            self.current_individual = ind
+            try:
+                model_decision = self.trainer.choose(
+                    replacement_candidates, context)
+            finally:
+                self.current_individual = None
+            self.inference_seconds += float(
+                model_decision.metadata.get("inference_seconds", 0.0))
+            if model_decision.chosen_index is not None:
+                selected = replacement_candidates[
+                    model_decision.chosen_index]
+                batch_by_id = {item.batch_id: item for item in batches}
+                batch = batch_by_id[selected["target"].batch_id]
+                mutation_target = selected["target"]
+                selector_metadata = {
+                    "eligible_candidate_count": legal_target_count,
+                    "selected_candidate_index": int(
+                        model_decision.chosen_index),
+                    "selected_batch_id": int(
+                        selected["target"].batch_id),
+                    "selected_path_id": str(selected.get("path_id")),
+                }
+        elif self.forced_replace_selector != "base_random":
             selected, selector_metadata = self._directed_replace_candidate(
                 ind, batches, reliable_options)
             if selected is not None:
@@ -509,6 +558,15 @@ class PPOController(MutationLogger):
         self.total_attempts += 1
         self.total_effective += int(bool(ok) and changed)
         self.decision_counts["forced_operator_choice"] += 1
+        policy_reward = hv_reward(immediate_archive_delta, self.reward_config)
+        policy_action = bool(
+            model_decision is not None
+            and model_decision.metadata.get("decision_kind") == "model_choice")
+        if model_decision is not None and self.trainer.pending is not None:
+            self.trainer.observe_outcome(policy_reward, done=True)
+        if policy_action:
+            self.reward_total += policy_reward
+            self.positive_reward_actions += int(policy_reward > 0.0)
         self.append("mutation_outcomes", {
             "run_id": self.run_id,
             "instance_id": self.instance.get("instance_id"),
@@ -522,7 +580,9 @@ class PPOController(MutationLogger):
             "forced_operator": self.forced_operator,
             "forced_replace_selector": self.forced_replace_selector,
             "mixture_event_index": mixture_event_index,
-            "selected_candidate_index": operator_index,
+            "selected_candidate_index": (
+                model_decision.chosen_index
+                if model_decision is not None else operator_index),
             "operator": executed_operator,
             "shadow_base_operator": shadow_base_operator,
             "different_from_shadow_base_operator": (
@@ -538,11 +598,15 @@ class PPOController(MutationLogger):
             "probe_reverted_to_base": probe_reverted_to_base,
             "parent_id": before_id,
             "child_id": after_id,
-            "policy_metadata": {
-                "forced_operator": self.forced_operator,
-                "forced_action_index": operator_index,
-            },
-            "reward_recorded_for_policy": False,
+            "policy_metadata": (
+                model_decision.metadata if model_decision is not None else {
+                    "forced_operator": self.forced_operator,
+                    "forced_action_index": operator_index,
+                }),
+            "reward": float(policy_reward) if policy_action else 0.0,
+            "reward_hv_delta": (
+                float(immediate_archive_delta) if policy_action else 0.0),
+            "reward_recorded_for_policy": policy_action,
         })
         if self.phase == "offspring":
             self._record_pending_offspring(ind)
