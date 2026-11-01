@@ -52,17 +52,24 @@ def _run(job):
         return str(run), "existing", _state_count(run)
     if run.exists():
         raise RuntimeError(f"incomplete output exists; use a fresh root: {run}")
+    staging = run.with_name(f".{run.name}.partial.{os.getpid()}")
+    if staging.exists():
+        raise RuntimeError(f"staging output already exists: {staging}")
     run.parent.mkdir(parents=True, exist_ok=True)
+    staged_command = list(command)
+    staged_command[staged_command.index("--out") + 1] = str(staging)
     environment = os.environ.copy()
     environment.setdefault("OMP_NUM_THREADS", "1")
     environment.setdefault("MKL_NUM_THREADS", "1")
     with log.open("w", encoding="utf-8") as handle:
         result = subprocess.run(
-            command, cwd=Path(__file__).resolve().parent,
+            staged_command, cwd=Path(__file__).resolve().parent,
             stdout=handle, stderr=subprocess.STDOUT,
             env=environment, check=False)
-    if result.returncode != 0 or not _valid(run, seed, minimum_generation):
+    if result.returncode != 0 or not _valid(
+            staging, seed, minimum_generation):
         raise RuntimeError(f"rollout failed with exit {result.returncode}: {log}")
+    staging.rename(run)
     return str(run), "complete", _state_count(run)
 
 

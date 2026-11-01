@@ -233,7 +233,8 @@ class PPOController(MutationLogger):
             joint_replacement_paths=self.mutation_control == "replace_path",
             log_names=tuple(log_names), **kwargs)
         if (self.model_choice_probability < 1.0
-                or self.model_choice_event is not None):
+                or self.model_choice_event is not None
+                or self.forced_operator_min_generation is not None):
             self.decision_counts["base_mixture_choice"] = 0
         if self.forced_operator is not None:
             self.decision_counts["forced_operator_choice"] = 0

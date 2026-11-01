@@ -81,6 +81,40 @@ class V2ControlTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_m_scheduled_operator_counts_base_before_start_generation(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        batch = base.Batch(1, "A", "D", 10.0, 0.0, 24.0)
+        individual = base.Individual()
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20,
+                trainer=trainer, archive=RewardArchive(normalizer),
+                reward_config=RewardConfig(), batches=[batch],
+                generations=20, pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy"}, seeds={"algorithm": 7},
+                forced_operator="replace",
+                forced_operator_min_generation=10,
+                forced_operator_probability=1.0,
+                forced_replace_selector="model")
+            controller.generation = 0
+            try:
+                with patch(
+                        "transformer_ppo.controller.base.mutate_fixed",
+                        return_value=("add", False)) as original:
+                    result = controller.mutate(
+                        individual, [batch], {}, {}, {}, [], 0.0, 0.0)
+                self.assertEqual(result, ("add", False))
+                self.assertEqual(original.call_count, 1)
+                self.assertEqual(trainer.choose_calls, 0)
+                self.assertEqual(
+                    controller.decision_counts["base_mixture_choice"], 1)
+                self.assertEqual(controller.base_control_events, 1)
+            finally:
+                controller.close()
+
     def test_m_continuation_seed_restarts_python_and_numpy_after_target(self):
         trainer = _Trainer()
         normalizer = ObjectiveNormalizer(

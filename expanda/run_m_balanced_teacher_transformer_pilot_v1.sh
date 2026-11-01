@@ -4,9 +4,10 @@ set -euo pipefail
 INSTANCES=${INSTANCES:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/instances}
 NORMALIZATION=${NORMALIZATION:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/reward_normalization.json}
 BOOTSTRAP_CHECKPOINT=${BOOTSTRAP_CHECKPOINT:-transformer_ppo_runs/diagnostics/v5r_joint_replace_smoke_b160_p20_seed9501/M/final_policy.pt}
-DATA_ROOT=${DATA_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_balanced_teacher_transformer_v1_data_7inst_2seed_b400}
-TRAIN_ROOT=${TRAIN_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_balanced_teacher_transformer_v1_train}
-OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_balanced_teacher_transformer_v1_pilot_3inst_3seed_b400}
+SMOKE_ROOT=${SMOKE_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_balanced_teacher_transformer_v2_smoke_1inst_1seed_b260}
+DATA_ROOT=${DATA_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_balanced_teacher_transformer_v2_data_7inst_2seed_b400}
+TRAIN_ROOT=${TRAIN_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_balanced_teacher_transformer_v2_train}
+OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_balanced_teacher_transformer_v2_pilot_3inst_3seed_b400}
 
 for REQUIRED in "$NORMALIZATION" "$BOOTSTRAP_CHECKPOINT"; do
   if ! test -f "$REQUIRED"; then
@@ -15,13 +16,41 @@ for REQUIRED in "$NORMALIZATION" "$BOOTSTRAP_CHECKPOINT"; do
   fi
 done
 
-mkdir -p "$DATA_ROOT" "$TRAIN_ROOT" "$OUT_ROOT"
+mkdir -p "$SMOKE_ROOT" "$DATA_ROOT" "$TRAIN_ROOT" "$OUT_ROOT"
 
 echo "===== TEST M TRANSFORMER TEACHER PIPELINE ====="
 python3 -u -m unittest \
   tests.test_m_balanced_teacher_transformer \
+  tests.test_learning_components_v2_controls.V2ControlTests.test_m_scheduled_operator_counts_base_before_start_generation \
   tests.test_learning_components_v2_controls.V2ControlTests.test_forced_replace_model_selector_executes_transformer_candidate \
   > "$OUT_ROOT/tests.log" 2>&1
+
+echo "===== REAL 1-INSTANCE / 1-SEED ROLLOUT SMOKE ====="
+python3 -u collect_m_teacher_rollouts.py \
+  --instances "$INSTANCES" \
+  --normalization "$NORMALIZATION" \
+  --checkpoint "$BOOTSTRAP_CHECKPOINT" \
+  --out "$SMOKE_ROOT" \
+  --instance-ids train-S0-002 \
+  --algorithm-seeds 880001 \
+  --minimum-generation 10 \
+  --max-workers 1 \
+  --evaluation-budget 260 \
+  --scenario-count 200 \
+  --ccp-confidence 0.90 \
+  --pop 20 \
+  --gens 1000 \
+  --device cpu \
+  | tee "$SMOKE_ROOT/collection.log"
+
+if ! jq -e '
+  .completed == true
+  and .run_count == 1
+  and .policy_state_count > 0
+' "$SMOKE_ROOT/DATA_COMPLETE.json" >/dev/null; then
+  echo "M TRANSFORMER REAL ROLLOUT SMOKE FAILED" >&2
+  exit 1
+fi
 
 echo "===== COLLECT 7-INSTANCE BALANCED-TEACHER STATES ====="
 python3 -u collect_m_teacher_rollouts.py \
