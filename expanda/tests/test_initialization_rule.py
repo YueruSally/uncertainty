@@ -73,8 +73,8 @@ class InitializationRuleTest(unittest.TestCase):
     def test_joint_balanced_uses_all_five_path_signals(self):
         batch = base.Batch(0, "A", "B", 10.0, 0.0, 10.0)
         cheap_unreliable = path(1, 1.0, 1.0, 20.0)
-        balanced = path(2, 3.0, 3.0, 4.0)
-        clean_slow = path(3, 4.0, 0.5, 10.0)
+        balanced = path(2, 2.0, 2.0, 4.0)
+        clean_slow = path(3, 10.0, 10.0, 10.0)
         invalid_but_cheap = path(4, 0.0, 0.0, 0.0)
         ranked, effective = _directed_path_ranking(
             [cheap_unreliable, balanced, clean_slow, invalid_but_cheap], batch,

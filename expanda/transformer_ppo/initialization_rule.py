@@ -83,8 +83,13 @@ def _directed_path_ranking(paths, batch, reliable_options, profile,
             "structurally_feasible": option is not None,
         })
 
+    # Scale the actual decision set.  Infeasible fallback rows must not shift
+    # the min/max of feasible candidates and thereby change their ordering.
+    scaling_rows = [row for row in rows if row["structurally_feasible"]]
+    if not scaling_rows:
+        scaling_rows = rows
     for column in range(5):
-        values = [row["raw"][column] for row in rows]
+        values = [row["raw"][column] for row in scaling_rows]
         low = min(values)
         span = max(values) - low
         for row in rows:
