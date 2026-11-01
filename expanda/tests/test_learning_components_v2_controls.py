@@ -208,6 +208,95 @@ class V2ControlTests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_forced_replace_best_of_keeps_best_distinct_budgeted_candidate(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        batch = base.Batch(1, "A", "D", 10.0, 0.0, 24.0)
+        individual = base.Individual()
+        objective_rows = iter(((8.0, 8.0, 8.0),
+                               (2.0, 2.0, 2.0),
+                               (5.0, 5.0, 5.0)))
+        applied = {"count": 0}
+
+        def apply(candidate, operator, selected_batch, *_args, target=None,
+                  **_kwargs):
+            self.assertEqual(operator, "replace")
+            self.assertIs(selected_batch, batch)
+            self.assertIsNone(target)
+            applied["count"] += 1
+            index = applied["count"]
+            arc = SimpleNamespace(
+                from_node="A", to_node=f"X{index}", mode="road")
+            path = base.Path(
+                index, "A", "D", ["A", f"X{index}", "D"],
+                ["road", "road"], [arc], 1.0, 1.0, 1.0)
+            candidate.od_allocations[("A", "D", 1)] = [
+                base.PathAllocation(path, 1.0)]
+            return True
+
+        def evaluate(candidate, *_args, **_kwargs):
+            candidate.objectives = next(objective_rows)
+            candidate.feasible = True
+
+        operator_target = {
+            "target": {}, "eligible": True,
+            "selection_probability": 1.0,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            controller = PPOController(
+                Path(directory), "run", "scenario", 20,
+                trainer=trainer, archive=RewardArchive(normalizer),
+                reward_config=RewardConfig(), batches=[batch],
+                generations=20, pop_size=2, method=trainer.name,
+                instance={"instance_id": "toy"}, seeds={"algorithm": 7},
+                forced_operator="replace",
+                forced_operator_min_generation=10,
+                forced_operator_probability=1.0,
+                forced_operator_best_of=3)
+            controller.generation = 10
+            try:
+                with patch(
+                        "transformer_ppo.controller.candidates_for",
+                        return_value=[operator_target]), patch(
+                        "transformer_ppo.controller.base.sample_operator",
+                        return_value="add"), patch(
+                        "transformer_ppo.controller.base.apply_mutation_op",
+                        side_effect=apply), patch(
+                        "transformer_ppo.controller.base.repair_missing_allocations"
+                        ), patch(
+                        "transformer_ppo.controller.base.evaluate_individual",
+                        side_effect=evaluate) as evaluate_mock:
+                    result = controller.mutate(
+                        individual, [batch], {}, {}, {}, [], 0.0, 0.0)
+                self.assertEqual(result, ("replace", True))
+                self.assertEqual(evaluate_mock.call_count, 3)
+                self.assertEqual(individual.objectives, (2.0, 2.0, 2.0))
+                summary = controller.summary()
+                self.assertEqual(summary["forced_operator_best_of"], 3)
+                self.assertEqual(
+                    summary["forced_operator_candidate_evaluations"], 3)
+            finally:
+                controller.close()
+
+    def test_forced_operator_best_of_rejects_non_replace(self):
+        trainer = _Trainer()
+        normalizer = ObjectiveNormalizer(
+            (0.0, 0.0, 0.0), (10.0, 10.0, 10.0),
+            reference=(1.1, 1.1, 1.1))
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "requires replace"):
+                PPOController(
+                    Path(directory), "run", "scenario", 20,
+                    trainer=trainer, archive=RewardArchive(normalizer),
+                    reward_config=RewardConfig(), batches=[], generations=20,
+                    pop_size=2, method=trainer.name,
+                    instance={"instance_id": "toy"},
+                    seeds={"algorithm": 7}, forced_operator="add",
+                    forced_operator_min_generation=10,
+                    forced_operator_best_of=3)
+
     def test_forced_m_operator_positive_probe_gates_later_actions(self):
         trainer = _Trainer()
         normalizer = ObjectiveNormalizer(

@@ -172,6 +172,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 m_forced_operator_reversible_probe=False,
                 m_forced_operator_probe_max_attempts=1,
                 m_forced_operator_probe_retry_events=0,
+                m_forced_operator_best_of=1,
                 m_continuation_event=None,
                 m_continuation_seed=None,
                 learning_protocol_version=None,
@@ -329,6 +330,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             m_forced_operator_probe_max_attempts)
         m_forced_operator_probe_retry_events = int(
             m_forced_operator_probe_retry_events)
+        m_forced_operator_best_of = int(m_forced_operator_best_of)
         if (m_forced_operator_positive_probe
                 and m_forced_operator_probability != 1.0):
             raise ValueError(
@@ -343,6 +345,16 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         if m_forced_operator_probe_retry_events < 0:
             raise ValueError(
                 "operator probe retry events cannot be negative")
+        if m_forced_operator_best_of < 1:
+            raise ValueError("forced M operator best-of must be positive")
+        if (m_forced_operator_best_of > 1
+                and m_forced_operator != "replace"):
+            raise ValueError("forced M operator best-of requires replace")
+        if (m_forced_operator_best_of > 1
+                and (m_forced_operator_positive_probe
+                     or m_forced_operator_reversible_probe)):
+            raise ValueError(
+                "forced M operator best-of cannot be combined with probes")
         if m_forced_operator_probe_max_attempts > 1:
             if not m_forced_operator_reversible_probe:
                 raise ValueError(
@@ -360,7 +372,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
           or m_forced_operator_positive_probe
           or m_forced_operator_reversible_probe
           or m_forced_operator_probe_max_attempts != 1
-          or m_forced_operator_probe_retry_events != 0):
+          or m_forced_operator_probe_retry_events != 0
+          or m_forced_operator_best_of != 1):
         raise ValueError(
             "forced M operator probe/schedule requires a forced operator")
     if (m_continuation_event is None) != (m_continuation_seed is None):
@@ -576,6 +589,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 m_forced_operator_probe_max_attempts),
             "m_forced_operator_probe_retry_events": (
                 m_forced_operator_probe_retry_events),
+            "m_forced_operator_best_of": m_forced_operator_best_of,
             "m_continuation_event": m_continuation_event,
             "m_continuation_seed": m_continuation_seed,
             "control_random_stream": "private-sha256-seeded",
@@ -651,6 +665,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                     m_forced_operator_probe_max_attempts)
                 controller_options["forced_operator_probe_retry_events"] = (
                     m_forced_operator_probe_retry_events)
+                controller_options["forced_operator_best_of"] = (
+                    m_forced_operator_best_of)
                 controller_options["continuation_event"] = (
                     m_continuation_event)
                 controller_options["continuation_seed"] = (

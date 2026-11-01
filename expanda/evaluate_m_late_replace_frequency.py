@@ -39,6 +39,14 @@ SCHEDULE_GRID_STRATEGIES = {
     "REPLACE_G15_P050": (0.50, False, False, 1, 0),
     "REPLACE_G15_P100": (1.00, False, False, 1, 0),
 }
+BEST_OF_STRATEGIES = {
+    "REPLACE_G10_BEST3": (1.00, False, False, 1, 0),
+    "REPLACE_G10_BEST5": (1.00, False, False, 1, 0),
+}
+STRATEGY_BEST_OF = {
+    "REPLACE_G10_BEST3": 3,
+    "REPLACE_G10_BEST5": 5,
+}
 STRATEGY_MINIMUM_GENERATIONS = {
     "REPLACE_G04_P100": 4,
     "REPLACE_G06_P100": 6,
@@ -49,6 +57,8 @@ STRATEGY_MINIMUM_GENERATIONS = {
     "REPLACE_G12_P100": 12,
     "REPLACE_G15_P050": 15,
     "REPLACE_G15_P100": 15,
+    "REPLACE_G10_BEST3": 10,
+    "REPLACE_G10_BEST5": 10,
 }
 REUSE_STRATEGY_ALIASES = {
     "REPLACE_G15_P050": "REPLACE_LATE_P050",
@@ -59,6 +69,7 @@ ALL_STRATEGIES = {
     **REVERSIBLE_STRATEGY,
     **RETRY_STRATEGIES,
     **SCHEDULE_GRID_STRATEGIES,
+    **BEST_OF_STRATEGIES,
 }
 
 
@@ -68,7 +79,7 @@ def _read(path):
 
 def _command(args, instance, out, seed, probability, positive_probe,
              reversible_probe, probe_max_attempts, probe_retry_events,
-             minimum_generation):
+             minimum_generation, best_of=1):
     command = [
         sys.executable, "-u", str(args.runner),
         "--instance", str(instance),
@@ -107,11 +118,16 @@ def _command(args, instance, out, seed, probability, positive_probe,
                 "--m-forced-operator-probe-retry-events",
                 str(probe_retry_events),
             ])
+        if best_of != 1:
+            command.extend([
+                "--m-forced-operator-best-of", str(best_of),
+            ])
     return command
 
 
 def _valid(run, seed, probability, positive_probe, reversible_probe,
-           probe_max_attempts, probe_retry_events, minimum_generation):
+           probe_max_attempts, probe_retry_events, minimum_generation,
+           best_of=1):
     run = Path(run)
     if not (run / "COMPLETE.json").is_file():
         return False
@@ -129,6 +145,7 @@ def _valid(run, seed, probability, positive_probe, reversible_probe,
             return bool(
                 valid
                 and control.get("m_forced_operator") is None
+                and int(control.get("m_forced_operator_best_of", 1)) == 1
                 and control.get("model_choice_probabilities", {}).get("M") == 0)
         return bool(
             valid
@@ -147,6 +164,7 @@ def _valid(run, seed, probability, positive_probe, reversible_probe,
             and int(control.get(
                 "m_forced_operator_probe_retry_events", 0))
             == probe_retry_events
+            and int(control.get("m_forced_operator_best_of", 1)) == best_of
             and (not positive_probe
                  or complete.get("forced_operator_probe_completed") is True))
     except (KeyError, OSError, TypeError, ValueError):
@@ -155,10 +173,11 @@ def _valid(run, seed, probability, positive_probe, reversible_probe,
 
 def _run(job):
     (run, log, command, seed, probability, positive_probe, reversible_probe,
-     probe_max_attempts, probe_retry_events, minimum_generation) = job
+     probe_max_attempts, probe_retry_events, minimum_generation, best_of) = job
     if _valid(
             run, seed, probability, positive_probe, reversible_probe,
-            probe_max_attempts, probe_retry_events, minimum_generation):
+            probe_max_attempts, probe_retry_events, minimum_generation,
+            best_of):
         return run, "existing"
     if Path(run).exists():
         raise RuntimeError(f"incomplete output exists; use a fresh root: {run}")
@@ -173,7 +192,8 @@ def _run(job):
             env=environment, check=False)
     if result.returncode != 0 or not _valid(
             run, seed, probability, positive_probe, reversible_probe,
-            probe_max_attempts, probe_retry_events, minimum_generation):
+            probe_max_attempts, probe_retry_events, minimum_generation,
+            best_of):
         raise RuntimeError(f"run failed with exit {result.returncode}: {log}")
     return run, "complete"
 
@@ -257,6 +277,11 @@ def _summary(args, status_counts, instance_names, strategy_specs):
                         complete.get("forced_operator_probe_fallbacks", 0)),
                     "operator_probe_evaluations": int(
                         complete.get("forced_operator_probe_evaluations", 0)),
+                    "forced_operator_best_of": int(
+                        complete.get("forced_operator_best_of", 1)),
+                    "forced_operator_candidate_evaluations": int(
+                        complete.get(
+                            "forced_operator_candidate_evaluations", 0)),
                 })
     strategies = []
     for strategy in strategy_specs:
@@ -294,6 +319,10 @@ def _summary(args, status_counts, instance_names, strategy_specs):
                 row["operator_probe_fallbacks"] for row in rows),
             "probe_evaluations": sum(
                 row["operator_probe_evaluations"] for row in rows),
+            "forced_operator_best_of": max(
+                row["forced_operator_best_of"] for row in rows),
+            "mean_candidate_evaluations": statistics.fmean(
+                row["forced_operator_candidate_evaluations"] for row in rows),
         })
     per_instance = []
     for instance in instance_names:
@@ -424,6 +453,32 @@ def _summary(args, status_counts, instance_names, strategy_specs):
             "any_schedule_mean_above_10_percent": any(
                 row["mean_paired_percent"] >= 10.0 for row in grid_rows),
         }
+    best_of_rows = [
+        row for row in strategies
+        if row["strategy"] in BEST_OF_STRATEGIES]
+    if best_of_rows:
+        best_of = max(
+            best_of_rows, key=lambda row: row["mean_paired_percent"])
+        fixed = by_name.get("REPLACE_G10_P100")
+        result["best_of_diagnosis"] = {
+            "best_strategy": best_of["strategy"],
+            "best_mean_paired_percent": best_of["mean_paired_percent"],
+            "best_median_paired_percent": best_of["median_paired_percent"],
+            "best_minimum_paired_percent": best_of[
+                "minimum_paired_percent"],
+            "best_wins": best_of["wins"],
+            "best_losses": best_of["losses"],
+            "fixed_g10_mean_paired_percent": (
+                None if fixed is None else fixed["mean_paired_percent"]),
+            "best_of_minus_fixed_g10_mean_percent": (
+                None if fixed is None else
+                best_of["mean_paired_percent"]
+                - fixed["mean_paired_percent"]),
+            "best_of_mean_above_5_percent": bool(
+                best_of["mean_paired_percent"] >= 5.0),
+            "best_of_mean_above_10_percent": bool(
+                best_of["mean_paired_percent"] >= 10.0),
+        }
     return result
 
 
@@ -517,16 +572,17 @@ def main(argv=None):
                 run = _strategy_run(args, instance, seed, strategy)
                 minimum_generation = STRATEGY_MINIMUM_GENERATIONS.get(
                     strategy, args.minimum_generation)
+                best_of = STRATEGY_BEST_OF.get(strategy, 1)
                 jobs.append((
                     run, run.with_suffix(".nohup.log"),
                     _command(
                         args, instance_path, run, seed, probability,
                         positive_probe, reversible_probe,
                         probe_max_attempts, probe_retry_events,
-                        minimum_generation),
+                        minimum_generation, best_of),
                     seed, probability, positive_probe, reversible_probe,
                     probe_max_attempts, probe_retry_events,
-                    minimum_generation))
+                    minimum_generation, best_of))
     counts = Counter()
     print(f"[FREQUENCY] jobs={len(jobs)} workers={args.max_workers}", flush=True)
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
@@ -552,6 +608,8 @@ def main(argv=None):
     if "schedule_grid_diagnosis" in result:
         quick["schedule_grid_diagnosis"] = (
             result["schedule_grid_diagnosis"])
+    if "best_of_diagnosis" in result:
+        quick["best_of_diagnosis"] = result["best_of_diagnosis"]
     (args.out / "QUICK_RESULT.json").write_text(
         json.dumps(quick, indent=2, allow_nan=False) + "\n",
         encoding="utf-8")

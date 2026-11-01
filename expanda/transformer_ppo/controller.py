@@ -35,6 +35,7 @@ class PPOController(MutationLogger):
                  forced_operator_reversible_probe=False,
                  forced_operator_probe_max_attempts=1,
                  forced_operator_probe_retry_events=0,
+                 forced_operator_best_of=1,
                  continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
@@ -99,6 +100,18 @@ class PPOController(MutationLogger):
             forced_operator_probe_max_attempts)
         self.forced_operator_probe_retry_events = int(
             forced_operator_probe_retry_events)
+        self.forced_operator_best_of = int(forced_operator_best_of)
+        if self.forced_operator_best_of < 1:
+            raise ValueError("forced operator best-of must be positive")
+        if (self.forced_operator_best_of > 1
+                and self.forced_operator != "replace"):
+            raise ValueError("forced operator best-of requires replace")
+        if (self.forced_operator_best_of > 1
+                and (self.forced_operator_positive_probe
+                     or self.forced_operator_reversible_probe)):
+            raise ValueError(
+                "forced operator best-of cannot be combined with probes")
+        self.forced_operator_candidate_evaluations = 0
         self.forced_operator_probe_completed = False
         self.forced_operator_probe_positive = False
         self.forced_operator_probe_delta_hv = None
@@ -264,6 +277,11 @@ class PPOController(MutationLogger):
             waiting_cost, waiting_emission, reliable_options,
             mixture_event_index, kwargs):
         """Force one operator while leaving Base batch/target logic intact."""
+        if self.forced_operator_best_of > 1:
+            return self._mutate_forced_operator_best_of(
+                ind, batches, path_lib, tt_dict, arc_lookup, arcs,
+                waiting_cost, waiting_emission, reliable_options,
+                mixture_event_index, kwargs)
         self._inside_mutation = True
         before_id = fingerprint(ind)
         archive_hv_before = float(self.archive.hypervolume)
@@ -402,6 +420,152 @@ class PPOController(MutationLogger):
             self._record_pending_offspring(ind)
         self._reseed_continuation_if_due(mixture_event_index)
         return executed_operator, bool(ok)
+
+    def _mutate_forced_operator_best_of(
+            self, ind, batches, path_lib, tt_dict, arc_lookup, arcs,
+            waiting_cost, waiting_emission, reliable_options,
+            mixture_event_index, kwargs):
+        """Evaluate multiple budget-counted replacements and keep the best."""
+        if self.forced_operator != "replace":
+            raise RuntimeError("best-of mutation requires replace")
+        self._inside_mutation = True
+        before_id = fingerprint(ind)
+        parent = deepcopy(ind)
+        candidates = self._operator_candidates(
+            ind, batches, path_lib, tt_dict, arc_lookup, reliable_options)
+        operator_index = OPERATORS.index(self.forced_operator)
+        self.append("mutation_operator_intervention_states", {
+            "run_id": self.run_id,
+            "instance_id": self.instance.get("instance_id"),
+            "generation": self.generation,
+            "evaluation": self.evaluations,
+            "mixture_event_index": mixture_event_index,
+            "parent_id": before_id,
+            "forced_operator": self.forced_operator,
+            "forced_operator_best_of": self.forced_operator_best_of,
+            "operator_candidates": candidates,
+        })
+
+        # Preserve Base's batch-before-operator draw order.  The internal
+        # replace target/path draws are deliberately repeated for the extra
+        # candidates and every successful candidate evaluation consumes the
+        # shared real-objective budget.
+        batch = random.choice(batches)
+        shadow_base_operator = base.sample_operator()
+        remaining = (
+            self.forced_operator_best_of if self.budget is None else
+            max(0, int(self.budget) - self.evaluations - 1))
+        maximum_evaluations = min(self.forced_operator_best_of, remaining)
+        evaluated = []
+        seen_fingerprints = set()
+        previous_suppress_archive = self._suppress_archive
+        try:
+            self._suppress_archive = True
+            # A few extra draws make the requested K candidates genuinely
+            # distinct when the stochastic replace operator repeats a path.
+            maximum_draws = max(self.forced_operator_best_of,
+                                5 * self.forced_operator_best_of)
+            for attempt in range(maximum_draws):
+                if len(evaluated) >= maximum_evaluations:
+                    break
+                candidate = deepcopy(parent)
+                ok = base.apply_mutation_op(
+                    candidate, self.forced_operator, batch, path_lib, tt_dict,
+                    arc_lookup, reliable_options=reliable_options, target=None)
+                if not ok:
+                    continue
+                base.repair_missing_allocations(candidate, batches, path_lib)
+                candidate_id = fingerprint(candidate)
+                if candidate_id in seen_fingerprints:
+                    continue
+                seen_fingerprints.add(candidate_id)
+                if not self.has_budget(1):
+                    break
+                base.evaluate_individual(
+                    candidate, batches, arcs, tt_dict, waiting_cost,
+                    waiting_emission, **kwargs)
+                preview = self.archive.preview_many([(
+                    candidate.objectives, bool(candidate.feasible),
+                    candidate_id)])
+                try:
+                    normalized = self.archive.normalizer.transform(
+                        candidate.objectives)
+                    quality = -sum(normalized)
+                except ValueError:
+                    quality = float("-inf")
+                evaluated.append({
+                    "attempt": attempt + 1,
+                    "individual": candidate,
+                    "fingerprint": candidate_id,
+                    "feasible": bool(candidate.feasible),
+                    "archive_delta_hv": float(preview.delta_hv),
+                    "quality_tiebreak": float(quality),
+                    "objectives": [
+                        float(value) for value in candidate.objectives],
+                })
+        finally:
+            self._suppress_archive = previous_suppress_archive
+            self._inside_mutation = False
+
+        self.forced_operator_candidate_evaluations += len(evaluated)
+        if evaluated:
+            best = max(evaluated, key=lambda row: (
+                row["feasible"], row["archive_delta_hv"],
+                row["quality_tiebreak"], -row["attempt"]))
+            ind.__dict__.clear()
+            ind.__dict__.update(deepcopy(best["individual"].__dict__))
+            immediate_archive_delta = float(self.archive.observe(
+                ind.objectives, bool(ind.feasible), best["fingerprint"])
+            )
+            ok = True
+        else:
+            best = None
+            immediate_archive_delta = 0.0
+            ok = False
+
+        after_id = fingerprint(ind)
+        changed = after_id != before_id
+        self.total_attempts += 1
+        self.total_effective += int(ok and changed)
+        self.decision_counts["forced_operator_choice"] += 1
+        self.append("mutation_outcomes", {
+            "run_id": self.run_id,
+            "instance_id": self.instance.get("instance_id"),
+            "generation": self.generation,
+            "evaluation": self.evaluations,
+            "decision_kind": "forced_operator_best_of_choice",
+            "control_branch": "forced_operator_best_of",
+            "model_choice_probability": self.model_choice_probability,
+            "model_choice_event": self.model_choice_event,
+            "forced_candidate_index": None,
+            "forced_operator": self.forced_operator,
+            "forced_operator_best_of": self.forced_operator_best_of,
+            "mixture_event_index": mixture_event_index,
+            "selected_candidate_index": operator_index,
+            "selected_best_of_attempt": (
+                None if best is None else best["attempt"]),
+            "candidate_evaluation_count": len(evaluated),
+            "candidate_diagnostics": [
+                {key: value for key, value in row.items()
+                 if key != "individual"}
+                for row in evaluated
+            ],
+            "operator": self.forced_operator,
+            "shadow_base_operator": shadow_base_operator,
+            "different_from_shadow_base_operator": (
+                self.forced_operator != shadow_base_operator),
+            "batch_id": batch.batch_id,
+            "mutation_success": bool(ok),
+            "decision_changed": bool(changed),
+            "immediate_archive_delta": immediate_archive_delta,
+            "parent_id": before_id,
+            "child_id": after_id,
+            "reward_recorded_for_policy": False,
+        })
+        if self.phase == "offspring":
+            self._record_pending_offspring(ind)
+        self._reseed_continuation_if_due(mixture_event_index)
+        return self.forced_operator, bool(ok)
 
     @staticmethod
     def _mean(rows, name):
@@ -971,6 +1135,9 @@ class PPOController(MutationLogger):
                     self.forced_operator_probe_fallbacks),
                 "forced_operator_probe_evaluations": (
                     self.forced_operator_probe_evaluations),
+                "forced_operator_best_of": self.forced_operator_best_of,
+                "forced_operator_candidate_evaluations": (
+                    self.forced_operator_candidate_evaluations),
                 "continuation_event": self.continuation_event,
                 "continuation_seed": self.continuation_seed,
                 "continuation_reseed_count": self.continuation_reseed_count,
