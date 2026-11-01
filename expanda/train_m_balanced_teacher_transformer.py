@@ -20,6 +20,11 @@ def _jsonl(path):
     ]
 
 
+def _instance_key(value):
+    """Use the same instance spelling as rollout directory names."""
+    return str(value).removeprefix("train-").replace("-", "_")
+
+
 def _teacher_target(row, feature_names):
     observation = row["observation"]
     features = np.asarray(observation["candidates"], dtype=float)
@@ -79,7 +84,7 @@ def load_dataset(root):
                 continue
             selected, scores, legal = target
             rows.append({
-                "instance": str(state["instance_id"]),
+                "instance": _instance_key(state["instance_id"]),
                 "generation": int(state["generation"]),
                 "evaluation": int(state["evaluation"]),
                 "observation": state["observation"],
@@ -154,12 +159,22 @@ def main(argv=None):
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
     rows = load_dataset(args.data_root)
-    validation_names = set(args.validation_instances)
+    validation_names = {
+        _instance_key(value) for value in args.validation_instances}
     validation = [row for row in rows if row["instance"] in validation_names]
     training = [row for row in rows if row["instance"] not in validation_names]
+    available_instances = sorted({row["instance"] for row in rows})
+    print(
+        f"[M-TEACHER-DATASET] states={len(rows)} "
+        f"training={len(training)} validation={len(validation)} "
+        f"available_instances={available_instances} "
+        f"requested_validation={sorted(validation_names)}",
+        flush=True)
     if not training or not validation:
         parser.error(
-            "teacher dataset must contain both training and validation states")
+            "teacher dataset must contain both training and validation states; "
+            f"available={available_instances}, "
+            f"requested_validation={sorted(validation_names)}")
 
     trainer = PPOTrainer.load(
         args.checkpoint, PPOConfig, lambda *_: None,

@@ -6,11 +6,16 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from train_m_balanced_teacher_transformer import _teacher_target
+from train_m_balanced_teacher_transformer import _instance_key, _teacher_target
 from transformer_ppo.observations import CANDIDATE_PATH_V4_FEATURES
 
 
 class BalancedTeacherTargetTest(unittest.TestCase):
+    def test_instance_key_accepts_rollout_and_directory_spellings(self):
+        self.assertEqual(_instance_key("train-S0-011"), "S0_011")
+        self.assertEqual(_instance_key("S0-011"), "S0_011")
+        self.assertEqual(_instance_key("S0_011"), "S0_011")
+
     def test_teacher_uses_joint_quantity_weighted_balanced_score(self):
         names = list(CANDIDATE_PATH_V4_FEATURES)
 
