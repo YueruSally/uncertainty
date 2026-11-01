@@ -228,6 +228,7 @@ def _strategy_run(args, instance, seed, strategy):
     reusable = {
         "BASE", "REPLACE_LATE_P050", "REPLACE_LATE_P100",
         *SCHEDULE_GRID_STRATEGIES,
+        *DIRECTED_REPLACE_STRATEGIES,
     }
     if strategy in reusable:
         roots = []
