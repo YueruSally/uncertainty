@@ -21,6 +21,10 @@ STRATEGY_SPECS = {
         "profile": "joint_balanced", "min_generation": 0},
     "C_DIRECTED_BALANCED_G10": {
         "profile": "joint_balanced", "min_generation": 10},
+    "C_SAFE_BALANCED_ALL_G0": {
+        "profile": "joint_balanced_safe_all", "min_generation": 0},
+    "C_SAFE_BALANCED_SINGLE_G0": {
+        "profile": "joint_balanced_safe_single", "min_generation": 0},
 }
 
 
@@ -208,7 +212,7 @@ def _aggregate(args, instance_names, statuses):
     return {
         "completed": True,
         "definition": (
-            "matched frozen-CCP screen of all-cut directed-balanced C; "
+            "matched frozen-CCP screen of safe directed-balanced C; "
             "Base parent/allocation draws and random stream are paired"),
         "instance_count": len(instance_names),
         "algorithm_seed_count": len(args.algorithm_seeds),

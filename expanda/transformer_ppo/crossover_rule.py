@@ -9,7 +9,11 @@ from .comparison_controllers import BaseBudgetController
 from .crossover import apply_cut, finalize_children, prepare_common_node_crossover
 
 
-CROSSOVER_RULE_PROFILES = ("joint_balanced",)
+CROSSOVER_RULE_PROFILES = (
+    "joint_balanced",
+    "joint_balanced_safe_all",
+    "joint_balanced_safe_single",
+)
 
 
 def _finite(value, default=0.0):
@@ -74,6 +78,44 @@ def _directed_cut_ranking(candidates, profile="joint_balanced"):
     return rows
 
 
+def _safe_balanced_override(ranked, shadow_base_index, tolerance=1e-12):
+    """Return the best candidate that Pareto-dominates the paired Base cut."""
+    shadow = next(
+        row for row in ranked
+        if row["candidate_index"] == int(shadow_base_index))
+    safe = []
+    for row in ranked:
+        if row["candidate_index"] == int(shadow_base_index):
+            continue
+        weakly_better = all(
+            candidate <= reference + tolerance
+            for candidate, reference in zip(row["raw"], shadow["raw"]))
+        strictly_better = any(
+            candidate < reference - tolerance
+            for candidate, reference in zip(row["raw"], shadow["raw"]))
+        if weakly_better and strictly_better:
+            safe.append(row)
+    return (safe[0] if safe else shadow), shadow
+
+
+def _keep_single_override(plans, shadow_base_indices):
+    """Keep only the strongest planned override and replay Base elsewhere."""
+    overrides = [
+        plan for plan, shadow_index in zip(plans, shadow_base_indices)
+        if plan["candidate_index"] != int(shadow_index)
+    ]
+    selected = (
+        max(overrides, key=lambda plan: (
+            plan["score_improvement"], -plan["cut_index"]))
+        if overrides else None)
+    for plan, shadow_index in zip(plans, shadow_base_indices):
+        if plan is not selected:
+            plan["candidate_index"] = int(shadow_index)
+            plan["metadata"] = None
+            plan["score_improvement"] = 0.0
+    return selected
+
+
 class CrossoverRuleController(BaseBudgetController):
     """Apply the best balanced legal cut for every common-node decision."""
 
@@ -102,17 +144,43 @@ class CrossoverRuleController(BaseBudgetController):
         self.total_attempts += 1
         directed = self.generation >= self.min_generation
         self.directed_events += int(directed and bool(decisions))
+        plans = []
+        for cut_index, cut in enumerate(decisions):
+            if not directed or len(cut.candidates) < 2:
+                plans.append({
+                    "cut_index": cut_index,
+                    "candidate_index": int(cut.shadow_base_index),
+                    "metadata": None,
+                    "score_improvement": 0.0,
+                })
+                continue
+            ranked = _directed_cut_ranking(cut.candidates, self.profile)
+            self.directed_cut_count += 1
+            if self.profile == "joint_balanced":
+                chosen = ranked[0]
+                shadow = next(
+                    row for row in ranked
+                    if row["candidate_index"] == int(cut.shadow_base_index))
+            else:
+                chosen, shadow = _safe_balanced_override(
+                    ranked, cut.shadow_base_index)
+            plans.append({
+                "cut_index": cut_index,
+                "candidate_index": int(chosen["candidate_index"]),
+                "metadata": chosen,
+                "score_improvement": max(
+                    0.0, float(shadow["score"] - chosen["score"])),
+            })
+        if directed and self.profile == "joint_balanced_safe_single":
+            _keep_single_override(
+                plans, [cut.shadow_base_index for cut in decisions])
+
         selected = []
         changed = False
-        for cut_index, cut in enumerate(decisions):
-            if directed and len(cut.candidates) >= 2:
-                ranked = _directed_cut_ranking(cut.candidates, self.profile)
-                candidate_index = int(ranked[0]["candidate_index"])
-                metadata = ranked[0]
-                self.directed_cut_count += 1
-            else:
-                candidate_index = int(cut.shadow_base_index)
-                metadata = None
+        for plan, cut in zip(plans, decisions):
+            cut_index = int(plan["cut_index"])
+            candidate_index = int(plan["candidate_index"])
+            metadata = plan["metadata"]
             candidate = cut.candidates[candidate_index]
             changed = apply_cut(
                 child1, child2, cut, candidate, tt_dict, arc_lookup) or changed
@@ -127,6 +195,8 @@ class CrossoverRuleController(BaseBudgetController):
                 "join_node": candidate.get("join_node"),
                 "different_from_shadow_base": overridden,
                 "score": None if metadata is None else metadata["score"],
+                "score_improvement_over_shadow_base": (
+                    float(plan["score_improvement"])),
                 "raw_proxy_vector": (
                     None if metadata is None else metadata["raw"]),
                 "scaled_proxy_vector": (

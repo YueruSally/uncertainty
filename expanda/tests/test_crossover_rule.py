@@ -7,6 +7,8 @@ import baseline_uncertainty as base
 from transformer_ppo.crossover_rule import (
     CrossoverRuleController,
     _directed_cut_ranking,
+    _keep_single_override,
+    _safe_balanced_override,
 )
 
 
@@ -55,6 +57,31 @@ class CrossoverRuleTests(unittest.TestCase):
         self.assertEqual(ranked[0]["candidate"]["join_node"], "BALANCED")
         self.assertEqual(len(ranked[0]["raw"]), 5)
         self.assertEqual(len(ranked[0]["scaled"]), 5)
+
+    def test_safe_override_requires_five_signal_pareto_improvement(self):
+        shadow = candidate(0.0, 0.0, 0.0, 20.0, join="BASE")
+        tradeoff = candidate(-2.0, 1.0, -1.0, 20.0, join="TRADEOFF")
+        safe = candidate(-1.0, -1.0, -1.0, 20.0, join="SAFE")
+        ranked = _directed_cut_ranking([shadow, tradeoff, safe])
+        chosen, reference = _safe_balanced_override(ranked, 0)
+        self.assertEqual(reference["candidate"]["join_node"], "BASE")
+        self.assertEqual(chosen["candidate"]["join_node"], "SAFE")
+
+    def test_safe_single_keeps_only_strongest_override(self):
+        plans = [
+            {"cut_index": 0, "candidate_index": 2,
+             "metadata": {"name": "weaker"}, "score_improvement": 0.2},
+            {"cut_index": 1, "candidate_index": 3,
+             "metadata": {"name": "stronger"}, "score_improvement": 0.6},
+            {"cut_index": 2, "candidate_index": 0,
+             "metadata": None, "score_improvement": 0.0},
+        ]
+        selected = _keep_single_override(plans, [0, 0, 0])
+        self.assertEqual(selected["cut_index"], 1)
+        self.assertEqual(
+            [plan["candidate_index"] for plan in plans], [0, 3, 0])
+        self.assertEqual(
+            sum(plan["candidate_index"] != 0 for plan in plans), 1)
 
     def test_rule_preserves_base_rng_and_overrides_all_learnable_cuts(self):
         batch = base.Batch(7, "A", "D", 10.0, 0.0, 24.0)
