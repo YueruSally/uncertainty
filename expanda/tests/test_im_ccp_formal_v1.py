@@ -11,7 +11,7 @@ from im_ccp_formal_plan import (
     build_schedule,
     expected_rule_i_attempts,
 )
-from run_im_ccp_formal_shard_v1 import _command
+from run_im_ccp_formal_shard_v1 import _command, _smoke_tasks
 
 
 class ImCcpFormalPlanTest(unittest.TestCase):
@@ -60,6 +60,18 @@ class ImCcpFormalPlanTest(unittest.TestCase):
         self.assertIn("--m-forced-replace-selector joint_balanced", joined)
         self.assertIn("--evaluation-budget 50250", joined)
         self.assertIn("--pop 250 --gens 200", joined)
+
+    def test_smoke_selects_one_exact_paired_triplet(self):
+        instances = [f"final-test-S0-{index:03d}" for index in range(1, 11)]
+        shard = [
+            row for row in build_schedule(instances)
+            if row["execution_shard"] == 0]
+        selected = _smoke_tasks(shard)
+        self.assertEqual(len(selected), 3)
+        self.assertEqual(
+            {row["method"] for row in selected}, set(METHODS))
+        self.assertEqual(len({row["instance_id"] for row in selected}), 1)
+        self.assertEqual(len({row["algorithm_seed"] for row in selected}), 1)
 
 
 if __name__ == "__main__":

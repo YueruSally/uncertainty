@@ -103,6 +103,20 @@ def _component(method):
     }[method]
 
 
+def _smoke_tasks(tasks):
+    """Return one exactly paired Base/I/M triplet from a shard."""
+    if not tasks:
+        raise ValueError("cannot select a smoke triplet from an empty shard")
+    instance_id = min(task["instance_id"] for task in tasks)
+    selected = [
+        task for task in tasks if task["instance_id"] == instance_id]
+    if (len(selected) != len(METHODS)
+            or {task["method"] for task in selected} != set(METHODS)
+            or len({task["algorithm_seed"] for task in selected}) != 1):
+        raise ValueError("formal smoke selection is not an exact paired triplet")
+    return sorted(selected, key=lambda task: task["method"])
+
+
 def _validate_result(run, task, plan):
     complete_path = run / "COMPLETE.json"
     config_path = run / "configuration.json"
@@ -283,6 +297,11 @@ def main(argv=None):
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument(
+        "--smoke-only", action="store_true",
+        help=("Run one paired Base/I/M triplet in this shard, write "
+              "SMOKE_COMPLETE.json, and leave the same output resumable for "
+              "the full shard."))
     args = parser.parse_args(argv)
     if args.workers < 1:
         parser.error("workers must be positive")
@@ -325,14 +344,17 @@ def main(argv=None):
         value = _validate_result(args.out / "runs" / task["task_id"], task, plan)
         if value is not None:
             completed[task["task_id"]] = value
-    pending = [task for task in tasks if task["task_id"] not in completed]
+    execution_tasks = _smoke_tasks(tasks) if args.smoke_only else tasks
+    pending = [
+        task for task in execution_tasks
+        if task["task_id"] not in completed]
     initial_completed = len(completed)
     started = time.perf_counter()
     statuses = {"existing": initial_completed, "complete": 0}
     print(
         f"[FORMAL SHARD {args.shard}] tasks={len(tasks)} "
         f"existing={initial_completed} pending={len(pending)} "
-        f"workers={args.workers}", flush=True)
+        f"workers={args.workers} smoke_only={args.smoke_only}", flush=True)
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {
             executor.submit(
@@ -362,6 +384,57 @@ def main(argv=None):
             print(
                 f"[FORMAL SHARD {args.shard}] {len(completed)}/{len(tasks)} "
                 f"{task['task_id']} eta_hours={eta_hours:.2f}", flush=True)
+
+    if args.smoke_only:
+        smoke_results = [
+            completed[task["task_id"]] for task in execution_tasks]
+        scenario_digests = {
+            row["training_scenario_digest"] for row in smoke_results}
+        if len(smoke_results) != len(METHODS) or len(scenario_digests) != 1:
+            raise RuntimeError("formal smoke triplet is incomplete or unpaired")
+        by_method = {row["method"]: row for row in smoke_results}
+        base_hv = by_method["BASE"]["final_hypervolume"]
+        if base_hv <= 0:
+            raise RuntimeError("formal smoke Base hypervolume is nonpositive")
+        comparisons = [
+            {
+                "method": method,
+                "base_hv": base_hv,
+                "method_hv": by_method[method]["final_hypervolume"],
+                "paired_percent": 100.0 * (
+                    by_method[method]["final_hypervolume"] - base_hv
+                ) / base_hv,
+                "optimisation_seconds": by_method[method][
+                    "optimisation_seconds"],
+            }
+            for method in METHODS if method != "BASE"
+        ]
+        smoke = {
+            "completed": True,
+            "definition": (
+                "one full-budget, exactly paired Base/I/M formal triplet"),
+            "plan_digest": plan["plan_digest"],
+            "shard": args.shard,
+            "population": POPULATION,
+            "generations": GENERATIONS,
+            "evaluation_budget_per_run": EVALUATION_BUDGET,
+            "training_scenario_count": TRAINING_SCENARIO_COUNT,
+            "task_count": len(smoke_results),
+            "comparisons_vs_base": comparisons,
+            "results": smoke_results,
+            "wall_seconds": time.perf_counter() - started,
+        }
+        _atomic_json(args.out / "SMOKE_COMPLETE.json", smoke)
+        print(json.dumps({
+            "completed": True,
+            "smoke_only": True,
+            "shard": args.shard,
+            "task_count": len(smoke_results),
+            "wall_hours": smoke["wall_seconds"] / 3600.0,
+            "resume_instruction": (
+                "rerun this shard without --smoke-only to reuse these runs"),
+        }, indent=2))
+        return
 
     results = [completed[key] for key in sorted(completed)]
     if len(results) != len(tasks):

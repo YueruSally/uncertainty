@@ -539,6 +539,33 @@ def main(argv=None):
         "scenario_validation": result["scenario_validation"],
     }
     _atomic_json(args.out / "QUICK_RESULT.json", quick)
+    optimization_by_method = {
+        row["method"]: row for row in optimization["paired_vs_base"]}
+    oos_by_method = {
+        row["method"]: row for row in oos["paired_vs_base"]}
+    average_result = {
+        "completed": True,
+        "definition": (
+            "formal average HV changes versus exactly paired Base and "
+            "average optimization runtimes"),
+        "protocol": result["protocol"],
+        "methods": [
+            {
+                "method": method,
+                "mean_optimization_hv_change_percent": (
+                    0.0 if method == "BASE" else
+                    optimization_by_method[method][
+                        "mean_percent_difference"]),
+                "mean_independent_oos_hv_change_percent": (
+                    0.0 if method == "BASE" else
+                    oos_by_method[method]["mean_percent_difference"]),
+                "mean_optimisation_seconds": runtime[method]["mean_seconds"],
+            }
+            for method in METHODS
+        ],
+        "scenario_validation": result["scenario_validation"],
+    }
+    _atomic_json(args.out / "AVERAGE_RESULT.json", average_result)
     (args.out / "REPORT.md").write_text(
         _report(result), encoding="utf-8")
     (args.out / "PIPELINE_COMPLETE").touch()

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FORMAL_ROOT=${FORMAL_ROOT:-transformer_ppo_runs/formal/ccp_im_directed_formal_v1_pop250_gen200_10inst_3seed_s200_oos5000}
+FORMAL_ROOT=${FORMAL_ROOT:-transformer_ppo_runs/formal/ccp_im_directed_formal_v2_pop250_gen200_10newinst_3seed_s200_oos5000}
 ANALYSIS_ROOT=${ANALYSIS_ROOT:-$FORMAL_ROOT/analysis}
 MAX_WORKERS=${MAX_WORKERS:-4}
 

@@ -137,15 +137,28 @@ def main(argv=None):
         existing = _read(plan_path)
         payload = dict(existing)
         digest = payload.pop("plan_digest", None)
-        if digest and canonical_digest(payload) == digest:
-            print(json.dumps({
-                "completed": True,
-                "status": "existing_frozen_plan",
-                "plan": str(plan_path),
-                "plan_digest": digest,
-            }, indent=2))
-            return
-        parser.error("existing formal plan has an invalid digest")
+        if not digest or canonical_digest(payload) != digest:
+            parser.error("existing formal plan has an invalid digest")
+        if (existing.get("population") != POPULATION
+                or existing.get("generations") != GENERATIONS
+                or existing.get("evaluation_budget") != EVALUATION_BUDGET
+                or existing.get("m_rule", {}).get("minimum_generation")
+                != M_MINIMUM_GENERATION):
+            parser.error("existing formal plan uses a different protocol")
+        for relative, expected in existing.get(
+                "implementation_sha256", {}).items():
+            path = ROOT / relative
+            if not path.is_file() or _sha256(path) != expected:
+                parser.error(
+                    "existing formal plan was frozen with different code; "
+                    "use a new FORMAL_ROOT")
+        print(json.dumps({
+            "completed": True,
+            "status": "existing_frozen_plan",
+            "plan": str(plan_path),
+            "plan_digest": digest,
+        }, indent=2))
+        return
     if instances.exists() and any(instances.iterdir()):
         try:
             catalog = _verify_catalog(instances, args.data)
