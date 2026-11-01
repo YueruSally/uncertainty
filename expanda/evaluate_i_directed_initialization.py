@@ -131,7 +131,8 @@ def _aggregate(args, instance_names, statuses):
             if base_hv <= 0.0:
                 raise ValueError(
                     f"nonpositive Base HV: {instance}:seed_{seed}")
-            for strategy, profile in STRATEGY_PROFILES.items():
+            for strategy in args.strategies:
+                profile = STRATEGY_PROFILES[strategy]
                 run = _run_path(args, instance, seed, strategy)
                 complete = _read(run / "COMPLETE.json")
                 config = _read(run / "configuration.json")
@@ -159,7 +160,7 @@ def _aggregate(args, instance_names, statuses):
                 })
 
     strategies = []
-    for strategy in STRATEGY_PROFILES:
+    for strategy in args.strategies:
         rows = [row for row in runs if row["strategy"] == strategy]
         values = [row["paired_percent"] for row in rows]
         mean = statistics.fmean(values)
@@ -188,7 +189,7 @@ def _aggregate(args, instance_names, statuses):
     per_instance = []
     for instance in instance_names:
         instance_result = {"instance": instance, "strategies": []}
-        for strategy in STRATEGY_PROFILES:
+        for strategy in args.strategies:
             values = [
                 row["paired_percent"] for row in runs
                 if row["instance"] == instance
@@ -251,6 +252,11 @@ def main(argv=None):
     parser.add_argument("--instance-ids", nargs="+", required=True)
     parser.add_argument("--algorithm-seeds", nargs="+", type=int,
                         required=True)
+    parser.add_argument(
+        "--strategies", nargs="+", choices=tuple(STRATEGY_PROFILES),
+        default=list(STRATEGY_PROFILES),
+        help=("Strategies to evaluate. BASE is required so every directed "
+              "run has a matched comparator."))
     parser.add_argument("--max-workers", type=int, default=12)
     parser.add_argument("--evaluation-budget", type=int, default=400)
     parser.add_argument("--scenario-count", type=int, default=200)
@@ -271,6 +277,12 @@ def main(argv=None):
             parser.error(f"missing {name}: {path}")
     if args.max_workers < 1:
         parser.error("max-workers must be positive")
+    if len(set(args.strategies)) != len(args.strategies):
+        parser.error("strategies must be unique")
+    if "BASE" not in args.strategies:
+        parser.error("strategies must include BASE")
+    if len(args.strategies) < 2:
+        parser.error("at least one directed strategy is required")
     args.out.mkdir(parents=True, exist_ok=True)
 
     instance_paths = {}
@@ -285,7 +297,7 @@ def main(argv=None):
         (args, instance, path, seed, strategy)
         for instance, path in sorted(instance_paths.items())
         for seed in args.algorithm_seeds
-        for strategy in STRATEGY_PROFILES
+        for strategy in args.strategies
     ]
     statuses = Counter()
     print(
