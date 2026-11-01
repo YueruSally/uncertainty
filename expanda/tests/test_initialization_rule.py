@@ -130,6 +130,46 @@ class InitializationRuleTest(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_half_balanced_profile_directs_four_of_eight_individuals(self):
+        batch = base.Batch(0, "A", "B", 10.0, 0.0, 10.0)
+        candidates = [
+            path(1, 1.0, 9.0, 9.0),
+            path(2, 9.0, 1.0, 8.0),
+            path(3, 5.0, 5.0, 1.0),
+        ]
+        options = {
+            ("A", "B", 0): [
+                option(candidates[0], 0.2, 8.0),
+                option(candidates[1], 0.4, 5.0),
+                option(candidates[2], 1.0, 0.0),
+            ]
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            controller = InitializationRuleController(
+                Path(temporary), "run", "scenario", 100,
+                normalizer=None, reliable_options=options,
+                profile="joint_balanced_p050", method="rule",
+                instance={}, seeds={})
+            try:
+                random.seed(17)
+                before = random.getstate()
+                for _ in range(8):
+                    controller.initial_individual(
+                        [batch], {("A", "B"): candidates}, max_paths=3)
+                after_rule = random.getstate()
+                random.setstate(before)
+                for _ in range(8):
+                    k = random.randint(1, 3)
+                    random.sample(candidates, k)
+                    [random.random() for _ in range(k)]
+                self.assertEqual(after_rule, random.getstate())
+                self.assertEqual(
+                    controller.profile_counts["joint_balanced"], 4)
+                self.assertEqual(
+                    controller.profile_counts["base_passthrough"], 4)
+            finally:
+                controller.close()
+
 
 if __name__ == "__main__":
     unittest.main()

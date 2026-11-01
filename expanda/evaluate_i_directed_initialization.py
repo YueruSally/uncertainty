@@ -18,9 +18,18 @@ EPSILON = 1e-12
 STRATEGY_PROFILES = {
     "BASE": None,
     "I_DIRECTED_BALANCED": "joint_balanced",
+    "I_DIRECTED_BALANCED_P025": "joint_balanced_p025",
+    "I_DIRECTED_BALANCED_P050": "joint_balanced_p050",
+    "I_DIRECTED_BALANCED_P075": "joint_balanced_p075",
     "I_DIRECTED_DIVERSE": "diverse_cycle",
     "I_DIRECTED_RELIABILITY": "time_reliability",
 }
+DEFAULT_STRATEGIES = (
+    "BASE",
+    "I_DIRECTED_BALANCED",
+    "I_DIRECTED_DIVERSE",
+    "I_DIRECTED_RELIABILITY",
+)
 
 
 def _read(path):
@@ -254,7 +263,7 @@ def main(argv=None):
                         required=True)
     parser.add_argument(
         "--strategies", nargs="+", choices=tuple(STRATEGY_PROFILES),
-        default=list(STRATEGY_PROFILES),
+        default=list(DEFAULT_STRATEGIES),
         help=("Strategies to evaluate. BASE is required so every directed "
               "run has a matched comparator."))
     parser.add_argument("--max-workers", type=int, default=12)

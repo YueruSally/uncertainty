@@ -16,6 +16,9 @@ from .initialization_rule_features import (
 
 DIRECTED_INITIALIZATION_PROFILES = (
     "joint_balanced",
+    "joint_balanced_p025",
+    "joint_balanced_p050",
+    "joint_balanced_p075",
     "diverse_cycle",
     "time_reliability",
 )
@@ -29,6 +32,11 @@ DIVERSE_CYCLE = (
     "emission",
     "time_reliability",
 )
+BALANCED_FRACTION_PATTERNS = {
+    "joint_balanced_p025": (True, False, False, False),
+    "joint_balanced_p050": (True, False),
+    "joint_balanced_p075": (True, True, True, False),
+}
 
 
 def _path_signature(path):
@@ -195,11 +203,27 @@ class InitializationRuleController(BaseBudgetController):
                         _path_signature(path),
                     ))]
                 effective_profile = "legacy"
+            elif (self.profile in BALANCED_FRACTION_PATTERNS
+                  and not BALANCED_FRACTION_PATTERNS[self.profile][
+                      initial_individual_index
+                      % len(BALANCED_FRACTION_PATTERNS[self.profile])]):
+                ranked_rows = [{
+                    "path": path,
+                    "score": None,
+                    "effective_profile": "base_passthrough",
+                    "on_time_probability": None,
+                    "max_lateness_h": None,
+                    "structurally_feasible": None,
+                } for path in shadow_paths]
+                effective_profile = "base_passthrough"
             else:
                 ranked_rows, effective_profile = _directed_path_ranking(
                     paths, batch,
                     self.reliable_options.get(key, ()),
-                    self.profile, initial_individual_index)
+                    ("joint_balanced"
+                     if self.profile in BALANCED_FRACTION_PATTERNS
+                     else self.profile),
+                    initial_individual_index)
             selected_rows = ranked_rows[:k]
             selected = [row["path"] for row in selected_rows]
             self.profile_counts[effective_profile] += 1
