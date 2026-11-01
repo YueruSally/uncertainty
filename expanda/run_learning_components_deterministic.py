@@ -9,6 +9,7 @@ from pathlib import Path
 from transformer_ppo.archive import ObjectiveNormalizer, RewardConfig
 from transformer_ppo.config import PPOConfig
 from transformer_ppo.episode import CCP_UNCERTAINTY_PROFILES, run_episode
+from transformer_ppo.initialization_rule import INITIALIZATION_RULE_PROFILES
 from transformer_ppo.ppo import PPOTrainer
 
 
@@ -47,6 +48,11 @@ def main(argv=None):
         "BASE", "RULE-I", "I", "C", "M", "IC", "IM", "CM", "ICM"),
                         required=True)
     parser.add_argument("--initialization-rule-normalization", type=Path)
+    parser.add_argument(
+        "--initialization-rule-profile",
+        choices=INITIALIZATION_RULE_PROFILES, default="legacy",
+        help=("RULE-I path selector. Directed profiles use within-batch "
+              "cost/emission/time/lateness/reliability scaling."))
     parser.add_argument("--initialization-rule-top-k", type=int,
                         help="V2 learned-I Rule-I prefilter size.")
     parser.add_argument("--model-choice-probability", type=float, default=1.0,
@@ -157,7 +163,8 @@ def main(argv=None):
         normalizer = _normalizer(args.normalization)
         rule_normalization = None
         needs_rule_normalization = (
-            args.component == "RULE-I"
+            (args.component == "RULE-I"
+             and args.initialization_rule_profile == "legacy")
             or args.initialization_rule_top_k is not None)
         if needs_rule_normalization:
             if (args.initialization_rule_normalization is None
@@ -330,6 +337,7 @@ def main(argv=None):
             uncertainty_profile=args.uncertainty_profile,
             rule_initialization_normalization=(
                 rule_normalization if args.component == "RULE-I" else None),
+            rule_initialization_profile=args.initialization_rule_profile,
             initialization_learning_rule_normalization=(
                 rule_normalization
                 if args.initialization_rule_top_k is not None else None),

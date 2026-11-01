@@ -18,6 +18,7 @@ from .controller import PPOController
 from .crossover_controller import CrossoverPPOController
 from .initialization_controller import InitializationPPOController
 from .initialization_rule import InitializationRuleController
+from .initialization_rule import INITIALIZATION_RULE_PROFILES
 from .initialization_rule_features import validate_rule_normalization
 from .instance_catalog import read_instance
 from .graph_features import build_graph_observation
@@ -158,6 +159,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 pop_size=100, generations=1_000, reward_config=None,
                 evaluation_mode="ccp100", component="M",
                 rule_initialization_normalization=None,
+                rule_initialization_profile="legacy",
                 initialization_learning_rule_normalization=None,
                 initialization_learning_rule_top_k=None,
                 model_choice_probabilities=None,
@@ -228,8 +230,18 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         for item in episode_trainers}
     candidate_representation = resolve_combined_graph_representation(
         policy_candidate_representations)
-    if component == "RULE-I" and rule_initialization_normalization is None:
-        raise ValueError("RULE-I requires a path-feature normalization")
+    rule_initialization_profile = str(rule_initialization_profile)
+    if rule_initialization_profile not in INITIALIZATION_RULE_PROFILES:
+        raise ValueError(
+            "invalid initialization rule profile: "
+            f"{rule_initialization_profile}")
+    if (component == "RULE-I"
+            and rule_initialization_profile == "legacy"
+            and rule_initialization_normalization is None):
+        raise ValueError("legacy RULE-I requires a path-feature normalization")
+    if (component != "RULE-I"
+            and rule_initialization_profile != "legacy"):
+        raise ValueError("directed initialization profile requires RULE-I")
     if learning_protocol_version not in (None, 1, 2):
         raise ValueError("learning protocol version must be 1 or 2")
     audit = dict(candidate_audit or {})
@@ -578,6 +590,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             policy_candidate_representations or None),
         "initialization_rule": (
             rule_initialization_normalization if component == "RULE-I" else None),
+        "initialization_rule_profile": (
+            rule_initialization_profile if component == "RULE-I" else None),
         "learning_control": {
             "version": 2 if v2_active else 1,
             "initialization_rule_prefilter": (
@@ -639,7 +653,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             out, instance["instance_id"], config["scenario_digest"],
             evaluation_budget, method=method, instance=instance, seeds=seeds,
             normalizer=episode_normalizer,
-            rule_normalization=rule_initialization_normalization)
+            rule_normalization=rule_initialization_normalization,
+            reliable_options=options,
+            profile=rule_initialization_profile)
     elif component in combined_components:
         controller = CombinedPPOController(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,

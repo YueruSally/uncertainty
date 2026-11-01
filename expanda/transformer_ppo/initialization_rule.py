@@ -1,20 +1,123 @@
 """Fixed, training-normalized initialization rule control."""
 from __future__ import annotations
 
+from collections import Counter
+import math
 import random
 
 import baseline_uncertainty as base
 
 from .comparison_controllers import BaseBudgetController
 from .initialization_rule_features import (
-    FEATURES,
     path_rule_score,
     validate_rule_normalization,
 )
 
 
+DIRECTED_INITIALIZATION_PROFILES = (
+    "joint_balanced",
+    "diverse_cycle",
+    "time_reliability",
+)
+INITIALIZATION_RULE_PROFILES = (
+    "legacy",
+    *DIRECTED_INITIALIZATION_PROFILES,
+)
+DIVERSE_CYCLE = (
+    "joint_balanced",
+    "cost",
+    "emission",
+    "time_reliability",
+)
+
+
 def _path_signature(path):
     return tuple(path.nodes), tuple(path.modes)
+
+
+def _finite(value, default=0.0):
+    value = float(value)
+    return value if math.isfinite(value) else float(default)
+
+
+def _directed_path_ranking(paths, batch, reliable_options, profile,
+                           initial_individual_index):
+    """Rank one batch's paths without a real objective evaluation."""
+    if profile not in DIRECTED_INITIALIZATION_PROFILES:
+        raise ValueError(f"invalid directed I profile: {profile}")
+    if profile == "diverse_cycle":
+        effective_profile = DIVERSE_CYCLE[
+            int(initial_individual_index) % len(DIVERSE_CYCLE)]
+    else:
+        effective_profile = profile
+
+    option_by_signature = {
+        _path_signature(option.path): option
+        for option in reliable_options
+    }
+    finite_lateness = [
+        float(option.max_lateness_h)
+        for option in reliable_options
+        if math.isfinite(float(option.max_lateness_h))
+    ]
+    missing_lateness = max(finite_lateness, default=0.0) + 1.0
+    rows = []
+    for path in paths:
+        option = option_by_signature.get(_path_signature(path))
+        on_time = _finite(
+            0.0 if option is None else option.on_time_probability)
+        lateness = _finite(
+            missing_lateness if option is None else option.max_lateness_h,
+            missing_lateness)
+        rows.append({
+            "path": path,
+            "raw": [
+                float(batch.quantity) * _finite(path.base_cost_per_teu),
+                float(batch.quantity) * _finite(path.base_emission_per_teu),
+                _finite(path.base_travel_time_h),
+                lateness,
+                -on_time,
+            ],
+            "on_time_probability": on_time,
+            "max_lateness_h": lateness,
+            "structurally_feasible": option is not None,
+        })
+
+    for column in range(5):
+        values = [row["raw"][column] for row in rows]
+        low = min(values)
+        span = max(values) - low
+        for row in rows:
+            row.setdefault("scaled", []).append(
+                0.0 if span <= 1e-15
+                else (row["raw"][column] - low) / span)
+
+    for row in rows:
+        scaled = row["scaled"]
+        if effective_profile == "joint_balanced":
+            score = (
+                scaled[0] + scaled[1]
+                + (scaled[2] + scaled[3] + scaled[4]) / 3.0)
+        elif effective_profile == "cost":
+            score = scaled[0]
+        elif effective_profile == "emission":
+            score = scaled[1]
+        elif effective_profile == "time_reliability":
+            score = (scaled[2] + scaled[3] + scaled[4]) / 3.0
+        else:
+            raise RuntimeError(
+                f"unsupported effective I profile: {effective_profile}")
+        row["score"] = float(score)
+        row["effective_profile"] = effective_profile
+    # The fixed teacher must not trade structural feasibility for a low
+    # scalar score.  In the normal experiment every batch has many feasible
+    # options; retaining the remaining rows only provides a deterministic
+    # fallback for malformed/small instances where fewer than k exist.
+    rows.sort(key=lambda row: (
+        not row["structurally_feasible"],
+        row["score"], int(row["path"].path_id),
+        _path_signature(row["path"])))
+    return rows, effective_profile
 
 
 class InitializationRuleController(BaseBudgetController):
@@ -24,9 +127,27 @@ class InitializationRuleController(BaseBudgetController):
     controls_crossover = False
     controls_mutation = False
 
-    def __init__(self, *args, rule_normalization, **kwargs):
-        self.rule_normalization = dict(rule_normalization)
-        validate_rule_normalization(self.rule_normalization)
+    def __init__(self, *args, rule_normalization=None,
+                 reliable_options=None, profile="legacy", **kwargs):
+        self.profile = str(profile)
+        if self.profile not in INITIALIZATION_RULE_PROFILES:
+            raise ValueError(
+                f"initialization rule profile must be one of "
+                f"{INITIALIZATION_RULE_PROFILES}")
+        self.rule_normalization = (
+            None if rule_normalization is None else dict(rule_normalization))
+        if self.profile == "legacy":
+            if self.rule_normalization is None:
+                raise ValueError("legacy Rule-I requires normalization")
+            validate_rule_normalization(self.rule_normalization)
+        elif self.rule_normalization is not None:
+            raise ValueError(
+                "directed Rule-I uses within-batch scaling, not a legacy "
+                "normalization")
+        self.reliable_options = dict(reliable_options or {})
+        if self.profile != "legacy" and not self.reliable_options:
+            raise ValueError("directed Rule-I requires reliable path options")
+        self.profile_counts = Counter()
         self.total_attempts = 0
         self.total_effective = 0
         self.no_candidate = 0
@@ -41,6 +162,7 @@ class InitializationRuleController(BaseBudgetController):
         individual = base.Individual()
         event_id = f"{self.run_id}:RULE-I:{self.total_attempts + 1}"
         self.total_attempts += 1
+        initial_individual_index = self.total_attempts - 1
         differs_from_shadow = False
         actions = []
         for batch in batches:
@@ -52,15 +174,30 @@ class InitializationRuleController(BaseBudgetController):
             k = random.randint(1, min(int(max_paths), len(paths)))
             shadow_paths = random.sample(paths, k)
             raw_shares = [random.random() for _ in range(k)]
-            ranked = sorted(
-                paths,
-                key=lambda path: (
-                    path_rule_score(path, self.rule_normalization),
-                    int(path.path_id),
-                    _path_signature(path),
-                ),
-            )
-            selected = ranked[:k]
+            if self.profile == "legacy":
+                ranked_rows = [{
+                    "path": path,
+                    "score": path_rule_score(path, self.rule_normalization),
+                    "effective_profile": "legacy",
+                    "on_time_probability": None,
+                    "max_lateness_h": None,
+                    "structurally_feasible": None,
+                } for path in sorted(
+                    paths,
+                    key=lambda path: (
+                        path_rule_score(path, self.rule_normalization),
+                        int(path.path_id),
+                        _path_signature(path),
+                    ))]
+                effective_profile = "legacy"
+            else:
+                ranked_rows, effective_profile = _directed_path_ranking(
+                    paths, batch,
+                    self.reliable_options.get(key, ()),
+                    self.profile, initial_individual_index)
+            selected_rows = ranked_rows[:k]
+            selected = [row["path"] for row in selected_rows]
+            self.profile_counts[effective_profile] += 1
             self.rule_choices += k
             differs_from_shadow = differs_from_shadow or (
                 tuple(_path_signature(path) for path in selected)
@@ -72,16 +209,22 @@ class InitializationRuleController(BaseBudgetController):
             ])
             actions.append({
                 "batch_id": batch.batch_id,
+                "profile": self.profile,
+                "effective_profile": effective_profile,
                 "required_path_count": k,
                 "chosen_path_ids": [path.path_id for path in selected],
-                "chosen_scores": [
-                    path_rule_score(path, self.rule_normalization)
-                    for path in selected
-                ],
+                "chosen_scores": [row["score"] for row in selected_rows],
+                "chosen_on_time_probabilities": [
+                    row["on_time_probability"] for row in selected_rows],
+                "chosen_max_lateness_h": [
+                    row["max_lateness_h"] for row in selected_rows],
+                "chosen_structurally_feasible": [
+                    row["structurally_feasible"] for row in selected_rows],
             })
         self.total_effective += int(differs_from_shadow)
         self.append("initialization_rule_actions", {
             "event_id": event_id,
+            "profile": self.profile,
             "different_from_shadow_base": bool(differs_from_shadow),
             "actions": actions,
         })
@@ -90,6 +233,9 @@ class InitializationRuleController(BaseBudgetController):
     def summary(self):
         result = super().summary()
         result.update({
+            "initialization_rule_profile": self.profile,
+            "initialization_effective_profile_counts": dict(
+                self.profile_counts),
             "initialization_attempts": self.total_attempts,
             "initializations_different_from_shadow_base": self.total_effective,
             "no_eligible_candidate": self.no_candidate,

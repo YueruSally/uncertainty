@@ -5,6 +5,7 @@ from pathlib import Path
 
 import baseline_uncertainty as base
 from transformer_ppo.initialization_rule import (
+    _directed_path_ranking,
     InitializationRuleController,
     path_rule_score,
 )
@@ -26,6 +27,10 @@ def path(path_id, cost, emission, time):
         path_id, "A", "B", ["A", f"X{path_id}", "B"],
         ["rail", "rail"], [],
         cost, emission, time)
+
+
+def option(candidate, probability, lateness):
+    return base.ReliablePathOption(candidate, probability, lateness, {})
 
 
 class InitializationRuleTest(unittest.TestCase):
@@ -62,6 +67,66 @@ class InitializationRuleTest(unittest.TestCase):
                     [item.path.path_id for item in selected],
                     [2, 3, 1][:k],
                 )
+            finally:
+                controller.close()
+
+    def test_joint_balanced_uses_all_five_path_signals(self):
+        batch = base.Batch(0, "A", "B", 10.0, 0.0, 10.0)
+        cheap_unreliable = path(1, 1.0, 1.0, 20.0)
+        balanced = path(2, 3.0, 3.0, 4.0)
+        clean_slow = path(3, 4.0, 0.5, 10.0)
+        invalid_but_cheap = path(4, 0.0, 0.0, 0.0)
+        ranked, effective = _directed_path_ranking(
+            [cheap_unreliable, balanced, clean_slow, invalid_but_cheap], batch,
+            [
+                option(cheap_unreliable, 0.0, 20.0),
+                option(balanced, 1.0, 0.0),
+                option(clean_slow, 0.5, 5.0),
+            ],
+            "joint_balanced", 0)
+        self.assertEqual(effective, "joint_balanced")
+        self.assertEqual(ranked[0]["path"].path_id, 2)
+        self.assertEqual(len(ranked[0]["scaled"]), 5)
+        self.assertTrue(ranked[0]["structurally_feasible"])
+        self.assertFalse(ranked[-1]["structurally_feasible"])
+
+    def test_diverse_cycle_preserves_base_rng_and_rotates_profiles(self):
+        batch = base.Batch(0, "A", "B", 10.0, 0.0, 10.0)
+        candidates = [
+            path(1, 1.0, 9.0, 9.0),
+            path(2, 9.0, 1.0, 8.0),
+            path(3, 5.0, 5.0, 1.0),
+        ]
+        options = {
+            ("A", "B", 0): [
+                option(candidates[0], 0.2, 8.0),
+                option(candidates[1], 0.4, 5.0),
+                option(candidates[2], 1.0, 0.0),
+            ]
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            controller = InitializationRuleController(
+                Path(temporary), "run", "scenario", 100,
+                normalizer=None, reliable_options=options,
+                profile="diverse_cycle", method="rule",
+                instance={}, seeds={})
+            try:
+                random.seed(13)
+                before = random.getstate()
+                for _ in range(4):
+                    controller.initial_individual(
+                        [batch], {("A", "B"): candidates}, max_paths=3)
+                after_rule = random.getstate()
+                random.setstate(before)
+                for _ in range(4):
+                    k = random.randint(1, 3)
+                    random.sample(candidates, k)
+                    [random.random() for _ in range(k)]
+                self.assertEqual(after_rule, random.getstate())
+                self.assertEqual(
+                    set(controller.profile_counts),
+                    {"joint_balanced", "cost", "emission",
+                     "time_reliability"})
             finally:
                 controller.close()
 
