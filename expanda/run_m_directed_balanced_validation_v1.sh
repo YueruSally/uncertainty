@@ -67,7 +67,80 @@ if ! jq -e '
   exit 1
 fi
 
+jq '
+  [
+    .runs[]
+    | select(
+        .strategy == "REPLACE_G10_JOINT_BALANCED"
+        and .algorithm_seed >= 777004
+      )
+  ] as $rows
+  | ($rows | length) as $n
+  | ($rows | map(.paired_percent)) as $values
+  | ($values | add / $n) as $mean
+  | (
+      $values
+      | map((. - $mean) * (. - $mean))
+      | add / ($n - 1)
+      | sqrt
+    ) as $sd
+  | {
+      definition:
+        "held-out seeds 777004-777010; these seeds did not select the strategy",
+      strategy: "REPLACE_G10_JOINT_BALANCED",
+      instance_count: ($rows | map(.instance) | unique | length),
+      holdout_seed_count: ($rows | map(.algorithm_seed) | unique | length),
+      run_count: $n,
+      mean_paired_percent: $mean,
+      standard_deviation_paired_percent: $sd,
+      standard_error_paired_percent: ($sd / ($n | sqrt)),
+      mean_95ci_low: ($mean - 1.96 * $sd / ($n | sqrt)),
+      mean_95ci_high: ($mean + 1.96 * $sd / ($n | sqrt)),
+      median_paired_percent: ($values | sort | .[$n / 2 | floor]),
+      minimum_paired_percent: ($values | min),
+      maximum_paired_percent: ($values | max),
+      wins: ($values | map(select(. > 1e-12)) | length),
+      ties: ($values | map(select((. | fabs) <= 1e-12)) | length),
+      losses: ($values | map(select(. < -1e-12)) | length),
+      runs_above_5_percent: ($values | map(select(. >= 5)) | length),
+      runs_above_10_percent: ($values | map(select(. >= 10)) | length),
+      per_instance:
+        (
+          $rows
+          | sort_by(.instance)
+          | group_by(.instance)
+          | map(
+              . as $instance_rows
+              | ($instance_rows | map(.paired_percent)) as $instance_values
+              | {
+                  instance: $instance_rows[0].instance,
+                  runs: ($instance_rows | length),
+                  mean_paired_percent:
+                    ($instance_values | add / length),
+                  minimum_paired_percent: ($instance_values | min),
+                  maximum_paired_percent: ($instance_values | max),
+                  wins:
+                    ($instance_values | map(select(. > 1e-12)) | length),
+                  losses:
+                    ($instance_values | map(select(. < -1e-12)) | length)
+                }
+            )
+        )
+    }
+' "$OUT_ROOT/COMPLETE.json" > "$OUT_ROOT/HOLDOUT_RESULT.json"
+
+if ! jq -e '
+  .instance_count == 10
+  and .holdout_seed_count == 7
+  and .run_count == 70
+' "$OUT_ROOT/HOLDOUT_RESULT.json" >/dev/null; then
+  echo "M DIRECTED BALANCED HOLDOUT SUMMARY FAILED" >&2
+  exit 1
+fi
+
 touch "$OUT_ROOT/PIPELINE_COMPLETE"
 
 echo "===== M DIRECTED BALANCED VALIDATION COMPLETE ====="
 cat "$OUT_ROOT/QUICK_RESULT.json"
+echo "===== HELD-OUT SEEDS 777004-777010 ====="
+cat "$OUT_ROOT/HOLDOUT_RESULT.json"
