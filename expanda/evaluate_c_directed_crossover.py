@@ -23,6 +23,10 @@ STRATEGY_SPECS = {
         "profile": "joint_balanced", "min_generation": 10},
     "C_SAFE_BALANCED_ALL_G0": {
         "profile": "joint_balanced_safe_all", "min_generation": 0},
+    "C_JOINT_BALANCED_SINGLE_G0": {
+        "profile": "joint_balanced_single", "min_generation": 0},
+    "C_JOINT_BALANCED_SAFE_SINGLE_G0": {
+        "profile": "joint_balanced_safe_single", "min_generation": 0},
     "C_SAFE_BALANCED_SINGLE_G0": {
         "profile": "joint_balanced_safe_single", "min_generation": 0},
 }
@@ -132,6 +136,11 @@ def _strategy_summary(strategy, rows):
     sd = statistics.stdev(values) if len(values) >= 2 else 0.0
     se = sd / math.sqrt(len(values))
     spec = STRATEGY_SPECS[strategy]
+    directed_events = sum(row["directed_crossover_events"] for row in rows)
+    overridden_cuts = sum(row["overridden_cut_count"] for row in rows)
+    single_profile = bool(
+        spec is not None and spec["profile"] in (
+            "joint_balanced_single", "joint_balanced_safe_single"))
     return {
         "strategy": strategy,
         "profile": None if spec is None else spec["profile"],
@@ -156,6 +165,12 @@ def _strategy_summary(strategy, rows):
             row["directed_cut_count"] for row in rows),
         "mean_overridden_cuts": statistics.fmean(
             row["overridden_cut_count"] for row in rows),
+        "mean_overrides_per_directed_event": (
+            overridden_cuts / directed_events
+            if directed_events > 0 else 0.0),
+        "single_override_violations": sum(
+            row["single_override_violations"] if single_profile else 0
+            for row in rows),
     }
 
 
@@ -194,6 +209,8 @@ def _aggregate(args, instance_names, statuses):
                         complete.get("directed_cut_count", 0)),
                     "overridden_cut_count": int(
                         complete.get("overridden_cut_count", 0)),
+                    "single_override_violations": int(
+                        complete.get("single_override_violations", 0)),
                     "run_path": str(run),
                 })
     summaries = [
@@ -204,6 +221,11 @@ def _aggregate(args, instance_names, statuses):
     ]
     alternatives = [row for row in summaries if row["strategy"] != "BASE"]
     best = max(alternatives, key=lambda row: row["mean_paired_percent"])
+    single_override_exact = all(
+        row["single_override_violations"] == 0
+        for row in alternatives
+        if row["profile"] in (
+            "joint_balanced_single", "joint_balanced_safe_single"))
     thresholds = {
         "minimum_mean_paired_percent": 5.0,
         "minimum_win_fraction": 0.70,
@@ -212,7 +234,8 @@ def _aggregate(args, instance_names, statuses):
     return {
         "completed": True,
         "definition": (
-            "matched frozen-CCP screen of safe directed-balanced C; "
+            "matched frozen-CCP screen of event-wide joint-single "
+            "directed-balanced C; "
             "Base parent/allocation draws and random stream are paired"),
         "instance_count": len(instance_names),
         "algorithm_seed_count": len(args.algorithm_seeds),
@@ -220,11 +243,13 @@ def _aggregate(args, instance_names, statuses):
         "status_counts": dict(statuses),
         "scenario_exact": not scenario_failures,
         "scenario_failures": scenario_failures,
+        "single_override_exact": single_override_exact,
         "strategies": summaries,
         "best_directed_strategy": best,
         "screening_thresholds": thresholds,
         "screening_pass": bool(
             not scenario_failures
+            and single_override_exact
             and best["mean_paired_percent"] >=
             thresholds["minimum_mean_paired_percent"]
             and best["wins"] / best["runs"] >=
@@ -298,7 +323,8 @@ def main(argv=None):
     _write(args.out / "COMPLETE.json", result)
     quick = {key: result[key] for key in (
         "completed", "definition", "instance_count", "algorithm_seed_count",
-        "run_count", "status_counts", "scenario_exact", "strategies",
+        "run_count", "status_counts", "scenario_exact",
+        "single_override_exact", "strategies",
         "best_directed_strategy", "screening_thresholds", "screening_pass")}
     _write(args.out / "QUICK_RESULT.json", quick)
     print(json.dumps(quick, indent=2, allow_nan=False))

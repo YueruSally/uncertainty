@@ -7,7 +7,7 @@ import baseline_uncertainty as base
 from transformer_ppo.crossover_rule import (
     CrossoverRuleController,
     _directed_cut_ranking,
-    _keep_single_override,
+    _joint_single_override_plans,
     _safe_balanced_override,
 )
 
@@ -67,21 +67,43 @@ class CrossoverRuleTests(unittest.TestCase):
         self.assertEqual(reference["candidate"]["join_node"], "BASE")
         self.assertEqual(chosen["candidate"]["join_node"], "SAFE")
 
-    def test_safe_single_keeps_only_strongest_override(self):
-        plans = [
-            {"cut_index": 0, "candidate_index": 2,
-             "metadata": {"name": "weaker"}, "score_improvement": 0.2},
-            {"cut_index": 1, "candidate_index": 3,
-             "metadata": {"name": "stronger"}, "score_improvement": 0.6},
-            {"cut_index": 2, "candidate_index": 0,
-             "metadata": None, "score_improvement": 0.0},
+    def test_joint_single_uses_one_event_wide_candidate_pool(self):
+        class Cut:
+            def __init__(self, candidates, shadow_base_index=0):
+                self.candidates = tuple(candidates)
+                self.shadow_base_index = shadow_base_index
+
+        cuts = [
+            Cut([
+                candidate(0.0, 0.0, 0.0, 20.0, join="BASE-A"),
+                candidate(-1.0, -1.0, -1.0, 20.0, join="GOOD-A"),
+            ]),
+            Cut([
+                candidate(0.0, 0.0, 0.0, 20.0, join="BASE-B"),
+                candidate(-3.0, -3.0, -3.0, 20.0, join="BEST-B"),
+            ]),
         ]
-        selected = _keep_single_override(plans, [0, 0, 0])
-        self.assertEqual(selected["cut_index"], 1)
+        plans, chosen = _joint_single_override_plans(cuts, safe=False)
+        self.assertEqual(chosen["candidate"]["join_node"], "BEST-B")
         self.assertEqual(
-            [plan["candidate_index"] for plan in plans], [0, 3, 0])
-        self.assertEqual(
-            sum(plan["candidate_index"] != 0 for plan in plans), 1)
+            sum(
+                plan["candidate_index"] != cut.shadow_base_index
+                for plan, cut in zip(plans, cuts)),
+            1)
+
+    def test_joint_safe_single_falls_back_on_tradeoff_only_pool(self):
+        class Cut:
+            def __init__(self, candidates, shadow_base_index=0):
+                self.candidates = tuple(candidates)
+                self.shadow_base_index = shadow_base_index
+
+        cuts = [Cut([
+            candidate(0.0, 0.0, 0.0, 20.0, join="BASE"),
+            candidate(-2.0, 1.0, -1.0, 20.0, join="TRADEOFF"),
+        ])]
+        plans, chosen = _joint_single_override_plans(cuts, safe=True)
+        self.assertTrue(chosen["is_base"])
+        self.assertEqual(plans[0]["candidate_index"], 0)
 
     def test_rule_preserves_base_rng_and_overrides_all_learnable_cuts(self):
         batch = base.Batch(7, "A", "D", 10.0, 0.0, 24.0)
