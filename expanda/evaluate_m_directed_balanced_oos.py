@@ -195,7 +195,7 @@ def derive_common_oos_reference(rows, original_reference):
     return {
         "rule": (
             "componentwise maximum of the original reference and the pooled "
-            "Base+Balanced OOS nadir plus max(0.05, 10% pooled axis range)"),
+            "all-method OOS nadir plus max(0.05, 10% pooled axis range)"),
         "original_reference": [float(value) for value in original_reference],
         "pooled_minimum": minima.tolist(),
         "pooled_maximum": maxima.tolist(),
