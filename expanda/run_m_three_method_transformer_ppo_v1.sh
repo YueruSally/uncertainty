@@ -5,9 +5,9 @@ INSTANCES=${INSTANCES:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/tra
 NORMALIZATION=${NORMALIZATION:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/reward_normalization.json}
 BOOTSTRAP_CHECKPOINT=${BOOTSTRAP_CHECKPOINT:-transformer_ppo_runs/diagnostics/v5r_joint_replace_smoke_b160_p20_seed9501/M/final_policy.pt}
 DATA_ROOT=${DATA_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v1_teacher_data_7inst_20seed_b400}
-BC_ROOT=${BC_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v1_soft_bc}
-PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v1_ppo_7inst_b1200}
-OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v1_holdout_3inst_5seed_b400}
+BC_ROOT=${BC_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v2_soft_bc_stable}
+PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v2_ppo_7inst_b1200}
+OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v2_holdout_3inst_5seed_b400}
 
 for REQUIRED in "$NORMALIZATION" "$BOOTSTRAP_CHECKPOINT"; do
   if ! test -f "$REQUIRED"; then
@@ -65,9 +65,9 @@ if ! test -f "$BC_ROOT/TRAINING_COMPLETE.json"; then
     --checkpoint "$BOOTSTRAP_CHECKPOINT" \
     --out "$BC_ROOT" \
     --validation-instances S0_011 \
-    --epochs 12 \
+    --epochs 6 \
     --batch-size 8 \
-    --early-stopping-patience 3 \
+    --early-stopping-patience 2 \
     --learning-rate 3e-5 \
     --weight-decay 1e-4 \
     --soft-label-temperature 0.25 \

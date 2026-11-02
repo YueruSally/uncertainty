@@ -248,48 +248,64 @@ def main(argv=None):
         total_loss = 0.0
         steps = 0
         numerical_fallback_groups = 0
-        pending_groups = list(_groups(training, args.batch_size, rng))
-        while pending_groups:
-            group = pending_groups.pop(0)
-            batch = pad_observations(
-                [item["observation"] for item in group], device)
-            logits, _ = model(batch)
-            loss = _soft_label_loss(
-                torch, logits, group, device,
-                args.soft_label_temperature)
-            if not torch.isfinite(loss):
-                keys = [_state_key(item) for item in group]
-                if len(group) > 1:
-                    pending_groups[0:0] = [[item] for item in group]
-                    numerical_fallback_groups += 1
-                    print(
-                        "[M-TEACHER-TRAIN] split non-finite loss batch "
-                        f"into {len(group)} microbatches: {keys}",
-                        flush=True)
-                    continue
-                raise FloatingPointError(
-                    "non-finite single-state Balanced-teacher imitation "
-                    f"loss: {keys}")
-            optimizer.zero_grad(set_to_none=True)
-            loss.backward()
-            gradient_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(), 1.0)
-            if not torch.isfinite(gradient_norm):
-                keys = [_state_key(item) for item in group]
+        microbatch_mode = False
+        for group in _groups(training, args.batch_size, rng):
+            used_microbatches = microbatch_mode
+            loss_value = None
+            if not microbatch_mode:
+                batch = pad_observations(
+                    [item["observation"] for item in group], device)
+                logits, _ = model(batch)
+                loss = _soft_label_loss(
+                    torch, logits, group, device,
+                    args.soft_label_temperature)
                 optimizer.zero_grad(set_to_none=True)
-                if len(group) > 1:
-                    pending_groups[0:0] = [[item] for item in group]
-                    numerical_fallback_groups += 1
+                if torch.isfinite(loss):
+                    loss.backward()
+                    gradient_norm = torch.nn.utils.clip_grad_norm_(
+                        model.parameters(), 1.0)
+                else:
+                    gradient_norm = torch.as_tensor(float("nan"))
+                if torch.isfinite(gradient_norm):
+                    optimizer.step()
+                    loss_value = float(loss.detach().cpu())
+                elif len(group) > 1:
+                    microbatch_mode = True
+                    used_microbatches = True
                     print(
-                        "[M-TEACHER-TRAIN] split non-finite gradient batch "
-                        f"into {len(group)} microbatches: {keys}",
+                        "[M-TEACHER-TRAIN] enabling stable gradient "
+                        "accumulation after non-finite padded batch; "
+                        f"epoch={epoch} batch_size={len(group)}",
                         flush=True)
-                    continue
-                raise FloatingPointError(
-                    "non-finite single-state Balanced-teacher imitation "
-                    f"gradient: {keys}")
-            optimizer.step()
-            total_loss += float(loss.detach().cpu())
+                else:
+                    raise FloatingPointError(
+                        "non-finite single-state Balanced-teacher imitation "
+                        f"gradient: {[_state_key(group[0])]}")
+            if used_microbatches:
+                optimizer.zero_grad(set_to_none=True)
+                micro_losses = []
+                for item in group:
+                    batch = pad_observations([item["observation"]], device)
+                    logits, _ = model(batch)
+                    micro_loss = _soft_label_loss(
+                        torch, logits, [item], device,
+                        args.soft_label_temperature)
+                    if not torch.isfinite(micro_loss):
+                        raise FloatingPointError(
+                            "non-finite single-state Balanced-teacher "
+                            f"imitation loss: {[_state_key(item)]}")
+                    (micro_loss / len(group)).backward()
+                    micro_losses.append(float(micro_loss.detach().cpu()))
+                gradient_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), 1.0)
+                if not torch.isfinite(gradient_norm):
+                    raise FloatingPointError(
+                        "non-finite accumulated single-state Balanced-teacher "
+                        f"gradient: {[_state_key(item) for item in group]}")
+                optimizer.step()
+                loss_value = sum(micro_losses) / len(micro_losses)
+                numerical_fallback_groups += 1
+            total_loss += loss_value
             steps += 1
         train_metrics = _accuracy(
             torch, model, training, device, args.batch_size,
@@ -301,6 +317,7 @@ def main(argv=None):
             "epoch": epoch,
             "mean_training_loss": total_loss / max(1, steps),
             "numerical_fallback_groups": numerical_fallback_groups,
+            "stable_gradient_accumulation": microbatch_mode,
             "training": train_metrics,
             "validation": validation_metrics,
         }
