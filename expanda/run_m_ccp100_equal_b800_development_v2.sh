@@ -6,8 +6,15 @@ NORMALIZATION=${NORMALIZATION:-/home/lunet/cokt2/uncertainty-transformer-ppo/exp
 BOOTSTRAP_CHECKPOINT=${BOOTSTRAP_CHECKPOINT:-transformer_ppo_runs/diagnostics/v5r_joint_replace_smoke_b160_p20_seed9501/M/final_policy.pt}
 DATA_ROOT=${DATA_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v1_teacher_data_7inst_20seed_b400}
 BC_ROOT=${BC_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_equal_b800_v2_bc_2000train_300valid}
-PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_equal_b800_v2_ppo_7inst}
-OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_equal_b800_v2_holdout_3inst_3seed}
+PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_equal_b800_v3_r16_ppo_7inst}
+OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_equal_b800_v3_r16_holdout_3inst_3seed}
+PPO_ROLLOUT_STEPS=${PPO_ROLLOUT_STEPS:-16}
+
+if ! [[ "$PPO_ROLLOUT_STEPS" =~ ^[1-9][0-9]*$ ]] \
+    || (( PPO_ROLLOUT_STEPS > 16 )); then
+  echo "PPO_ROLLOUT_STEPS must be an integer in [1, 16]: $PPO_ROLLOUT_STEPS" >&2
+  exit 1
+fi
 
 for REQUIRED in \
   "$NORMALIZATION" \
@@ -81,7 +88,7 @@ if ! jq -e '.pass == true' "$OUT_ROOT/BC_GATE.json" >/dev/null; then
   exit 0
 fi
 
-echo "===== STAGE 2: SEVEN-INSTANCE CCP100 PPO / B800 ====="
+echo "===== STAGE 2: SEVEN-INSTANCE CCP100 PPO / B800 / R${PPO_ROLLOUT_STEPS} ====="
 if ! test -f "$PPO_ROOT/training_summary.json"; then
   PPO_RESUME_ARGS=(--initial-checkpoint "$BC_ROOT/final_policy.pt")
   if test -f "$PPO_ROOT/training_progress.json"; then
@@ -109,7 +116,7 @@ if ! test -f "$PPO_ROOT/training_summary.json"; then
     --mutation-control replace_path \
     --m-forced-replace-start-generation 10 \
     --actor-policy direct \
-    --rollout-steps 64 \
+    --rollout-steps "$PPO_ROLLOUT_STEPS" \
     --gae-horizon 8 \
     --actor-learning-rate 3e-5 \
     --critic-learning-rate 1e-5 \
