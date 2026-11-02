@@ -175,6 +175,115 @@ def action_prior(candidates, eligible, use_candidate_probability=True):
     return [value / mass for value in values]
 
 
+def joint_balanced_candidate_scores(candidates, eligible=None):
+    """Balanced M scores using the exact five signals used by the heuristic.
+
+    This is deliberately evaluation-free: it uses only path metadata already
+    present in each legal replacement candidate.
+    """
+    if eligible is None:
+        eligible = [bool(row.get("eligible")) for row in candidates]
+    if len(candidates) != len(eligible):
+        raise ValueError("candidate score and eligibility lengths differ")
+    legal_indices = [index for index, legal in enumerate(eligible) if legal]
+    scores = [math.inf] * len(candidates)
+    if not legal_indices:
+        return scores
+    raw = []
+    for index in legal_indices:
+        row = candidates[index]
+        quantity = _finite(row.get("batch_quantity"))
+        raw.append([
+            quantity * _finite(row.get("replacement_delta_cost_per_teu")),
+            quantity * _finite(row.get("replacement_delta_emission_per_teu")),
+            _finite(row.get("replacement_delta_nominal_time_h")),
+            _finite(row.get("replacement_max_lateness_h"), 1e9),
+            -_finite(row.get("replacement_on_time_probability")),
+        ])
+    values = np.asarray(raw, dtype=float)
+    minima = values.min(axis=0)
+    spans = values.max(axis=0) - minima
+    spans[spans <= 1e-15] = 1.0
+    scaled = (values - minima) / spans
+    legal_scores = (
+        scaled[:, 0] + scaled[:, 1]
+        + (scaled[:, 2] + scaled[:, 3] + scaled[:, 4]) / 3.0)
+    for index, score in zip(legal_indices, legal_scores):
+        scores[index] = float(score)
+    return scores
+
+
+def joint_balanced_action_prior(candidates, eligible, temperature=0.25):
+    """A soft heuristic prior whose argmax matches joint_balanced exactly."""
+    temperature = float(temperature)
+    if temperature <= 0.0:
+        raise ValueError("joint-balanced prior temperature must be positive")
+    scores = joint_balanced_candidate_scores(candidates, eligible)
+    legal = [index for index, value in enumerate(scores) if math.isfinite(value)]
+    if not legal:
+        return [0.0] * len(candidates)
+    # The heuristic resolves exact score ties by batch/path identity.  Encode
+    # the same deterministic order into an otherwise negligible score offset.
+    tie_order = sorted(legal, key=lambda index: (
+        scores[index],
+        int(getattr(candidates[index].get("target"), "batch_id", 0)
+            if not isinstance(candidates[index].get("target"), dict)
+            else candidates[index].get("target", {}).get("batch_id", 0)),
+        str(candidates[index].get("path_id")),
+    ))
+    tie_rank = {index: rank for rank, index in enumerate(tie_order)}
+    minimum = min(scores[index] for index in legal)
+    weights = [0.0] * len(candidates)
+    for index in legal:
+        adjusted = scores[index] - minimum + tie_rank[index] * 1e-12
+        weights[index] = math.exp(-adjusted / temperature)
+    mass = sum(weights)
+    return [value / mass for value in weights]
+
+
+def _solution_proxy(individual, batches):
+    """Cheap deterministic cost/emission/time proxy for Pareto position."""
+    batches_by_id = {getattr(batch, "batch_id", None): batch for batch in batches}
+    total_cost = 0.0
+    total_emission = 0.0
+    completion_time = 0.0
+    for key, allocations in getattr(individual, "od_allocations", {}).items():
+        batch_id = key[2] if len(key) >= 3 else None
+        batch = batches_by_id.get(batch_id)
+        quantity = _finite(getattr(batch, "quantity", 0.0))
+        release = _finite(getattr(batch, "ET", 0.0))
+        for allocation in allocations:
+            share = max(0.0, _finite(getattr(allocation, "share", 0.0)))
+            if share <= 0.0:
+                continue
+            path = allocation.path
+            allocated = quantity * share
+            total_cost += allocated * _finite(
+                getattr(path, "base_cost_per_teu", 0.0))
+            total_emission += allocated * _finite(
+                getattr(path, "base_emission_per_teu", 0.0))
+            completion_time = max(
+                completion_time,
+                release + _finite(getattr(path, "base_travel_time_h", 0.0)))
+    return np.asarray([total_cost, total_emission, completion_time], dtype=float)
+
+
+def parent_proxy_position(individual, population, batches):
+    """Return the crossed child's [0,1] position in three objective proxies."""
+    current = _solution_proxy(individual, batches)
+    reference = [
+        _solution_proxy(row, batches) for row in population
+        if getattr(row, "od_allocations", None)
+    ]
+    if not reference:
+        return [0.5, 0.5, 0.5]
+    values = np.asarray(reference, dtype=float)
+    minima = values.min(axis=0)
+    spans = values.max(axis=0) - minima
+    spans[spans <= 1e-15] = 1.0
+    return np.clip((current - minima) / spans, 0.0, 1.0).tolist()
+
+
 def parent_tokens(ind, batches) -> list[list[float]]:
     by_id = {batch.batch_id: batch for batch in batches}
     tokens = []
@@ -233,13 +342,13 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=(),
             float(arc_index is not None), _finite(arc_index),
             *origin, *destination, *from_node, *to_node, *mode,
         ]
-        if representation in ("path_v2", "path_v3", "path_v4"):
+        if representation in ("path_v2", "path_v3", "path_v4", "path_v5"):
             row.extend(path_business_features(
                 candidate.get("path"), batch, candidate.get("share"),
                 candidate.get("arc"), candidate))
             row.extend(_finite(candidate.get(name))
                        for name in MUTATION_OPTION_FEATURES)
-            if representation in ("path_v3", "path_v4"):
+            if representation in ("path_v3", "path_v4", "path_v5"):
                 candidate_operator = candidate.get("candidate_operator", operator)
                 row.append(float(bool(candidate.get("operator_stage"))))
                 row.extend(
@@ -248,7 +357,7 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=(),
                     _finite(candidate.get("operator_legal_target_count")),
                     _finite(candidate.get("operator_legal_target_fraction")),
                 ])
-                if representation == "path_v4":
+                if representation in ("path_v4", "path_v5"):
                     row.extend(_finite(candidate.get(name))
                                for name in REPLACEMENT_PATH_FEATURES_V4)
         elif representation != "legacy":
@@ -257,7 +366,7 @@ def candidate_tokens(candidates: Iterable[dict], operator: str, batches=(),
         eligible.append(bool(candidate.get("eligible")))
     if not rows:
         dimension = (
-            len(CANDIDATE_PATH_V4_FEATURES) if representation == "path_v4" else
+            len(CANDIDATE_PATH_V4_FEATURES) if representation in ("path_v4", "path_v5") else
             len(CANDIDATE_PATH_V3_FEATURES) if representation == "path_v3" else
             len(CANDIDATE_PATH_V2_FEATURES) if representation == "path_v2" else
             len(CANDIDATE_FEATURES))
@@ -362,6 +471,13 @@ def build_observation(ind, batches, candidates, context, population, pending_off
     generation = max(0, int(context.get("generation", 0)))
     mins, spans = pop["objective_min"], pop["objective_span"]
     pending_mins, pending_spans = pending["objective_min"], pending["objective_span"]
+    parent_objectives = [
+        context.get("q90_cost_before"),
+        context.get("q90_emission_before"),
+        context.get("q90_makespan_before"),
+    ]
+    if candidate_representation == "path_v5":
+        parent_objectives = parent_proxy_position(ind, population, batches)
     global_values = [
         _finite(context.get("K")), _finite(context.get("deadline_window_alpha")),
         generation / max(1, generations - 1), evaluation_count / budget,
@@ -369,8 +485,7 @@ def build_observation(ind, batches, candidates, context, population, pending_off
         _finite(context.get("offspring_fraction")), float(context.get("phase") == "boost"),
         float(bool(context.get("feasible_before"))), _finite(context.get("violation_before")),
         _finite(context.get("parent_rank"), -1.0), _finite(context.get("parent_crowding")),
-        _finite(context.get("q90_cost_before")), _finite(context.get("q90_emission_before")),
-        _finite(context.get("q90_makespan_before")), pop["feasible_ratio"],
+        *[_finite(value) for value in parent_objectives], pop["feasible_ratio"],
         pop["front_size"] / max(1, pop["population_size"]), pop["hypervolume"],
         *[_finite(v) for v in mins], *[_finite(v) for v in spans],
         pending["population_size"] / max(1, len(population)), pending["feasible_ratio"],
@@ -391,7 +506,7 @@ def build_observation(ind, batches, candidates, context, population, pending_off
         observation["graph"] = graph_observation
         observation["candidate_graph_nodes"] = candidate_graph_nodes(
             candidates, graph_observation)
-        if candidate_representation in ("path_v2", "path_v3", "path_v4"):
+        if candidate_representation in ("path_v2", "path_v3", "path_v4", "path_v5"):
             observation["candidate_graph_tokens"] = candidate_graph_tokens(
                 candidates, graph_observation)
     return observation

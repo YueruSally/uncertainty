@@ -312,7 +312,7 @@ def main(argv=None):
         "completed": True,
         "definition": (
             "matched frozen-CCP comparison of exact Base, deterministic "
-            "Balanced heuristic M, and path-v4 Transformer M"),
+            "Balanced heuristic M, and checkpoint-defined Transformer-PPO M"),
         "instance_count": len(normalized_instances),
         "algorithm_seed_count": len(args.algorithm_seeds),
         "run_count": len(rows),

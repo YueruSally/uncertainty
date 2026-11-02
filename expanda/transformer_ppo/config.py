@@ -51,6 +51,8 @@ class PPOConfig:
     initialization_control: str = "auto"
     credit_assignment: str = "continuous"
     mutation_control: str = "location"
+    mutation_action_prior: str = "base"
+    mutation_prior_temperature: float = 0.25
 
     def validate(self) -> None:
         if self.rollout_steps < self.gae_horizon:
@@ -71,9 +73,10 @@ class PPOConfig:
         if self.residual_logit_limit <= 0.0:
             raise ValueError("residual_logit_limit must be positive")
         if self.candidate_representation not in (
-                "legacy", "path_v2", "path_v3", "path_v4"):
+                "legacy", "path_v2", "path_v3", "path_v4", "path_v5"):
             raise ValueError(
-                "candidate_representation must be legacy, path_v2, path_v3, or path_v4")
+                "candidate_representation must be legacy, path_v2, path_v3, "
+                "path_v4, or path_v5")
         if self.initialization_control not in ("auto", "path", "path_count"):
             raise ValueError(
                 "initialization_control must be 'auto', 'path', or 'path_count'")
@@ -94,10 +97,22 @@ class PPOConfig:
             raise ValueError(
                 "operator_location requires path_v3 and operation_terminal credit")
         if (self.mutation_control == "replace_path"
-                and (self.candidate_representation != "path_v4"
+                and (self.candidate_representation not in ("path_v4", "path_v5")
                      or self.credit_assignment != "operation_terminal")):
             raise ValueError(
-                "replace_path requires path_v4 and operation_terminal credit")
+                "replace_path requires path_v4/path_v5 and operation_terminal credit")
+        if self.mutation_action_prior not in ("base", "joint_balanced"):
+            raise ValueError(
+                "mutation_action_prior must be 'base' or 'joint_balanced'")
+        if self.mutation_prior_temperature <= 0.0:
+            raise ValueError("mutation_prior_temperature must be positive")
+        if (self.mutation_action_prior == "joint_balanced"
+                and not (self.mutation_control == "replace_path"
+                         and self.candidate_representation == "path_v5"
+                         and self.actor_policy == "base_residual")):
+            raise ValueError(
+                "joint_balanced mutation prior requires replace_path, path_v5, "
+                "and base_residual")
         if self.hidden_dim % self.attention_heads:
             raise ValueError("hidden_dim must be divisible by attention_heads")
 

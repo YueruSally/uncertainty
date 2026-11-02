@@ -16,7 +16,10 @@ from multi_instance_mutation import candidates_for, replacement_path_candidates
 
 from .archive import RewardArchive, RewardConfig, exact_hv_3d, hv_reward
 from .config import OPERATORS
-from .observations import build_observation
+from .observations import (
+    build_observation, joint_balanced_action_prior,
+    joint_balanced_candidate_scores,
+)
 from .v2_controls import private_seed, validate_model_choice_probability
 
 
@@ -350,9 +353,8 @@ class PPOController(MutationLogger):
                     str(rows[index].get("path_id")))
             selected_index = min(indices, key=key)
         elif selector == "joint_balanced":
-            scores = (
-                scaled[:, 0] + scaled[:, 1]
-                + (scaled[:, 2] + scaled[:, 3] + scaled[:, 4]) / 3.0)
+            scores = joint_balanced_candidate_scores(
+                rows, [True] * len(rows))
             selected_index = min(
                 range(len(rows)),
                 key=lambda index: (
@@ -880,6 +882,16 @@ class PPOController(MutationLogger):
             self.evaluations, self.generations, self.graph_observation,
             getattr(getattr(self.trainer, "config", None),
                     "candidate_representation", "legacy"))
+        config = getattr(self.trainer, "config", None)
+        if (config is not None
+                and getattr(config, "mutation_action_prior", "base")
+                == "joint_balanced"
+                and enriched.get("operator") == "replace"):
+            observation["base_action_prior"] = list(
+                observation["action_prior"])
+            observation["action_prior"] = joint_balanced_action_prior(
+                candidates, observation["eligible"],
+                getattr(config, "mutation_prior_temperature", 0.25))
         self.policy_state_count += 1
         candidate_descriptors = []
         for index, candidate in enumerate(candidates):

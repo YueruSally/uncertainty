@@ -110,7 +110,7 @@ def _catalog_digest(instances):
 
 def _model_spec(component, candidate_representation="legacy"):
     path_encoded = candidate_representation in (
-        "path_v2", "path_v3", "path_v4")
+        "path_v2", "path_v3", "path_v4", "path_v5")
     if component == "C":
         return dict(
             CROSSOVER_GRAPH_MODEL_SPEC_V3
@@ -128,7 +128,7 @@ def _model_spec(component, candidate_representation="legacy"):
         "parent_dim": len(PARENT_FEATURES),
         "candidate_dim": len(
             CANDIDATE_PATH_V4_FEATURES
-            if candidate_representation == "path_v4" else
+            if candidate_representation in ("path_v4", "path_v5") else
             CANDIDATE_PATH_V3_FEATURES
             if candidate_representation == "path_v3" else
             CANDIDATE_PATH_V2_FEATURES if path_encoded else
@@ -146,7 +146,8 @@ def _initialize_policy_from_checkpoint(trainer, checkpoint, device=None):
         device=device, training=False)
     semantic_fields = (
         "actor_policy", "candidate_representation", "initialization_control",
-        "credit_assignment", "mutation_control")
+        "credit_assignment", "mutation_control", "mutation_action_prior",
+        "mutation_prior_temperature")
     mismatches = {
         name: (getattr(source.config, name), getattr(trainer.config, name))
         for name in semantic_fields
@@ -188,7 +189,7 @@ def _run_config(args, config, manifests, records):
         "network_encoding": (
             "ordered-node-edge-paths-v2"
             if config.candidate_representation in (
-                "path_v2", "path_v3", "path_v4")
+                "path_v2", "path_v3", "path_v4", "path_v5")
             else "shared-network-tokens-v1"),
         "actor_conditioning": (
             TRANSFORMER_ACTOR_CONDITIONING
@@ -373,12 +374,13 @@ def main():
         help="Absolute tanh bound for base-residual actor corrections.")
     parser.add_argument(
         "--candidate-representation",
-        choices=("legacy", "path_v2", "path_v3", "path_v4"),
+        choices=("legacy", "path_v2", "path_v3", "path_v4", "path_v5"),
         help=("Candidate feature/graph representation. path_v2 adds business "
               "path summaries and ordered node-edge candidate encoding; "
               "path_v3 adds I planned-share/rank/coverage features or M "
               "operator-stage features; path_v4 adds joint replacement-path "
-              "relative features for M."))
+              "relative features for M; path_v5 additionally conditions M on "
+              "the current child's cost/emission/time position."))
     parser.add_argument(
         "--initialization-control", choices=("auto", "path", "path_count"),
         help=("I action scope. path keeps Base's sampled path count and learns "
@@ -406,6 +408,13 @@ def main():
         help=("M action space. operator_location first chooses a legal "
               "mutation operator and then its target; replace_path leaves "
               "other operators under Base and jointly chooses batch/path for replace."))
+    parser.add_argument(
+        "--mutation-action-prior", choices=("base", "joint_balanced"),
+        help=("M base-residual prior. joint_balanced starts from the exact "
+              "five-signal heuristic distribution and learns bounded PPO corrections."))
+    parser.add_argument(
+        "--mutation-prior-temperature", type=float,
+        help="Soft joint-balanced M prior temperature.")
     parser.add_argument(
         "--mutation-supervised-prior", type=Path,
         help=("Portable pairwise-linear prior artifact for M replace_path. "
@@ -465,11 +474,12 @@ def main():
             and args.credit_assignment == "operation_terminal"
             and args.gae_horizon is not None and args.gae_horizon < 64):
         parser.error("C operation_terminal requires --gae-horizon >= 64")
-    if (args.candidate_representation in ("path_v3", "path_v4")
+    if (args.candidate_representation in ("path_v3", "path_v4", "path_v5")
             and args.component not in ("I", "C", "M")):
-        parser.error("path_v3/path_v4 require I, C, or M")
-    if args.candidate_representation == "path_v4" and args.component != "M":
-        parser.error("path_v4 is valid only for M")
+        parser.error("path_v3/path_v4/path_v5 require I, C, or M")
+    if (args.candidate_representation in ("path_v4", "path_v5")
+            and args.component != "M"):
+        parser.error("path_v4/path_v5 are valid only for M")
     if (args.component == "C"
             and args.candidate_representation == "path_v3"
             and args.credit_assignment != "operation_terminal"):
@@ -488,6 +498,11 @@ def main():
         parser.error("path_count initialization control requires path_v3")
     if args.mutation_control is not None and args.component != "M":
         parser.error("--mutation-control is valid only for M")
+    if args.mutation_action_prior is not None and args.component != "M":
+        parser.error("--mutation-action-prior is valid only for M")
+    if (args.mutation_prior_temperature is not None
+            and args.component != "M"):
+        parser.error("--mutation-prior-temperature is valid only for M")
     if (args.mutation_supervised_prior is not None
             and not args.mutation_supervised_prior.is_file()):
         parser.error("mutation supervised prior does not exist")
@@ -501,10 +516,10 @@ def main():
             "operator_location requires --candidate-representation path_v3 "
             "and --credit-assignment operation_terminal")
     if args.mutation_control == "replace_path" and not (
-            args.candidate_representation == "path_v4"
+            args.candidate_representation in ("path_v4", "path_v5")
             and args.credit_assignment == "operation_terminal"):
         parser.error(
-            "replace_path requires --candidate-representation path_v4 "
+            "replace_path requires --candidate-representation path_v4/path_v5 "
             "and --credit-assignment operation_terminal")
     if args.m_forced_replace_start_generation is not None:
         if args.m_forced_replace_start_generation < 0:
@@ -556,6 +571,8 @@ def main():
             "gae_horizon": args.gae_horizon,
             "rollout_steps": args.rollout_steps,
             "mutation_control": args.mutation_control,
+            "mutation_action_prior": args.mutation_action_prior,
+            "mutation_prior_temperature": args.mutation_prior_temperature,
         }.items() if value is not None
     }
     config = replace(config, **overrides)
@@ -566,10 +583,11 @@ def main():
     if args.mutation_supervised_prior is not None and not (
             args.component == "M"
             and config.mutation_control == "replace_path"
-            and config.candidate_representation == "path_v4"
+            and config.candidate_representation in ("path_v4", "path_v5")
             and config.actor_policy == "base_residual"):
         parser.error(
-            "mutation supervised prior requires M replace_path path_v4 base_residual")
+            "mutation supervised prior requires M replace_path path_v4/path_v5 "
+            "base_residual")
     normalizer = _normalizer(args.normalization)
     run_config = _run_config(args, config, manifests, records)
     args.out.mkdir(parents=True, exist_ok=True)

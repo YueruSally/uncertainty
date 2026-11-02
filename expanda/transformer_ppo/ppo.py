@@ -192,6 +192,8 @@ class PPOTrainer:
             "initialization_control": self.config.initialization_control,
             "credit_assignment": self.config.credit_assignment,
             "mutation_control": self.config.mutation_control,
+            "mutation_action_prior": self.config.mutation_action_prior,
+            "mutation_prior_temperature": self.config.mutation_prior_temperature,
             "supervised_prior": prior_diagnostics,
             "policy_update": self.updates, "architecture": self.architecture,
             "action_group_probabilities": (
@@ -575,6 +577,8 @@ class PPOTrainer:
             "initialization_control": config.initialization_control,
             "credit_assignment": config.credit_assignment,
             "mutation_control": config.mutation_control,
+            "mutation_action_prior": config.mutation_action_prior,
+            "mutation_prior_temperature": config.mutation_prior_temperature,
             "supervised_prior_digest": (
                 None if result.supervised_prior is None
                 else result.supervised_prior.digest),
