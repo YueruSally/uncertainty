@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import replace
+import gc
 import json
 import math
 from pathlib import Path
@@ -233,10 +234,13 @@ def main(argv=None):
     validation = _limited_rows(
         available_validation, args.maximum_validation_states, args.seed + 202)
     available_instances = sorted({row["instance"] for row in rows})
+    dataset_state_count = len(rows)
+    available_training_state_count = len(available_training)
+    available_validation_state_count = len(available_validation)
     print(
-        f"[M-TEACHER-DATASET] states={len(rows)} "
-        f"training={len(training)}/{len(available_training)} "
-        f"validation={len(validation)}/{len(available_validation)} "
+        f"[M-TEACHER-DATASET] states={dataset_state_count} "
+        f"training={len(training)}/{available_training_state_count} "
+        f"validation={len(validation)}/{available_validation_state_count} "
         f"available_instances={available_instances} "
         f"requested_validation={sorted(validation_names)}",
         flush=True)
@@ -245,6 +249,11 @@ def main(argv=None):
             "teacher dataset must contain both training and validation states; "
             f"available={available_instances}, "
             f"requested_validation={sorted(validation_names)}")
+    # Development pilots keep only their deterministic subset in memory.
+    # Full runs retain every row because the selected lists already contain all
+    # references.  Deleting the source containers is safe in both cases.
+    del rows, available_training, available_validation
+    gc.collect()
 
     trainer = PPOTrainer.load(
         args.checkpoint, PPOConfig, lambda *_: None,
@@ -419,9 +428,9 @@ def main(argv=None):
         "definition": (
             "path-v4 M Transformer behaviour-cloned from the deterministic "
             "Balanced joint batch/path selector"),
-        "dataset_state_count": len(rows),
-        "available_training_state_count": len(available_training),
-        "available_validation_state_count": len(available_validation),
+        "dataset_state_count": dataset_state_count,
+        "available_training_state_count": available_training_state_count,
+        "available_validation_state_count": available_validation_state_count,
         "training_instances": sorted({row["instance"] for row in training}),
         "validation_instances": sorted({row["instance"] for row in validation}),
         "training": final_train,
