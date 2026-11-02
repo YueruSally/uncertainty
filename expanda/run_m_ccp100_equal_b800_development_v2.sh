@@ -85,7 +85,7 @@ echo "===== STAGE 2: SEVEN-INSTANCE CCP100 PPO / B800 ====="
 if ! test -f "$PPO_ROOT/training_summary.json"; then
   PPO_RESUME_ARGS=(--initial-checkpoint "$BC_ROOT/final_policy.pt")
   if test -f "$PPO_ROOT/training_progress.json"; then
-    PPO_RESUME_ARGS=(--resume)
+    PPO_RESUME_ARGS+=(--resume)
   fi
   python3 -u train_transformer_ppo_ccp100.py \
     --instances "$INSTANCES" \
