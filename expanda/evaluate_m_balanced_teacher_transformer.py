@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 import json
 import math
 import os
 from pathlib import Path
+import shutil
 import statistics
 import subprocess
 import sys
@@ -51,12 +53,38 @@ def _valid(run, role, seed, minimum_generation):
         return False
 
 
+def _quarantine_incomplete_run(run):
+    """Move an incomplete run aside so an interrupted evaluation can resume."""
+    run = Path(run)
+    if not run.exists():
+        return None
+    if len(run.parents) < 3:
+        raise ValueError(f"run path is too shallow to quarantine safely: {run}")
+    quarantine = run.parents[2] / "interrupted_runs"
+    relative = Path(run.parents[1].name) / run.parent.name / run.name
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    destination = quarantine / relative.parent / f"{relative.name}_{stamp}"
+    suffix = 1
+    while destination.exists():
+        destination = quarantine / relative.parent / (
+            f"{relative.name}_{stamp}_{suffix}")
+        suffix += 1
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(run), str(destination))
+    print(
+        f"[M-TRANSFORMER-PILOT] quarantined incomplete run: "
+        f"{run} -> {destination}",
+        flush=True,
+    )
+    return destination
+
+
 def _run(job):
     run, log, command, role, seed, minimum_generation = job
     if _valid(run, role, seed, minimum_generation):
         return str(run), "existing"
     if run.exists():
-        raise RuntimeError(f"incomplete output exists; use a fresh root: {run}")
+        _quarantine_incomplete_run(run)
     run.parent.mkdir(parents=True, exist_ok=True)
     environment = os.environ.copy()
     environment.setdefault("OMP_NUM_THREADS", "1")

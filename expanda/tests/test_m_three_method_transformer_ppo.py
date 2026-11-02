@@ -5,13 +5,30 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from evaluate_m_balanced_teacher_transformer import _command
+from evaluate_m_balanced_teacher_transformer import (
+    _command,
+    _quarantine_incomplete_run,
+)
 from train_m_balanced_teacher_transformer import (
     _limited_rows, _teacher_probabilities,
 )
 
 
 class MThreeMethodTransformerPPOTest(unittest.TestCase):
+    def test_incomplete_evaluation_run_is_quarantined_for_resume(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temporary:
+            out = Path(temporary) / "validation"
+            run = out / "S0_001" / "seed_7" / "TRANSFORMER_PPO"
+            run.mkdir(parents=True)
+            (run / "partial.txt").write_text("partial", encoding="utf-8")
+            destination = _quarantine_incomplete_run(run)
+            self.assertFalse(run.exists())
+            self.assertIsNotNone(destination)
+            self.assertTrue((destination / "partial.txt").is_file())
+            self.assertEqual(destination.parents[2], out / "interrupted_runs")
+
     def test_development_subset_is_deterministic_and_bounded(self):
         rows = [{"value": value} for value in range(20)]
         first = _limited_rows(rows, 7, 42)
