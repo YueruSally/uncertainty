@@ -4,6 +4,7 @@ set -euo pipefail
 INSTANCES=${INSTANCES:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/instances}
 NORMALIZATION=${NORMALIZATION:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/reward_normalization.json}
 BOOTSTRAP_CHECKPOINT=${BOOTSTRAP_CHECKPOINT:-transformer_ppo_runs/diagnostics/v5r_joint_replace_smoke_b160_p20_seed9501/M/final_policy.pt}
+SCENARIO_COUNT=${SCENARIO_COUNT:-200}
 DATA_ROOT=${DATA_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v1_teacher_data_7inst_20seed_b400}
 BC_ROOT=${BC_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v2_soft_bc_stable}
 PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v2_ppo_7inst_b1200}
@@ -17,6 +18,13 @@ for REQUIRED in "$NORMALIZATION" "$BOOTSTRAP_CHECKPOINT"; do
 done
 
 mkdir -p "$DATA_ROOT" "$BC_ROOT" "$PPO_ROOT" "$OUT_ROOT"
+
+if ! [[ "$SCENARIO_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+  echo "SCENARIO_COUNT must be a positive integer: $SCENARIO_COUNT" >&2
+  exit 1
+fi
+
+echo "===== CCP SCENARIO COUNT: $SCENARIO_COUNT ====="
 
 echo "===== TEST M SOFT-BC + PPO THREE-METHOD PIPELINE ====="
 python3 -u -m unittest \
@@ -42,7 +50,7 @@ python3 -u collect_m_teacher_rollouts.py \
   --minimum-generation 10 \
   --max-workers 12 \
   --evaluation-budget 400 \
-  --scenario-count 200 \
+  --scenario-count "$SCENARIO_COUNT" \
   --ccp-confidence 0.90 \
   --pop 20 \
   --gens 1000 \
@@ -95,7 +103,7 @@ if ! test -f "$PPO_ROOT/training_summary.json"; then
     --evaluation-budget 1200 \
     --evaluation-mode ccp \
     --uncertainty-profile transport_border_saa_v1 \
-    --scenario-count 200 \
+    --scenario-count "$SCENARIO_COUNT" \
     --ccp-confidence 0.90 \
     --pop 20 \
     --gens 1000 \
@@ -144,7 +152,7 @@ python3 -u evaluate_m_balanced_teacher_transformer.py \
   --minimum-generation 10 \
   --max-workers 12 \
   --evaluation-budget 400 \
-  --scenario-count 200 \
+  --scenario-count "$SCENARIO_COUNT" \
   --ccp-confidence 0.90 \
   --pop 20 \
   --gens 1000 \
