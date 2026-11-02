@@ -33,6 +33,11 @@ for REQUIRED in \
 done
 
 mkdir -p "$OUT_ROOT"
+exec 9>"$OUT_ROOT/pipeline.lock"
+if ! flock -n 9; then
+  echo "ANOTHER INDEPENDENT VALIDATION PIPELINE IS ALREADY RUNNING" >&2
+  exit 75
+fi
 
 echo "===== TEST RESUMABLE INDEPENDENT CCP100 M VALIDATION ====="
 python3 -u -m unittest \
