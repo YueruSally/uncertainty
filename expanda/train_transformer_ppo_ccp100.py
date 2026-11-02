@@ -515,10 +515,19 @@ def main():
             parser.error(
                 "forced Replace training requires component M, "
                 "mutation_control=replace_path and model choice probability 1")
+    # The shell pipelines stream stdout through ``tee`` into training.log.
+    # ``tee`` opens that file before this process reaches argument validation,
+    # so the log itself must not make an otherwise fresh output directory look
+    # like a partial training run.  Every actual training artifact still counts
+    # and therefore continues to require --resume.
+    existing_training_artifacts = (
+        [] if not args.out.exists()
+        else [entry for entry in args.out.iterdir()
+              if entry.name != "training.log"])
     if args.resume:
-        if not args.out.exists() or not any(args.out.iterdir()):
+        if not existing_training_artifacts:
             parser.error("--resume requires an existing non-empty output directory")
-    elif args.out.exists() and any(args.out.iterdir()):
+    elif existing_training_artifacts:
         parser.error("output directory must be empty unless --resume is supplied")
     try:
         manifests, records = _ordered_manifests(
