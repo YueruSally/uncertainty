@@ -5,6 +5,7 @@ INSTANCES=${INSTANCES:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/tra
 NORMALIZATION=${NORMALIZATION:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/reward_normalization.json}
 BOOTSTRAP_CHECKPOINT=${BOOTSTRAP_CHECKPOINT:-transformer_ppo_runs/diagnostics/v5r_joint_replace_smoke_b160_p20_seed9501/M/final_policy.pt}
 SCENARIO_COUNT=${SCENARIO_COUNT:-200}
+REUSE_PRETRAINED_BC=${REUSE_PRETRAINED_BC:-0}
 DATA_ROOT=${DATA_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v1_teacher_data_7inst_20seed_b400}
 BC_ROOT=${BC_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v2_soft_bc_stable}
 PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_three_method_v2_ppo_7inst_b1200}
@@ -23,6 +24,10 @@ if ! [[ "$SCENARIO_COUNT" =~ ^[1-9][0-9]*$ ]]; then
   echo "SCENARIO_COUNT must be a positive integer: $SCENARIO_COUNT" >&2
   exit 1
 fi
+if [[ "$REUSE_PRETRAINED_BC" != 0 && "$REUSE_PRETRAINED_BC" != 1 ]]; then
+  echo "REUSE_PRETRAINED_BC must be 0 or 1: $REUSE_PRETRAINED_BC" >&2
+  exit 1
+fi
 
 echo "===== CCP SCENARIO COUNT: $SCENARIO_COUNT ====="
 
@@ -34,56 +39,68 @@ python3 -u -m unittest \
   tests.test_learning_components_v2_controls.V2ControlTests.test_forced_replace_model_selector_executes_transformer_candidate \
   > "$OUT_ROOT/tests.log" 2>&1
 
-echo "===== COLLECT >=3000 BALANCED M STATES ====="
-python3 -u collect_m_teacher_rollouts.py \
-  --instances "$INSTANCES" \
-  --normalization "$NORMALIZATION" \
-  --checkpoint "$BOOTSTRAP_CHECKPOINT" \
-  --out "$DATA_ROOT" \
-  --instance-ids \
-    train-S0-002 train-S0-005 train-S0-006 train-S0-007 \
-    train-S0-008 train-S0-009 train-S0-011 \
-  --algorithm-seeds \
-    881001 881002 881003 881004 881005 881006 881007 881008 \
-    881009 881010 881011 881012 881013 881014 881015 881016 \
-    881017 881018 881019 881020 \
-  --minimum-generation 10 \
-  --max-workers 12 \
-  --evaluation-budget 400 \
-  --scenario-count "$SCENARIO_COUNT" \
-  --ccp-confidence 0.90 \
-  --pop 20 \
-  --gens 1000 \
-  --device cpu \
-  | tee "$DATA_ROOT/collection.log"
-
-if ! jq -e '
-  .completed == true
-  and .run_count == 140
-  and .policy_state_count >= 3000
-' "$DATA_ROOT/DATA_COMPLETE.json" >/dev/null; then
-  echo "M TEACHER DATASET DID NOT REACH 3000 STATES" >&2
-  exit 1
-fi
-
-if ! test -f "$BC_ROOT/TRAINING_COMPLETE.json"; then
-  echo "===== SOFT-LABEL BEHAVIOUR PRETRAINING ====="
-  python3 -u train_m_balanced_teacher_transformer.py \
-    --data-root "$DATA_ROOT" \
-    --checkpoint "$BOOTSTRAP_CHECKPOINT" \
-    --out "$BC_ROOT" \
-    --validation-instances S0_011 \
-    --epochs 6 \
-    --batch-size 8 \
-    --early-stopping-patience 2 \
-    --learning-rate 3e-5 \
-    --weight-decay 1e-4 \
-    --soft-label-temperature 0.25 \
-    --seed 62011 \
-    --device cpu \
-    | tee "$BC_ROOT/training.log"
+if [[ "$REUSE_PRETRAINED_BC" == 1 ]]; then
+  echo "===== REUSE PRETRAINED SOFT-BC CHECKPOINT ====="
+  for REQUIRED in \
+    "$BC_ROOT/TRAINING_COMPLETE.json" \
+    "$BC_ROOT/final_policy.pt"; do
+    if ! test -f "$REQUIRED"; then
+      echo "MISSING PRETRAINED BC INPUT: $REQUIRED" >&2
+      exit 1
+    fi
+  done
 else
-  echo "===== REUSE COMPLETE SOFT-BC CHECKPOINT ====="
+  echo "===== COLLECT >=3000 BALANCED M STATES ====="
+  python3 -u collect_m_teacher_rollouts.py \
+    --instances "$INSTANCES" \
+    --normalization "$NORMALIZATION" \
+    --checkpoint "$BOOTSTRAP_CHECKPOINT" \
+    --out "$DATA_ROOT" \
+    --instance-ids \
+      train-S0-002 train-S0-005 train-S0-006 train-S0-007 \
+      train-S0-008 train-S0-009 train-S0-011 \
+    --algorithm-seeds \
+      881001 881002 881003 881004 881005 881006 881007 881008 \
+      881009 881010 881011 881012 881013 881014 881015 881016 \
+      881017 881018 881019 881020 \
+    --minimum-generation 10 \
+    --max-workers 12 \
+    --evaluation-budget 400 \
+    --scenario-count "$SCENARIO_COUNT" \
+    --ccp-confidence 0.90 \
+    --pop 20 \
+    --gens 1000 \
+    --device cpu \
+    | tee "$DATA_ROOT/collection.log"
+
+  if ! jq -e '
+    .completed == true
+    and .run_count == 140
+    and .policy_state_count >= 3000
+  ' "$DATA_ROOT/DATA_COMPLETE.json" >/dev/null; then
+    echo "M TEACHER DATASET DID NOT REACH 3000 STATES" >&2
+    exit 1
+  fi
+
+  if ! test -f "$BC_ROOT/TRAINING_COMPLETE.json"; then
+    echo "===== SOFT-LABEL BEHAVIOUR PRETRAINING ====="
+    python3 -u train_m_balanced_teacher_transformer.py \
+      --data-root "$DATA_ROOT" \
+      --checkpoint "$BOOTSTRAP_CHECKPOINT" \
+      --out "$BC_ROOT" \
+      --validation-instances S0_011 \
+      --epochs 6 \
+      --batch-size 8 \
+      --early-stopping-patience 2 \
+      --learning-rate 3e-5 \
+      --weight-decay 1e-4 \
+      --soft-label-temperature 0.25 \
+      --seed 62011 \
+      --device cpu \
+      | tee "$BC_ROOT/training.log"
+  else
+    echo "===== REUSE COMPLETE SOFT-BC CHECKPOINT ====="
+  fi
 fi
 
 echo "===== ON-POLICY PPO WITH Q90-HV REWARD ====="
