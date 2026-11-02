@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Matched CCP pilot: Base vs Balanced teacher vs distilled M Transformer."""
+"""Matched CCP comparison: Base vs Balanced heuristic vs M Transformer."""
 from __future__ import annotations
 
 import argparse
@@ -15,14 +15,11 @@ import sys
 
 
 EPSILON = 1e-12
-STRATEGIES = ("BASE", "TEACHER_BALANCED", "TRANSFORMER_BC")
-
-
 def _read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def _valid(run, strategy, seed, minimum_generation):
+def _valid(run, role, seed, minimum_generation):
     run = Path(run)
     if not (run / "COMPLETE.json").is_file():
         return False
@@ -33,9 +30,9 @@ def _valid(run, strategy, seed, minimum_generation):
         common = bool(
             complete.get("completed") is True
             and config.get("seeds", {}).get("algorithm") == seed)
-        if strategy == "BASE":
+        if role == "BASE":
             return common and complete.get("component") == "BASE"
-        if strategy == "TEACHER_BALANCED":
+        if role == "HEURISTIC":
             return bool(
                 common and complete.get("component") == "M"
                 and control.get("m_forced_operator") == "replace"
@@ -55,8 +52,8 @@ def _valid(run, strategy, seed, minimum_generation):
 
 
 def _run(job):
-    run, log, command, strategy, seed, minimum_generation = job
-    if _valid(run, strategy, seed, minimum_generation):
+    run, log, command, role, seed, minimum_generation = job
+    if _valid(run, role, seed, minimum_generation):
         return str(run), "existing"
     if run.exists():
         raise RuntimeError(f"incomplete output exists; use a fresh root: {run}")
@@ -70,18 +67,18 @@ def _run(job):
             stdout=handle, stderr=subprocess.STDOUT,
             env=environment, check=False)
     if result.returncode != 0 or not _valid(
-            run, strategy, seed, minimum_generation):
+            run, role, seed, minimum_generation):
         raise RuntimeError(f"pilot run failed with exit {result.returncode}: {log}")
     return str(run), "complete"
 
 
-def _command(args, instance, run, strategy, seed):
+def _command(args, instance, run, role, seed):
     command = [
         sys.executable, "-u", str(args.runner),
         "--instance", str(instance),
         "--normalization", str(args.normalization),
         "--out", str(run),
-        "--component", "BASE" if strategy == "BASE" else "M",
+        "--component", "BASE" if role == "BASE" else "M",
         "--algorithm-seed", str(seed),
         "--evaluation-mode", "ccp",
         "--uncertainty-profile", "transport_border_saa_v1",
@@ -91,7 +88,7 @@ def _command(args, instance, run, strategy, seed):
         "--pop", str(args.pop), "--gens", str(args.gens),
         "--device", args.device,
     ]
-    if strategy == "TEACHER_BALANCED":
+    if role == "HEURISTIC":
         command.extend([
             "--checkpoint", str(args.bootstrap_checkpoint),
             "--inference-action-mode", "argmax",
@@ -101,7 +98,7 @@ def _command(args, instance, run, strategy, seed):
             "--m-forced-operator-probability", "1",
             "--m-forced-replace-selector", "joint_balanced",
         ])
-    elif strategy == "TRANSFORMER_BC":
+    elif role == "TRANSFORMER":
         command.extend([
             "--checkpoint", str(args.transformer_checkpoint),
             "--inference-action-mode", "argmax",
@@ -149,6 +146,10 @@ def main(argv=None):
     parser.add_argument("--bootstrap-checkpoint", type=Path, required=True)
     parser.add_argument("--transformer-checkpoint", type=Path, required=True)
     parser.add_argument("--training-report", type=Path, required=True)
+    parser.add_argument(
+        "--heuristic-result-name", default="TEACHER_BALANCED")
+    parser.add_argument(
+        "--transformer-result-name", default="TRANSFORMER_BC")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--instance-ids", nargs="+", required=True)
     parser.add_argument("--algorithm-seeds", nargs="+", type=int, required=True)
@@ -165,6 +166,13 @@ def main(argv=None):
         default=Path(__file__).resolve().with_name(
             "run_learning_components_deterministic.py"))
     args = parser.parse_args(argv)
+    strategy_specs = (
+        ("BASE", "BASE"),
+        (args.heuristic_result_name, "HEURISTIC"),
+        (args.transformer_result_name, "TRANSFORMER"),
+    )
+    if len({name for name, _ in strategy_specs}) != len(strategy_specs):
+        parser.error("three result strategy names must be unique")
     for path, name in (
             (args.normalization, "normalization"),
             (args.bootstrap_checkpoint, "bootstrap checkpoint"),
@@ -183,14 +191,14 @@ def main(argv=None):
         instance = requested.replace("train-", "").replace("-", "_")
         normalized_instances[instance] = instance_path
         for seed in args.algorithm_seeds:
-            for strategy in STRATEGIES:
+            for strategy, role in strategy_specs:
                 run = args.out / instance / f"seed_{seed}" / strategy
                 log = args.out / "logs" / f"{instance}_seed_{seed}_{strategy}.log"
                 log.parent.mkdir(parents=True, exist_ok=True)
                 jobs.append((
                     run, log,
-                    _command(args, instance_path, run, strategy, seed),
-                    strategy, seed, args.minimum_generation))
+                    _command(args, instance_path, run, role, seed),
+                    role, seed, args.minimum_generation))
     statuses = Counter()
     print(f"[M-TRANSFORMER-PILOT] jobs={len(jobs)} workers={args.max_workers}",
           flush=True)
@@ -212,7 +220,7 @@ def main(argv=None):
             base_hv = float(base["final_hypervolume"])
             if base_hv <= 0.0:
                 raise ValueError(f"nonpositive Base HV: {base_run}")
-            for strategy in STRATEGIES:
+            for strategy, _ in strategy_specs:
                 run = args.out / instance / f"seed_{seed}" / strategy
                 complete = _read(run / "COMPLETE.json")
                 config = _read(run / "configuration.json")
@@ -240,32 +248,57 @@ def main(argv=None):
         _strategy_summary(
             strategy,
             [row for row in rows if row["strategy"] == strategy])
-        for strategy in STRATEGIES
+        for strategy, _ in strategy_specs
     ]
     by_name = {row["strategy"]: row for row in strategies}
     training = _read(args.training_report)
-    transformer = by_name["TRANSFORMER_BC"]
+    transformer = by_name[args.transformer_result_name]
+    teacher_imitation = None
+    ppo_training = None
+    if "training" in training and "validation" in training:
+        teacher_imitation = {
+            "training_top_1": training["training"]["top_1_accuracy"],
+            "validation_top_1": training["validation"]["top_1_accuracy"],
+            "selected_epoch": training["selected_epoch"],
+            "training_states": training["training"]["states"],
+            "validation_states": training["validation"]["states"],
+            "soft_label_temperature": training.get("soft_label_temperature"),
+        }
+    elif training.get("completed") is True and training.get("component") == "M":
+        episodes = training.get("episodes", [])
+        ppo_training = {
+            "episode_count": len(episodes),
+            "ppo_updates": sum(int(row.get("ppo_updates", 0)) for row in episodes),
+            "reward_total": sum(float(row.get("reward_total", 0.0)) for row in episodes),
+            "positive_reward_actions": sum(
+                int(row.get("positive_reward_actions", 0)) for row in episodes),
+            "real_objective_evaluations": int(
+                training.get("total_actual_evaluations", 0)),
+            "counterfactual_evaluations": int(
+                training.get("total_counterfactual_evaluations", 0)),
+            "elapsed_seconds": float(training.get("elapsed_seconds", 0.0)),
+        }
+    else:
+        parser.error("training report is neither a BC nor an M PPO report")
     result = {
         "completed": True,
         "definition": (
-            "matched frozen-CCP pilot: exact Base, deterministic Balanced "
-            "teacher, and a path-v4 Transformer distilled from that teacher"),
+            "matched frozen-CCP comparison of exact Base, deterministic "
+            "Balanced heuristic M, and path-v4 Transformer M"),
         "instance_count": len(normalized_instances),
         "algorithm_seed_count": len(args.algorithm_seeds),
         "run_count": len(rows),
         "status_counts": dict(statuses),
         "scenario_exact": not scenario_failures,
         "scenario_failures": scenario_failures,
-        "teacher_imitation": {
-            "training_top_1": training["training"]["top_1_accuracy"],
-            "validation_top_1": training["validation"]["top_1_accuracy"],
-            "selected_epoch": training["selected_epoch"],
-            "training_states": training["training"]["states"],
-            "validation_states": training["validation"]["states"],
-        },
+        "teacher_imitation": teacher_imitation,
+        "ppo_training": ppo_training,
         "strategies": strategies,
         "pilot_thresholds": {
-            "minimum_validation_top_1": 0.50,
+            "minimum_validation_top_1": (
+                0.50 if teacher_imitation is not None else None),
+            "minimum_ppo_updates": (
+                1 if ppo_training is not None else None),
             "minimum_transformer_mean_paired_percent": 0.0,
             "minimum_transformer_wins": math.ceil(
                 0.5 * len(normalized_instances) * len(args.algorithm_seeds)),
@@ -275,8 +308,12 @@ def main(argv=None):
     thresholds = result["pilot_thresholds"]
     result["pilot_pass"] = bool(
         result["scenario_exact"]
-        and result["teacher_imitation"]["validation_top_1"]
-        >= thresholds["minimum_validation_top_1"]
+        and (teacher_imitation is None
+             or teacher_imitation["validation_top_1"]
+             >= thresholds["minimum_validation_top_1"])
+        and (ppo_training is None
+             or ppo_training["ppo_updates"]
+             >= thresholds["minimum_ppo_updates"])
         and transformer["mean_paired_percent"]
         > thresholds["minimum_transformer_mean_paired_percent"]
         and transformer["wins"] >= thresholds["minimum_transformer_wins"])
@@ -285,8 +322,8 @@ def main(argv=None):
         encoding="utf-8")
     quick = {key: result[key] for key in (
         "completed", "definition", "instance_count", "algorithm_seed_count",
-        "run_count", "scenario_exact", "teacher_imitation", "strategies",
-        "pilot_thresholds", "pilot_pass")}
+        "run_count", "scenario_exact", "teacher_imitation", "ppo_training",
+        "strategies", "pilot_thresholds", "pilot_pass")}
     (args.out / "QUICK_RESULT.json").write_text(
         json.dumps(quick, indent=2, allow_nan=False) + "\n",
         encoding="utf-8")

@@ -110,7 +110,36 @@ def _state_key(row):
         f"{row['instance']}:g{row['generation']}:e{row['evaluation']}")
 
 
-def _accuracy(torch, model, rows, device, batch_size):
+def _teacher_probabilities(scores, temperature):
+    """Convert lower-is-better Balanced scores into a soft policy target."""
+    values = np.asarray(scores, dtype=float)
+    temperature = float(temperature)
+    if values.ndim != 1 or not len(values) or not np.isfinite(values).all():
+        raise ValueError("teacher scores must be a finite non-empty vector")
+    if not math.isfinite(temperature) or temperature <= 0.0:
+        raise ValueError("soft-label temperature must be finite and positive")
+    shifted = -(values - values.min()) / temperature
+    weights = np.exp(shifted - shifted.max())
+    return weights / weights.sum()
+
+
+def _soft_label_loss(torch, logits, rows, device, temperature):
+    """Cross entropy against teacher distributions on each legal action set."""
+    losses = []
+    for row_index, item in enumerate(rows):
+        legal = torch.as_tensor(
+            item["eligible_indices"], dtype=torch.long, device=device)
+        target = torch.as_tensor(
+            _teacher_probabilities(item["teacher_scores"], temperature),
+            dtype=logits.dtype, device=device)
+        legal_logits = logits[row_index].index_select(0, legal)
+        if not torch.isfinite(legal_logits).all():
+            raise FloatingPointError("non-finite legal action logits")
+        losses.append(-(target * torch.log_softmax(legal_logits, dim=0)).sum())
+    return torch.stack(losses).mean()
+
+
+def _accuracy(torch, model, rows, device, batch_size, temperature):
     from transformer_ppo.observations import pad_observations
 
     model.eval()
@@ -125,13 +154,18 @@ def _accuracy(torch, model, rows, device, batch_size):
             targets = torch.as_tensor(
                 [item["teacher_action"] for item in group],
                 dtype=torch.long, device=device)
-            loss = torch.nn.functional.cross_entropy(logits, targets)
-            losses.append(float(loss.cpu()))
+            hard_loss = torch.nn.functional.cross_entropy(logits, targets)
+            soft_loss = _soft_label_loss(
+                torch, logits, group, device, temperature)
+            losses.append((float(hard_loss.cpu()), float(soft_loss.cpu())))
             correct += int((logits.argmax(dim=1) == targets).sum().cpu())
     return {
         "states": len(rows),
         "top_1_accuracy": correct / len(rows),
-        "mean_cross_entropy": sum(losses) / max(1, len(losses)),
+        "mean_cross_entropy": (
+            sum(value[0] for value in losses) / max(1, len(losses))),
+        "mean_soft_cross_entropy": (
+            sum(value[1] for value in losses) / max(1, len(losses))),
     }
 
 
@@ -146,6 +180,7 @@ def main(argv=None):
     parser.add_argument("--early-stopping-patience", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=3e-5)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--soft-label-temperature", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=62001)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
@@ -153,9 +188,11 @@ def main(argv=None):
         parser.error(f"missing checkpoint: {args.checkpoint}")
     if (args.epochs < 1 or args.batch_size < 1
             or args.early_stopping_patience < 1
-            or args.learning_rate <= 0):
+            or args.learning_rate <= 0
+            or args.soft_label_temperature <= 0):
         parser.error(
-            "epochs, batch size, patience and learning rate must be positive")
+            "epochs, batch size, patience, learning rate and soft-label "
+            "temperature must be positive")
 
     import torch
     from transformer_ppo.config import PPOConfig
@@ -201,7 +238,8 @@ def main(argv=None):
         weight_decay=args.weight_decay)
     rng = random.Random(args.seed)
     history = []
-    best_validation = -1.0
+    best_validation_loss = math.inf
+    best_validation_top_1 = -1.0
     best_state = None
     epochs_without_improvement = 0
     stopped_early = False
@@ -215,11 +253,10 @@ def main(argv=None):
             group = pending_groups.pop(0)
             batch = pad_observations(
                 [item["observation"] for item in group], device)
-            targets = torch.as_tensor(
-                [item["teacher_action"] for item in group],
-                dtype=torch.long, device=device)
             logits, _ = model(batch)
-            loss = torch.nn.functional.cross_entropy(logits, targets)
+            loss = _soft_label_loss(
+                torch, logits, group, device,
+                args.soft_label_temperature)
             if not torch.isfinite(loss):
                 keys = [_state_key(item) for item in group]
                 if len(group) > 1:
@@ -255,9 +292,11 @@ def main(argv=None):
             total_loss += float(loss.detach().cpu())
             steps += 1
         train_metrics = _accuracy(
-            torch, model, training, device, args.batch_size)
+            torch, model, training, device, args.batch_size,
+            args.soft_label_temperature)
         validation_metrics = _accuracy(
-            torch, model, validation, device, args.batch_size)
+            torch, model, validation, device, args.batch_size,
+            args.soft_label_temperature)
         record = {
             "epoch": epoch,
             "mean_training_loss": total_loss / max(1, steps),
@@ -271,10 +310,15 @@ def main(argv=None):
             f"loss={record['mean_training_loss']:.6f} "
             f"train_top1={train_metrics['top_1_accuracy']:.4f} "
             f"valid_top1={validation_metrics['top_1_accuracy']:.4f} "
+            f"valid_soft_ce={validation_metrics['mean_soft_cross_entropy']:.6f} "
             f"fallback={numerical_fallback_groups}",
             flush=True)
-        if validation_metrics["top_1_accuracy"] > best_validation + 1e-12:
-            best_validation = validation_metrics["top_1_accuracy"]
+        best_validation_top_1 = max(
+            best_validation_top_1,
+            validation_metrics["top_1_accuracy"])
+        validation_loss = validation_metrics["mean_soft_cross_entropy"]
+        if validation_loss < best_validation_loss - 1e-12:
+            best_validation_loss = validation_loss
             best_state = {
                 name: value.detach().cpu().clone()
                 for name, value in model.state_dict().items()
@@ -286,14 +330,18 @@ def main(argv=None):
             stopped_early = True
             print(
                 "[M-TEACHER-TRAIN] early-stop "
-                f"epoch={epoch} best_validation_top1={best_validation:.4f} "
+                f"epoch={epoch} "
+                f"best_validation_soft_ce={best_validation_loss:.6f} "
                 f"patience={args.early_stopping_patience}",
                 flush=True)
             break
     model.load_state_dict(best_state)
-    final_train = _accuracy(torch, model, training, device, args.batch_size)
+    final_train = _accuracy(
+        torch, model, training, device, args.batch_size,
+        args.soft_label_temperature)
     final_validation = _accuracy(
-        torch, model, validation, device, args.batch_size)
+        torch, model, validation, device, args.batch_size,
+        args.soft_label_temperature)
     if not math.isfinite(final_validation["mean_cross_entropy"]):
         raise FloatingPointError("non-finite final validation metric")
     args.out.mkdir(parents=True, exist_ok=True)
@@ -304,6 +352,7 @@ def main(argv=None):
         "training_state_count": len(training),
         "validation_state_count": len(validation),
         "validation_instances": sorted(validation_names),
+        "soft_label_temperature": args.soft_label_temperature,
         "seed": args.seed,
     })
     report = {
@@ -316,13 +365,16 @@ def main(argv=None):
         "validation_instances": sorted({row["instance"] for row in validation}),
         "training": final_train,
         "validation": final_validation,
-        "best_validation_top_1": best_validation,
+        "best_validation_top_1": best_validation_top_1,
+        "best_validation_soft_cross_entropy": best_validation_loss,
+        "soft_label_temperature": args.soft_label_temperature,
         "requested_epochs": args.epochs,
         "completed_epochs": len(history),
         "early_stopping_patience": args.early_stopping_patience,
         "stopped_early": stopped_early,
-        "selected_epoch": max(
-            history, key=lambda row: row["validation"]["top_1_accuracy"])[
+        "selected_epoch": min(
+            history,
+            key=lambda row: row["validation"]["mean_soft_cross_entropy"])[
                 "epoch"],
         "checkpoint": str(checkpoint),
         "history": history,

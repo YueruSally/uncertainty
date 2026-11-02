@@ -139,6 +139,39 @@ def _model_spec(component, candidate_representation="legacy"):
     }
 
 
+def _initialize_policy_from_checkpoint(trainer, checkpoint, device=None):
+    """Copy only policy/value weights into a fresh PPO optimizer and RNG state."""
+    source = PPOTrainer.load(
+        checkpoint, PPOConfig, lambda *_: None,
+        device=device, training=False)
+    semantic_fields = (
+        "actor_policy", "candidate_representation", "initialization_control",
+        "credit_assignment", "mutation_control")
+    mismatches = {
+        name: (getattr(source.config, name), getattr(trainer.config, name))
+        for name in semantic_fields
+        if getattr(source.config, name) != getattr(trainer.config, name)
+    }
+    if source.architecture != trainer.architecture:
+        mismatches["architecture"] = (
+            source.architecture, trainer.architecture)
+    if source.component != trainer.component:
+        mismatches["component"] = (source.component, trainer.component)
+    if source.model_spec != trainer.model_spec:
+        mismatches["model_spec"] = (source.model_spec, trainer.model_spec)
+    if mismatches:
+        raise ValueError(
+            f"initial checkpoint is incompatible with requested PPO run: "
+            f"{mismatches}")
+    trainer.model.load_state_dict(source.model.state_dict(), strict=True)
+    return {
+        "path": str(Path(checkpoint).resolve()),
+        "sha256": _sha256(checkpoint),
+        "source_updates": int(source.updates),
+        "source_provenance": source.checkpoint_provenance,
+    }
+
+
 def _run_config(args, config, manifests, records):
     normalization = _read_json(args.normalization)
     rule_normalization = (
@@ -200,6 +233,14 @@ def _run_config(args, config, manifests, records):
                         "normalization_digest"),
                 }),
             "model_choice_probability": args.model_choice_probability,
+            "m_forced_replace_start_generation": (
+                args.m_forced_replace_start_generation),
+            "initial_checkpoint": (
+                None if args.initial_checkpoint is None else {
+                    "path": str(args.initial_checkpoint.resolve()),
+                    "sha256": _sha256(args.initial_checkpoint),
+                    "weights_only": True,
+                }),
             "control_random_stream": "private-sha256-seeded",
             "mutation_supervised_prior": (
                 None if args.mutation_supervised_prior is None else {
@@ -369,6 +410,16 @@ def main():
         "--mutation-supervised-prior", type=Path,
         help=("Portable pairwise-linear prior artifact for M replace_path. "
               "The artifact is embedded in every checkpoint."))
+    parser.add_argument(
+        "--initial-checkpoint", type=Path,
+        help=("Optional compatible BC/PPO checkpoint used only to initialize "
+              "model weights. PPO starts with a fresh optimizer, rollout "
+              "buffer and random streams."))
+    parser.add_argument(
+        "--m-forced-replace-start-generation", type=int,
+        help=("For M replace_path training, run exact Base before this "
+              "generation and then force Replace while the Transformer "
+              "chooses the joint batch/path action."))
     parser.add_argument("--resume", action="store_true",
                         help="Resume this exact run from its last committed episode checkpoint.")
     args = parser.parse_args()
@@ -440,6 +491,9 @@ def main():
     if (args.mutation_supervised_prior is not None
             and not args.mutation_supervised_prior.is_file()):
         parser.error("mutation supervised prior does not exist")
+    if (args.initial_checkpoint is not None
+            and not args.initial_checkpoint.is_file()):
+        parser.error("initial checkpoint does not exist")
     if args.mutation_control == "operator_location" and not (
             args.candidate_representation == "path_v3"
             and args.credit_assignment == "operation_terminal"):
@@ -452,6 +506,15 @@ def main():
         parser.error(
             "replace_path requires --candidate-representation path_v4 "
             "and --credit-assignment operation_terminal")
+    if args.m_forced_replace_start_generation is not None:
+        if args.m_forced_replace_start_generation < 0:
+            parser.error("forced Replace start generation cannot be negative")
+        if not (args.component == "M"
+                and args.mutation_control == "replace_path"
+                and args.model_choice_probability == 1.0):
+            parser.error(
+                "forced Replace training requires component M, "
+                "mutation_control=replace_path and model choice probability 1")
     if args.resume:
         if not args.out.exists() or not any(args.out.iterdir()):
             parser.error("--resume requires an existing non-empty output directory")
@@ -524,6 +587,13 @@ def main():
             supervised_prior=(
                 None if args.mutation_supervised_prior is None
                 else _read_json(args.mutation_supervised_prior)))
+        if args.initial_checkpoint is not None:
+            initialization = _initialize_policy_from_checkpoint(
+                trainer, args.initial_checkpoint, args.device)
+            print(
+                "[TRAIN] initialized fresh PPO from weights "
+                f"{initialization['path']} sha256={initialization['sha256']}",
+                flush=True)
         completed, summaries, previous_elapsed = 0, [], 0.0
         checkpoint = _checkpoint_path(args.out, completed)
         trainer.save(checkpoint, metadata=run_config)
@@ -562,7 +632,18 @@ def main():
             scenario_count=args.scenario_count,
             ccp_confidence=args.ccp_confidence,
             uncertainty_profile=args.uncertainty_profile,
-            crossover_reward_mode=args.crossover_reward_mode)
+            crossover_reward_mode=args.crossover_reward_mode,
+            m_forced_operator=(
+                "replace"
+                if args.m_forced_replace_start_generation is not None
+                else None),
+            m_forced_operator_min_generation=(
+                args.m_forced_replace_start_generation),
+            m_forced_operator_probability=1.0,
+            m_forced_replace_selector=(
+                "model"
+                if args.m_forced_replace_start_generation is not None
+                else "base_random"))
         summaries.append({"instance": manifest.stem, **summary})
         completed = index + 1
         previous_checkpoint = checkpoint
