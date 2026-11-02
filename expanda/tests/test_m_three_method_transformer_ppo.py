@@ -6,10 +6,20 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from evaluate_m_balanced_teacher_transformer import _command
-from train_m_balanced_teacher_transformer import _teacher_probabilities
+from train_m_balanced_teacher_transformer import (
+    _limited_rows, _teacher_probabilities,
+)
 
 
 class MThreeMethodTransformerPPOTest(unittest.TestCase):
+    def test_development_subset_is_deterministic_and_bounded(self):
+        rows = [{"value": value} for value in range(20)]
+        first = _limited_rows(rows, 7, 42)
+        second = _limited_rows(rows, 7, 42)
+        self.assertEqual(first, second)
+        self.assertEqual(len(first), 7)
+        self.assertEqual(_limited_rows(rows, None, 42), rows)
+
     def test_soft_teacher_target_prefers_lower_balanced_score(self):
         probabilities = _teacher_probabilities([0.0, 1.0, 2.0], 0.25)
         self.assertAlmostEqual(float(probabilities.sum()), 1.0)

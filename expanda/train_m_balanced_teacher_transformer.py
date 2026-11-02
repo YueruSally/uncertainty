@@ -110,6 +110,15 @@ def _state_key(row):
         f"{row['instance']}:g{row['generation']}:e{row['evaluation']}")
 
 
+def _limited_rows(rows, maximum, seed):
+    """Return a deterministic development subset without changing source data."""
+    if maximum is None or len(rows) <= maximum:
+        return list(rows)
+    order = list(range(len(rows)))
+    random.Random(seed).shuffle(order)
+    return [rows[index] for index in order[:maximum]]
+
+
 def _teacher_probabilities(scores, temperature):
     """Convert lower-is-better Balanced scores into a soft policy target."""
     values = np.asarray(scores, dtype=float)
@@ -181,6 +190,8 @@ def main(argv=None):
     parser.add_argument("--learning-rate", type=float, default=3e-5)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--soft-label-temperature", type=float, default=0.25)
+    parser.add_argument("--maximum-training-states", type=int)
+    parser.add_argument("--maximum-validation-states", type=int)
     parser.add_argument("--seed", type=int, default=62001)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
@@ -193,6 +204,12 @@ def main(argv=None):
         parser.error(
             "epochs, batch size, patience, learning rate and soft-label "
             "temperature must be positive")
+    if (args.maximum_training_states is not None
+            and args.maximum_training_states < 1):
+        parser.error("maximum training states must be positive")
+    if (args.maximum_validation_states is not None
+            and args.maximum_validation_states < 1):
+        parser.error("maximum validation states must be positive")
 
     import torch
     from transformer_ppo.config import PPOConfig
@@ -207,12 +224,19 @@ def main(argv=None):
     rows = load_dataset(args.data_root)
     validation_names = {
         _instance_key(value) for value in args.validation_instances}
-    validation = [row for row in rows if row["instance"] in validation_names]
-    training = [row for row in rows if row["instance"] not in validation_names]
+    available_validation = [
+        row for row in rows if row["instance"] in validation_names]
+    available_training = [
+        row for row in rows if row["instance"] not in validation_names]
+    training = _limited_rows(
+        available_training, args.maximum_training_states, args.seed + 101)
+    validation = _limited_rows(
+        available_validation, args.maximum_validation_states, args.seed + 202)
     available_instances = sorted({row["instance"] for row in rows})
     print(
         f"[M-TEACHER-DATASET] states={len(rows)} "
-        f"training={len(training)} validation={len(validation)} "
+        f"training={len(training)}/{len(available_training)} "
+        f"validation={len(validation)}/{len(available_validation)} "
         f"available_instances={available_instances} "
         f"requested_validation={sorted(validation_names)}",
         flush=True)
@@ -238,9 +262,26 @@ def main(argv=None):
         weight_decay=args.weight_decay)
     rng = random.Random(args.seed)
     history = []
-    best_validation_loss = math.inf
-    best_validation_top_1 = -1.0
-    best_state = None
+    baseline_train = _accuracy(
+        torch, model, training, device, args.batch_size,
+        args.soft_label_temperature)
+    baseline_validation = _accuracy(
+        torch, model, validation, device, args.batch_size,
+        args.soft_label_temperature)
+    print(
+        "[M-TEACHER-TRAIN] epoch=0 "
+        f"train_top1={baseline_train['top_1_accuracy']:.4f} "
+        f"valid_top1={baseline_validation['top_1_accuracy']:.4f} "
+        "valid_soft_ce="
+        f"{baseline_validation['mean_soft_cross_entropy']:.6f}",
+        flush=True)
+    best_validation_loss = baseline_validation["mean_soft_cross_entropy"]
+    best_validation_top_1 = baseline_validation["top_1_accuracy"]
+    best_epoch = 0
+    best_state = {
+        name: value.detach().cpu().clone()
+        for name, value in model.state_dict().items()
+    }
     epochs_without_improvement = 0
     stopped_early = False
     for epoch in range(1, args.epochs + 1):
@@ -340,6 +381,7 @@ def main(argv=None):
                 name: value.detach().cpu().clone()
                 for name, value in model.state_dict().items()
             }
+            best_epoch = epoch
             epochs_without_improvement = 0
         else:
             epochs_without_improvement += 1
@@ -378,10 +420,16 @@ def main(argv=None):
             "path-v4 M Transformer behaviour-cloned from the deterministic "
             "Balanced joint batch/path selector"),
         "dataset_state_count": len(rows),
+        "available_training_state_count": len(available_training),
+        "available_validation_state_count": len(available_validation),
         "training_instances": sorted({row["instance"] for row in training}),
         "validation_instances": sorted({row["instance"] for row in validation}),
         "training": final_train,
         "validation": final_validation,
+        "baseline": {
+            "training": baseline_train,
+            "validation": baseline_validation,
+        },
         "best_validation_top_1": best_validation_top_1,
         "best_validation_soft_cross_entropy": best_validation_loss,
         "soft_label_temperature": args.soft_label_temperature,
@@ -389,10 +437,7 @@ def main(argv=None):
         "completed_epochs": len(history),
         "early_stopping_patience": args.early_stopping_patience,
         "stopped_early": stopped_early,
-        "selected_epoch": min(
-            history,
-            key=lambda row: row["validation"]["mean_soft_cross_entropy"])[
-                "epoch"],
+        "selected_epoch": best_epoch,
         "checkpoint": str(checkpoint),
         "history": history,
     }
