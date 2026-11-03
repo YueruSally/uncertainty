@@ -388,10 +388,13 @@ def main():
               "preserves legacy checkpoint behaviour."))
     parser.add_argument(
         "--credit-assignment",
-        choices=("continuous", "operation_terminal", "generation_terminal"),
+        choices=("continuous", "operation_terminal", "generation_terminal",
+                 "paired_heuristic_terminal"),
         help=("Trajectory boundary. operation_terminal settles one complete "
               "operator event; generation_terminal settles all M Replace "
-              "actions after environmental selection using population HV."))
+              "actions after environmental selection using population HV; "
+              "paired_heuristic_terminal compares an M action with the same-"
+              "state Balanced heuristic action."))
     parser.add_argument(
         "--crossover-reward-mode",
         choices=("archive_hv", "paired_base_relative",
@@ -475,6 +478,10 @@ def main():
     if (args.credit_assignment == "generation_terminal"
             and args.component != "M"):
         parser.error("generation_terminal credit assignment is valid only for M")
+    if (args.credit_assignment == "paired_heuristic_terminal"
+            and args.component != "M"):
+        parser.error(
+            "paired_heuristic_terminal credit assignment is valid only for M")
     if (args.component == "C"
             and args.credit_assignment == "operation_terminal"
             and args.gae_horizon is not None and args.gae_horizon < 64):
@@ -523,10 +530,12 @@ def main():
     if args.mutation_control == "replace_path" and not (
             args.candidate_representation in ("path_v4", "path_v5")
             and args.credit_assignment in (
-                "operation_terminal", "generation_terminal")):
+                "operation_terminal", "generation_terminal",
+                "paired_heuristic_terminal")):
         parser.error(
             "replace_path requires --candidate-representation path_v4/path_v5 "
-            "and --credit-assignment operation_terminal/generation_terminal")
+            "and --credit-assignment operation_terminal, generation_terminal, "
+            "or paired_heuristic_terminal")
     if args.m_forced_replace_start_generation is not None:
         if args.m_forced_replace_start_generation < 0:
             parser.error("forced Replace start generation cannot be negative")

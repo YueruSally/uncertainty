@@ -62,9 +62,14 @@ class PPOController(MutationLogger):
         self._inside_mutation = False
         self.reward_total = 0.0
         self.positive_reward_actions = 0
+        self.negative_reward_actions = 0
         self.generation_reward_events = 0
         self.positive_generation_rewards = 0
         self.negative_generation_rewards = 0
+        self.counterfactual_evaluations = 0
+        self.counterfactual_evaluation_seconds = 0.0
+        self.paired_reward_events = 0
+        self.paired_reward_ties = 0
         self._selected_population_hv = None
         self._generation_reward_sequence_generation = None
         self.model_control_events = 0
@@ -361,14 +366,7 @@ class PPOController(MutationLogger):
                     str(rows[index].get("path_id")))
             selected_index = min(indices, key=key)
         elif selector == "joint_balanced":
-            scores = joint_balanced_candidate_scores(
-                rows, [True] * len(rows))
-            selected_index = min(
-                range(len(rows)),
-                key=lambda index: (
-                    float(scores[index]),
-                    int(rows[index]["target"].batch_id),
-                    str(rows[index].get("path_id"))))
+            selected_index = self._joint_balanced_candidate_index(rows)
         elif selector == "joint_pareto_cycle":
             time_risk = (
                 scaled[:, 2] + scaled[:, 3] + scaled[:, 4]) / 3.0
@@ -397,6 +395,133 @@ class PPOController(MutationLogger):
             "selected_path_id": str(row.get("path_id")),
             "selected_proxy_vector": raw[selected_index],
             "selected_scaled_vector": scaled[selected_index].tolist(),
+        }
+
+    @staticmethod
+    def _joint_balanced_candidate_index(rows):
+        eligible = [bool(row.get("eligible")) for row in rows]
+        legal = [index for index, value in enumerate(eligible) if value]
+        if not legal:
+            return None
+        scores = joint_balanced_candidate_scores(rows, eligible)
+        return min(
+            legal,
+            key=lambda index: (
+                float(scores[index]),
+                int(rows[index]["target"].batch_id),
+                str(rows[index].get("path_id"))))
+
+    def _paired_heuristic_reward(
+            self, parent, selected, selected_ok, candidates, selected_index,
+            batches, path_lib, tt_dict, arc_lookup, arcs, waiting_cost,
+            waiting_emission, reliable_options, evaluation_kwargs):
+        """Compare one sampled M action with Balanced from the same state."""
+        heuristic_index = self._joint_balanced_candidate_index(candidates)
+        if heuristic_index is None:
+            raise RuntimeError("paired M reward has no legal heuristic action")
+        selected_index = int(selected_index)
+        selected_for_reward = selected
+        counterfactual_count = 0
+        started = time.perf_counter()
+
+        def evaluate_counterfactual(individual):
+            python_state = random.getstate()
+            numpy_state = np.random.get_state()
+            try:
+                base._evaluate_individual_impl(
+                    individual, batches, arcs, tt_dict,
+                    waiting_cost, waiting_emission, **evaluation_kwargs)
+            finally:
+                random.setstate(python_state)
+                np.random.set_state(numpy_state)
+
+        if not selected_ok:
+            selected_for_reward = deepcopy(selected)
+            evaluate_counterfactual(selected_for_reward)
+            counterfactual_count += 1
+
+        selected_candidate = (
+            selected_for_reward.objectives,
+            bool(selected_for_reward.feasible),
+            fingerprint(selected_for_reward),
+        )
+        selected_preview = self.archive.preview_many([selected_candidate])
+        selected_quality_hv = self.archive.standalone_hv([selected_candidate])
+
+        if selected_index == heuristic_index:
+            reference_candidate = selected_candidate
+            reference_preview = selected_preview
+            reference_quality_hv = selected_quality_hv
+            reference_ok = bool(selected_ok)
+            label_source = "same_action"
+            relative_delta = 0.0
+        else:
+            reference = deepcopy(parent)
+            heuristic_row = candidates[heuristic_index]
+            batch_by_id = {item.batch_id: item for item in batches}
+            reference_ok = base.apply_mutation_op(
+                reference, "replace",
+                batch_by_id[heuristic_row["target"].batch_id],
+                path_lib, tt_dict, arc_lookup,
+                reliable_options=reliable_options,
+                target=heuristic_row["target"])
+            if reference_ok:
+                base.repair_missing_allocations(reference, batches, path_lib)
+            evaluate_counterfactual(reference)
+            counterfactual_count += 1
+            reference_candidate = (
+                reference.objectives, bool(reference.feasible),
+                fingerprint(reference))
+            reference_preview = self.archive.preview_many([
+                reference_candidate])
+            reference_quality_hv = self.archive.standalone_hv([
+                reference_candidate])
+            archive_relative = (
+                selected_preview.delta_hv - reference_preview.delta_hv)
+            quality_relative = (
+                selected_quality_hv - reference_quality_hv)
+            if abs(archive_relative) > self.reward_config.floating_tolerance:
+                relative_delta = archive_relative
+                label_source = "archive"
+            elif abs(quality_relative) > self.reward_config.floating_tolerance:
+                relative_delta = quality_relative
+                label_source = "standalone_quality"
+            else:
+                relative_delta = 0.0
+                label_source = "tie"
+
+        self.counterfactual_evaluations += counterfactual_count
+        self.counterfactual_evaluation_seconds += (
+            time.perf_counter() - started)
+        if selected_ok:
+            selected_update = self.archive.observe_many([selected_candidate])
+        else:
+            selected_update = selected_preview
+        reward = signed_hv_reward(relative_delta, self.reward_config)
+        self.paired_reward_events += 1
+        self.paired_reward_ties += int(relative_delta == 0.0)
+        selected_row = candidates[selected_index]
+        heuristic_row = candidates[heuristic_index]
+        return {
+            "reward": reward,
+            "selected_archive_delta_hv": float(selected_preview.delta_hv),
+            "heuristic_archive_delta_hv": float(reference_preview.delta_hv),
+            "selected_standalone_hv": float(selected_quality_hv),
+            "heuristic_standalone_hv": float(reference_quality_hv),
+            "selected_minus_heuristic_hv": float(relative_delta),
+            "label_source": label_source,
+            "selected_candidate_index": selected_index,
+            "heuristic_candidate_index": heuristic_index,
+            "selected_batch_id": int(selected_row["target"].batch_id),
+            "selected_path_id": str(selected_row.get("path_id")),
+            "heuristic_batch_id": int(heuristic_row["target"].batch_id),
+            "heuristic_path_id": str(heuristic_row.get("path_id")),
+            "selected_ok": bool(selected_ok),
+            "heuristic_ok": bool(reference_ok),
+            "counterfactual_evaluations": counterfactual_count,
+            "archive_hv_before": float(selected_update.hv_before),
+            "archive_hv_after": float(selected_update.hv_after),
+            "archive_size": int(selected_update.archive_size),
         }
 
     def _mutate_forced_operator(
@@ -502,10 +627,18 @@ class PPOController(MutationLogger):
                 batch_by_id = {item.batch_id: item for item in batches}
                 batch = batch_by_id[selected["target"].batch_id]
                 mutation_target = selected["target"]
+        policy_action = bool(
+            model_decision is not None
+            and model_decision.metadata.get("decision_kind") == "model_choice")
+        paired_credit = bool(
+            policy_action
+            and self.trainer.training
+            and self.credit_assignment == "paired_heuristic_terminal")
+        paired_parent = deepcopy(ind) if paired_credit else None
         previous_suppress_archive = self._suppress_archive
         evaluations_before_probe = self.evaluations
         try:
-            if reversible_probe:
+            if reversible_probe or paired_credit:
                 self._suppress_archive = True
             ok = base.apply_mutation_op(
                 ind, self.forced_operator, batch, path_lib, tt_dict, arc_lookup,
@@ -520,7 +653,16 @@ class PPOController(MutationLogger):
             self._inside_mutation = False
         after_id = fingerprint(ind)
         changed = after_id != before_id
-        if reversible_probe and ok:
+        paired_reward = None
+        if paired_credit:
+            paired_reward = self._paired_heuristic_reward(
+                paired_parent, ind, bool(ok), replacement_candidates,
+                model_decision.chosen_index, batches, path_lib, tt_dict,
+                arc_lookup, arcs, waiting_cost, waiting_emission,
+                reliable_options, kwargs)
+            immediate_archive_delta = float(
+                paired_reward["selected_archive_delta_hv"])
+        elif reversible_probe and ok:
             preview = self.archive.preview_many([(
                 ind.objectives, bool(ind.feasible), after_id)])
             immediate_archive_delta = float(preview.delta_hv)
@@ -573,17 +715,16 @@ class PPOController(MutationLogger):
         self.decision_counts["forced_operator_choice"] += 1
         generation_credit = self.credit_assignment == "generation_terminal"
         policy_reward = (
-            0.0 if generation_credit
+            float(paired_reward["reward"]) if paired_credit
+            else 0.0 if generation_credit
             else hv_reward(immediate_archive_delta, self.reward_config))
-        policy_action = bool(
-            model_decision is not None
-            and model_decision.metadata.get("decision_kind") == "model_choice")
         if model_decision is not None and self.trainer.pending is not None:
             self.trainer.observe_outcome(
                 policy_reward, done=not generation_credit)
         if policy_action and not generation_credit:
             self.reward_total += policy_reward
             self.positive_reward_actions += int(policy_reward > 0.0)
+            self.negative_reward_actions += int(policy_reward < 0.0)
         self.append("mutation_outcomes", {
             "run_id": self.run_id,
             "instance_id": self.instance.get("instance_id"),
@@ -622,12 +763,16 @@ class PPOController(MutationLogger):
                 }),
             "reward": float(policy_reward) if policy_action else 0.0,
             "reward_hv_delta": (
+                float(paired_reward["selected_minus_heuristic_hv"])
+                if paired_credit else
                 float(immediate_archive_delta)
                 if policy_action and not generation_credit else 0.0),
             "reward_recorded_for_policy": policy_action,
             "reward_settlement": (
                 "generation_terminal" if generation_credit
+                else "paired_heuristic_terminal" if paired_credit
                 else "operation_terminal"),
+            "paired_heuristic_reward": paired_reward,
         })
         if self.phase == "offspring":
             self._record_pending_offspring(ind)
@@ -1288,6 +1433,7 @@ class PPOController(MutationLogger):
         if policy_actions:
             self.reward_total += reward
             self.positive_reward_actions += int(reward > 0)
+            self.negative_reward_actions += int(reward < 0)
         if hierarchical:
             self.trainer.end_sequence(reward, done=True)
         else:
@@ -1344,6 +1490,7 @@ class PPOController(MutationLogger):
         if policy_actions:
             self.reward_total += reward
             self.positive_reward_actions += int(reward > 0.0)
+            self.negative_reward_actions += int(reward < 0.0)
             self.generation_reward_events += 1
             self.positive_generation_rewards += int(reward > 0.0)
             self.negative_generation_rewards += int(reward < 0.0)
@@ -1385,10 +1532,17 @@ class PPOController(MutationLogger):
     def summary(self):
         return {"reward_total": self.reward_total,
                 "positive_reward_actions": self.positive_reward_actions,
+                "negative_reward_actions": self.negative_reward_actions,
                 "generation_reward_events": self.generation_reward_events,
                 "positive_generation_rewards": self.positive_generation_rewards,
                 "negative_generation_rewards": self.negative_generation_rewards,
                 "selected_population_hv": self._selected_population_hv,
+                "paired_reward_events": self.paired_reward_events,
+                "paired_reward_ties": self.paired_reward_ties,
+                "counterfactual_evaluation_count": (
+                    self.counterfactual_evaluations),
+                "counterfactual_evaluation_seconds": (
+                    self.counterfactual_evaluation_seconds),
                 "reward_archive_hv": self.archive.hypervolume,
                 "reward_archive_size": len(self.archive.points),
                 "decision_counts": dict(self.decision_counts),

@@ -300,6 +300,8 @@ def main(argv=None):
             "reward_total": sum(float(row.get("reward_total", 0.0)) for row in episodes),
             "positive_reward_actions": sum(
                 int(row.get("positive_reward_actions", 0)) for row in episodes),
+            "negative_reward_actions": sum(
+                int(row.get("negative_reward_actions", 0)) for row in episodes),
             "generation_reward_events": sum(
                 int(row.get("generation_reward_events", 0)) for row in episodes),
             "positive_generation_rewards": sum(
@@ -308,6 +310,10 @@ def main(argv=None):
             "negative_generation_rewards": sum(
                 int(row.get("negative_generation_rewards", 0))
                 for row in episodes),
+            "paired_reward_events": sum(
+                int(row.get("paired_reward_events", 0)) for row in episodes),
+            "paired_reward_ties": sum(
+                int(row.get("paired_reward_ties", 0)) for row in episodes),
             "real_objective_evaluations": int(
                 training.get("total_actual_evaluations", 0)),
             "counterfactual_evaluations": int(

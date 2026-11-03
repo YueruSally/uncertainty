@@ -564,6 +564,11 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     v2_active = (
         derived_v2 if learning_protocol_version is None
         else learning_protocol_version == 2)
+    mutation_credit_assignment = (
+        getattr(getattr(trainer, "config", None), "credit_assignment", None)
+        if component == "M" else None)
+    paired_mutation_reward = (
+        mutation_credit_assignment == "paired_heuristic_terminal")
     config = {
         "schema_version": 3, "method": method,
         "protocol": (
@@ -598,10 +603,15 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             if crossover_reward_mode == "paired_archive_then_quality" else
             "signed same-state selected-minus-reference pre-mutation archive HV"
             if crossover_reward_mode == "paired_base_relative" else
+            "signed same-state Transformer-minus-Balanced mutation HV with "
+            "standalone-HV tie-break"
+            if paired_mutation_reward else
+            "signed selected-population HV change after environmental selection"
+            if mutation_credit_assignment == "generation_terminal" else
             "scaled positive joint archive HV increment only"),
         "crossover_reward_mode": crossover_reward_mode,
         "counterfactual_training_evaluations_excluded_from_search_budget": (
-            crossover_reward_mode in (
+            paired_mutation_reward or crossover_reward_mode in (
                 "paired_base_relative", "paired_archive_then_quality")),
         "reward_clipping": False,
         "intermediate_post_crossover_evaluation": (
