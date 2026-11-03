@@ -84,9 +84,11 @@ class PPOConfig:
                 and self.candidate_representation != "path_v3"):
             raise ValueError(
                 "path_count initialization control requires path_v3")
-        if self.credit_assignment not in ("continuous", "operation_terminal"):
+        if self.credit_assignment not in (
+                "continuous", "operation_terminal", "generation_terminal"):
             raise ValueError(
-                "credit_assignment must be 'continuous' or 'operation_terminal'")
+                "credit_assignment must be continuous, operation_terminal, "
+                "or generation_terminal")
         if self.mutation_control not in (
                 "location", "operator_location", "replace_path"):
             raise ValueError(
@@ -98,9 +100,11 @@ class PPOConfig:
                 "operator_location requires path_v3 and operation_terminal credit")
         if (self.mutation_control == "replace_path"
                 and (self.candidate_representation not in ("path_v4", "path_v5")
-                     or self.credit_assignment != "operation_terminal")):
+                     or self.credit_assignment not in (
+                         "operation_terminal", "generation_terminal"))):
             raise ValueError(
-                "replace_path requires path_v4/path_v5 and operation_terminal credit")
+                "replace_path requires path_v4/path_v5 and operation_terminal "
+                "or generation_terminal credit")
         if self.mutation_action_prior not in ("base", "joint_balanced"):
             raise ValueError(
                 "mutation_action_prior must be 'base' or 'joint_balanced'")

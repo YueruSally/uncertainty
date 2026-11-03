@@ -387,9 +387,11 @@ def main():
               "only path identity; path_count also learns the count. auto "
               "preserves legacy checkpoint behaviour."))
     parser.add_argument(
-        "--credit-assignment", choices=("continuous", "operation_terminal"),
-        help=("Trajectory boundary. operation_terminal is the V3 C setting: "
-              "one complete crossover is one terminal credit sequence."))
+        "--credit-assignment",
+        choices=("continuous", "operation_terminal", "generation_terminal"),
+        help=("Trajectory boundary. operation_terminal settles one complete "
+              "operator event; generation_terminal settles all M Replace "
+              "actions after environmental selection using population HV."))
     parser.add_argument(
         "--crossover-reward-mode",
         choices=("archive_hv", "paired_base_relative",
@@ -470,6 +472,9 @@ def main():
     if (args.credit_assignment == "operation_terminal"
             and args.component not in ("C", "M")):
         parser.error("operation_terminal credit assignment is valid only for C or M")
+    if (args.credit_assignment == "generation_terminal"
+            and args.component != "M"):
+        parser.error("generation_terminal credit assignment is valid only for M")
     if (args.component == "C"
             and args.credit_assignment == "operation_terminal"
             and args.gae_horizon is not None and args.gae_horizon < 64):
@@ -517,10 +522,11 @@ def main():
             "and --credit-assignment operation_terminal")
     if args.mutation_control == "replace_path" and not (
             args.candidate_representation in ("path_v4", "path_v5")
-            and args.credit_assignment == "operation_terminal"):
+            and args.credit_assignment in (
+                "operation_terminal", "generation_terminal")):
         parser.error(
             "replace_path requires --candidate-representation path_v4/path_v5 "
-            "and --credit-assignment operation_terminal")
+            "and --credit-assignment operation_terminal/generation_terminal")
     if args.m_forced_replace_start_generation is not None:
         if args.m_forced_replace_start_generation < 0:
             parser.error("forced Replace start generation cannot be negative")

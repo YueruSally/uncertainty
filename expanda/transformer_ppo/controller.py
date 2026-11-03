@@ -14,7 +14,9 @@ from learning_mutation import repair_after_mutation
 from multi_instance_logging import MutationLogger, fingerprint
 from multi_instance_mutation import candidates_for, replacement_path_candidates
 
-from .archive import RewardArchive, RewardConfig, exact_hv_3d, hv_reward
+from .archive import (
+    RewardArchive, RewardConfig, exact_hv_3d, hv_reward, signed_hv_reward,
+)
 from .config import OPERATORS
 from .observations import (
     build_observation, joint_balanced_action_prior,
@@ -60,6 +62,11 @@ class PPOController(MutationLogger):
         self._inside_mutation = False
         self.reward_total = 0.0
         self.positive_reward_actions = 0
+        self.generation_reward_events = 0
+        self.positive_generation_rewards = 0
+        self.negative_generation_rewards = 0
+        self._selected_population_hv = None
+        self._generation_reward_sequence_generation = None
         self.model_control_events = 0
         self.base_control_events = 0
         self.base_passthrough_events = 0
@@ -223,6 +230,7 @@ class PPOController(MutationLogger):
             "mutation_outcomes", "mutation_candidates",
             "mutation_operator_candidates", "mutation_skips",
             "mutation_policy_states", "mutation_operator_intervention_states",
+            "mutation_generation_rewards",
             "generation_summary",
         ]
         if self.candidate_audit_states:
@@ -463,6 +471,8 @@ class PPOController(MutationLogger):
                 "q90_emission_before": None,
                 "q90_makespan_before": None,
             }
+            if self.credit_assignment == "generation_terminal":
+                self._begin_generation_reward_sequence()
             self.current_individual = ind
             try:
                 model_decision = self.trainer.choose(
@@ -561,13 +571,17 @@ class PPOController(MutationLogger):
         self.total_attempts += 1
         self.total_effective += int(bool(ok) and changed)
         self.decision_counts["forced_operator_choice"] += 1
-        policy_reward = hv_reward(immediate_archive_delta, self.reward_config)
+        generation_credit = self.credit_assignment == "generation_terminal"
+        policy_reward = (
+            0.0 if generation_credit
+            else hv_reward(immediate_archive_delta, self.reward_config))
         policy_action = bool(
             model_decision is not None
             and model_decision.metadata.get("decision_kind") == "model_choice")
         if model_decision is not None and self.trainer.pending is not None:
-            self.trainer.observe_outcome(policy_reward, done=True)
-        if policy_action:
+            self.trainer.observe_outcome(
+                policy_reward, done=not generation_credit)
+        if policy_action and not generation_credit:
             self.reward_total += policy_reward
             self.positive_reward_actions += int(policy_reward > 0.0)
         self.append("mutation_outcomes", {
@@ -608,8 +622,12 @@ class PPOController(MutationLogger):
                 }),
             "reward": float(policy_reward) if policy_action else 0.0,
             "reward_hv_delta": (
-                float(immediate_archive_delta) if policy_action else 0.0),
+                float(immediate_archive_delta)
+                if policy_action and not generation_credit else 0.0),
             "reward_recorded_for_policy": policy_action,
+            "reward_settlement": (
+                "generation_terminal" if generation_credit
+                else "operation_terminal"),
         })
         if self.phase == "offspring":
             self._record_pending_offspring(ind)
@@ -1289,8 +1307,74 @@ class PPOController(MutationLogger):
         self.pending_offspring.clear()
         self._pending_fingerprints.clear()
 
+    def _population_hypervolume(self, population):
+        points = [
+            self.archive.normalizer.transform(ind.objectives)
+            for ind in population if bool(ind.feasible)
+        ]
+        return float(exact_hv_3d(
+            points, self.archive.normalizer.reference))
+
+    def _begin_generation_reward_sequence(self):
+        if self.trainer.sequence_depth:
+            if self._generation_reward_sequence_generation != self.generation:
+                raise RuntimeError(
+                    "generation-terminal M sequence crossed a generation boundary")
+            return
+        self.trainer.begin_sequence()
+        self._generation_reward_sequence_generation = int(self.generation)
+
+    def _settle_generation_reward(self, population, checkpoint):
+        population_hv = self._population_hypervolume(population)
+        previous_hv = self._selected_population_hv
+        self._selected_population_hv = population_hv
+        if previous_hv is None:
+            return
+        delta_hv = float(population_hv - previous_hv)
+        reward = signed_hv_reward(delta_hv, self.reward_config)
+        policy_actions = int(self.trainer.sequence_policy_actions)
+        sequence_generation = self._generation_reward_sequence_generation
+        if self.trainer.sequence_depth:
+            if sequence_generation != self.generation:
+                raise RuntimeError(
+                    "settled M generation does not match its policy sequence")
+            self.trainer.end_sequence(reward, done=True)
+        elif policy_actions:
+            raise RuntimeError("M generation has actions without an open sequence")
+        if policy_actions:
+            self.reward_total += reward
+            self.positive_reward_actions += int(reward > 0.0)
+            self.generation_reward_events += 1
+            self.positive_generation_rewards += int(reward > 0.0)
+            self.negative_generation_rewards += int(reward < 0.0)
+        self.append("mutation_generation_rewards", {
+            "run_id": self.run_id,
+            "instance_id": self.instance.get("instance_id"),
+            "generation": self.generation,
+            "checkpoint": checkpoint,
+            "policy_actions": policy_actions,
+            "sequence_generation": sequence_generation,
+            "population_hv_before": previous_hv,
+            "population_hv_after": population_hv,
+            "population_hv_delta": delta_hv,
+            "reward": reward if policy_actions else 0.0,
+            "reward_scale": self.reward_config.positive_hv_scale,
+            "settled_for_policy": bool(policy_actions),
+        })
+        self._generation_reward_sequence_generation = None
+
+    def log_initial_population(self, population):
+        self.current_population = list(population)
+        if self.credit_assignment == "generation_terminal":
+            self._selected_population_hv = self._population_hypervolume(
+                population)
+        super().log_initial_population(population)
+
     def log_generation(self, population, boost):
         self.current_population = list(population)
+        if self.credit_assignment == "generation_terminal":
+            self._settle_generation_reward(
+                population, "environmental_selection")
         super().log_generation(population, boost)
         self.log_search_progress(population, "environmental_selection")
 
@@ -1301,6 +1385,10 @@ class PPOController(MutationLogger):
     def summary(self):
         return {"reward_total": self.reward_total,
                 "positive_reward_actions": self.positive_reward_actions,
+                "generation_reward_events": self.generation_reward_events,
+                "positive_generation_rewards": self.positive_generation_rewards,
+                "negative_generation_rewards": self.negative_generation_rewards,
+                "selected_population_hv": self._selected_population_hv,
                 "reward_archive_hv": self.archive.hypervolume,
                 "reward_archive_size": len(self.archive.points),
                 "decision_counts": dict(self.decision_counts),
