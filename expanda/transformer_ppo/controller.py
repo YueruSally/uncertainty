@@ -632,8 +632,8 @@ class PPOController(MutationLogger):
             and model_decision.metadata.get("decision_kind") == "model_choice")
         paired_credit = bool(
             policy_action
-            and self.trainer.training
-            and self.credit_assignment == "paired_heuristic_terminal")
+            and self.credit_assignment == "paired_heuristic_terminal"
+            and getattr(self.trainer, "training", False))
         paired_parent = deepcopy(ind) if paired_credit else None
         previous_suppress_archive = self._suppress_archive
         evaluations_before_probe = self.evaluations
