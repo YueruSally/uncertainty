@@ -10,7 +10,13 @@ PYTHON=${PYTHON:-python3}
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONUNBUFFERED=1
 mkdir -p "$OUT_ROOT"
 echo '===== TEST FROZEN POLICY INFERENCE ====='
-"$PYTHON" -m unittest tests.test_m_operator_closed_loop > "$OUT_ROOT/tests.log" 2>&1
+if "$PYTHON" -m unittest tests.test_m_operator_closed_loop > "$OUT_ROOT/tests.log" 2>&1; then
+  tail -n 5 "$OUT_ROOT/tests.log"
+else
+  echo '===== TEST FAILED: details from tests.log ====='
+  tail -n 80 "$OUT_ROOT/tests.log"
+  exit 1
+fi
 echo '===== CLOSED LOOP: 18 SEARCHES / CCP100 / POP20 / B400 / NO TRAINING ====='
 "$PYTHON" -u run_m_operator_closed_loop_v1.py --instances "$INSTANCES" --normalization "$NORMALIZATION" \
   --path-root "$PATH_ROOT" --collection-root "$COLLECTION_ROOT" --out "$OUT_ROOT"
