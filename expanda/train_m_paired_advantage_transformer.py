@@ -186,6 +186,10 @@ def main(argv=None):
     parser.add_argument("--pairwise-weight", type=float, default=1.0)
     parser.add_argument("--pairwise-margin", type=float, default=0.05)
     parser.add_argument("--residual-logit-limit", type=float, default=2.0)
+    parser.add_argument(
+        "--minimum-validation-override-recall", type=float, default=0.10)
+    parser.add_argument(
+        "--minimum-validation-fallback-accuracy", type=float, default=0.80)
     parser.add_argument("--seed", type=int, default=66101)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
@@ -196,7 +200,9 @@ def main(argv=None):
             or args.learning_rate <= 0.0 or args.weight_decay < 0.0
             or args.positive_override_weight < 1.0
             or args.pairwise_weight < 0.0 or args.pairwise_margin < 0.0
-            or args.residual_logit_limit <= 0.0):
+            or args.residual_logit_limit <= 0.0
+            or not 0.0 <= args.minimum_validation_override_recall <= 1.0
+            or not 0.0 <= args.minimum_validation_fallback_accuracy <= 1.0):
         parser.error("invalid paired-advantage training hyperparameters")
 
     import torch
@@ -279,7 +285,7 @@ def main(argv=None):
         f"valid_loss={baseline_validation['mean_preference_loss']:.6f}",
         flush=True)
 
-    best_loss = baseline_validation["mean_preference_loss"]
+    best_loss = math.inf
     best_epoch = 0
     best_state = {
         name: value.detach().cpu().clone()
@@ -331,10 +337,17 @@ def main(argv=None):
             f"valid_top1={validation_metrics['top_1_accuracy']:.4f} "
             f"valid_override={validation_metrics['override_recall']:.4f} "
             f"valid_pairwise={validation_metrics['pairwise_accuracy']:.4f} "
-            f"valid_loss={validation_metrics['mean_preference_loss']:.6f}",
+            f"valid_loss={validation_metrics['mean_preference_loss']:.6f} "
+            "admissible="
+            f"{int(validation_metrics['override_recall'] >= args.minimum_validation_override_recall and validation_metrics['fallback_accuracy'] >= args.minimum_validation_fallback_accuracy)}",
             flush=True)
         validation_loss = validation_metrics["mean_preference_loss"]
-        if validation_loss < best_loss - 1e-9:
+        admissible = (
+            validation_metrics["override_recall"]
+            >= args.minimum_validation_override_recall
+            and validation_metrics["fallback_accuracy"]
+            >= args.minimum_validation_fallback_accuracy)
+        if admissible and validation_loss < best_loss - 1e-9:
             best_loss = validation_loss
             best_epoch = epoch
             best_state = {
@@ -347,7 +360,8 @@ def main(argv=None):
         if stale >= args.early_stopping_patience:
             print(
                 f"[M-ADV-TRAIN] early-stop epoch={epoch} "
-                f"best_epoch={best_epoch} best_loss={best_loss:.6f}",
+                f"best_epoch={best_epoch} "
+                f"best_loss={best_loss if math.isfinite(best_loss) else None}",
                 flush=True)
             break
 
@@ -366,6 +380,10 @@ def main(argv=None):
         "pairwise_weight": args.pairwise_weight,
         "pairwise_margin": args.pairwise_margin,
         "residual_logit_limit": args.residual_logit_limit,
+        "minimum_validation_override_recall":
+            args.minimum_validation_override_recall,
+        "minimum_validation_fallback_accuracy":
+            args.minimum_validation_fallback_accuracy,
         "seed": args.seed,
     }, overwrite=True)
     report = {
@@ -391,6 +409,10 @@ def main(argv=None):
         "pairwise_weight": args.pairwise_weight,
         "pairwise_margin": args.pairwise_margin,
         "residual_logit_limit": args.residual_logit_limit,
+        "minimum_validation_override_recall":
+            args.minimum_validation_override_recall,
+        "minimum_validation_fallback_accuracy":
+            args.minimum_validation_fallback_accuracy,
         "checkpoint": str(checkpoint),
         "history": history,
     }

@@ -79,6 +79,8 @@ if ! test -f "$ADV_ROOT/TRAINING_COMPLETE.json"; then
       --pairwise-weight 1.0 \
       --pairwise-margin 0.05 \
       --residual-logit-limit 2.0 \
+      --minimum-validation-override-recall 0.10 \
+      --minimum-validation-fallback-accuracy 0.80 \
       --seed 66101 \
       --device cpu \
       2>&1 | tee -a "$ADV_ROOT/training.log"
