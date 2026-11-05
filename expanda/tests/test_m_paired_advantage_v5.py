@@ -53,6 +53,10 @@ class MPairedAdvantageV5Tests(unittest.TestCase):
         self.assertIn("--ccp-confidence 0.90", script)
         self.assertIn("--evaluation-budget 800", script)
         self.assertIn("--pop 20", script)
+        self.assertGreaterEqual(
+            script.count("--residual-logit-limit 2.0"), 2)
+        self.assertIn(".validation.override_recall >= 0.10", script)
+        self.assertIn(".validation.fallback_accuracy >= 0.80", script)
         self.assertIn("equal_test_parameters: true", script)
         self.assertIn("$model.mean_paired_percent > $heuristic.mean_paired_percent", script)
 

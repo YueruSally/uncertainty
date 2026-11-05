@@ -5,10 +5,10 @@ INSTANCES=${INSTANCES:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/tra
 NORMALIZATION=${NORMALIZATION:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/reward_normalization.json}
 BOOTSTRAP_CHECKPOINT=${BOOTSTRAP_CHECKPOINT:-transformer_ppo_runs/diagnostics/v5r_joint_replace_smoke_b160_p20_seed9501/M/final_policy.pt}
 V4_DATA_ROOT=${V4_DATA_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_paired_heuristic_v4_ppo_14inst_b800}
-ADV_ROOT=${ADV_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_pretrain}
-PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_ppo_19inst_b800}
-OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_dev_3inst_3seed_b800}
-OOS_ROOT=${OOS_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_dev_oos_3inst_3seed_s1000}
+ADV_ROOT=${ADV_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_1_r20_pretrain}
+PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_1_r20_ppo_19inst_b800}
+OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_1_r20_dev_3inst_3seed_b800}
+OOS_ROOT=${OOS_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_1_r20_dev_oos_3inst_3seed_s1000}
 MAX_WORKERS=${MAX_WORKERS:-3}
 MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}
 
@@ -35,11 +35,11 @@ done
 mkdir -p "$ADV_ROOT" "$PPO_ROOT" "$OUT_ROOT" "$OOS_ROOT"
 exec 9>"$OUT_ROOT/pipeline.lock"
 if ! flock -n 9; then
-  echo "ANOTHER M-V5 PIPELINE IS ALREADY RUNNING" >&2
+  echo "ANOTHER M-V5.1 PIPELINE IS ALREADY RUNNING" >&2
   exit 75
 fi
 
-echo "===== TEST M-V5 PAIRED-ADVANTAGE PRETRAINING ====="
+echo "===== TEST M-V5.1 R2.0 PAIRED-ADVANTAGE PRETRAINING ====="
 python3 -u -m unittest \
   tests.test_m_paired_advantage_v5 \
   tests.test_m_paired_heuristic_v4 \
@@ -63,7 +63,7 @@ echo "===== STAGE 1: PAIRED WINNER PRETRAINING FROM V4 SAME-STATE DATA ====="
 if ! test -f "$ADV_ROOT/TRAINING_COMPLETE.json"; then
   ATTEMPT=1
   while (( ATTEMPT <= MAX_ATTEMPTS )); do
-    echo "[M-V5-PRETRAIN] attempt=$ATTEMPT/$MAX_ATTEMPTS"
+    echo "[M-V5.1-PRETRAIN] attempt=$ATTEMPT/$MAX_ATTEMPTS"
     set +e
     python3 -u train_m_paired_advantage_transformer.py \
       --data-root "$V4_DATA_ROOT" \
@@ -78,6 +78,7 @@ if ! test -f "$ADV_ROOT/TRAINING_COMPLETE.json"; then
       --positive-override-weight 4.0 \
       --pairwise-weight 1.0 \
       --pairwise-margin 0.05 \
+      --residual-logit-limit 2.0 \
       --seed 66101 \
       --device cpu \
       2>&1 | tee -a "$ADV_ROOT/training.log"
@@ -87,7 +88,7 @@ if ! test -f "$ADV_ROOT/TRAINING_COMPLETE.json"; then
       break
     fi
     if (( ATTEMPT == MAX_ATTEMPTS )); then
-      echo "M-V5 PRETRAINING FAILED AFTER $MAX_ATTEMPTS ATTEMPTS" >&2
+      echo "M-V5.1 PRETRAINING FAILED AFTER $MAX_ATTEMPTS ATTEMPTS" >&2
       exit "$STATUS"
     fi
     ATTEMPT=$((ATTEMPT + 1))
@@ -103,10 +104,12 @@ if ! jq -e '
   and .selected_epoch > 0
   and .validation.mean_preference_loss
       < .baseline.validation.mean_preference_loss
-  and .validation.override_recall > 0
+  and .residual_logit_limit == 2.0
+  and .validation.override_recall >= 0.10
+  and .validation.fallback_accuracy >= 0.80
 ' "$ADV_ROOT/TRAINING_COMPLETE.json" >/dev/null; then
   touch "$OUT_ROOT/PRETRAIN_REJECTED"
-  echo "M-V5 PAIRED-ADVANTAGE PRETRAINING GATE FAILED" >&2
+  echo "M-V5.1 PAIRED-ADVANTAGE PRETRAINING GATE FAILED" >&2
   cat "$ADV_ROOT/TRAINING_COMPLETE.json"
   exit 0
 fi
@@ -121,7 +124,7 @@ if ! test -f "$PPO_ROOT/training_summary.json"; then
       PPO_RESUME_ARGS+=(--resume)
       INITIAL_ARGS=()
     fi
-    echo "[M-V5-TRAIN] attempt=$ATTEMPT/$MAX_ATTEMPTS resume=${#PPO_RESUME_ARGS[@]}"
+    echo "[M-V5.1-TRAIN] attempt=$ATTEMPT/$MAX_ATTEMPTS resume=${#PPO_RESUME_ARGS[@]}"
     set +e
     python3 -u train_transformer_ppo_ccp100.py \
       --instances "$INSTANCES" \
@@ -150,7 +153,7 @@ if ! test -f "$PPO_ROOT/training_summary.json"; then
       --mutation-prior-temperature 0.25 \
       --m-forced-replace-start-generation 10 \
       --actor-policy base_residual \
-      --residual-logit-limit 0.50 \
+      --residual-logit-limit 2.0 \
       --rollout-steps 16 \
       --gae-horizon 8 \
       --actor-learning-rate 5e-6 \
@@ -166,7 +169,7 @@ if ! test -f "$PPO_ROOT/training_summary.json"; then
       break
     fi
     if (( ATTEMPT == MAX_ATTEMPTS )); then
-      echo "M-V5 PPO FAILED AFTER $MAX_ATTEMPTS ATTEMPTS" >&2
+      echo "M-V5.1 PPO FAILED AFTER $MAX_ATTEMPTS ATTEMPTS" >&2
       exit "$STATUS"
     fi
     ATTEMPT=$((ATTEMPT + 1))
@@ -183,7 +186,7 @@ if ! jq -e '
   and (.episodes | map(.negative_reward_actions) | add) > 0
   and .total_counterfactual_evaluations > 0
 ' "$PPO_ROOT/training_summary.json" >/dev/null; then
-  echo "M-V5 PPO TRAINING GATE FAILED" >&2
+  echo "M-V5.1 PPO TRAINING GATE FAILED" >&2
   exit 1
 fi
 if ! jq -e '
@@ -192,14 +195,14 @@ if ! jq -e '
   and .ccp_confidence == 0.90
   and .evaluation_budget_per_episode == 800
   and .ppo.actor_policy == "base_residual"
-  and .ppo.residual_logit_limit == 0.50
+  and .ppo.residual_logit_limit == 2.0
   and .ppo.candidate_representation == "path_v5"
   and .ppo.credit_assignment == "paired_heuristic_terminal"
   and .ppo.mutation_control == "replace_path"
   and .ppo.mutation_action_prior == "joint_balanced"
   and .ppo.mutation_prior_temperature == 0.25
 ' "$PPO_ROOT/training_configuration.json" >/dev/null; then
-  echo "M-V5 FROZEN TRAINING CONFIGURATION CHECK FAILED" >&2
+  echo "M-V5.1 FROZEN TRAINING CONFIGURATION CHECK FAILED" >&2
   exit 1
 fi
 
@@ -207,7 +210,7 @@ echo "===== STAGE 3: EQUAL CCP100 / POP20 / B800 THREE-METHOD DEVELOPMENT ====="
 if ! test -f "$OUT_ROOT/COMPLETE.json"; then
   ATTEMPT=1
   while (( ATTEMPT <= MAX_ATTEMPTS )); do
-    echo "[M-V5-EVAL] attempt=$ATTEMPT/$MAX_ATTEMPTS"
+    echo "[M-V5.1-EVAL] attempt=$ATTEMPT/$MAX_ATTEMPTS"
     set +e
     python3 -u evaluate_m_balanced_teacher_transformer.py \
       --instances "$INSTANCES" \
@@ -235,7 +238,7 @@ if ! test -f "$OUT_ROOT/COMPLETE.json"; then
       break
     fi
     if (( ATTEMPT == MAX_ATTEMPTS )); then
-      echo "M-V5 DEVELOPMENT FAILED AFTER $MAX_ATTEMPTS ATTEMPTS" >&2
+      echo "M-V5.1 DEVELOPMENT FAILED AFTER $MAX_ATTEMPTS ATTEMPTS" >&2
       exit "$STATUS"
     fi
     ATTEMPT=$((ATTEMPT + 1))
@@ -303,12 +306,12 @@ jq --slurpfile pretrain "$ADV_ROOT/TRAINING_COMPLETE.json" '
 touch "$OUT_ROOT/DEVELOPMENT_COMPLETE"
 if ! jq -e '.pass == true' "$OUT_ROOT/DEVELOPMENT_GATE.json" >/dev/null; then
   touch "$OUT_ROOT/DEVELOPMENT_REJECTED"
-  echo "===== M-V5 EQUAL-PARAMETER DEVELOPMENT DID NOT PASS ====="
+  echo "===== M-V5.1 EQUAL-PARAMETER DEVELOPMENT DID NOT PASS ====="
   cat "$OUT_ROOT/DEVELOPMENT_GATE.json"
   exit 0
 fi
 touch "$OUT_ROOT/DEVELOPMENT_PASS" "$OUT_ROOT/VALIDATION_PASS"
-echo "===== M-V5 EQUAL-PARAMETER DEVELOPMENT PASSED ====="
+echo "===== M-V5.1 EQUAL-PARAMETER DEVELOPMENT PASSED ====="
 
 echo "===== STAGE 4: SAME FRONTS / ONE NEW S1000 OOS SCENARIO SET ====="
 if ! test -f "$OOS_ROOT/OOS_COMPLETE.json"; then
@@ -330,9 +333,9 @@ fi
 touch "$OOS_ROOT/OOS_PIPELINE_COMPLETE"
 if jq -e '.admission_pass == true' "$OOS_ROOT/OOS_COMPLETE.json" >/dev/null; then
   touch "$OOS_ROOT/OOS_PASS" "$OUT_ROOT/PIPELINE_COMPLETE"
-  echo "===== M-V5 CCP100 DEVELOPMENT AND S1000 OOS PASSED ====="
+  echo "===== M-V5.1 CCP100 DEVELOPMENT AND S1000 OOS PASSED ====="
 else
   touch "$OOS_ROOT/OOS_REJECTED" "$OUT_ROOT/PIPELINE_COMPLETE"
-  echo "===== M-V5 CCP100 DEVELOPMENT PASSED; S1000 OOS DID NOT PASS ====="
+  echo "===== M-V5.1 CCP100 DEVELOPMENT PASSED; S1000 OOS DID NOT PASS ====="
 fi
 cat "$OUT_ROOT/DEVELOPMENT_GATE.json"

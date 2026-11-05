@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import gc
 import json
 import math
@@ -184,6 +185,7 @@ def main(argv=None):
     parser.add_argument("--positive-override-weight", type=float, default=4.0)
     parser.add_argument("--pairwise-weight", type=float, default=1.0)
     parser.add_argument("--pairwise-margin", type=float, default=0.05)
+    parser.add_argument("--residual-logit-limit", type=float, default=2.0)
     parser.add_argument("--seed", type=int, default=66101)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
@@ -193,7 +195,8 @@ def main(argv=None):
             or args.early_stopping_patience < 1
             or args.learning_rate <= 0.0 or args.weight_decay < 0.0
             or args.positive_override_weight < 1.0
-            or args.pairwise_weight < 0.0 or args.pairwise_margin < 0.0):
+            or args.pairwise_weight < 0.0 or args.pairwise_margin < 0.0
+            or args.residual_logit_limit <= 0.0):
         parser.error("invalid paired-advantage training hyperparameters")
 
     import torch
@@ -255,6 +258,9 @@ def main(argv=None):
         parser.error(
             "checkpoint must be a joint-balanced base-residual path_v5 "
             "M replace_path Transformer")
+    trainer.config = replace(
+        trainer.config, residual_logit_limit=args.residual_logit_limit)
+    trainer.model.residual_logit_limit = args.residual_logit_limit
     model = trainer.model
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=args.learning_rate,
@@ -359,6 +365,7 @@ def main(argv=None):
         "positive_override_weight": args.positive_override_weight,
         "pairwise_weight": args.pairwise_weight,
         "pairwise_margin": args.pairwise_margin,
+        "residual_logit_limit": args.residual_logit_limit,
         "seed": args.seed,
     }, overwrite=True)
     report = {
@@ -383,6 +390,7 @@ def main(argv=None):
         "positive_override_weight": args.positive_override_weight,
         "pairwise_weight": args.pairwise_weight,
         "pairwise_margin": args.pairwise_margin,
+        "residual_logit_limit": args.residual_logit_limit,
         "checkpoint": str(checkpoint),
         "history": history,
     }
