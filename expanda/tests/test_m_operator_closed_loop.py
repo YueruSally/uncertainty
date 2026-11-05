@@ -109,10 +109,11 @@ class ClosedLoopTests(unittest.TestCase):
             write_json(path / "PLAN.json", {"protocol": "operator-path-representation-v1", "folds": folds,
                 "seeds": [1], "inputs_sha256": {str((collection / "batch_2/DATASET.json").resolve()): digest(collection / "batch_2/DATASET.json")}})
             (path / "REPRESENTATION_COMPLETE").touch()
+            write_json(path / "QUICK_RESULT.json", {"representation_screen_pass": True})
             for name in ("a", "b"):
                 folder = path / name
                 write_json(folder / "FOLD_COMPLETE.json", {"preprocessing": {"common_candidate_context": {"target_scale": .1}},
-                    "methods": {"PATH_TOKEN": {"threshold": None if name == "a" else 0., "outer_gain": 999 if name == "a" else -999}}})
+                    "methods": {"PATH_TOKEN": {"threshold": None if name == "a" else .05, "outer_gain": 999 if name == "a" else -999}}})
                 checkpoint = folder / "PATH_TOKEN/seed_1.pt"
                 checkpoint.parent.mkdir()
                 checkpoint.write_bytes(b"test only")
@@ -121,6 +122,15 @@ class ClosedLoopTests(unittest.TestCase):
             with patch("m_operator_closed_loop.load_panel", return_value=panel):
                 result = export_frozen_policy(path, collection, root / "frozen.json")
             self.assertEqual(result["selected"]["source_fold"], "b")
+            write_json(path / "QUICK_RESULT.json", {"representation_screen_pass": False})
+            with self.assertRaisesRegex(ValueError, "offline representation screen"):
+                export_frozen_policy(path, collection, root / "blocked.json")
+            write_json(path / "QUICK_RESULT.json", {"representation_screen_pass": True})
+            write_json(path / "b/FOLD_COMPLETE.json", {"preprocessing": {"common_candidate_context": {"target_scale": .1}},
+                "methods": {"PATH_TOKEN": {"threshold": 0.}}})
+            with patch("m_operator_closed_loop.load_panel", return_value=panel):
+                with self.assertRaisesRegex(ValueError, "positive threshold"):
+                    export_frozen_policy(path, collection, root / "zero_gate.json")
 
     def test_pairing_and_per_instance_pass_criteria(self):
         runs = []

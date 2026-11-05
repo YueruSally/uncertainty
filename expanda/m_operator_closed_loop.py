@@ -37,6 +37,9 @@ def export_frozen_policy(path_root, collection, destination):
         raise ValueError("path representation experiment must be complete")
     if plan["protocol"] != "operator-path-representation-v1":
         raise ValueError("unexpected checkpoint protocol")
+    admission = path_root / "QUICK_RESULT.json"
+    if not admission.exists() or read_json(admission).get("representation_screen_pass") is not True:
+        raise ValueError("offline representation screen did not pass; closed-loop deployment is blocked")
     rows, _, mask, y, _, _ = load_panel(collection)
     dataset = collection / "batch_2/DATASET.json"
     if plan["inputs_sha256"].get(str(dataset.resolve())) != digest(dataset):
@@ -73,6 +76,9 @@ def export_frozen_policy(path_root, collection, destination):
             "validation_net_gain": gain, "validation_scaled_gain": gain / scale,
             "validation_switches": int((selected != BALANCED).sum()), "checkpoints": checkpoints})
     selected = sorted(rankings, key=lambda r: (-r["validation_scaled_gain"], r["validation_switches"], r["source_fold"]))[0]
+    if selected["frozen_threshold"] is None or selected["frozen_threshold"] <= 0:
+        raise ValueError("deployment requires a positive threshold frozen in inner validation; do not retune on search results")
+    sources[str(admission.resolve())] = digest(admission)
     result = {"protocol": "frozen-path-closed-loop-v1", "selected": selected,
         "selection_rule": "max inner-validation net gain / training target scale; fewer switches then lexical fold; no outer/search scores",
         "selection_candidates": rankings, "input_sha256": sources, "seeds": plan["seeds"],

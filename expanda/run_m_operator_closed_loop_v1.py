@@ -98,6 +98,9 @@ def load_run(folder, instance, plan_sha):
 
 def execute(a):
     root, source = a.out.resolve(), Path(__file__).resolve().parent
+    if (root / "PIPELINE_COMPLETE").exists():
+        log("completed historical result retained; see QUICK_RESULT.json; no new searches")
+        return
     bundle = root / "FROZEN_POLICY.json"
     frozen = export_frozen_policy(a.path_root.resolve(), a.collection_root.resolve(), bundle)
     if set(INSTANCES) & set(frozen["source_instances"]):
