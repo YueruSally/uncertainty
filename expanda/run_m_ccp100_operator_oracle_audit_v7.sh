@@ -32,6 +32,7 @@ echo "===== TEST M-V7 REPEATED FIVE-OPERATOR ORACLE AUDIT ====="
 python3 -u -m unittest \
   tests.test_m_operator_scheduler_v6 \
   tests.test_m_generation_reward_v3 \
+  tests.test_m_operator_oracle_analysis \
   > "$OUT_ROOT/tests.log" 2>&1
 
 run_one() {
@@ -106,15 +107,20 @@ python3 -u analyze_m_operator_oracle_audit.py \
   --runs \
     "$OUT_ROOT/runs/train-S0-009_seed_890001" \
     "$OUT_ROOT/runs/train-S0-011_seed_890002" \
+  --expected-state-count 64 \
+  --expected-replicates 3 \
   --out "$OUT_ROOT" \
   2>&1 | tee "$OUT_ROOT/analysis.log"
 
 if ! jq -e '
   .completed == true
-  and .state_count >= 48
+  and .completeness_pass == true
+  and .raw_state_count == 64
+  and .state_count == 64
+  and .excluded_state_count == 0
   and .operator_count == 5
   and .replicates_per_operator == 3
-  and .counterfactual_evaluation_count >= 720
+  and .counterfactual_evaluation_count == .expected_counterfactual_evaluation_count
 ' "$OUT_ROOT/OPERATOR_ORACLE_AUDIT.json" >/dev/null; then
   echo "M-V7 AUDIT COMPLETENESS CHECK FAILED" >&2
   exit 1
