@@ -23,7 +23,8 @@ import numpy as np
 import torch
 import baseline_uncertainty as base
 from m_candidate_information import CandidatePolicy, CandidateController
-from m_terminal_hv_ppo import TerminalPolicy
+from m_terminal_hv_ppo import (TerminalPolicy, SingleInterventionPolicy,
+    SingleInterventionBaseline, load_checkpoint)
 from m_operator_closed_loop import ProfiledBase
 from m_operator_offline import read_json, write_json, digest
 from evaluate_m_directed_balanced_oos import _uncertainty_profile, _nondominated
@@ -43,6 +44,8 @@ MASTER_SEED = 92_000_000
 SEARCH_SEED_BASE = 93_000_000
 OOS_SEED_BASE = 94_000_000
 OOS_COUNT = 5000
+DEVELOPMENT_MODES = {"terminal-hv-ppo-v1": "repeated-decisions",
+    "single-intervention-ppo-v2": "single-intervention"}
 
 
 def log(message):
@@ -55,8 +58,11 @@ def freeze_development(development):
     selection = read_json(development / "SELECTED_POLICY.json")
     if (not (development / "PIPELINE_COMPLETE").exists() or not result.get("completed")
             or not result.get("development_pass") or selection["update"] <= 0
-            or selection != result["selected"] or plan["protocol"] != "terminal-hv-ppo-v1"):
+            or selection != result["selected"] or plan["protocol"] not in DEVELOPMENT_MODES):
         raise ValueError("development has not established PPO benefit; no final confirmation started")
+    mode = DEVELOPMENT_MODES[plan["protocol"]]
+    if bool(plan.get("single_intervention")) != (mode == "single-intervention"):
+        raise ValueError("development execution mode is inconsistent")
     for path, sha in plan["input_sha256"].items():
         if digest(path) != sha:
             raise ValueError(f"development input/code changed: {path}")
@@ -65,6 +71,12 @@ def freeze_development(development):
     bundles = [p for p in plan["input_sha256"] if Path(p).name == "BUNDLE.json"]
     if len(bundles) != 1:
         raise ValueError("ambiguous source bundle")
+    checkpoint = load_checkpoint(selection["checkpoint"])
+    if (checkpoint.get("protocol") != "terminal-hv-ppo-v1"
+            or checkpoint.get("execution_mode", "repeated-decisions") != mode
+            or checkpoint["update"] != selection["update"]
+            or checkpoint["bundle_sha256"] != digest(bundles[0])):
+        raise ValueError("selected checkpoint execution mode/update/bundle differs from development")
     return plan, selection, Path(bundles[0])
 
 
@@ -102,6 +114,23 @@ def check_pair(rows):
             raise ValueError("different initial population/scenarios/budget or evaluation-time learning")
         if method != "BASE" and row["candidate_contract"] != "concrete-proposal-v1":
             raise ValueError("candidate execution changed")
+    if any(row.get("single_intervention") for row in rows.values()):
+        if not all(row.get("single_intervention") for row in rows.values()):
+            raise ValueError("mixed single-intervention execution modes")
+        heuristic, learned = rows["HEURISTIC_BALANCED"], rows["TRANSFORMER_PPO"]
+        if (not heuristic.get("first_supported_input_sha256")
+                or heuristic["first_supported_input_sha256"] != learned.get("first_supported_input_sha256")):
+            raise ValueError("single-intervention state differs from paired Balanced")
+        for method, row in rows.items():
+            if (row.get("learned_decisions") != int(method == "TRANSFORMER_PPO")
+                    or row.get("sampling") != (method == "TRANSFORMER_PPO")
+                    or row.get("collect_for_training") is not False):
+                raise ValueError("confirmation must preserve one frozen stochastic decision without training")
+        if heuristic["closed_loop_switches"] or not 0 <= learned["closed_loop_switches"] <= 1:
+            raise ValueError("more than one learned switch in confirmation")
+        if not learned["closed_loop_switches"] and not np.isclose(
+                learned["final_hypervolume"], heuristic["final_hypervolume"], rtol=0, atol=1e-12):
+            raise ValueError("no-switch confirmation changed the Balanced result")
 
 
 def search_worker(a, plan):
@@ -109,13 +138,16 @@ def search_worker(a, plan):
     instance_path = a.out / "instances" / (a.instance+".json")
     instance, _ = read_instance(instance_path)
     target = a.out / "search" / a.instance / f"seed_{a.seed}" / a.method
+    single = bool(plan.get("single_intervention"))
     if a.method == "BASE":
         policy, component, factories = None, "BASE", {"BASE": ProfiledBase}
     elif a.method == "HEURISTIC_BALANCED":
-        policy = CandidatePolicy(a.instance, a.seed, a.method)
+        policy = (SingleInterventionBaseline(a.instance, a.seed) if single else
+            CandidatePolicy(a.instance, a.seed, a.method))
         component, factories = "M", {"M": CandidateController}
     else:
-        policy = TerminalPolicy(a.instance, a.seed, plan["bundle"], plan["selected"]["checkpoint"], plan["selected"]["sha256"])
+        policy_class = SingleInterventionPolicy if single else TerminalPolicy
+        policy = policy_class(a.instance, a.seed, plan["bundle"], plan["selected"]["checkpoint"], plan["selected"]["sha256"])
         component, factories = "M", {"M": CandidateController}
     row = run_episode(Path(plan["data"]), instance_path, target, policy,
         _normalizer(Path(plan["normalization"])), a.seed, evaluation_budget=400, pop_size=20,
@@ -124,6 +156,10 @@ def search_worker(a, plan):
     row.update(strategy=a.method, algorithm_seed=a.seed, plan_sha256=digest(a.out / "PLAN.json"),
         policy_sha256=plan["selected"]["sha256"] if a.method == "TRANSFORMER_PPO" else None,
         final_front_sha256=digest(target / "final_feasible_nondominated.json"))
+    if single:
+        row.update(single_intervention=True, sampling=a.method == "TRANSFORMER_PPO", collect_for_training=False,
+            learned_decisions=policy.model_evaluations if policy else 0,
+            first_supported_input_sha256=policy.first_supported_input_sha256 if policy else None)
     if row["real_objective_evaluation_count"] != 400 or row.get("ppo_updates", 0) or row.get("training_feedback_evaluations", 0):
         raise ValueError("confirmation violated B400/frozen-policy contract")
     write_json(target / "RUN_COMPLETE.json", row)
@@ -230,7 +266,12 @@ def run(a):
     root = a.out.resolve()
     source_files = [Path(p) for p in development_plan["input_sha256"]] + [Path(__file__),
         SOURCE / "generate_s0_final_test_instances.py", a.source_instances / "catalog.json"]
-    plan = {"protocol": "terminal-hv-confirm-v1", "selected": selection, "bundle": str(bundle),
+    single = bool(development_plan.get("single_intervention"))
+    plan = {"protocol": "single-intervention-confirm-v2" if single else "terminal-hv-confirm-v1",
+        "development_protocol": development_plan["protocol"], "single_intervention": single,
+        "execution_mode": DEVELOPMENT_MODES[development_plan["protocol"]],
+        "evaluation_policy": "one frozen softmax sample, then unchanged Balanced" if single else "frozen argmax at each supported G10+ event",
+        "selected": selection, "bundle": str(bundle),
         "development_sha256": digest(a.development / "QUICK_RESULT.json"), "data": str(a.data.resolve()),
         "normalization": str(a.normalization.resolve()), "source_instances": str(a.source_instances.resolve()),
         "instance_count": INSTANCE_COUNT, "master_seed": MASTER_SEED, "search_seed_base": SEARCH_SEED_BASE,
@@ -370,7 +411,8 @@ def run(a):
     passed = primary["hierarchical_95ci_low"] > 0 and primary["positive_instances"] > INSTANCE_COUNT/2
     summary = {"completed": True, "independent_confirmation_pass": passed, "selected_policy": selection,
         "comparison_design": {"instances": INSTANCE_COUNT, "paired_seeds": len(SEEDS), "methods": METHODS,
-            "search_scenarios": 100, "population":20, "evaluation_budget":400, "oos_scenarios":OOS_COUNT},
+            "search_scenarios": 100, "population":20, "evaluation_budget":400, "oos_scenarios":OOS_COUNT,
+            "execution_mode": plan["execution_mode"], "evaluation_policy": plan["evaluation_policy"]},
         "online": hierarchical_summary(online, instances, SEEDS), "oos": oos_report,
         "methods": {m: {"mean_optimisation_seconds": float(np.mean([r["optimisation_seconds"] for r in runs if r["strategy"] == m]))} for m in METHODS},
         "cost": {"new_training_updates":0, "search_objective_evaluations":400*len(runs),
