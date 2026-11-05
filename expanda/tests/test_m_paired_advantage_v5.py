@@ -3,10 +3,21 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from train_m_paired_advantage_transformer import load_dataset
+from train_m_paired_advantage_transformer import (
+    _stratified_subset, load_dataset,
+)
 
 
 class MPairedAdvantageV5Tests(unittest.TestCase):
+    def test_quick_subset_balances_override_and_fallback_labels(self):
+        rows = [
+            {"override_target": index < 10, "index": index}
+            for index in range(20)
+        ]
+        selected = _stratified_subset(rows, 8, 17)
+        self.assertEqual(len(selected), 8)
+        self.assertEqual(sum(row["override_target"] for row in selected), 4)
+
     def test_positive_selected_action_wins_and_negative_falls_back(self):
         with tempfile.TemporaryDirectory() as temporary:
             run = Path(temporary) / "episodes" / "train-S0-002"

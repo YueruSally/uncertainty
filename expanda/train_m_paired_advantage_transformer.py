@@ -89,6 +89,25 @@ def _groups(rows, batch_size, rng=None):
         yield [rows[index] for index in order[start:start + batch_size]]
 
 
+def _stratified_subset(rows, maximum, seed):
+    """Keep both override and fallback labels in a deterministic quick gate."""
+    if maximum is None or len(rows) <= maximum:
+        return list(rows)
+    positives = [row for row in rows if row["override_target"]]
+    fallbacks = [row for row in rows if not row["override_target"]]
+    rng = random.Random(seed)
+    rng.shuffle(positives)
+    rng.shuffle(fallbacks)
+    positive_count = min(len(positives), maximum // 2)
+    fallback_count = min(len(fallbacks), maximum - positive_count)
+    remaining = maximum - positive_count - fallback_count
+    if remaining:
+        positive_count = min(len(positives), positive_count + remaining)
+    selected = positives[:positive_count] + fallbacks[:fallback_count]
+    rng.shuffle(selected)
+    return selected
+
+
 def _preference_loss(torch, logits, rows, positive_weight, pairwise_weight,
                      margin):
     """Weighted winner CE plus an explicit winner-over-loser margin."""
@@ -190,6 +209,8 @@ def main(argv=None):
         "--minimum-validation-override-recall", type=float, default=0.10)
     parser.add_argument(
         "--minimum-validation-fallback-accuracy", type=float, default=0.80)
+    parser.add_argument("--maximum-training-states", type=int)
+    parser.add_argument("--maximum-validation-states", type=int)
     parser.add_argument("--seed", type=int, default=66101)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
@@ -202,7 +223,11 @@ def main(argv=None):
             or args.pairwise_weight < 0.0 or args.pairwise_margin < 0.0
             or args.residual_logit_limit <= 0.0
             or not 0.0 <= args.minimum_validation_override_recall <= 1.0
-            or not 0.0 <= args.minimum_validation_fallback_accuracy <= 1.0):
+            or not 0.0 <= args.minimum_validation_fallback_accuracy <= 1.0
+            or (args.maximum_training_states is not None
+                and args.maximum_training_states < 2)
+            or (args.maximum_validation_states is not None
+                and args.maximum_validation_states < 2)):
         parser.error("invalid paired-advantage training hyperparameters")
 
     import torch
@@ -219,10 +244,14 @@ def main(argv=None):
     rows = load_dataset(args.data_root)
     validation_names = {
         _instance_key(value) for value in args.validation_instances}
-    training = [
+    available_training = [
         row for row in rows if row["instance"] not in validation_names]
-    validation = [
+    available_validation = [
         row for row in rows if row["instance"] in validation_names]
+    training = _stratified_subset(
+        available_training, args.maximum_training_states, args.seed + 101)
+    validation = _stratified_subset(
+        available_validation, args.maximum_validation_states, args.seed + 202)
     if not training or not validation:
         parser.error(
             "paired dataset must contain training and validation instances; "
@@ -242,6 +271,8 @@ def main(argv=None):
         flush=True)
     dataset_summary = {
         "states": len(rows),
+        "available_training_states": len(available_training),
+        "available_validation_states": len(available_validation),
         "training_states": len(training),
         "validation_states": len(validation),
         "training_override_states": sum(
