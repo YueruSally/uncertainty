@@ -190,7 +190,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 scenario_count=None,
                 ccp_confidence=0.90,
                 uncertainty_profile="legacy",
-                crossover_reward_mode="archive_hv"):
+                crossover_reward_mode="archive_hv",
+                inference_controller_factories=None):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
@@ -233,6 +234,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     episode_trainers = (
         tuple(trainer.values()) if component in combined_components else
         () if trainer is None else (trainer,))
+    inference_controller_factories = dict(inference_controller_factories or {})
+    if inference_controller_factories and (
+            component not in ("BASE", "M")
+            or set(inference_controller_factories) - {"BASE", "M"}
+            or any(item.training for item in episode_trainers)):
+        raise ValueError("custom inference controllers support frozen BASE/M runs only")
     policy_candidate_representations = {
         item.component: getattr(
             getattr(item, "config", None), "candidate_representation", "legacy")
@@ -683,12 +690,12 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     write_json(out / "configuration.json", config)
     archive = RewardArchive(episode_normalizer)
     controller_types = {
-        "M": PPOController,
+        "M": inference_controller_factories.get("M", PPOController),
         "C": CrossoverPPOController,
         "I": InitializationPPOController,
     }
     if component == "BASE":
-        controller = BaseBudgetController(
+        controller = inference_controller_factories.get("BASE", BaseBudgetController)(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
             method=method, instance=instance, seeds=seeds,
             normalizer=episode_normalizer)
@@ -794,8 +801,10 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         episode_normalizer.transform(_optimisation_vector(row))
         for row in rows
     ]
+    final_hv_started = time.perf_counter()
     final_hypervolume = exact_hv_3d(
         final_points, episode_normalizer.reference)
+    final_hv_seconds = time.perf_counter() - final_hv_started
     write_json(out / "final_feasible_nondominated.json", [json_candidate(row) for row in rows])
     write_json(out / "final_archive_lineage.json", [{
         "source_solution_id": row["source_solution_id"],
@@ -835,6 +844,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "generations_completed": controller.generations_completed,
         "final_front_size": len(rows),
         "final_hypervolume": final_hypervolume,
+        "final_hv_seconds": final_hv_seconds,
         "final_front_uncertainty": _front_uncertainty_diagnostics(
             [row["individual"] for row in rows]),
         **controller.summary(),
