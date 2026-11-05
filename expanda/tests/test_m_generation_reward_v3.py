@@ -59,6 +59,7 @@ class MGenerationRewardV3Tests(unittest.TestCase):
         controller._generation_reward_sequence_generation = None
         controller.reward_total = 0.0
         controller.positive_reward_actions = 0
+        controller.negative_reward_actions = 0
         controller.generation_reward_events = 0
         controller.positive_generation_rewards = 0
         controller.negative_generation_rewards = 0
