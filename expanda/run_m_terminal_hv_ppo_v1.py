@@ -19,7 +19,7 @@ from m_candidate_information import CandidatePolicy, CandidateController
 from m_operator_offline import read_json, write_json, digest
 from m_operator_fixed_mix import bootstrap
 from m_terminal_hv_ppo import (METHODS, initialize, TerminalPolicy, checkpoint_model,
-    optimizer_for, save_checkpoint, update_ppo)
+    optimizer_for, save_checkpoint, update_ppo, SingleInterventionPolicy, SingleInterventionBaseline)
 from run_learning_components_deterministic import _normalizer
 from run_m_operator_closed_loop_v1 import load_run
 from transformer_ppo.instance_catalog import read_instance
@@ -33,6 +33,20 @@ VALID_SEEDS = (898101, 898102)
 TEST_INSTANCES = ("train-S0-021", "train-S0-022")
 TEST_SEEDS = tuple(range(898201, 898221))
 EPISODES_PER_UPDATE = 4
+SINGLE_TRAIN_SEEDS = tuple(range(900001, 900009))
+SINGLE_VALID_SEEDS = tuple(range(900101, 900111))
+SINGLE_TEST_SEEDS = tuple(range(900201, 900221))
+SINGLE_EPISODES_PER_UPDATE = 8
+SINGLE_VALIDATION_UPDATES = (0, 4, 8)
+
+
+def design(a):
+    single = bool(getattr(a, "single_intervention", False))
+    return {"single": single,
+        "train_seeds": SINGLE_TRAIN_SEEDS if single else TRAIN_SEEDS,
+        "valid_seeds": SINGLE_VALID_SEEDS if single else VALID_SEEDS,
+        "test_seeds": SINGLE_TEST_SEEDS if single else TEST_SEEDS,
+        "episodes_per_update": SINGLE_EPISODES_PER_UPDATE if single else EPISODES_PER_UPDATE}
 
 
 def log(text):
@@ -42,7 +56,11 @@ def log(text):
 def worker(a):
     torch.set_num_threads(1)
     info, _ = read_instance(a.instance)
-    if a.method == METHODS[0]:
+    single = bool(getattr(a, "single_intervention", False))
+    if single:
+        policy = (SingleInterventionBaseline(info["instance_id"], a.seed) if a.method == METHODS[0] else
+            SingleInterventionPolicy(info["instance_id"], a.seed, a.bundle, a.checkpoint, a.checkpoint_sha, sample=a.sample))
+    elif a.method == METHODS[0]:
         policy = CandidatePolicy(info["instance_id"], a.seed, "HEURISTIC_BALANCED")
     elif a.method == METHODS[1]:
         policy = CandidatePolicy(info["instance_id"], a.seed, "STATE_PLUS_CANDIDATE", a.bundle)
@@ -60,7 +78,13 @@ def worker(a):
         raise RuntimeError("executor must use exactly B400, no internal updates or extra evaluations")
     result.update(strategy=a.method, algorithm_seed=a.seed, plan_sha256=a.plan_sha,
         source_bundle_sha256=digest(a.bundle), policy_sha256=a.checkpoint_sha,
-        sampling=a.sample, training_role="on-policy episode for external PPO" if a.sample else "frozen evaluation")
+        sampling=bool(a.sample or (single and a.method != METHODS[0])), collect_for_training=a.sample,
+        training_role="on-policy episode for external PPO" if a.sample else "frozen evaluation")
+    if single:
+        result.update(single_intervention=True, learned_decisions=policy.model_evaluations,
+            first_supported_input_sha256=policy.first_supported_input_sha256)
+        if policy.model_evaluations != int(a.method != METHODS[0]) or policy.switches > 1:
+            raise RuntimeError("single-intervention protocol requires exactly one learned choice and at most one switch")
     if a.sample:
         if not policy.transitions:
             raise RuntimeError("no on-policy actions collected")
@@ -71,6 +95,9 @@ def worker(a):
 
 
 def make_plan(a):
+    d = design(a)
+    train_seeds, valid_seeds, test_seeds = d["train_seeds"], d["valid_seeds"], d["test_seeds"]
+    episode_batch = d["episodes_per_update"]
     info = read_json(a.bundle)
     if info["protocol"] != "candidate-information-v1":
         raise ValueError("requires the existing concrete-candidate pretraining bundle")
@@ -78,7 +105,7 @@ def make_plan(a):
         raise ValueError("PPO splits overlap")
     if set(TEST_INSTANCES) & (set(info["training_instances"]) | {info["validation_instance"]}):
         raise ValueError("development search overlaps pretraining instances")
-    if len(TRAIN_INSTANCES)*len(TRAIN_SEEDS) % EPISODES_PER_UPDATE:
+    if len(TRAIN_INSTANCES)*len(train_seeds) % episode_batch:
         raise ValueError("whole rollout blocks required")
     files = [a.data.resolve(), a.normalization.resolve(), a.bundle.resolve(), SOURCE / "data/border_crossing_events.csv"]
     for p, expected in info["checkpoint_sha256"].items():
@@ -93,26 +120,31 @@ def make_plan(a):
         files.append(path)
     _normalizer(a.normalization)
     files += sorted(SOURCE.glob("*.py"))+sorted((SOURCE / "transformer_ppo").glob("*.py"))
-    blocks = len(TRAIN_INSTANCES)*len(TRAIN_SEEDS)//EPISODES_PER_UPDATE
-    total = 2*len(TRAIN_INSTANCES)*len(TRAIN_SEEDS) + (blocks+2)*len(VALID_INSTANCES)*len(VALID_SEEDS) + 3*len(TEST_INSTANCES)*len(TEST_SEEDS)
-    return json.loads(json.dumps({"protocol": "terminal-hv-ppo-v1", "role": "bounded development; these search instances have been used for prior development",
+    blocks = len(TRAIN_INSTANCES)*len(train_seeds)//episode_batch
+    validation_updates = list(SINGLE_VALIDATION_UPDATES) if d["single"] else list(range(blocks+1))
+    if not validation_updates or validation_updates[0] != 0 or validation_updates[-1] != blocks:
+        raise ValueError("validation schedule must include initial and final checkpoint")
+    total = 2*len(TRAIN_INSTANCES)*len(train_seeds) + (len(validation_updates)+1)*len(VALID_INSTANCES)*len(valid_seeds) + 3*len(TEST_INSTANCES)*len(test_seeds)
+    return json.loads(json.dumps({"protocol": "single-intervention-ppo-v2" if d["single"] else "terminal-hv-ppo-v1", "role": "bounded development; these search instances have been used for prior development",
         "ccp_scenarios": 100, "ccp_confidence": .9, "population": 20, "evaluation_budget": 400,
         "minimum_control_generation": 10, "methods": METHODS, "train_instances": TRAIN_INSTANCES,
-        "train_seeds": TRAIN_SEEDS, "validation_instances": VALID_INSTANCES, "validation_seeds": VALID_SEEDS,
-        "test_instances": TEST_INSTANCES, "test_seeds": TEST_SEEDS,
-        "training_episode_count": len(TRAIN_INSTANCES)*len(TRAIN_SEEDS), "episodes_per_update": EPISODES_PER_UPDATE,
+        "train_seeds": train_seeds, "validation_instances": VALID_INSTANCES, "validation_seeds": valid_seeds,
+        "test_instances": TEST_INSTANCES, "test_seeds": test_seeds, "single_intervention": d["single"],
+        "intervention_rule": "first G10+ state with legal Balanced and at least one legal alternative; one sampled choice even if Balanced is selected; all remaining choices use unchanged Balanced" if d["single"] else "every supported G10+ event",
+        "validation_updates": validation_updates,
+        "training_episode_count": len(TRAIN_INSTANCES)*len(train_seeds), "episodes_per_update": episode_batch,
         "maximum_ppo_updates": blocks, "maximum_search_runs": total, "maximum_new_objective_evaluations": total*400,
         "gamma": 1, "reward": "terminal final_HV / matched_Balanced_final_HV - 1; no clipping/shaping",
         "optimizer": {"learning_rate": 1e-4, "epochs": 4, "minibatch": 64, "clip": .2,
             "entropy_coefficient": .005, "value_coefficient": .5, "gradient_norm": 1., "target_kl": .03},
-        "actor": "same three small pretrained Transformers; mean scores, offset 0.02 for alternatives, temperature 0.25; softmax sampling in training, argmax in evaluation",
+        "actor": "same three small pretrained Transformers; mean scores, offset 0.02 for alternatives, temperature 0.25; " + ("one softmax sample in both training and evaluation; no best-of sampling" if d["single"] else "softmax sampling in training, argmax in evaluation"),
         "checkpoint_selection": "highest mean final paired HV gain on fixed validation searches; ties prefer earlier update, including update 0",
         "decision": "PPO improves on both Balanced and unchanged pretrained model in each development instance; equal-instance bootstrap lower bound >0 against both; selected update >0. Otherwise this trial stops, with all results retained.",
         "bootstrap": "10000 resamples of paired seeds within fixed instances; development only, not new-instance generalization",
         "cost": "matched Balanced reward searches counted as training cost; pretraining is prior sunk cost; no unselected candidate CCP evaluation at inference",
         "timing": "candidate construction and inference included; concurrent 1-thread workers, not isolated formal timing",
         "workers": a.workers, "threads_per_worker": 1, "run_timeout_seconds": 300,
-        "invocation_timeout_seconds": 1800, "automatic_retries": 0,
+        "invocation_timeout_seconds": 2700 if d["single"] else 1800, "automatic_retries": 0,
         "input_sha256": {str(p): digest(p) for p in files}, "torch": str(torch.__version__), "numpy": str(np.__version__)}))
 
 
@@ -126,6 +158,19 @@ def verify_pair(rows):
             raise ValueError("paired initial population/scenarios/budget/execution mismatch")
         if not np.isfinite(row["final_hypervolume"]) or row["final_hypervolume"] <= 0:
             raise ValueError("paired percent requires positive finite HV")
+    if any(r.get("single_intervention") for r in rows):
+        if (not all(r.get("single_intervention") for r in rows)
+                or not first.get("first_supported_input_sha256")
+                or any(r["first_supported_input_sha256"] != first["first_supported_input_sha256"] for r in rows)):
+            raise ValueError("single-decision inputs differ from the paired Balanced state")
+        if any(r["learned_decisions"] != int(r["strategy"] != METHODS[0]) or r["closed_loop_switches"] > 1 for r in rows):
+            raise ValueError("single-intervention count exceeded")
+        baseline = next((r for r in rows if r["strategy"] == METHODS[0]), None)
+        if baseline is not None and any(
+                r["closed_loop_switches"] == 0
+                and not np.isclose(r["final_hypervolume"], baseline["final_hypervolume"], rtol=0, atol=1e-12)
+                for r in rows):
+            raise ValueError("no-switch policy changed the paired Balanced result")
 
 
 def report_search(runs, plan):
@@ -148,7 +193,10 @@ def report_search(runs, plan):
                 raise ValueError("requires all three frozen methods")
             rows = [group[m] for m in METHODS]
             verify_pair(rows)
-            if any(r["sampling"] for r in rows):
+            if plan.get("single_intervention"):
+                if any(r["sampling"] != (r["strategy"] != METHODS[0]) or r.get("collect_for_training") for r in rows):
+                    raise ValueError("single-intervention evaluation must use one frozen sample, without training")
+            elif any(r["sampling"] for r in rows):
                 raise ValueError("development must use frozen argmax policies")
             h, pre, ppo = [r["final_hypervolume"] for r in rows]
             effect = {"ppo_vs_balanced": 100*(ppo/h-1), "ppo_vs_pretrained": 100*(ppo/pre-1),
@@ -211,6 +259,8 @@ def execute(a):
                 command += ["--checkpoint", str(checkpoint), "--checkpoint-sha", sha]
             if sample:
                 command += ["--sample"]
+            if plan["single_intervention"]:
+                command += ["--single-intervention"]
             logfile = root / "logs" / f"{stage.replace('/', '_')}_{name}_{seed}_{method}_{time.time_ns()}.log"
             log(f"start {stage} {name}/{seed}/{method}")
             with logfile.open("w") as handle, subprocess.Popen(command, cwd=SOURCE, env=env,
@@ -232,7 +282,9 @@ def execute(a):
                 if process.returncode:
                     raise RuntimeError(f"run failed; log={logfile}\n"+"\n".join(logfile.read_text(errors="replace").splitlines()[-20:]))
         row = load_run(folder, name, plan_sha)
-        if (row["policy_sha256"] != sha or row["sampling"] != sample or row["strategy"] != method
+        expected_sampling = bool(sample or (plan["single_intervention"] and method != METHODS[0]))
+        if (row["policy_sha256"] != sha or row["sampling"] != expected_sampling
+                or row.get("collect_for_training", row["sampling"]) != sample or row["strategy"] != method
                 or row["algorithm_seed"] != seed or row["source_bundle_sha256"] != digest(a.bundle)):
             raise ValueError("saved run policy/identity differs")
         if sample:
@@ -264,6 +316,7 @@ def execute(a):
     def save_model(path, model, optimizer, index, metrics):
         save_checkpoint(path, {"protocol": "terminal-hv-ppo-v1", "plan_sha256": plan_sha,
             "bundle_sha256": digest(a.bundle), "update": index,
+            "execution_mode": "single-intervention" if plan["single_intervention"] else "repeated-decisions",
             "feature_count": len(read_json(a.bundle)["scaler"]["mean"]), "ensemble_count": len(model.actors),
             "model": model.state_dict(), "optimizer": optimizer.state_dict(), "metrics": metrics})
 
@@ -271,10 +324,10 @@ def execute(a):
     if not initial.exists():
         model = initialize(a.bundle)
         save_model(initial, model, optimizer_for(model), 0, {})
-    valid_baselines = parallel([("validation_baselines", n, s, METHODS[0]) for n in VALID_INSTANCES for s in VALID_SEEDS], "validation baselines")
+    valid_baselines = parallel([("validation_baselines", n, s, METHODS[0]) for n in plan["validation_instances"] for s in plan["validation_seeds"]], "validation baselines")
     hval = {(r["instance"], r["algorithm_seed"]): r for r in valid_baselines}
     selected, validations, training_metrics = None, [], []
-    train_pairs = [(n, s) for s in TRAIN_SEEDS for n in TRAIN_INSTANCES]
+    train_pairs = [(n, s) for s in plan["train_seeds"] for n in plan["train_instances"]]
     current = initial
     for update in range(plan["maximum_ppo_updates"]+1):
         model, saved = checkpoint_model(current, digest(current))
@@ -284,29 +337,32 @@ def execute(a):
         optimizer.load_state_dict(saved["optimizer"])
         if update:
             training_metrics.append(saved["metrics"])
-        validation = parallel([(f"validation/update_{update:03d}", n, s, METHODS[2], current)
-            for n in VALID_INSTANCES for s in VALID_SEEDS], f"validation update={update}")
-        gains = []
-        # Completion order is nondeterministic. Freeze comparison order so
-        # resumed validation recreates the exact selection receipt.
-        for row in sorted(validation, key=lambda r: (r["instance"], r["algorithm_seed"])):
-            baseline = hval[row["instance"], row["algorithm_seed"]]
-            verify_pair([baseline, row])
-            gains.append(100*(row["final_hypervolume"]/baseline["final_hypervolume"]-1))
-        record = {"update": update, "checkpoint": str(current), "sha256": digest(current),
-                  "mean_final_paired_percent": float(np.mean(gains)), "paired_percent": gains}
-        validations.append(record)
-        if selected is None or record["mean_final_paired_percent"] > selected["mean_final_paired_percent"]+1e-12:
-            selected = record
+        if update in plan["validation_updates"]:
+            validation = parallel([(f"validation/update_{update:03d}", n, s, METHODS[2], current)
+                for n in plan["validation_instances"] for s in plan["validation_seeds"]], f"validation update={update}")
+            gains, instance_gains = [], {}
+            # Canonical order is required for deterministic selection on resume.
+            for row in sorted(validation, key=lambda r: (r["instance"], r["algorithm_seed"])):
+                baseline = hval[row["instance"], row["algorithm_seed"]]
+                verify_pair([baseline, row])
+                gain = 100*(row["final_hypervolume"]/baseline["final_hypervolume"]-1)
+                gains.append(gain)
+                instance_gains.setdefault(row["instance"], []).append(gain)
+            record = {"update": update, "checkpoint": str(current), "sha256": digest(current),
+                "mean_final_paired_percent": float(np.mean(gains)), "paired_percent": gains,
+                "per_instance_mean": {n: float(np.mean(v)) for n,v in instance_gains.items()}}
+            validations.append(record)
+            if selected is None or record["mean_final_paired_percent"] > selected["mean_final_paired_percent"]+1e-12:
+                selected = record
+            log(f"VALIDATION update={update}/{plan['maximum_ppo_updates']} final_HV_gain={record['mean_final_paired_percent']:+.3f}% selected_update={selected['update']}")
         write_json(root / "TRAINING_PROGRESS.json", {"completed_ppo_updates": update,
             "selected": selected, "validation": validations, "ppo": training_metrics})
-        log(f"VALIDATION update={update}/{plan['maximum_ppo_updates']} final_HV_gain={record['mean_final_paired_percent']:+.3f}% selected_update={selected['update']}")
         if update == plan["maximum_ppo_updates"]:
             break
         next_checkpoint = root / f"checkpoints/update_{update+1:03d}.pt"
         if not next_checkpoint.exists():
-            block = train_pairs[update*EPISODES_PER_UPDATE:(update+1)*EPISODES_PER_UPDATE]
-            # All four complete trajectories use the SAME actor, before one update.
+            block = train_pairs[update*plan["episodes_per_update"]:(update+1)*plan["episodes_per_update"]]
+            # All complete trajectories use the SAME actor, before one update.
             jobs = []
             for n, s in block:
                 jobs.extend([("training_baselines", n, s, METHODS[0]),
@@ -319,6 +375,8 @@ def execute(a):
             for pair in block:
                 baseline, rollout = grouped[pair][METHODS[0]], grouped[pair][METHODS[2]]
                 verify_pair([baseline, rollout])
+                if plan["single_intervention"] and len(rollout["transitions"]) != 1:
+                    raise ValueError("single-intervention return must be assigned to exactly one learned choice")
                 episodes.append({"final_hv": rollout["final_hypervolume"], "balanced_hv": baseline["final_hypervolume"],
                     "transitions": rollout["transitions"]})
             metrics = update_ppo(model, optimizer, episodes, update+1)
@@ -331,10 +389,12 @@ def execute(a):
         raise ValueError("selected policy changed on resume")
     write_json(selection_path, selected)
     jobs = []
-    for n in TEST_INSTANCES:
-        for i, s in enumerate(TEST_SEEDS):
+    for n in plan["test_instances"]:
+        for i, s in enumerate(plan["test_seeds"]):
             for method in METHODS[i % 3:]+METHODS[:i % 3]:
-                jobs.append(("development", n, s, method, Path(selected["checkpoint"]) if method == METHODS[2] else None))
+                cp = Path(selected["checkpoint"]) if method == METHODS[2] else (
+                    initial if plan["single_intervention"] and method == METHODS[1] else None)
+                jobs.append(("development", n, s, method, cp))
     log("FROZEN THREE-METHOD DEVELOPMENT: CCP100 / POP20 / B400")
     runs = parallel(jobs, "development")
     report = report_search(runs, plan)
@@ -351,6 +411,9 @@ def execute(a):
         "interrupted_runs": len(interrupted), "uncommitted_interrupted_cost_not_in_total": bool(interrupted),
         "pretraining_reused": True, "prior_pretraining_cost_not_in_new_evaluation_total": True},
         "development_pass": passed, "conclusion": "PROMISING_REQUIRES_NEW_INSTANCES_AND_OOS" if passed else "BOUNDED_PPO_TRIAL_NO_RELIABLE_GAIN_ESTABLISHED",
+        "protocol": plan["protocol"], "single_intervention": plan["single_intervention"],
+        "validation_runs_per_checkpoint": len(plan["validation_instances"])*len(plan["validation_seeds"]),
+        "validation_checkpoint_candidates": plan["validation_updates"],
         "qualification": "These two development instances cannot establish independent generalization. Conditional seed intervals are not population-of-instance intervals. No automatic retraining or new-instance selection.",
         "equal_test_parameters": True, "scenario_exact": True}
     write_json(root / "COMPLETE.json", {**complete, "runs": runs, "ppo_updates": training_metrics, "validation": validations})
@@ -383,6 +446,8 @@ def main():
     p.add_argument("--checkpoint", type=Path)
     p.add_argument("--checkpoint-sha")
     p.add_argument("--sample", action="store_true")
+    p.add_argument("--single-intervention", action="store_true",
+        help="v2: one learned choice per search; identical sampling policy in training and evaluation")
     p.add_argument("--plan-sha")
     a = p.parse_args()
     if a.worker:

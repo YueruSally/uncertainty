@@ -4,6 +4,7 @@ The legacy search controller is an inference executor only. This module owns
 the actual PPO updates, after complete episodes from an unchanged actor.
 """
 from pathlib import Path
+import hashlib
 import time
 
 import numpy as np
@@ -79,12 +80,16 @@ def checkpoint_model(checkpoint, expected_sha):
 
 
 class TerminalPolicy(FixedMixPolicy):
+    execution_mode = "repeated-decisions"
+
     def __init__(self, instance, seed, bundle, checkpoint, checkpoint_sha, sample=False):
         super().__init__(instance, seed, 0.)
         info = read_json(bundle)
         self.model, saved = checkpoint_model(checkpoint, checkpoint_sha)
         if saved["bundle_sha256"] != digest(bundle):
             raise ValueError("actor/scaler provenance mismatch")
+        if saved.get("execution_mode", "repeated-decisions") != self.execution_mode:
+            raise ValueError("checkpoint execution mode differs from the requested policy")
         self.scaler, self.summary_dim = info["scaler"], info["summary_dim"]
         self.model.eval()
         self.sample, self.collect, self.transitions = sample, False, []
@@ -122,6 +127,61 @@ class TerminalPolicy(FixedMixPolicy):
         scores = [float(logits[0, i]) if mask[i] else None for i in range(5)]
         return Decision(action, probs.tolist(), scores, {"decision_kind": "terminal_ppo_rollout" if self.sample else "terminal_ppo_frozen",
             "inference_seconds": time.perf_counter()-started, "switched": action != 4})
+
+
+def decision_input_digest(summary, specific, mask):
+    """Verify that the sole learned decision sees the paired heuristic state."""
+    h = hashlib.sha256()
+    for value in (summary, specific, mask):
+        h.update(np.ascontiguousarray(value, dtype=np.float64).tobytes())
+    return h.hexdigest()
+
+
+class SingleInterventionBaseline(CandidatePolicy):
+    def __init__(self, instance, seed):
+        super().__init__(instance, seed, "HEURISTIC_BALANCED")
+        self.first_supported_input_sha256 = None
+
+    def decide(self, summary, specific, mask):
+        if self.first_supported_input_sha256 is None and mask[4] and mask[:4].any():
+            self.first_supported_input_sha256 = decision_input_digest(summary, specific, mask)
+        return super().decide(summary, specific, mask)
+
+
+class SingleInterventionPolicy(TerminalPolicy):
+    """One sampled choice at the first supported G10+ event, then Balanced.
+
+Training and deployment use exactly the same action distribution. A sampled
+Balanced choice still consumes the single decision; there is no second try.
+"""
+    execution_mode = "single-intervention"
+
+    def __init__(self, instance, seed, bundle, checkpoint, checkpoint_sha, sample=False):
+        super().__init__(instance, seed, bundle, checkpoint, checkpoint_sha, sample=True)
+        self.collect_for_training = sample
+        self.intervention_consumed = False
+        self.first_supported_input_sha256 = None
+        self.checkpoint_provenance["role"] = (
+            "one-decision on-policy rollout" if sample else "frozen one-decision stochastic policy")
+
+    def decide(self, summary, specific, mask):
+        if not self.intervention_consumed and mask[4] and mask[:4].any():
+            self.first_supported_input_sha256 = decision_input_digest(summary, specific, mask)
+            self.intervention_consumed = True
+            decision = super().decide(summary, specific, mask)
+            decision.metadata["decision_kind"] = (
+                "single_ppo_rollout" if self.collect_for_training else "single_ppo_frozen")
+            return decision
+        action = 4 if mask[4] else None
+        if action is None:
+            self.unsupported += 1
+        else:
+            self.action_counts[str(action)] += 1
+        probabilities = [0.]*5
+        if action is not None:
+            probabilities[action] = 1.
+        return Decision(action, probabilities, [0.]*5, {
+            "decision_kind": "single_intervention_balanced_remainder", "inference_seconds": 0., "switched": False})
 
 
 def optimizer_for(model):

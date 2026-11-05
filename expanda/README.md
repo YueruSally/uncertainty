@@ -1,5 +1,27 @@
 # Operational Uncertainty Screening Experiments
 
+## M 单次干预 PPO 开发实验
+
+`run_m_single_intervention_ppo_v2.sh` 检验：一次明确的变异选择，能否通过最终 HV 回报学得比 Balanced 更好。每次搜索在第 10 代起第一个有合法替代算子的状态上采样一次，其余决策使用原 Balanced；采样到 Balanced 也会消耗这次机会。训练和测试使用相同的采样策略，测试不更新参数。
+
+- 三种方法：Balanced、预训练模型、预训练后 PPO。后两种都只有一次学习决策；这里的预训练对照不是旧版的多次贪心选择。
+- 全部搜索固定 CCP100、pop20、B400，并核对初始种群、情景和首次决策输入；没有切换时必须复现 Balanced 的最终 HV。
+- 64 条训练轨迹，8 次 PPO 更新；每个更新使用 8 个实例各一条轨迹。奖励为最终 `HV / 配对 Balanced HV - 1`。
+- 第 0、4、8 次更新分别在 2 个验证实例 × 10 个种子上选模型；随后在 2 个开发实例 × 20 个种子上运行三方法对比。
+- 正常完成共 328 次搜索、131,200 次目标评价，包含训练用的配对 Balanced 成本。中断的未提交成本另行标记，不隐藏。
+
+在 `expanda` 中设置 `INSTANCES`、`NORMALIZATION`，然后执行：
+
+```bash
+export BUNDLE=transformer_ppo_runs/diagnostics/ccp_m_candidate_information_v1/training/BUNDLE.json
+export OUT_ROOT=transformer_ppo_runs/diagnostics/ccp_m_single_intervention_ppo_v2
+bash run_m_single_intervention_ppo_v2.sh
+```
+
+`STATUS.json` 是实时阶段，`TRAINING_PROGRESS.json` 是训练与验证记录，`RESULT_TABLE.csv` 是最终 HV 和耗时。`PIPELINE_COMPLETE` 只表示流程结束；`QUICK_RESULT.json` 的 `development_pass` 才表示是否满足预定开发判据。通过仍需全新实例及独立情景确认。旧的多次决策 v1 独立确认脚本不能直接用于这个 v2 策略。
+
+同一命令会复用完整运行和已提交更新；输入或代码改变会拒绝复用。每次调用上限 45 分钟，单次搜索上限 5 分钟，超时保留已完成工作；这不是完成时间或成功率保证。
+
 ## 三目标机会约束基线
 
 `baseline_uncertainty.py` 在确定性 `baseline3.py` 的路径分配和 NSGA-II 框架上增加：
