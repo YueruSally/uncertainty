@@ -77,6 +77,21 @@ class ClosedLoopTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "hash mismatch"):
                 FrozenPathPolicy(bundle)
 
+    def test_older_torch_load_without_weights_only(self):
+        with tempfile.TemporaryDirectory() as d:
+            bundle, obs, expected = fixture(Path(d))
+            original = torch.load
+
+            def older_load(path, *args, **kwargs):
+                if "weights_only" in kwargs:
+                    raise TypeError("'weights_only' is an invalid keyword argument for Unpickler()")
+                return original(path, *args, **kwargs)
+
+            with patch("m_operator_closed_loop.torch.load", side_effect=older_load):
+                policy = FrozenPathPolicy(bundle)
+            actual, _ = policy.predict_observation(obs)
+            np.testing.assert_allclose(actual, expected, rtol=1e-7, atol=1e-12)
+
     def test_controller_schedule_preserves_early_base(self):
         controller = object.__new__(FrozenOperatorController)
         controller.mixture_event_count = 0

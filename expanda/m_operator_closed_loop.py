@@ -115,7 +115,14 @@ class FrozenPathPolicy:
             for path in info["selected"]["checkpoints"]:
                 if digest(Path(path)) != info["input_sha256"][path]:
                     raise ValueError("checkpoint hash mismatch at inference")
-                checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+                try:
+                    checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+                except TypeError as exc:
+                    if "weights_only" not in str(exc):
+                        raise
+                    # Older server PyTorch accepts the saved, hash-verified
+                    # checkpoint but does not implement weights_only loading.
+                    checkpoint = torch.load(path, map_location="cpu")
                 if checkpoint["arm"] != "PATH_TOKEN":
                     raise ValueError("wrong representation checkpoint")
                 model = MatchedPathTransformer(checkpoint["feature_count"])
