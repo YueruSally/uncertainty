@@ -21,7 +21,8 @@ def _read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def _valid(run, role, seed, minimum_generation):
+def _valid(run, role, seed, minimum_generation,
+           transformer_action_scope="replace_path"):
     run = Path(run)
     if not (run / "COMPLETE.json").is_file():
         return False
@@ -42,6 +43,12 @@ def _valid(run, role, seed, minimum_generation):
                 == minimum_generation
                 and control.get("m_forced_replace_selector")
                 == "joint_balanced")
+        if transformer_action_scope == "operator":
+            return bool(
+                common and complete.get("component") == "M"
+                and control.get("m_forced_operator") is None
+                and control.get("m_forced_operator_min_generation") is None
+                and control.get("model_choice_probabilities", {}).get("M") == 1.0)
         return bool(
             common and complete.get("component") == "M"
             and control.get("m_forced_operator") == "replace"
@@ -80,8 +87,11 @@ def _quarantine_incomplete_run(run):
 
 
 def _run(job):
-    run, log, command, role, seed, minimum_generation = job
-    if _valid(run, role, seed, minimum_generation):
+    (run, log, command, role, seed, minimum_generation,
+     transformer_action_scope) = job
+    if _valid(
+            run, role, seed, minimum_generation,
+            transformer_action_scope):
         return str(run), "existing"
     if run.exists():
         _quarantine_incomplete_run(run)
@@ -95,7 +105,8 @@ def _run(job):
             stdout=handle, stderr=subprocess.STDOUT,
             env=environment, check=False)
     if result.returncode != 0 or not _valid(
-            run, role, seed, minimum_generation):
+            run, role, seed, minimum_generation,
+            transformer_action_scope):
         raise RuntimeError(f"pilot run failed with exit {result.returncode}: {log}")
     return str(run), "complete"
 
@@ -132,11 +143,14 @@ def _command(args, instance, run, role, seed):
             "--inference-action-mode", "argmax",
             "--inference-policy-seed", "63001",
             "--model-choice-probability", "1",
-            "--m-forced-operator", "replace",
-            "--m-forced-operator-min-generation", str(args.minimum_generation),
-            "--m-forced-operator-probability", "1",
-            "--m-forced-replace-selector", "model",
         ])
+        if args.transformer_action_scope == "replace_path":
+            command.extend([
+                "--m-forced-operator", "replace",
+                "--m-forced-operator-min-generation", str(args.minimum_generation),
+                "--m-forced-operator-probability", "1",
+                "--m-forced-replace-selector", "model",
+            ])
     return command
 
 
@@ -182,6 +196,12 @@ def main(argv=None):
     parser.add_argument("--instance-ids", nargs="+", required=True)
     parser.add_argument("--algorithm-seeds", nargs="+", type=int, required=True)
     parser.add_argument("--minimum-generation", type=int, default=10)
+    parser.add_argument(
+        "--transformer-action-scope",
+        choices=("replace_path", "operator"), default="replace_path",
+        help=("replace_path preserves the legacy joint path policy; operator "
+              "evaluates a checkpoint that selects only among the five "
+              "mutation operators."))
     parser.add_argument("--max-workers", type=int, default=9)
     parser.add_argument("--evaluation-budget", type=int, default=400)
     parser.add_argument("--scenario-count", type=int, default=200)
@@ -226,7 +246,8 @@ def main(argv=None):
                 jobs.append((
                     run, log,
                     _command(args, instance_path, run, role, seed),
-                    role, seed, args.minimum_generation))
+                    role, seed, args.minimum_generation,
+                    args.transformer_action_scope))
     statuses = Counter()
     print(f"[M-TRANSFORMER-PILOT] jobs={len(jobs)} workers={args.max_workers}",
           flush=True)

@@ -92,9 +92,15 @@ class PPOConfig:
                 "credit_assignment must be continuous, operation_terminal, "
                 "generation_terminal, or paired_heuristic_terminal")
         if self.mutation_control not in (
-                "location", "operator_location", "replace_path"):
+                "location", "operator", "operator_location", "replace_path"):
             raise ValueError(
-                "mutation_control must be location, operator_location, or replace_path")
+                "mutation_control must be location, operator, "
+                "operator_location, or replace_path")
+        if (self.mutation_control == "operator"
+                and (self.candidate_representation != "path_v3"
+                     or self.credit_assignment != "generation_terminal")):
+            raise ValueError(
+                "operator control requires path_v3 and generation_terminal credit")
         if (self.mutation_control == "operator_location"
                 and (self.candidate_representation != "path_v3"
                      or self.credit_assignment != "operation_terminal")):

@@ -1011,6 +1011,141 @@ class PPOController(MutationLogger):
             })
         return decision, candidates
 
+    def _balanced_replace_target(self, ind, batches, reliable_options):
+        """Return the existing five-signal Replace target for operator control.
+
+        The policy action is deliberately only one of the five stable mutation
+        operators.  When it chooses Replace, target construction reuses the
+        already validated Balanced rule rather than turning thousands of
+        instance-specific path ids back into policy classes.
+        """
+        rows = replacement_path_candidates(ind, batches, reliable_options)
+        selected_index = self._joint_balanced_candidate_index(rows)
+        if selected_index is None:
+            return None, None, {
+                "eligible_candidate_count": 0,
+                "selector": "joint_balanced",
+            }
+        selected = rows[selected_index]
+        batch_by_id = {item.batch_id: item for item in batches}
+        batch = batch_by_id[selected["target"].batch_id]
+        return batch, selected["target"], {
+            "eligible_candidate_count": sum(
+                bool(row.get("eligible")) for row in rows),
+            "selector": "joint_balanced",
+            "selected_candidate_index": int(selected_index),
+            "selected_batch_id": int(selected["target"].batch_id),
+            "selected_path_id": str(selected.get("path_id")),
+        }
+
+    def _mutate_operator_only(
+            self, ind, batches, path_lib, tt_dict, arc_lookup, arcs,
+            waiting_cost, waiting_emission, reliable_options,
+            mixture_event_index, evaluation_kwargs):
+        """Learn the five-way operator schedule, not a transient path id.
+
+        A Base batch/operator draw is still consumed so the paired algorithm
+        random stream remains aligned.  Non-Replace operators use Base target
+        logic.  Replace reuses the deterministic Balanced target rule.  PPO
+        receives one population-HV reward after environmental selection.
+        """
+        generation_credit = self.credit_assignment == "generation_terminal"
+        if not generation_credit:
+            raise RuntimeError(
+                "operator-only mutation requires generation-terminal credit")
+
+        self._inside_mutation = True
+        self.current_individual = ind
+        self._suppress_archive = True
+        before_id = fingerprint(ind)
+        started = time.perf_counter()
+        if not self.trainer.sequence_depth:
+            self._begin_generation_reward_sequence()
+        try:
+            decision, candidates = self._choose_operator(
+                ind, batches, path_lib, tt_dict, arc_lookup,
+                reliable_options)
+            # Preserve Base's batch-before-operator random draw order.
+            shadow_batch = random.choice(batches)
+            shadow_operator = base.sample_operator()
+            if decision.chosen_index is None:
+                self.no_candidate += 1
+                self._reseed_continuation_if_due(mixture_event_index)
+                return "none", False
+
+            selected_operator = candidates[
+                decision.chosen_index]["candidate_operator"]
+            batch = shadow_batch
+            target = None
+            target_metadata = {"selector": "base_random"}
+            if selected_operator == "replace":
+                batch, target, target_metadata = self._balanced_replace_target(
+                    ind, batches, reliable_options)
+                if batch is None:
+                    self.no_candidate += 1
+                    if self.trainer.pending is not None:
+                        self.trainer.observe_outcome(0.0, done=False)
+                    self._reseed_continuation_if_due(mixture_event_index)
+                    return selected_operator, False
+
+            ok = base.apply_mutation_op(
+                ind, selected_operator, batch, path_lib, tt_dict, arc_lookup,
+                reliable_options=reliable_options, target=target)
+            if ok:
+                base.repair_missing_allocations(ind, batches, path_lib)
+                base.evaluate_individual(
+                    ind, batches, arcs, tt_dict, waiting_cost,
+                    waiting_emission, **evaluation_kwargs)
+        finally:
+            self._suppress_archive = False
+            self.current_individual = None
+            self._inside_mutation = False
+
+        after_id = fingerprint(ind)
+        changed = after_id != before_id
+        policy_action = (
+            decision.metadata.get("decision_kind") == "model_choice")
+        if policy_action and self.trainer.pending is not None:
+            # The terminal reward is assigned to the last action in the
+            # generation by _settle_generation_reward.
+            self.trainer.observe_outcome(0.0, done=False)
+        if ok:
+            self.archive.observe(
+                ind.objectives, bool(ind.feasible), after_id)
+        self.event_count += 1
+        self.total_attempts += 1
+        self.total_effective += int(bool(ok) and changed)
+        self.append("mutation_outcomes", {
+            "run_id": self.run_id,
+            "instance_id": self.instance.get("instance_id"),
+            "generation": self.generation,
+            "evaluation": self.evaluations,
+            "decision_kind": "operator_policy_choice",
+            "control_branch": "operator_scheduler",
+            "mixture_event_index": mixture_event_index,
+            "operator": selected_operator,
+            "selected_candidate_index": decision.chosen_index,
+            "shadow_base_operator": shadow_operator,
+            "different_from_shadow_base_operator": (
+                selected_operator != shadow_operator),
+            "batch_id": int(batch.batch_id),
+            "shadow_base_batch_id": int(shadow_batch.batch_id),
+            "replace_selector_metadata": target_metadata,
+            "mutation_success": bool(ok),
+            "decision_changed": bool(changed),
+            "parent_id": before_id,
+            "child_id": after_id,
+            "policy_metadata": decision.metadata,
+            "reward": 0.0,
+            "reward_recorded_for_policy": bool(policy_action),
+            "reward_settlement": "generation_terminal",
+            "action_wall_seconds": time.perf_counter() - started,
+        })
+        if self.phase == "offspring":
+            self._record_pending_offspring(ind)
+        self._reseed_continuation_if_due(mixture_event_index)
+        return selected_operator, bool(ok)
+
     def evaluate(self, function, ind, *args, **kwargs):
         previous = self.evaluations
         result = super().evaluate(function, ind, *args, **kwargs)
@@ -1336,6 +1471,11 @@ class PPOController(MutationLogger):
         self.model_control_events += 1
         if self.forced_operator is not None:
             return self._mutate_forced_operator(
+                ind, batches, path_lib, tt_dict, arc_lookup, arcs,
+                waiting_cost, waiting_emission, reliable_options,
+                mixture_event_index, kwargs)
+        if self.mutation_control == "operator":
+            return self._mutate_operator_only(
                 ind, batches, path_lib, tt_dict, arc_lookup, arcs,
                 waiting_cost, waiting_emission, reliable_options,
                 mixture_event_index, kwargs)

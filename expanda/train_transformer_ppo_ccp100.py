@@ -409,8 +409,10 @@ def main():
     parser.add_argument("--rollout-steps", type=int)
     parser.add_argument(
         "--mutation-control",
-        choices=("location", "operator_location", "replace_path"),
-        help=("M action space. operator_location first chooses a legal "
+        choices=("location", "operator", "operator_location", "replace_path"),
+        help=("M action space. operator learns only the five-way mutation "
+              "operator schedule and leaves target execution to the existing "
+              "operator logic; operator_location first chooses a legal "
               "mutation operator and then its target; replace_path leaves "
               "other operators under Base and jointly chooses batch/path for replace."))
     parser.add_argument(
@@ -531,6 +533,12 @@ def main():
         parser.error(
             "operator_location requires --candidate-representation path_v3 "
             "and --credit-assignment operation_terminal")
+    if args.mutation_control == "operator" and not (
+            args.candidate_representation == "path_v3"
+            and args.credit_assignment == "generation_terminal"):
+        parser.error(
+            "operator control requires --candidate-representation path_v3 "
+            "and --credit-assignment generation_terminal")
     if args.mutation_control == "replace_path" and not (
             args.candidate_representation in ("path_v4", "path_v5")
             and args.credit_assignment in (
