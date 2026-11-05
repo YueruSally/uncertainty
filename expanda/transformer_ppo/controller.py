@@ -1038,6 +1038,43 @@ class PPOController(MutationLogger):
             "selected_path_id": str(selected.get("path_id")),
         }
 
+    def _base_legal_target(
+            self, ind, batches, operator, path_lib, tt_dict, arc_lookup,
+            reliable_options):
+        """Sample a legal target with Base's declared target probabilities.
+
+        Operator selection and target selection are intentionally separated.
+        The policy never receives target ids as classes, while an operator
+        declared legal by the mask is guaranteed to execute on a legal target.
+        The controller-private RNG avoids perturbing NSGA-II's random stream.
+        """
+        rows = candidates_for(
+            ind, batches, operator, path_lib, tt_dict, arc_lookup,
+            reliable_options)
+        legal = [row for row in rows if row.get("eligible")]
+        if not legal:
+            return None, None, {
+                "eligible_candidate_count": 0,
+                "selector": "base_legal_target",
+            }
+        weights = [
+            max(0.0, float(row.get("selection_probability", 0.0)))
+            for row in legal
+        ]
+        if not any(weights):
+            weights = [1.0] * len(legal)
+        selected = self.control_rng.choices(legal, weights=weights, k=1)[0]
+        batch_by_id = {item.batch_id: item for item in batches}
+        batch = batch_by_id[selected["target"].batch_id]
+        return batch, selected["target"], {
+            "eligible_candidate_count": len(legal),
+            "selector": "base_legal_target",
+            "selected_batch_id": int(selected["target"].batch_id),
+            "selected_path_id": (
+                None if selected.get("path_id") is None
+                else str(selected.get("path_id"))),
+        }
+
     def _mutate_operator_only(
             self, ind, batches, path_lib, tt_dict, arc_lookup, arcs,
             waiting_cost, waiting_emission, reliable_options,
@@ -1077,16 +1114,20 @@ class PPOController(MutationLogger):
                 decision.chosen_index]["candidate_operator"]
             batch = shadow_batch
             target = None
-            target_metadata = {"selector": "base_random"}
+            target_metadata = {"selector": "base_legal_target"}
             if selected_operator == "replace":
                 batch, target, target_metadata = self._balanced_replace_target(
                     ind, batches, reliable_options)
-                if batch is None:
-                    self.no_candidate += 1
-                    if self.trainer.pending is not None:
-                        self.trainer.observe_outcome(0.0, done=False)
-                    self._reseed_continuation_if_due(mixture_event_index)
-                    return selected_operator, False
+            else:
+                batch, target, target_metadata = self._base_legal_target(
+                    ind, batches, selected_operator, path_lib, tt_dict,
+                    arc_lookup, reliable_options)
+            if batch is None:
+                self.no_candidate += 1
+                if self.trainer.pending is not None:
+                    self.trainer.observe_outcome(0.0, done=False)
+                self._reseed_continuation_if_due(mixture_event_index)
+                return selected_operator, False
 
             ok = base.apply_mutation_op(
                 ind, selected_operator, batch, path_lib, tt_dict, arc_lookup,
