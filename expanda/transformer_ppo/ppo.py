@@ -194,6 +194,7 @@ class PPOTrainer:
             "mutation_control": self.config.mutation_control,
             "mutation_action_prior": self.config.mutation_action_prior,
             "mutation_prior_temperature": self.config.mutation_prior_temperature,
+            "mutation_candidate_top_k": self.config.mutation_candidate_top_k,
             "supervised_prior": prior_diagnostics,
             "policy_update": self.updates, "architecture": self.architecture,
             "action_group_probabilities": (
@@ -579,6 +580,7 @@ class PPOTrainer:
             "mutation_control": config.mutation_control,
             "mutation_action_prior": config.mutation_action_prior,
             "mutation_prior_temperature": config.mutation_prior_temperature,
+            "mutation_candidate_top_k": config.mutation_candidate_top_k,
             "supervised_prior_digest": (
                 None if result.supervised_prior is None
                 else result.supervised_prior.digest),

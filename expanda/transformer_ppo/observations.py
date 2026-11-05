@@ -241,6 +241,41 @@ def joint_balanced_action_prior(candidates, eligible, temperature=0.25):
     return [value / mass for value in weights]
 
 
+def restrict_action_prior_top_k(prior, eligible, top_k, required_index=None):
+    """Mask a prior to its top-k legal actions while retaining one reference."""
+    if len(prior) != len(eligible):
+        raise ValueError("candidate prior and eligibility lengths differ")
+    top_k = int(top_k)
+    if top_k < 2:
+        raise ValueError("top_k must be at least 2")
+    legal = [index for index, value in enumerate(eligible) if value]
+    if required_index is not None:
+        required_index = int(required_index)
+        if required_index not in legal:
+            raise ValueError("required top-k action must be legal")
+    ranked = sorted(legal, key=lambda index: (-float(prior[index]), index))
+    kept = ranked[:top_k]
+    if required_index is not None and required_index not in kept:
+        kept[-1] = required_index
+    kept_set = set(kept)
+    restricted_eligible = [
+        bool(value) and index in kept_set
+        for index, value in enumerate(eligible)
+    ]
+    restricted_prior = [
+        float(value) if restricted_eligible[index] else 0.0
+        for index, value in enumerate(prior)
+    ]
+    mass = sum(restricted_prior)
+    if mass <= 0.0:
+        uniform = 1.0 / len(kept)
+        restricted_prior = [
+            uniform if value else 0.0 for value in restricted_eligible]
+    else:
+        restricted_prior = [value / mass for value in restricted_prior]
+    return restricted_eligible, restricted_prior
+
+
 def _solution_proxy(individual, batches):
     """Cheap deterministic cost/emission/time proxy for Pareto position."""
     batches_by_id = {getattr(batch, "batch_id", None): batch for batch in batches}

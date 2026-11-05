@@ -20,6 +20,7 @@ from .archive import (
 from .config import OPERATORS
 from .observations import (
     build_observation, joint_balanced_action_prior,
+    restrict_action_prior_top_k,
     joint_balanced_candidate_scores,
 )
 from .v2_controls import private_seed, validate_model_choice_probability
@@ -1055,6 +1056,14 @@ class PPOController(MutationLogger):
             observation["action_prior"] = joint_balanced_action_prior(
                 candidates, observation["eligible"],
                 getattr(config, "mutation_prior_temperature", 0.25))
+            top_k = getattr(config, "mutation_candidate_top_k", None)
+            if top_k is not None:
+                heuristic_index = self._joint_balanced_candidate_index(
+                    candidates)
+                (observation["eligible"],
+                 observation["action_prior"]) = restrict_action_prior_top_k(
+                    observation["action_prior"], observation["eligible"],
+                    top_k, required_index=heuristic_index)
         self.policy_state_count += 1
         candidate_descriptors = []
         for index, candidate in enumerate(candidates):

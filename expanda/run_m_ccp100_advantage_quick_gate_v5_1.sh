@@ -5,9 +5,9 @@ INSTANCES=${INSTANCES:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/tra
 NORMALIZATION=${NORMALIZATION:-/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/reward_normalization.json}
 BOOTSTRAP_CHECKPOINT=${BOOTSTRAP_CHECKPOINT:-transformer_ppo_runs/diagnostics/v5r_joint_replace_smoke_b160_p20_seed9501/M/final_policy.pt}
 V4_DATA_ROOT=${V4_DATA_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_paired_heuristic_v4_ppo_14inst_b800}
-ADV_ROOT=${ADV_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_1_quick_pretrain_128}
-PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_1_quick_ppo_3inst_b400}
-OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_1_quick_test_2inst_3seed_b400}
+ADV_ROOT=${ADV_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_3_top128_quick_pretrain}
+PPO_ROOT=${PPO_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_3_top128_quick_ppo_3inst_b400}
+OUT_ROOT=${OUT_ROOT:-transformer_ppo_runs/diagnostics/ccp_m_ccp100_advantage_v5_3_top128_quick_test_2inst_3seed_b400}
 MAX_WORKERS=${MAX_WORKERS:-3}
 
 for REQUIRED in \
@@ -29,13 +29,13 @@ if ! flock -n 9; then
   exit 75
 fi
 
-echo "===== TEST M-V5.1 QUICK LEARNABILITY GATE ====="
+echo "===== TEST M-V5.3 TOP128 QUICK LEARNABILITY GATE ====="
 python3 -u -m unittest \
   tests.test_m_paired_advantage_v5 \
   tests.test_m_paired_heuristic_v4 \
   > "$OUT_ROOT/tests.log" 2>&1
 
-echo "===== QUICK STAGE 1: 128-STATE / TWO-EPOCH ADVANTAGE PRETRAIN ====="
+echo "===== QUICK STAGE 1: TOP128 / TWO-EPOCH ADVANTAGE PRETRAIN ====="
 if ! test -f "$ADV_ROOT/TRAINING_COMPLETE.json"; then
   python3 -u train_m_paired_advantage_transformer.py \
     --data-root "$V4_DATA_ROOT" \
@@ -44,6 +44,7 @@ if ! test -f "$ADV_ROOT/TRAINING_COMPLETE.json"; then
     --validation-instances S0_019 S0_020 \
     --maximum-training-states 128 \
     --maximum-validation-states 80 \
+    --candidate-top-k 128 \
     --epochs 2 \
     --batch-size 1 \
     --early-stopping-patience 2 \
@@ -63,18 +64,18 @@ fi
 if ! jq -e '
   .completed == true
   and .training_states == 128
-  and .validation_states == 80
+  and .candidate_top_k == 128
   and .selected_epoch > 0
   and .residual_logit_limit == 2.0
   and .validation.override_recall >= 0.10
   and .validation.fallback_accuracy >= 0.80
 ' "$ADV_ROOT/TRAINING_COMPLETE.json" >/dev/null; then
   touch "$OUT_ROOT/QUICK_PRETRAIN_REJECTED"
-  echo "===== M-V5.1 QUICK PRETRAIN DID NOT PASS ====="
+  echo "===== M-V5.3 TOP128 QUICK PRETRAIN DID NOT PASS ====="
   cat "$ADV_ROOT/TRAINING_COMPLETE.json"
   exit 0
 fi
-echo "===== M-V5.1 QUICK PRETRAIN PASSED ====="
+echo "===== M-V5.3 TOP128 QUICK PRETRAIN PASSED ====="
 
 echo "===== QUICK STAGE 2: THREE CCP100 PPO EPISODES / B400 ====="
 if ! test -f "$PPO_ROOT/training_summary.json"; then
@@ -98,6 +99,7 @@ if ! test -f "$PPO_ROOT/training_summary.json"; then
     --mutation-control replace_path \
     --mutation-action-prior joint_balanced \
     --mutation-prior-temperature 0.25 \
+    --mutation-candidate-top-k 128 \
     --m-forced-replace-start-generation 10 \
     --actor-policy base_residual \
     --residual-logit-limit 2.0 \
@@ -170,9 +172,9 @@ jq '
 touch "$OUT_ROOT/QUICK_GATE_COMPLETE"
 if jq -e '.pass == true' "$OUT_ROOT/QUICK_GATE.json" >/dev/null; then
   touch "$OUT_ROOT/QUICK_GATE_PASS"
-  echo "===== M-V5.1 QUICK GATE PASSED: FULL RUN IS JUSTIFIED ====="
+  echo "===== M-V5.3 TOP128 QUICK GATE PASSED: FULL RUN IS JUSTIFIED ====="
 else
   touch "$OUT_ROOT/QUICK_GATE_REJECTED"
-  echo "===== M-V5.1 QUICK GATE DID NOT PASS: DO NOT START FULL RUN ====="
+  echo "===== M-V5.3 TOP128 QUICK GATE DID NOT PASS: DO NOT START FULL RUN ====="
 fi
 cat "$OUT_ROOT/QUICK_GATE.json"

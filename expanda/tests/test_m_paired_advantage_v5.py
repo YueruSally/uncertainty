@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from train_m_paired_advantage_transformer import (
-    _stratified_subset, load_dataset,
+    _restrict_dataset_top_k, _stratified_subset, load_dataset,
 )
 
 
@@ -17,6 +17,26 @@ class MPairedAdvantageV5Tests(unittest.TestCase):
         selected = _stratified_subset(rows, 8, 17)
         self.assertEqual(len(selected), 8)
         self.assertEqual(sum(row["override_target"] for row in selected), 4)
+
+    def test_top_k_drops_unreachable_positive_label(self):
+        rows = [{
+            "observation": {
+                "eligible": [True, True, True],
+                "action_prior": [0.6, 0.3, 0.1],
+            },
+            "target_action": 2,
+            "alternative_action": 0,
+            "heuristic_action": 0,
+            "override_target": True,
+            "pairwise_target": True,
+        }]
+
+        def restrict(prior, eligible, top_k, required_index):
+            return [True, True, False], [2 / 3, 1 / 3, 0.0]
+
+        restricted, dropped = _restrict_dataset_top_k(rows, 2, restrict)
+        self.assertEqual(restricted, [])
+        self.assertEqual(dropped, 1)
 
     def test_positive_selected_action_wins_and_negative_falls_back(self):
         with tempfile.TemporaryDirectory() as temporary:

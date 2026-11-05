@@ -6,6 +6,7 @@ from transformer_ppo.observations import (
     joint_balanced_action_prior,
     joint_balanced_candidate_scores,
     parent_proxy_position,
+    restrict_action_prior_top_k,
 )
 
 
@@ -48,6 +49,7 @@ class MPriorResidualV2Tests(unittest.TestCase):
             mutation_control="replace_path",
             mutation_action_prior="joint_balanced",
             mutation_prior_temperature=0.25,
+            mutation_candidate_top_k=128,
         )
         config.validate()
         with self.assertRaisesRegex(ValueError, "joint_balanced"):
@@ -58,6 +60,14 @@ class MPriorResidualV2Tests(unittest.TestCase):
                 mutation_control="replace_path",
                 mutation_action_prior="joint_balanced",
             ).validate()
+
+    def test_top_k_prior_keeps_reference_and_renormalizes(self):
+        eligible, prior = restrict_action_prior_top_k(
+            [0.40, 0.30, 0.20, 0.10], [True] * 4, 2,
+            required_index=3)
+        self.assertEqual(eligible, [True, False, False, True])
+        self.assertAlmostEqual(sum(prior), 1.0)
+        self.assertGreater(prior[0], prior[3])
 
     def test_parent_proxy_position_exposes_front_location_without_evaluation(self):
         batch = SimpleNamespace(batch_id=1, quantity=10.0, ET=2.0)

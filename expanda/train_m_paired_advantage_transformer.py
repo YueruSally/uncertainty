@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from dataclasses import replace
 import gc
 import json
@@ -108,6 +109,29 @@ def _stratified_subset(rows, maximum, seed):
     return selected
 
 
+def _restrict_dataset_top_k(rows, top_k, restrict_prior):
+    """Apply the same top-k action semantics used by training/inference."""
+    restricted = []
+    dropped_positive = 0
+    for source in rows:
+        row = dict(source)
+        observation = deepcopy(source["observation"])
+        eligible, prior = restrict_prior(
+            observation["action_prior"], observation["eligible"], top_k,
+            required_index=row["heuristic_action"])
+        if row["override_target"] and not eligible[row["target_action"]]:
+            dropped_positive += 1
+            continue
+        observation["eligible"] = eligible
+        observation["action_prior"] = prior
+        row["observation"] = observation
+        row["pairwise_target"] = bool(
+            row["target_action"] != row["alternative_action"]
+            and eligible[row["alternative_action"]])
+        restricted.append(row)
+    return restricted, dropped_positive
+
+
 def _preference_loss(torch, logits, rows, positive_weight, pairwise_weight,
                      margin):
     """Weighted winner CE plus an explicit winner-over-loser margin."""
@@ -211,6 +235,7 @@ def main(argv=None):
         "--minimum-validation-fallback-accuracy", type=float, default=0.80)
     parser.add_argument("--maximum-training-states", type=int)
     parser.add_argument("--maximum-validation-states", type=int)
+    parser.add_argument("--candidate-top-k", type=int)
     parser.add_argument("--seed", type=int, default=66101)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args(argv)
@@ -227,13 +252,17 @@ def main(argv=None):
             or (args.maximum_training_states is not None
                 and args.maximum_training_states < 2)
             or (args.maximum_validation_states is not None
-                and args.maximum_validation_states < 2)):
+                and args.maximum_validation_states < 2)
+            or (args.candidate_top_k is not None
+                and args.candidate_top_k < 2)):
         parser.error("invalid paired-advantage training hyperparameters")
 
     import torch
     import numpy as np
     from transformer_ppo.config import PPOConfig
-    from transformer_ppo.observations import pad_observations
+    from transformer_ppo.observations import (
+        pad_observations, restrict_action_prior_top_k,
+    )
     from transformer_ppo.ppo import PPOTrainer
 
     torch.set_num_threads(max(1, min(4, torch.get_num_threads())))
@@ -242,6 +271,11 @@ def main(argv=None):
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
     rows = load_dataset(args.data_root)
+    source_state_count = len(rows)
+    dropped_positive_states = 0
+    if args.candidate_top_k is not None:
+        rows, dropped_positive_states = _restrict_dataset_top_k(
+            rows, args.candidate_top_k, restrict_action_prior_top_k)
     validation_names = {
         _instance_key(value) for value in args.validation_instances}
     available_training = [
@@ -263,14 +297,19 @@ def main(argv=None):
         parser.error("validation split contains no Transformer-better overrides")
     print(
         "[M-ADV-DATASET] "
-        f"states={len(rows)} training={len(training)} "
+        f"states={len(rows)}/{source_state_count} training={len(training)} "
         f"validation={len(validation)} "
         f"train_overrides={sum(row['override_target'] for row in training)} "
         f"valid_overrides={sum(row['override_target'] for row in validation)} "
+        f"top_k={args.candidate_top_k} "
+        f"dropped_positive={dropped_positive_states} "
         f"validation_instances={sorted(validation_names)}",
         flush=True)
     dataset_summary = {
+        "source_states": source_state_count,
         "states": len(rows),
+        "candidate_top_k": args.candidate_top_k,
+        "dropped_positive_states": dropped_positive_states,
         "available_training_states": len(available_training),
         "available_validation_states": len(available_validation),
         "training_states": len(training),
@@ -296,7 +335,9 @@ def main(argv=None):
             "checkpoint must be a joint-balanced base-residual path_v5 "
             "M replace_path Transformer")
     trainer.config = replace(
-        trainer.config, residual_logit_limit=args.residual_logit_limit)
+        trainer.config,
+        residual_logit_limit=args.residual_logit_limit,
+        mutation_candidate_top_k=args.candidate_top_k)
     trainer.model.residual_logit_limit = args.residual_logit_limit
     model = trainer.model
     optimizer = torch.optim.AdamW(
@@ -411,6 +452,7 @@ def main(argv=None):
         "pairwise_weight": args.pairwise_weight,
         "pairwise_margin": args.pairwise_margin,
         "residual_logit_limit": args.residual_logit_limit,
+        "candidate_top_k": args.candidate_top_k,
         "minimum_validation_override_recall":
             args.minimum_validation_override_recall,
         "minimum_validation_fallback_accuracy":
@@ -440,6 +482,7 @@ def main(argv=None):
         "pairwise_weight": args.pairwise_weight,
         "pairwise_margin": args.pairwise_margin,
         "residual_logit_limit": args.residual_logit_limit,
+        "candidate_top_k": args.candidate_top_k,
         "minimum_validation_override_recall":
             args.minimum_validation_override_recall,
         "minimum_validation_fallback_accuracy":

@@ -53,6 +53,7 @@ class PPOConfig:
     mutation_control: str = "location"
     mutation_action_prior: str = "base"
     mutation_prior_temperature: float = 0.25
+    mutation_candidate_top_k: int | None = None
 
     def validate(self) -> None:
         if self.rollout_steps < self.gae_horizon:
@@ -112,6 +113,16 @@ class PPOConfig:
                 "mutation_action_prior must be 'base' or 'joint_balanced'")
         if self.mutation_prior_temperature <= 0.0:
             raise ValueError("mutation_prior_temperature must be positive")
+        if (self.mutation_candidate_top_k is not None
+                and self.mutation_candidate_top_k < 2):
+            raise ValueError("mutation_candidate_top_k must be at least 2")
+        if (self.mutation_candidate_top_k is not None
+                and not (self.mutation_control == "replace_path"
+                         and self.candidate_representation == "path_v5"
+                         and self.mutation_action_prior == "joint_balanced")):
+            raise ValueError(
+                "mutation_candidate_top_k requires joint-balanced path_v5 "
+                "replace_path control")
         if (self.mutation_action_prior == "joint_balanced"
                 and not (self.mutation_control == "replace_path"
                          and self.candidate_representation == "path_v5"

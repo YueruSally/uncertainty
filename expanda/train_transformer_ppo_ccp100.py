@@ -147,7 +147,7 @@ def _initialize_policy_from_checkpoint(trainer, checkpoint, device=None):
     semantic_fields = (
         "actor_policy", "candidate_representation", "initialization_control",
         "credit_assignment", "mutation_control", "mutation_action_prior",
-        "mutation_prior_temperature")
+        "mutation_prior_temperature", "mutation_candidate_top_k")
     mismatches = {
         name: (getattr(source.config, name), getattr(trainer.config, name))
         for name in semantic_fields
@@ -421,6 +421,10 @@ def main():
         "--mutation-prior-temperature", type=float,
         help="Soft joint-balanced M prior temperature.")
     parser.add_argument(
+        "--mutation-candidate-top-k", type=int,
+        help=("Restrict joint-balanced M to its top-k legal replacement "
+              "actions while always retaining the exact heuristic action."))
+    parser.add_argument(
         "--mutation-supervised-prior", type=Path,
         help=("Portable pairwise-linear prior artifact for M replace_path. "
               "The artifact is embedded in every checkpoint."))
@@ -588,6 +592,7 @@ def main():
             "mutation_control": args.mutation_control,
             "mutation_action_prior": args.mutation_action_prior,
             "mutation_prior_temperature": args.mutation_prior_temperature,
+            "mutation_candidate_top_k": args.mutation_candidate_top_k,
         }.items() if value is not None
     }
     config = replace(config, **overrides)
