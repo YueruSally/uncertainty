@@ -168,6 +168,8 @@ def main(argv=None):
               "evaluations do not consume the NSGA-II budget."))
     parser.add_argument("--candidate-audit-candidates", type=int, default=4)
     parser.add_argument("--candidate-audit-replicates", type=int, default=1)
+    parser.add_argument("--candidate-audit-policy-state-ids", type=int, nargs="+",
+                        help="Preselected pre-action state ids; bypass evaluation-threshold sampling.")
     parser.add_argument("--device")
     args = parser.parse_args(argv)
     try:
@@ -202,6 +204,9 @@ def main(argv=None):
             raise ValueError("candidate audit candidates must be at least 2")
         if args.candidate_audit_replicates < 1:
             raise ValueError("candidate audit replicates must be positive")
+        if args.candidate_audit_policy_state_ids is not None:
+            from transformer_ppo.audit_sampling import validate_policy_state_ids
+            validate_policy_state_ids(args.candidate_audit_policy_state_ids, args.candidate_audit_states)
         if args.candidate_audit_states and args.component != "M":
             raise ValueError("fixed-state candidate audit currently supports only M")
         if not 0.0 <= args.inference_group_margin < 1.0:
@@ -399,6 +404,8 @@ def main(argv=None):
                     "states": args.candidate_audit_states,
                     "candidates": args.candidate_audit_candidates,
                     "replicates": args.candidate_audit_replicates,
+                    **({"policy_state_ids": args.candidate_audit_policy_state_ids}
+                       if args.candidate_audit_policy_state_ids is not None else {}),
                 }
                 if args.candidate_audit_states else None))
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:

@@ -142,6 +142,23 @@ class OperatorExecutionConsistencyTests(unittest.TestCase):
         rows = [json.loads(line) for line in (Path(self.tmp.name) / "mutation_candidate_audit_outcomes.jsonl").read_text().splitlines()]
         self.assertTrue(all(not row["feasible"] for row in rows))
 
+    def test_explicit_state_id_records_the_real_pre_action_observation(self):
+        c = self.controller
+        c.candidate_audit_policy_state_ids = [1]
+        c.current_individual = deepcopy(self.parent)
+        c.current_population = []
+        c.evaluations, c.generation = 22, 0
+        candidates = c._operator_candidates(self.parent, self.batches, self.paths, self.tt, self.lookup, self.options)
+        observation = c._observation(candidates, {"operator": "add", "generation": 0, "phase": "offspring"})
+        self.assertEqual(c._candidate_audit_pending["policy_state_id"], 1)
+        self.trainer.pending = {"action": 4, "old_probabilities": [.2] * 5}
+        c._run_candidate_audit(self.batches, self.paths, self.tt, self.lookup, self.arcs, 0., 0., self.options, {})
+        states = [json.loads(line) for line in (Path(self.tmp.name) / "mutation_candidate_audit_states.jsonl").read_text().splitlines()]
+        self.assertEqual(len(states), 1)
+        self.assertEqual(states[0]["policy_state_id"], 1)
+        self.assertEqual(states[0]["evaluation"], 22)
+        self.assertEqual(states[0]["observation"], observation)
+
     def test_failed_attempts_match_outer_search_evaluation_of_unchanged_child(self):
         with patch.object(base, "apply_mutation_op", return_value=False):
             self.test_audit_matches_real_search_for_every_operator_and_preserves_state()

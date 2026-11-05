@@ -268,9 +268,10 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     if learning_protocol_version not in (None, 1, 2):
         raise ValueError("learning protocol version must be 1 or 2")
     audit = dict(candidate_audit or {})
-    allowed_audit = {"states", "candidates", "replicates"}
+    allowed_audit = {"states", "candidates", "replicates", "policy_state_ids"}
     if set(audit) - allowed_audit:
         raise ValueError("unknown candidate audit options")
+    audit_state_ids = audit.get("policy_state_ids")
     audit = {
         "states": int(audit.get("states", 0)),
         "candidates": int(audit.get("candidates", 4)),
@@ -280,6 +281,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         raise ValueError("invalid candidate audit dimensions")
     if audit["states"] and component != "M":
         raise ValueError("fixed-state candidate audit currently supports only M")
+    if audit_state_ids is not None:
+        from .audit_sampling import validate_policy_state_ids
+        audit["policy_state_ids"] = validate_policy_state_ids(audit_state_ids, audit["states"])
     if ((initialization_learning_rule_normalization is None)
             != (initialization_learning_rule_top_k is None)):
         raise ValueError(
@@ -762,6 +766,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                     candidate_audit_states=audit["states"],
                     candidate_audit_candidates=audit["candidates"],
                     candidate_audit_replicates=audit["replicates"],
+                    candidate_audit_policy_state_ids=audit.get("policy_state_ids"),
                 )
         controller = controller_type(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,

@@ -18,6 +18,7 @@ from .archive import (
     RewardArchive, RewardConfig, exact_hv_3d, hv_reward, signed_hv_reward,
 )
 from .config import OPERATORS
+from .audit_sampling import validate_policy_state_ids
 from .observations import (
     build_observation, joint_balanced_action_prior,
     restrict_action_prior_top_k,
@@ -46,6 +47,7 @@ class PPOController(MutationLogger):
                  continuation_event=None, continuation_seed=None,
                  candidate_audit_states=0, candidate_audit_candidates=4,
                  candidate_audit_replicates=1,
+                 candidate_audit_policy_state_ids=None,
                  **kwargs):
         self.trainer = trainer
         self._ppo_updates_at_start = int(trainer.updates)
@@ -211,6 +213,8 @@ class PPOController(MutationLogger):
         self.candidate_audit_states = int(candidate_audit_states)
         self.candidate_audit_candidates = int(candidate_audit_candidates)
         self.candidate_audit_replicates = int(candidate_audit_replicates)
+        self.candidate_audit_policy_state_ids = validate_policy_state_ids(
+            candidate_audit_policy_state_ids, self.candidate_audit_states)
         if self.candidate_audit_states < 0:
             raise ValueError("candidate_audit_states cannot be negative")
         if self.candidate_audit_candidates < 2:
@@ -1311,6 +1315,7 @@ class PPOController(MutationLogger):
         })
         if self._should_capture_candidate_audit(candidates):
             self._candidate_audit_pending = {
+                "policy_state_id": self.policy_state_count,
                 "generation": self.generation,
                 "evaluation": self.evaluations,
                 "parent": deepcopy(self.current_individual),
@@ -1335,6 +1340,9 @@ class PPOController(MutationLogger):
             return False
         if sum(bool(candidate.get("eligible")) for candidate in candidates) < 2:
             return False
+        selected_ids = getattr(self, "candidate_audit_policy_state_ids", None)
+        if selected_ids is not None:
+            return self.policy_state_count in selected_ids
         threshold = (
             (self.candidate_audit_state_count + 1)
             / (self.candidate_audit_states + 1))
@@ -1411,6 +1419,7 @@ class PPOController(MutationLogger):
             })
         self.append("mutation_candidate_audit_states", {
             "state_id": state_id,
+            "policy_state_id": snapshot.get("policy_state_id"),
             "instance_id": self.instance.get("instance_id"),
             "generation": snapshot.get("generation", self.generation),
             "evaluation": snapshot.get("evaluation", self.evaluations),

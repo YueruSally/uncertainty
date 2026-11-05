@@ -133,6 +133,7 @@ def summarize_state(state, outcomes, expected_replicates=3):
 
     return {
         "state_id": int(state["state_id"]),
+        "policy_state_id": state.get("policy_state_id"),
         "instance": state["instance_id"],
         "generation": int(state["generation"]),
         "evaluation": int(state["evaluation"]),
