@@ -135,9 +135,15 @@ def validate_run(run, instance, seed, plan, plan_hash):
             or result.get("stop_reason") != "evaluation_budget"
             or not 20 <= evaluations <= 400):
         raise ValueError(f"run incomplete, wrong control/budget, or policy was trained: {run}")
-    summary, states = analyze_runs([run], expected_replicates=3, expected_state_count=32)
+    # Feedback completeness and the requested number of sampled states are
+    # separate checks: a fully evaluated 31-state sample has no missing labels.
+    summary, states = analyze_runs([run], expected_replicates=3)
     if not summary["completeness_pass"]:
         raise ValueError(f"incomplete legal feedback: {run}: {summary['excluded_states'][:2]}")
+    if len(states) != STATES_PER_RUN:
+        raise ValueError(
+            f"sample count shortfall: {run}: expected={STATES_PER_RUN} actual={len(states)}; "
+            f"recorded-state feedback is complete; phases={summary['phase_counts']}")
     if any(not 8 <= summary["phase_counts"].get(phase, 0) <= 14 for phase in ("early", "middle", "late")):
         raise ValueError(f"phase coverage outside frozen 8..14 rule: {run}: {summary['phase_counts']}")
     outcomes = read_jsonl(run / "mutation_candidate_audit_outcomes.jsonl")

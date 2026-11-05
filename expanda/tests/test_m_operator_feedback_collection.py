@@ -49,6 +49,7 @@ def completed_run(root, instance, seed, plan, plan_hash, *, tied=False):
     collector.write_json(run / "COMPLETE.json", {
         "completed": True, "real_objective_evaluation_count": 400,
         "stop_reason": "evaluation_budget", "ppo_updates": 0, "mutation_control": "operator",
+        "candidate_audit_state_count": len(states),
         "candidate_audit_evaluation_count": len(outcomes), "optimisation_seconds": .1,
     })
     return run
