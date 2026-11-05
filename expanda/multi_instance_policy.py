@@ -1,4 +1,6 @@
 """Post-V1 location policies: the Rule mask is absolute for Rule and Learning."""
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 import math
 from pathlib import Path

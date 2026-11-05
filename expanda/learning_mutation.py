@@ -1,4 +1,6 @@
 """Position-selection interface. V1 implements Random only; no ML claims."""
+from __future__ import annotations
+
 from dataclasses import dataclass
 import math
 

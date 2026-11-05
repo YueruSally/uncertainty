@@ -958,10 +958,17 @@ class PPOController(MutationLogger):
         )
         result = []
         for operator, prior in zip(OPERATORS, base._FIXED_OP_PROBS):
+            # Retain the existing aggregate feature schema. Replace's mask
+            # additionally checks the exact joint targets the executor uses.
             targets = candidates_for(
                 ind, batches, operator, path_lib, tt_dict, arc_lookup,
                 reliable_options)
             legal = [row for row in targets if row["eligible"]]
+            if self.mutation_control == "operator" and operator == "replace" and not any(
+                    row["eligible"] for row in self._operator_target_rows(
+                        ind, batches, operator, path_lib, tt_dict, arc_lookup,
+                        reliable_options)):
+                legal = []
             source = legal or targets
             candidate = {
                 "target": {}, "eligible": bool(legal),
@@ -1013,6 +1020,16 @@ class PPOController(MutationLogger):
             })
         return decision, candidates
 
+    @staticmethod
+    def _operator_target_rows(ind, batches, operator, path_lib, tt_dict,
+                              arc_lookup, reliable_options):
+        # Mask and executor must describe the same support. In particular,
+        # Balanced Replace cannot execute a same-only replacement.
+        if operator == "replace":
+            return replacement_path_candidates(ind, batches, reliable_options)
+        return candidates_for(ind, batches, operator, path_lib, tt_dict,
+                              arc_lookup, reliable_options)
+
     def _balanced_replace_target(self, ind, batches, reliable_options):
         """Return the existing five-signal Replace target for operator control.
 
@@ -1021,7 +1038,8 @@ class PPOController(MutationLogger):
         already validated Balanced rule rather than turning thousands of
         instance-specific path ids back into policy classes.
         """
-        rows = replacement_path_candidates(ind, batches, reliable_options)
+        rows = self._operator_target_rows(
+            ind, batches, "replace", None, None, None, reliable_options)
         selected_index = self._joint_balanced_candidate_index(rows)
         if selected_index is None:
             return None, None, {
@@ -1042,7 +1060,7 @@ class PPOController(MutationLogger):
 
     def _base_legal_target(
             self, ind, batches, operator, path_lib, tt_dict, arc_lookup,
-            reliable_options):
+            reliable_options, rng=None):
         """Sample a legal target with Base's declared target probabilities.
 
         Operator selection and target selection are intentionally separated.
@@ -1050,7 +1068,7 @@ class PPOController(MutationLogger):
         declared legal by the mask is guaranteed to execute on a legal target.
         The controller-private RNG avoids perturbing NSGA-II's random stream.
         """
-        rows = candidates_for(
+        rows = self._operator_target_rows(
             ind, batches, operator, path_lib, tt_dict, arc_lookup,
             reliable_options)
         legal = [row for row in rows if row.get("eligible")]
@@ -1065,7 +1083,8 @@ class PPOController(MutationLogger):
         ]
         if not any(weights):
             weights = [1.0] * len(legal)
-        selected = self.control_rng.choices(legal, weights=weights, k=1)[0]
+        selector_rng = self.control_rng if rng is None else rng
+        selected = selector_rng.choices(legal, weights=weights, k=1)[0]
         batch_by_id = {item.batch_id: item for item in batches}
         batch = batch_by_id[selected["target"].batch_id]
         return batch, selected["target"], {
@@ -1076,6 +1095,32 @@ class PPOController(MutationLogger):
                 None if selected.get("path_id") is None
                 else str(selected.get("path_id"))),
         }
+
+    def _execute_operator_action(
+            self, ind, operator, batches, path_lib, tt_dict, arc_lookup,
+            reliable_options, target_rng=None, trace=None):
+        """Shared search/audit execution; objective evaluation stays outside.
+
+        Target sampling uses a separate RNG from the operator's Python/NumPy
+        randomness. Failed attempts do not introduce a fallback action. The
+        outer NSGA-II loop evaluates the unchanged crossed child on failure.
+        The optional trace is diagnostic only and never changes the child.
+        """
+        if operator == "replace":
+            batch, target, metadata = self._balanced_replace_target(
+                ind, batches, reliable_options)
+        else:
+            batch, target, metadata = self._base_legal_target(
+                ind, batches, operator, path_lib, tt_dict, arc_lookup,
+                reliable_options, rng=target_rng)
+        ok = bool(batch is not None and base.apply_mutation_op(
+            ind, operator, batch, path_lib, tt_dict, arc_lookup,
+            reliable_options=reliable_options, target=target))
+        if trace is not None:
+            trace["after_mutation_before_repair"] = deepcopy(ind)
+        if ok:
+            base.repair_missing_allocations(ind, batches, path_lib)
+        return ok, batch, target, metadata
 
     def _mutate_operator_only(
             self, ind, batches, path_lib, tt_dict, arc_lookup, arcs,
@@ -1114,16 +1159,9 @@ class PPOController(MutationLogger):
 
             selected_operator = candidates[
                 decision.chosen_index]["candidate_operator"]
-            batch = shadow_batch
-            target = None
-            target_metadata = {"selector": "base_legal_target"}
-            if selected_operator == "replace":
-                batch, target, target_metadata = self._balanced_replace_target(
-                    ind, batches, reliable_options)
-            else:
-                batch, target, target_metadata = self._base_legal_target(
-                    ind, batches, selected_operator, path_lib, tt_dict,
-                    arc_lookup, reliable_options)
+            ok, batch, target, target_metadata = self._execute_operator_action(
+                ind, selected_operator, batches, path_lib, tt_dict,
+                arc_lookup, reliable_options)
             if batch is None:
                 self.no_candidate += 1
                 if self.trainer.pending is not None:
@@ -1131,11 +1169,7 @@ class PPOController(MutationLogger):
                 self._reseed_continuation_if_due(mixture_event_index)
                 return selected_operator, False
 
-            ok = base.apply_mutation_op(
-                ind, selected_operator, batch, path_lib, tt_dict, arc_lookup,
-                reliable_options=reliable_options, target=target)
             if ok:
-                base.repair_missing_allocations(ind, batches, path_lib)
                 base.evaluate_individual(
                     ind, batches, arcs, tt_dict, waiting_cost,
                     waiting_emission, **evaluation_kwargs)
@@ -1277,6 +1311,8 @@ class PPOController(MutationLogger):
         })
         if self._should_capture_candidate_audit(candidates):
             self._candidate_audit_pending = {
+                "generation": self.generation,
+                "evaluation": self.evaluations,
                 "parent": deepcopy(self.current_individual),
                 "candidates": deepcopy(candidates),
                 "context": dict(enriched),
@@ -1376,10 +1412,10 @@ class PPOController(MutationLogger):
         self.append("mutation_candidate_audit_states", {
             "state_id": state_id,
             "instance_id": self.instance.get("instance_id"),
-            "generation": self.generation,
-            "evaluation": self.evaluations,
+            "generation": snapshot.get("generation", self.generation),
+            "evaluation": snapshot.get("evaluation", self.evaluations),
             "evaluation_fraction": (
-                self.evaluations / max(1, int(self.budget or 1))),
+                snapshot.get("evaluation", self.evaluations) / max(1, int(self.budget or 1))),
             "operator": snapshot["context"]["operator"],
             "archive_hv": snapshot["archive_hv"],
             "archive_size": snapshot["archive_size"],
@@ -1408,44 +1444,47 @@ class PPOController(MutationLogger):
                     candidate = snapshot["candidates"][candidate_index]
                     individual = deepcopy(snapshot["parent"])
                     before = deepcopy(individual)
+                    legacy_comparison = None
+                    target_seed = None
                     if self.mutation_control == "operator":
                         operator = candidate["candidate_operator"]
-                        if operator == "replace":
-                            batch, target, _ = self._balanced_replace_target(
-                                individual, batches, reliable_options)
-                        else:
-                            rows = candidates_for(
-                                individual, batches, operator, path_lib,
-                                tt_dict, arc_lookup, reliable_options)
-                            legal = [row for row in rows if row.get("eligible")]
-                            if legal:
-                                weights = [max(0.0, float(row.get(
-                                    "selection_probability", 0.0)))
-                                    for row in legal]
-                                if not any(weights):
-                                    weights = [1.0] * len(legal)
-                                selected = random.choices(
-                                    legal, weights=weights, k=1)[0]
-                                target = selected["target"]
-                                batch = next(
-                                    item for item in batches
-                                    if item.batch_id == target.batch_id)
-                            else:
-                                batch, target = None, None
+                        target_seed = private_seed("M-candidate-audit-target", completion_seed)
+                        trace = {}
+                        mutation_success, batch, target, _ = self._execute_operator_action(
+                            individual, operator, batches, path_lib, tt_dict,
+                            arc_lookup, reliable_options,
+                            target_rng=random.Random(target_seed), trace=trace)
+                        repair = {
+                            "contract": "operator_shared_v1",
+                            "repair_called": bool(mutation_success),
+                            "policy": "base_missing_allocations_on_success",
+                        }
+                        # Diagnose repair differences on the exact same mutated
+                        # child. This is NOT a replay of historical trajectories
+                        # or historical target-RNG consumption.
+                        legacy = trace["after_mutation_before_repair"]
+                        legacy_repair = repair_after_mutation(
+                            legacy, before, batches, path_lib, tt_dict, arc_lookup)
+                        legacy_comparison = {
+                            "scope": "repair_only_on_same_mutated_child",
+                            "same_child_fingerprint": fingerprint(legacy) == fingerprint(individual),
+                            "legacy_fingerprint": fingerprint(legacy),
+                            "legacy_repair": legacy_repair,
+                        }
                     else:
                         operator = snapshot["context"]["operator"]
                         target = candidate["target"]
                         batch = next(
                             item for item in batches
                             if item.batch_id == target.batch_id)
-                    mutation_success = base.apply_mutation_op(
-                        individual, operator, batch,
-                        path_lib, tt_dict, arc_lookup,
-                        reliable_options=reliable_options, target=target
-                    ) if batch is not None else False
-                    repair = repair_after_mutation(
-                        individual, before, batches, path_lib,
-                        tt_dict, arc_lookup)
+                        mutation_success = base.apply_mutation_op(
+                            individual, operator, batch,
+                            path_lib, tt_dict, arc_lookup,
+                            reliable_options=reliable_options, target=target
+                        ) if batch is not None else False
+                        repair = repair_after_mutation(
+                            individual, before, batches, path_lib,
+                            tt_dict, arc_lookup)
                     # Bypass the active controller: audit evaluations neither
                     # consume the declared search budget nor mutate its archive.
                     base._evaluate_individual_impl(
@@ -1487,6 +1526,7 @@ class PPOController(MutationLogger):
                         "candidate_id": candidate_index,
                         "replicate": replicate,
                         "completion_seed": completion_seed,
+                        "target_seed": target_seed,
                         "operator": operator,
                         "target": target_descriptor,
                         "candidate_features": observation[
@@ -1505,6 +1545,10 @@ class PPOController(MutationLogger):
                         "audited_trained_probability_mass": trained_mass,
                         "mutation_success": bool(mutation_success),
                         "repair": repair,
+                        "execution_contract": (
+                            "operator_shared_v1" if self.mutation_control == "operator"
+                            else "legacy_candidate_audit"),
+                        "legacy_repair_only_comparison": legacy_comparison,
                         "fingerprint": individual_fingerprint,
                         "feasible": bool(individual.feasible),
                         "normalized_violation": float(
