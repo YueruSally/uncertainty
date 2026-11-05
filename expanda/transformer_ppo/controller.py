@@ -218,9 +218,11 @@ class PPOController(MutationLogger):
         if self.candidate_audit_replicates < 1:
             raise ValueError("candidate_audit_replicates must be positive")
         if (self.candidate_audit_states
-                and self.mutation_control not in ("location", "replace_path")):
+                and self.mutation_control not in (
+                    "location", "operator", "replace_path")):
             raise ValueError(
-                "fixed-state mutation audit requires location or replace_path control")
+                "fixed-state mutation audit requires location, operator, "
+                "or replace_path control")
         self._candidate_audit_pending = None
         self.candidate_audit_state_count = 0
         self.candidate_audit_evaluation_count = 0
@@ -1144,6 +1146,11 @@ class PPOController(MutationLogger):
 
         after_id = fingerprint(ind)
         changed = after_id != before_id
+        if self._candidate_audit_pending is not None:
+            self._run_candidate_audit(
+                batches, path_lib, tt_dict, arc_lookup, arcs,
+                waiting_cost, waiting_emission, reliable_options,
+                evaluation_kwargs)
         policy_action = (
             decision.metadata.get("decision_kind") == "model_choice")
         if policy_action and self.trainer.pending is not None:
@@ -1276,6 +1283,11 @@ class PPOController(MutationLogger):
                 "observation": observation,
                 "archive_hv": float(self.archive.hypervolume),
                 "archive_size": len(self.archive.points),
+                "population_points": [
+                    list(self.archive.normalizer.transform(item.objectives))
+                    for item in self.current_population
+                    if bool(item.feasible)
+                ],
             }
         return observation
 
@@ -1343,11 +1355,18 @@ class PPOController(MutationLogger):
         candidate_descriptors = []
         for index, candidate in enumerate(snapshot["candidates"]):
             target = candidate.get("target")
+            if is_dataclass(target):
+                target_descriptor = asdict(target)
+            elif isinstance(target, dict):
+                target_descriptor = dict(target)
+            else:
+                target_descriptor = None
             candidate_descriptors.append({
                 "candidate_id": index,
-                "target": asdict(target),
+                "target": target_descriptor,
                 "eligible": bool(candidate.get("eligible")),
                 "path_id": candidate.get("path_id"),
+                "candidate_operator": candidate.get("candidate_operator"),
                 "baseline_probability": prior[index],
                 "supervised_prior_probability": supervised_prior[index],
                 "trained_probability": probabilities[index],
@@ -1364,6 +1383,9 @@ class PPOController(MutationLogger):
             "operator": snapshot["context"]["operator"],
             "archive_hv": snapshot["archive_hv"],
             "archive_size": snapshot["archive_size"],
+            "population_hv": exact_hv_3d(
+                snapshot["population_points"],
+                self.archive.normalizer.reference),
             "chosen_candidate_id": chosen,
             "audited_candidate_ids": audited,
             "audited_prior_probability_mass": prior_mass,
@@ -1384,16 +1406,43 @@ class PPOController(MutationLogger):
                     random.setstate(random.Random(completion_seed).getstate())
                     np.random.seed(completion_seed % (2**32 - 1))
                     candidate = snapshot["candidates"][candidate_index]
-                    target = candidate["target"]
                     individual = deepcopy(snapshot["parent"])
                     before = deepcopy(individual)
-                    batch = next(
-                        item for item in batches
-                        if item.batch_id == target.batch_id)
+                    if self.mutation_control == "operator":
+                        operator = candidate["candidate_operator"]
+                        if operator == "replace":
+                            batch, target, _ = self._balanced_replace_target(
+                                individual, batches, reliable_options)
+                        else:
+                            rows = candidates_for(
+                                individual, batches, operator, path_lib,
+                                tt_dict, arc_lookup, reliable_options)
+                            legal = [row for row in rows if row.get("eligible")]
+                            if legal:
+                                weights = [max(0.0, float(row.get(
+                                    "selection_probability", 0.0)))
+                                    for row in legal]
+                                if not any(weights):
+                                    weights = [1.0] * len(legal)
+                                selected = random.choices(
+                                    legal, weights=weights, k=1)[0]
+                                target = selected["target"]
+                                batch = next(
+                                    item for item in batches
+                                    if item.batch_id == target.batch_id)
+                            else:
+                                batch, target = None, None
+                    else:
+                        operator = snapshot["context"]["operator"]
+                        target = candidate["target"]
+                        batch = next(
+                            item for item in batches
+                            if item.batch_id == target.batch_id)
                     mutation_success = base.apply_mutation_op(
-                        individual, snapshot["context"]["operator"], batch,
+                        individual, operator, batch,
                         path_lib, tt_dict, arc_lookup,
-                        reliable_options=reliable_options, target=target)
+                        reliable_options=reliable_options, target=target
+                    ) if batch is not None else False
                     repair = repair_after_mutation(
                         individual, before, batches, path_lib,
                         tt_dict, arc_lookup)
@@ -1420,13 +1469,26 @@ class PPOController(MutationLogger):
                                 [normalized], self.archive.normalizer.reference)
                     except ValueError:
                         pass
+                    population_before_hv = exact_hv_3d(
+                        snapshot["population_points"],
+                        self.archive.normalizer.reference)
+                    population_after_hv = exact_hv_3d(
+                        snapshot["population_points"] + (
+                            [normalized]
+                            if normalized is not None and individual.feasible
+                            else []),
+                        self.archive.normalizer.reference)
+                    target_descriptor = (
+                        asdict(target) if is_dataclass(target)
+                        else dict(target) if isinstance(target, dict)
+                        else None)
                     self.append("mutation_candidate_audit_outcomes", {
                         "state_id": state_id,
                         "candidate_id": candidate_index,
                         "replicate": replicate,
                         "completion_seed": completion_seed,
-                        "operator": snapshot["context"]["operator"],
-                        "target": asdict(target),
+                        "operator": operator,
+                        "target": target_descriptor,
                         "candidate_features": observation[
                             "candidates"][candidate_index],
                         "global_features": observation["global"],
@@ -1451,6 +1513,10 @@ class PPOController(MutationLogger):
                                        for value in individual.objectives],
                         "normalized_objectives": normalized,
                         "single_point_hv": float(single_point_hv),
+                        "population_hv_before": float(population_before_hv),
+                        "population_hv_after": float(population_after_hv),
+                        "population_delta_hv": float(
+                            population_after_hv - population_before_hv),
                         "archive_delta_hv": float(update.delta_hv),
                         "archive_diagnostics": diagnostics,
                     })
