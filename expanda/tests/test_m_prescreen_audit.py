@@ -30,6 +30,7 @@ class PrescreenInventoryTests(unittest.TestCase):
                  'child_chromosome': {'allocations': []}},
                 {'q90_cost_after': None, 'q90_emission_after': 2,
                  'q90_makespan_after': 3, 'child_id': 'invalid'},
+                {'operator': 'replace', 'parent_id': 'a', 'child_id': 'b'},
             ]
             (good/'mutation_outcomes.jsonl').write_text(
                 ''.join(json.dumps(row)+'\n' for row in rows))
@@ -46,6 +47,7 @@ class PrescreenInventoryTests(unittest.TestCase):
             self.assertEqual(result['selected']['finite_selected_q90'], 2)
             self.assertEqual(result['selected']['selected_with_full_encoding'], 1)
             self.assertEqual(result['selected']['fingerprint_only_labels'], 1)
+            self.assertEqual(result['selected']['action_only_rows'], 1)
 
 
 if __name__ == '__main__':

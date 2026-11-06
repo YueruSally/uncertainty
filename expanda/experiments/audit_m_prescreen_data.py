@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read existing M logs and count objective labels usable for a K8 screen.
+"""Read existing M logs and inventory labels by their actual file schema.
 
 No training, objective evaluation, instance generation, or server job starts.
 """
@@ -43,13 +43,14 @@ def valid_objectives(values):
 def scan_selected(path):
     result = {'events': 0, 'finite_selected_q90': 0, 'selected_feasible': 0,
               'selected_with_full_encoding': 0, 'evaluated_parent_available': 0,
-              'fingerprint_only_labels': 0}
+              'fingerprint_only_labels': 0, 'action_only_rows': 0}
     with path.open(encoding='utf-8') as handle:
         for line in handle:
             if not line.strip():
                 continue
             row = json.loads(line)
             result['events'] += 1
+            result['action_only_rows'] += int(not any(key in row for key in OBJECTIVE_KEYS))
             valid = valid_objectives([row.get(key) for key in OBJECTIVE_KEYS])
             result['finite_selected_q90'] += int(valid)
             result['selected_feasible'] += int(valid and row.get('feasible_after') is True)
@@ -99,7 +100,8 @@ def valid_ccp100(path):
 def collect(search_roots, collection_root):
     counts = {'selected': {'events': 0, 'finite_selected_q90': 0,
               'selected_feasible': 0, 'selected_with_full_encoding': 0,
-              'evaluated_parent_available': 0, 'fingerprint_only_labels': 0},
+              'evaluated_parent_available': 0, 'fingerprint_only_labels': 0,
+              'action_only_rows': 0},
               'audit': {'evaluated_children': 0, 'finite_objective_labels': 0,
               'with_full_child_encoding': 0, 'operator_names': []}}
     selected_files, audit_files, skipped_files = 0, 0, 0
@@ -162,7 +164,7 @@ def main():
         'new_training_steps': 0, 'new_searches': 0,
         'historical_384_state_panel_is_K8_match': False,
         'directly_reusable_K8_labels': 0,
-        'why': 'old selected logs lack full child encodings; the audited five operators are a different action pool',
+        'why': 'mutation_outcomes files often record actions only; zero q90 in these files does not mean zero objective labels elsewhere. The audited five operators are a different action pool and lack full child encodings',
         'next_action': 'construct and label a bounded exact-K8 panel using the current search executor; preserve every training-only counterfactual evaluation'})
     write_json(out/'QUICK_RESULT.json', result)
     (out/'AUDIT_COMPLETE').write_text('read-only inventory\n')
