@@ -145,3 +145,15 @@ CCP100/pop20/B400搜索。验证实例不参与梯度；真正PPO checkpoint只�
 冻结监督Transformer与选中的Transformer-PPO，并明确保持最终测试关闭。
 论文核心正式方法预定为Base、Directed启发式、监督I-K8 Transformer和
 I-K8 Transformer-PPO；Simple保留为开发诊断而非核心主表。
+
+# C-K8 complete-pair final-HV screen
+
+`run_c_k8_final_oracle_v1.sh` is the admission screen for the crossover
+component.  Every K8 candidate is a complete two-child decision after
+common-node crossover and the same paired Base mutation random streams.  The
+four frozen methods are Base, the existing early-generation directed C rule,
+K8 deterministic scoring, and K8 Oracle.  Only the selected pair consumes two
+logical B400 evaluations; Oracle evaluation of the other seven pairs is
+reported separately as hidden diagnostic cost.  Base is the primary
+reference.  Transformer training is not admitted unless the final-HV Oracle
+screen passes.

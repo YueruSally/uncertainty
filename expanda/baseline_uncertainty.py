@@ -3635,6 +3635,26 @@ def run_nsga2(
             for child in (c1, c2):
                 repair_missing_allocations(child, batches, path_lib)
 
+            # C-K8 prescreening owns the complete deployable decision unit:
+            # crossover followed by the paired Base-mutation draws for both
+            # children.  Ordinary controllers do not expose this hook and
+            # therefore retain the historical path below byte-for-byte.
+            pair_processor = (
+                getattr(ACTIVE_MUTATION_LOGGER, "process_crossover_pair", None)
+                if ACTIVE_MUTATION_LOGGER is not None else None)
+            if pair_processor is not None:
+                processed = pair_processor(
+                    _evaluate_individual_impl, c1, c2, batches, path_lib,
+                    tt_dict, arc_lookup, arcs, waiting_cost_per_teu_h,
+                    wait_emis_g_per_teu_h, reliable_options=reliable_options,
+                    **eval_kwargs)
+                if processed is not None:
+                    c1, c2 = processed
+                    if hasattr(ACTIVE_MUTATION_LOGGER, "settle_crossover"):
+                        ACTIVE_MUTATION_LOGGER.settle_crossover(c1, c2)
+                    offspring.extend([c1, c2])
+                    continue
+
             if (ACTIVE_MUTATION_LOGGER is not None
                     and hasattr(
                         ACTIVE_MUTATION_LOGGER,
