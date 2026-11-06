@@ -104,8 +104,12 @@
     "ccp_seed_base": 95000000,
     "algorithm_seed_base": 96000000,
     "locked_final_test_master_seed": 98000000,
-    "states_per_trajectory": 30,
-    "phase_states": {"early": 10, "middle": 10, "late": 10},
+    "states_per_trajectory": {
+      "minimum": 12,
+      "maximum": 30,
+      "rule": "collect every available exact-K8 decision after G10 up to 30; assign chronological tertiles after the trajectory completes"
+    },
+    "minimum_phase_states": {"early": 4, "middle": 4, "late": 4},
     "candidate_count": 8,
     "nested_training_instance_counts": [25, 50, 100, 200],
     "validation_rule": "same 20 untouched validation instances for all four learning-curve points",

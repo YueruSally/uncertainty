@@ -57,10 +57,14 @@ def pairwise_ranking_loss(predicted, target):
 def load_dataset(collection):
     plan = read_json(collection/"PLAN.json")
     result = read_json(collection/"QUICK_RESULT.json")
+    state_rule = plan.get("states_per_trajectory", {})
+    minimum = state_rule.get("minimum")
+    maximum = state_rule.get("maximum")
     if (plan.get("protocol") != "m-prescreen-scale-data-v1"
             or plan.get("train_count") != 200
             or plan.get("validation_count") != 20
-            or result.get("state_count") != 6600
+            or (minimum, maximum) != (12, 30)
+            or not 220*minimum <= result.get("state_count", 0) <= 220*maximum
             or not (collection/"COLLECTION_COMPLETE").exists()):
         raise ValueError("requires completed 220-instance scale collection")
     rows, sources = [], {}
@@ -69,9 +73,10 @@ def load_dataset(collection):
         complete = read_json(folder/"RUN_COMPLETE.json")
         feedback_path = folder/"FEEDBACK.json"
         feedback = read_json(feedback_path)
+        count = len(feedback["rows"])
         if (complete.get("feedback_sha256") != digest(feedback_path)
-                or complete.get("feedback_state_count") != 30
-                or len(feedback["rows"]) != 30):
+                or complete.get("feedback_state_count") != count
+                or not minimum <= count <= maximum):
             raise ValueError(f"scale feedback provenance mismatch: {folder}")
         for row in feedback["rows"]:
             if len(row["labels"]) != 8:
@@ -165,7 +170,9 @@ def execute(a):
     for size in SIZES:
         selected_names = set(train_names[:size])
         training = [row for row in rows if row["instance"] in selected_names]
-        if len(training) != size*30:
+        represented = {row["instance"] for row in training}
+        if (represented != selected_names
+                or not size*12 <= len(training) <= size*30):
             raise ValueError("nested training-state count mismatch")
         scaler = fit_scaler(training, normalizer)
         alternative = np.asarray([float(label["hv_contribution"])-

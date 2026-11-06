@@ -2,6 +2,7 @@ import unittest
 
 import torch
 
+from collect_m_prescreen_scale_v1 import trajectory_phase
 from generate_m_prescreen_scale_instances import (ALGORITHM_SEED_BASE,
     CCP_SEED_BASE, FINAL_TEST_MASTER_SEED, MASTER_SEED, PATH_SEED_OFFSET,
     TRAIN_COUNT, VALIDATION_COUNT)
@@ -10,6 +11,16 @@ from train_m_prescreen_scale_curve_v1 import (SIZES, instance_order,
 
 
 class PrescreenScaleTests(unittest.TestCase):
+    def test_available_states_are_split_into_chronological_tertiles(self):
+        for count in (12, 19, 30):
+            phases = [trajectory_phase(index, count)
+                      for index in range(count)]
+            self.assertGreaterEqual(phases.count("early"), 4)
+            self.assertGreaterEqual(phases.count("middle"), 4)
+            self.assertGreaterEqual(phases.count("late"), 4)
+            self.assertEqual(phases, sorted(phases,
+                key=("early", "middle", "late").index))
+
     def test_generated_namespaces_do_not_touch_locked_final_test(self):
         total = TRAIN_COUNT+VALIDATION_COUNT
         instance = {MASTER_SEED+index*100 for index in range(total)}

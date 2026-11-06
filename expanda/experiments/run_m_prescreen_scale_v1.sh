@@ -22,7 +22,7 @@ python3 -u generate_m_prescreen_scale_instances.py \
   --source-instances "$INSTANCES" \
   --out "$GENERATED_ROOT"
 
-echo "===== STAGE 2: COLLECT 6600 PHASE-BALANCED K8 STATES ====="
+echo "===== STAGE 2: COLLECT 12-30 TEMPORALLY BALANCED K8 STATES PER TRAJECTORY ====="
 python3 -u collect_m_prescreen_scale_v1.py \
   --generated-instances "$GENERATED_ROOT" \
   --normalization "$NORMALIZATION" \

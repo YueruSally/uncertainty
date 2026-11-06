@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect one phase-balanced K8 trajectory on each generated S0 instance."""
+"""Collect one temporally balanced K8 trajectory per generated S0 instance."""
 from __future__ import annotations
 
 import argparse
@@ -25,8 +25,8 @@ from transformer_ppo.instance_catalog import canonical_digest, read_instance
 
 
 PHASES = ("early", "middle", "late")
-STATES_PER_PHASE = 10
-STATES_PER_TRAJECTORY = 30
+MAX_STATES_PER_TRAJECTORY = 30
+MIN_STATES_PER_TRAJECTORY = 12
 
 
 def log(message):
@@ -34,34 +34,21 @@ def log(message):
 
 
 class PhaseBalancedK8Controller(CollectK8Controller):
-    def __init__(self, *args, **kwargs):
-        self.phase_counts = Counter()
-        super().__init__(*args, **kwargs)
-
     def _choose_operator(self, *args, **kwargs):
         decision, candidates = super()._choose_operator(*args, **kwargs)
         row = self.feedback_pending
         if row is not None:
-            name = phase(float(self.evaluations)/max(1, int(self.budget)))
             if (len(self.proposals) != 8
-                    or self.phase_counts[name] >= STATES_PER_PHASE):
+                    or len(self.feedback_rows) >= MAX_STATES_PER_TRAJECTORY):
                 self.feedback_pending = None
             else:
-                row["sampling_phase"] = name
+                row["sampling_phase"] = "pending_trajectory_tertile"
         return decision, candidates
-
-    def _mutate_operator_only(self, *args, **kwargs):
-        before = len(self.feedback_rows)
-        result = super()._mutate_operator_only(*args, **kwargs)
-        if len(self.feedback_rows) > before:
-            name = self.feedback_rows[-1]["sampling_phase"]
-            self.phase_counts[name] += 1
-        return result
 
     def summary(self):
         return {**super().summary(),
-            "prescreen_scale_phase_counts": {
-                name: self.phase_counts[name] for name in PHASES}}
+            "prescreen_scale_phase_assignment":
+                "chronological tertiles assigned after trajectory completion"}
 
 
 def worker(a):
@@ -85,12 +72,16 @@ def worker(a):
         inference_controller_factories={"M": factory})
     controller = holders[0]
     rows = controller.feedback_rows
+    rows.sort(key=lambda row: (
+        row["generation"], row["evaluation"], row["event"]))
+    for index, row in enumerate(rows):
+        row["sampling_phase"] = trajectory_phase(index, len(rows))
     counts = Counter(row["sampling_phase"] for row in rows)
     if (len(holders) != 1 or result["real_objective_evaluation_count"] != 400
-            or len(rows) != STATES_PER_TRAJECTORY
-            or any(counts[name] != STATES_PER_PHASE for name in PHASES)
+            or not MIN_STATES_PER_TRAJECTORY <= len(rows) <= MAX_STATES_PER_TRAJECTORY
+            or any(counts[name] < 4 for name in PHASES)
             or any(len(row["labels"]) != 8 for row in rows)
-            or controller.feedback_evaluations != STATES_PER_TRAJECTORY*7
+            or controller.feedback_evaluations != len(rows)*7
             or result.get("ppo_updates", 0)):
         raise RuntimeError(f"incomplete phase-balanced K8 trajectory: {counts}")
     write_json(a.out/"FEEDBACK.json", {"rows": rows,
@@ -113,6 +104,11 @@ def validate(folder, record, plan_sha):
     feedback = read_json(folder/"FEEDBACK.json")
     config = read_json(folder/"configuration.json")
     counts = Counter(row["sampling_phase"] for row in feedback["rows"])
+    ordered = sorted(feedback["rows"], key=lambda row: (
+        row["generation"], row["evaluation"], row["event"]))
+    phase_assignment_exact = all(
+        row["sampling_phase"] == trajectory_phase(index, len(ordered))
+        for index, row in enumerate(ordered))
     if (result.get("protocol") != "m-prescreen-scale-data-v1"
             or result.get("instance_id") != record["instance_id"]
             or result.get("development_role") != record["development_role"]
@@ -120,10 +116,11 @@ def validate(folder, record, plan_sha):
             or result.get("plan_sha256") != plan_sha
             or result.get("feedback_sha256") != digest(folder/"FEEDBACK.json")
             or result.get("real_objective_evaluation_count") != 400
-            or result.get("feedback_state_count") != STATES_PER_TRAJECTORY
-            or len(feedback["rows"]) != STATES_PER_TRAJECTORY
-            or feedback.get("additional_objective_evaluations") != 210
-            or any(counts[name] != STATES_PER_PHASE for name in PHASES)
+            or not MIN_STATES_PER_TRAJECTORY <= len(feedback["rows"]) <= MAX_STATES_PER_TRAJECTORY
+            or result.get("feedback_state_count") != len(feedback["rows"])
+            or feedback.get("additional_objective_evaluations") != len(feedback["rows"])*7
+            or any(counts[name] < 4 for name in PHASES)
+            or not phase_assignment_exact
             or any(len(row["labels"]) != 8 for row in feedback["rows"])
             or config.get("training_size") != 100
             or config.get("population") != 20
@@ -133,6 +130,13 @@ def validate(folder, record, plan_sha):
                 "transport_border_saa_v1"):
         raise ValueError(f"invalid completed scale trajectory: {folder}")
     return result
+
+
+def trajectory_phase(index, count):
+    """Assign available post-G10 decisions to chronological tertiles."""
+    if not 0 <= index < count:
+        raise ValueError("trajectory phase index is out of range")
+    return phase(index/count)
 
 
 def build_plan(a):
@@ -161,13 +165,16 @@ def build_plan(a):
     return {"protocol": "m-prescreen-scale-data-v1",
         "catalog_digest": claimed, "instances": records,
         "instance_count": 220, "train_count": 200,
-        "validation_count": 20, "states_per_trajectory": 30,
-        "states_per_phase": 10, "candidate_count": 8,
+        "validation_count": 20,
+        "states_per_trajectory": {"minimum": MIN_STATES_PER_TRAJECTORY,
+            "maximum": MAX_STATES_PER_TRAJECTORY,
+            "phase_assignment": "chronological within-trajectory tertiles after collection"},
+        "candidate_count": 8,
         "search_budget": 400, "scenario_count": 100,
         "population": 20, "ccp_confidence": .9,
         "expected_search_objective_evaluations": 88_000,
-        "expected_label_objective_evaluations": 46_200,
-        "expected_total_objective_evaluations": 134_200,
+        "maximum_label_objective_evaluations": 46_200,
+        "maximum_total_objective_evaluations": 134_200,
         "workers": a.workers, "threads_per_worker": 1,
         "invocation_limit_seconds": 7200, "run_limit_seconds": 300,
         "automatic_retries": 0,
@@ -193,7 +200,7 @@ def execute(a):
     lock, stop = threading.Lock(), threading.Event()
     env = {**os.environ, "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
            "OPENBLAS_NUM_THREADS": "1", "PYTHONUNBUFFERED": "1"}
-    log("220 trajectories; 30 phase-balanced states each; CCP100/pop20/B400")
+    log("220 trajectories; 12-30 exact-K8 states each; chronological tertiles; CCP100/pop20/B400")
 
     def task(record):
         name, seed = record["instance_id"], record["algorithm_seed"]
@@ -265,9 +272,10 @@ def execute(a):
         "elapsed_seconds_this_invocation": time.monotonic()-started,
         "next_action": "train frozen 25/50/100/200-instance nested learning curve"}
     if (result["role_counts"] != {"train": 200, "validation": 20}
-            or result["state_count"] != 6600
-            or result["phase_counts"] != {name: 2200 for name in PHASES}
-            or result["total_objective_evaluations"] != 134_200):
+            or not 220*MIN_STATES_PER_TRAJECTORY <= result["state_count"] <= 220*MAX_STATES_PER_TRAJECTORY
+            or any(result["phase_counts"][name] < 220*4 for name in PHASES)
+            or result["label_objective_evaluations"] != result["state_count"]*7
+            or result["total_objective_evaluations"] != 88_000+result["label_objective_evaluations"]):
         raise RuntimeError("completed scale collection totals mismatch")
     write_json(root/"COMPLETE.json", {**result, "runs": runs})
     write_json(root/"QUICK_RESULT.json", result)
