@@ -62,4 +62,6 @@ bash experiments/run_m_terminal_feedback_v3.sh
 
 `audit_m_prescreen_data.py` 只盘点现有日志；其中 `mutation_outcomes.jsonl` 多数只记动作，零条 q90 不表示其他文件没有目标标签。`run_m_prescreen_k8_collect.py` 已实现 K8 采集：在训练和验证实例上以 Balanced 搜索，每个采集状态原样保留 Balanced 子代，另外构造最多七个不重复的合法 Replace 子代。采集额外评价的子代计入 `training_feedback_evaluations`，不进入 B400 搜索评价预算。每条反馈保存动作前种群、候选批次 token、候选目标值、可行性和真实单步 HV 贡献。
 
-本阶段不训练模型、不运行开发或最终测试。目标预测、配对完整搜索和 PPO 仍待实现。Balanced 候选在列表中只是回退选项，不能保证最终 HV 下限。已完成的固定偏好实验不重跑，其事后实例最优收益只作为诊断。
+K8 采集阶段不训练模型、不运行开发或最终测试。Balanced 候选在列表中只是回退选项，不能保证最终 HV 下限。已完成的固定偏好实验不重跑，其事后实例最优收益只作为诊断。
+
+`train_m_prescreen_surrogate.py` 只读取已完成的 K8 数据。它用 6 个训练实例拟合 3 个小型 Transformer，在预先指定的 014/016 两个实例上选择训练轮次并执行一次固定离线门。网络预测候选的归一化 CCP100 三目标和可行性；选择器把预测点加入动作前种群，按固定参考点计算预测 HV 贡献。通过条件是两个验证实例的真实净收益均为正且发生过非 Balanced 选择。没有阈值扫描；不新增目标评价、搜索或 PPO。只有通过后才实现配对 B400 搜索。

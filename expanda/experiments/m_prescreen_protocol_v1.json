@@ -37,6 +37,21 @@
     "also_report": ["per-instance net gain", "switch rate", "feasibility errors", "negative-gain tail", "true additional evaluation count"],
     "pass": "mean gain positive, each validation instance positive, and at least one non-Balanced child chosen; do not adjust this rule on validation outcomes"
   },
+  "supervised_training": {
+    "architecture": "batch-token Transformer followed by eight-candidate set Transformer",
+    "width": 32,
+    "layers": 2,
+    "heads": 4,
+    "training_seeds": [911001, 911002, 911003],
+    "epochs": 80,
+    "checkpoint_epochs": [10, 20, 40, 60, 80],
+    "batch_size": 16,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "outputs": "normalized CCP100 q90 cost, emission, makespan and feasibility",
+    "selection": "mean ensemble prediction; feasibility probability at least 0.5; exact HV calculation on predicted objectives; first tie keeps Balanced",
+    "model_selection": "minimum loss on the two predeclared validation instances; no threshold scan"
+  },
   "development_search": {
     "instances": ["train-S0-021", "train-S0-022"],
     "algorithm_seeds": [910101, 910102, 910103, 910104, 910105, 910106, 910107, 910108, 910109, 910110],
