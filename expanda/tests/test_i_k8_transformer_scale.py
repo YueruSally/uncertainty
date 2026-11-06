@@ -1,4 +1,5 @@
 import unittest
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -6,7 +7,8 @@ import numpy as np
 import torch
 
 from experiments.run_i_k8_transformer_search_v1 import (
-    BALANCED, BASE, METHODS, ORACLE, SIMPLE, TRANSFORMER, summarize)
+    BALANCED, BASE, METHODS, ORACLE, SIMPLE, TRANSFORMER,
+    compatible_frozen_plan, hydrate_scenario_digest, summarize)
 from i_k8_surrogate import (CandidateGainTransformer, fit_scaler,
     gain_targets, pack_rows, pairwise_ranking_loss, score)
 from i_k8_scale_policy import FrozenIInitializationRanker
@@ -44,6 +46,28 @@ def synthetic_rows():
 
 
 class InitializationTransformerScaleTests(unittest.TestCase):
+    def test_legacy_run_restores_scenario_digest_from_configuration(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "configuration.json").write_text(json.dumps({
+                "scenario_digest": "frozen-ccp100",
+            }))
+            row = hydrate_scenario_digest({"strategy": BASE}, root)
+            self.assertEqual(row["scenario_digest"], "frozen-ccp100")
+
+    def test_resume_allows_only_summarizer_hash_change(self):
+        script = str(Path(
+            __import__(
+                "experiments.run_i_k8_transformer_search_v1",
+                fromlist=["__file__"]).__file__).resolve())
+        existing = {"workers": 3, "input_sha256": {
+            script: "old", "/fixed/input": "same"}}
+        generated = {"workers": 3, "input_sha256": {
+            script: "new", "/fixed/input": "same"}}
+        self.assertTrue(compatible_frozen_plan(existing, generated))
+        generated["input_sha256"]["/fixed/input"] = "changed"
+        self.assertFalse(compatible_frozen_plan(existing, generated))
+
     def test_tensor_contract_and_pairwise_loss(self):
         rows = synthetic_rows()
         scaler = fit_scaler(rows)

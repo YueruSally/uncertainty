@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
+import copy
 import fcntl
 import json
 import math
@@ -74,6 +75,8 @@ def worker(a):
         "instance": instance["instance_id"],
         "algorithm_seed": a.seed,
         "plan_sha256": a.plan_sha,
+        "scenario_digest": read_json(a.out / "configuration.json")[
+            "scenario_digest"],
         "new_training_steps": 0,
         "new_ppo_updates": 0,
         "learning_enabled": False,
@@ -81,6 +84,39 @@ def worker(a):
     })
     validate_transformer_run(result, a.seed, a.plan_sha)
     write_json(a.out / "RUN_COMPLETE.json", result)
+
+
+def hydrate_scenario_digest(row, run_folder):
+    """Return a run row with the frozen scenario identity restored.
+
+    Early I-K8 summaries did not copy ``scenario_digest`` from the per-run
+    configuration into ``RUN_COMPLETE.json``/the aggregate ``COMPLETE.json``.
+    The configuration is the authoritative frozen record, so old completed
+    searches can be summarized without rerunning any objective evaluations.
+    """
+    hydrated = dict(row)
+    if not hydrated.get("scenario_digest"):
+        configuration = read_json(Path(run_folder) / "configuration.json")
+        scenario = configuration.get("scenario_digest")
+        if not scenario:
+            raise ValueError(
+                f"missing frozen scenario digest under {run_folder}")
+        hydrated["scenario_digest"] = scenario
+    return hydrated
+
+
+def compatible_frozen_plan(existing, generated):
+    """Allow only this summarizer's code hash to change on resume."""
+    if existing == generated:
+        return True
+    adjusted = copy.deepcopy(generated)
+    script = str(Path(__file__).resolve())
+    old_hashes = existing.get("input_sha256", {})
+    new_hashes = adjusted.get("input_sha256", {})
+    if script not in old_hashes or script not in new_hashes:
+        return False
+    new_hashes[script] = old_hashes[script]
+    return adjusted == existing
 
 
 def validate_transformer_run(row, seed, plan_sha):
@@ -239,7 +275,11 @@ def source_runs(a):
     if (quick.get("oracle_final_hv_screen_pass") is not True
             or len(keyed) != len(runs) or set(keyed) != expected):
         raise ValueError("source I-K8 oracle result is incomplete")
-    return list(runs)
+    return [hydrate_scenario_digest(
+        row,
+        a.oracle_root / row["instance"]
+        / f"seed_{row['algorithm_seed']}" / row["strategy"])
+        for row in runs]
 
 
 def frozen_plan(a):
@@ -308,9 +348,17 @@ def frozen_plan(a):
 def execute(a):
     root = a.out.resolve()
     plan = frozen_plan(a)
-    if (root / "PLAN.json").exists() and read_json(root / "PLAN.json") != plan:
-        raise ValueError("frozen I-K8 search inputs changed")
-    write_json(root / "PLAN.json", plan)
+    plan_path = root / "PLAN.json"
+    if plan_path.exists():
+        existing_plan = read_json(plan_path)
+        if not compatible_frozen_plan(existing_plan, plan):
+            raise ValueError("frozen I-K8 search inputs changed")
+        # Keep the original bytes and digest: all 30 completed workers are
+        # bound to this plan.  The only permitted difference is the present
+        # backward-compatible summarizer fix.
+        plan = existing_plan
+    else:
+        write_json(plan_path, plan)
     if (root / "PIPELINE_COMPLETE").exists():
         log("already complete; see QUICK_RESULT.json")
         return
@@ -360,7 +408,8 @@ def execute(a):
                     tail = "\n".join(logfile.read_text(
                         errors="replace").splitlines()[-25:])
                     raise RuntimeError(f"worker failed: {logfile}\n{tail}")
-        row = read_json(folder / "RUN_COMPLETE.json")
+        row = hydrate_scenario_digest(
+            read_json(folder / "RUN_COMPLETE.json"), folder)
         validate_transformer_run(row, seed, plan_sha)
         with lock:
             status["completed_runs"] += 1
