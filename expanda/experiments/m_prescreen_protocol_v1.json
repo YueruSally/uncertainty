@@ -123,6 +123,19 @@
     "on_pass": "freeze size-200 ensemble for one paired B400 development search before PPO",
     "on_failure": "stop K8 prescreen without collecting more data or tuning the ranker"
   },
+  "scale_bounded_search": {
+    "status": "exploratory exception frozen after positive size-200 heldout mean and 12/20 positive validation instances; monotonic learning-curve gate remained failed",
+    "instances": ["prescreen-search-S0-001", "prescreen-search-S0-002", "prescreen-search-S0-003"],
+    "instance_master_seed": 97000000,
+    "instance_ccp_seed_base": 97500000,
+    "algorithm_seeds": [918001, 918002, 918003, 918004, 918005, 918006, 918007, 918008, 918009, 918010],
+    "methods": ["HEURISTIC_BALANCED", "TRANSFORMER_K8_SIZE200"],
+    "model": "fixed final-epoch size-200 three-seed ensemble; no retraining, threshold, epoch or checkpoint selection",
+    "optimization": "CCP100, confidence 0.9, pop20, B400; only the selected child is evaluated",
+    "pass": "equal-instance mean positive and every one of the three instance means positive, with at least one Transformer switch",
+    "on_pass": "admit one bounded PPO experiment while retaining the identical frozen no-PPO policy as an ablation",
+    "on_failure": "stop K8 ranker and do not open the locked final test"
+  },
   "development_search": {
     "instances": ["train-S0-021", "train-S0-022"],
     "algorithm_seeds": [910101, 910102, 910103, 910104, 910105, 910106, 910107, 910108, 910109, 910110],
