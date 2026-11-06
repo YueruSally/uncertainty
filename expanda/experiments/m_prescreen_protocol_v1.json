@@ -136,6 +136,22 @@
     "on_pass": "admit one bounded PPO experiment while retaining the identical frozen no-PPO policy as an ablation",
     "on_failure": "stop K8 ranker and do not open the locked final test"
   },
+  "scale_review_audit": {
+    "status": "frozen after the three-instance bounded search passed and before reviewer checks",
+    "source_search_commit": "3813704cf8b52f5092e7b88e40d9216b04c448f4",
+    "instances_and_algorithm_seeds": "identical to scale_bounded_search",
+    "new_optimization_methods": ["K8_SIMPLE", "K8_ORACLE"],
+    "optimization_comparison": "reuse exact Balanced and frozen Transformer runs; pair simple and greedy one-step oracle on the same initial populations, CCP100 scenarios, pop20 and B400",
+    "oracle_qualification": "greedy immediate current-population HV oracle, not a mathematical upper bound on final trajectory HV",
+    "independent_re_evaluation": {
+      "scenario_count": 1000,
+      "seed": 97700000,
+      "methods": ["HEURISTIC_BALANCED", "K8_SIMPLE", "TRANSFORMER_K8_SIZE200", "K8_ORACLE"],
+      "reference": "one pooled all-method OOS normalized HV reference"
+    },
+    "model_freeze": "checkpoint hashes, execution commit, training/validation instance lists, training seeds, loss and all CCP100/pop20/B400 configuration saved before audit",
+    "ppo_blocked_until_review": true
+  },
   "development_search": {
     "instances": ["train-S0-021", "train-S0-022"],
     "algorithm_seeds": [910101, 910102, 910103, 910104, 910105, 910106, 910107, 910108, 910109, 910110],
