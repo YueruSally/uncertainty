@@ -1,0 +1,97 @@
+{
+  "release": "ccp-m-transformer-ppo-k8-formal-v1",
+  "formal_design": {
+    "final_instances": 10,
+    "algorithm_seeds_per_instance": 10,
+    "paired_runs_per_method": 100,
+    "methods": [
+      "BASE",
+      "HEURISTIC_BALANCED",
+      "TRANSFORMER_K8_SIZE200",
+      "TRANSFORMER_K8_PPO_U002"
+    ],
+    "scenario_count": 100,
+    "ccp_confidence": 0.9,
+    "population": 20,
+    "evaluation_budget": 400,
+    "independent_oos_scenarios_per_instance": 5000
+  },
+  "development_evidence": {
+    "k8_oracle_final_hv_mean_percent_vs_balanced": 4.991945209325668,
+    "supervised_full_search_mean_percent_vs_balanced": 3.6583732789981607,
+    "supervised_full_search_positive_instances": 3,
+    "supervised_full_search_instance_count": 3,
+    "supervised_training_instances": 200,
+    "ppo_validation_instances": 20,
+    "ppo_checkpoint_candidates": [2, 4, 8],
+    "selected_ppo_update": 2,
+    "selected_ppo_validation_mean_percent_vs_supervised": -0.5330006477267519,
+    "qualification": "Update 2 was the best prespecified PPO candidate, but PPO did not establish an incremental validation gain over the frozen supervised Transformer."
+  },
+  "optimization_ccp100": {
+    "base_minus_balanced_percent": {
+      "mean": -7.498710015772612,
+      "ci95": [-11.265975880303154, -3.9104590335087366],
+      "wins": 14,
+      "ties": 0,
+      "losses": 86
+    },
+    "supervised_minus_balanced_percent": {
+      "mean": 1.6185735376741381,
+      "ci95": [0.2046970273033159, 3.3257754439849228],
+      "wins": 54,
+      "ties": 2,
+      "losses": 44
+    },
+    "ppo_minus_balanced_percent": {
+      "mean": 1.7652184756557776,
+      "ci95": [0.3812803281514865, 3.4300776401367092],
+      "wins": 57,
+      "ties": 2,
+      "losses": 41
+    },
+    "ppo_minus_supervised_percent": {
+      "mean": 0.15422300223488816,
+      "ci95": [-0.13695539666768927, 0.52925414039357],
+      "wins": 13,
+      "ties": 76,
+      "losses": 11
+    }
+  },
+  "independent_oos5000": {
+    "base_minus_balanced_percent": {
+      "mean": -4.689617808676004,
+      "ci95": [-6.813100111115326, -2.680181442657795],
+      "wins": 21,
+      "ties": 0,
+      "losses": 79
+    },
+    "supervised_minus_balanced_percent": {
+      "mean": 1.7358286926397095,
+      "ci95": [0.4929498981883513, 3.1287105551604677],
+      "wins": 57,
+      "ties": 2,
+      "losses": 41
+    },
+    "ppo_minus_balanced_percent": {
+      "mean": 1.8162862429618811,
+      "ci95": [0.6143003251123281, 3.1444831412669485],
+      "wins": 60,
+      "ties": 2,
+      "losses": 38
+    },
+    "ppo_minus_supervised_percent": {
+      "mean": 0.08792610720095849,
+      "ci95": [-0.2654429048838085, 0.49481993780180833],
+      "wins": 13,
+      "ties": 76,
+      "losses": 11
+    }
+  },
+  "claim": {
+    "transformer_ppo_beats_balanced": true,
+    "transformer_ppo_oos_beats_balanced": true,
+    "ppo_increment_over_supervised_established": false,
+    "qualification": "PPO is retained as the required ablation; the statistically identifiable gain is primarily attributable to Transformer K8 candidate prescreening."
+  }
+}
