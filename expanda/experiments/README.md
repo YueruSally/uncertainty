@@ -157,3 +157,13 @@ logical B400 evaluations; Oracle evaluation of the other seven pairs is
 reported separately as hidden diagnostic cost.  Base is the primary
 reference.  Transformer training is not admitted unless the final-HV Oracle
 screen passes.
+
+`run_c_k8_transformer_scale_v1.sh` reuses the locked 200-train/20-validation
+generated-instance catalog.  It collects exact complete-pair labels under the
+Simple trajectory, trains fixed width-16 Transformers on nested
+25/50/100/200-instance subsets with a within-state ranking loss, freezes the
+three-seed size-200 ensemble, and runs 30 paired B400 development searches.
+Admission requires a positive lower hierarchical-bootstrap bound versus Base
+and positive mean gains versus both Base and K8 Simple on at least two of the
+three development instances.  The learning curve is diagnostic only; final
+test instances remain closed.

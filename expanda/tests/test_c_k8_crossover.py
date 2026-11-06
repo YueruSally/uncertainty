@@ -35,7 +35,7 @@ def fixture():
 
 
 class CK8Tests(unittest.TestCase):
-    def controller(self, folder, mode):
+    def controller(self, folder, mode, policy=None):
         batch, parent1, parent2, lookup, arcs = fixture()
         normalizer = ObjectiveNormalizer(
             (0.0, 0.0, 0.0), (100.0, 100.0, 100.0),
@@ -44,6 +44,7 @@ class CK8Tests(unittest.TestCase):
             Path(folder), "run", "scenario", 400,
             selection_mode=mode, reliable_options={}, batches=[batch],
             arcs=arcs, pool_size=8, normalizer=normalizer,
+            selection_policy=policy,
             method=f"C_K8_{mode.upper()}", instance={}, seeds={})
         return controller, batch, parent1, parent2, lookup, arcs
 
@@ -114,6 +115,42 @@ class CK8Tests(unittest.TestCase):
                 self.assertEqual(controller.candidate_objective_evaluations, 16)
                 self.assertEqual(
                     controller.hidden_candidate_objective_evaluations, 14)
+            finally:
+                controller.close()
+
+    def test_collection_records_eight_exact_pair_labels(self):
+        with tempfile.TemporaryDirectory() as folder:
+            controller, batch, p1, p2, lookup, arcs = self.controller(
+                folder, "collect_simple")
+            try:
+                self._process(controller, batch, p1, p2, lookup, arcs)
+                self.assertEqual(len(controller.feedback_rows), 1)
+                row = controller.feedback_rows[0]
+                self.assertEqual(len(row["labels"]), 8)
+                self.assertEqual(len(row["candidate_batch_tokens"]), 8)
+                self.assertEqual(row["additional_objective_evaluations"], 14)
+                self.assertEqual(controller.evaluations, 2)
+            finally:
+                controller.close()
+
+    def test_transformer_selects_without_hidden_evaluation(self):
+        class Policy:
+            def select(self, row):
+                self.row = row
+                return 3
+
+        policy = Policy()
+        with tempfile.TemporaryDirectory() as folder:
+            controller, batch, p1, p2, lookup, arcs = self.controller(
+                folder, "transformer", policy)
+            try:
+                chosen = self._process(
+                    controller, batch, p1, p2, lookup, arcs)
+                self.assertEqual(chosen[0].objectives, (10.0, 10.0, 10.0))
+                self.assertEqual(len(policy.row["candidate_features"]), 8)
+                self.assertEqual(controller.candidate_objective_evaluations, 2)
+                self.assertEqual(
+                    controller.hidden_candidate_objective_evaluations, 0)
             finally:
                 controller.close()
 

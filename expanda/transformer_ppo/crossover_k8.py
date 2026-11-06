@@ -22,11 +22,12 @@ from .comparison_controllers import BaseBudgetController
 from .crossover import (
     apply_cut, finalize_children, prepare_common_node_crossover)
 from .crossover_rule import _candidate_proxy, _joint_single_override_plans
-from .initialization_k8 import deterministic_proxy_rows
+from .initialization_k8 import (
+    deterministic_proxy_rows, individual_batch_tokens)
 from .v2_controls import private_seed
 
 
-METHODS = ("simple", "oracle")
+METHODS = ("simple", "oracle", "collect_simple", "transformer")
 
 
 def _pair_proxy_rows(candidate_pairs, batches, arcs):
@@ -48,6 +49,29 @@ def _pair_proxy_rows(candidate_pairs, batches, arcs):
             "lateness": float(left["lateness"] + right["lateness"]),
             "missing": int(left["missing"] + right["missing"]),
         })
+    return rows
+
+
+def _pair_batch_tokens(pair, batches):
+    left = individual_batch_tokens(pair[0], batches)
+    right = individual_batch_tokens(pair[1], batches)
+    return [first + second for first, second in zip(left, right)]
+
+
+def _pair_candidate_features(proxy_rows, roles):
+    rows = []
+    for index, (proxy, role) in enumerate(zip(proxy_rows, roles)):
+        rows.append([
+            float(proxy["score"]), float(proxy["child_scores"][0]),
+            float(proxy["child_scores"][1]), float(proxy["cost"]),
+            float(proxy["emission"]), float(proxy["time"]),
+            float(proxy["capacity_excess"]), float(proxy["lateness"]),
+            float(proxy["missing"]), index / 7.0,
+            float(role == "base"), float(role == "directed_balanced"),
+            float(role == "directed_safe"),
+            float(role.startswith("private")),
+            float(role == "base_duplicate"),
+        ])
     return rows
 
 
@@ -120,12 +144,16 @@ class CrossoverK8Controller(BaseBudgetController):
     controls_mutation = False
 
     def __init__(self, *args, selection_mode, reliable_options, batches, arcs,
-                 pool_size=8, **kwargs):
+                 pool_size=8, selection_policy=None, **kwargs):
         if selection_mode not in METHODS:
             raise ValueError(f"selection_mode must be one of {METHODS}")
         if int(pool_size) != 8:
             raise ValueError("the frozen C screen requires K=8")
         self.selection_mode = selection_mode
+        if (selection_mode == "transformer") != (selection_policy is not None):
+            raise ValueError(
+                "selection_policy must be supplied only for transformer mode")
+        self.selection_policy = selection_policy
         self.reliable_options = dict(reliable_options)
         self.batches_for_proxy = tuple(batches)
         self.arcs_for_proxy = tuple(arcs)
@@ -141,6 +169,7 @@ class CrossoverK8Controller(BaseBudgetController):
         self.selection_counts = Counter()
         self.oracle_gain_total = 0.0
         self.simple_gain_total = 0.0
+        self.feedback_rows = []
         super().__init__(*args, log_names=(
             "crossover_k8_candidates", "generation_summary"), **kwargs)
 
@@ -229,6 +258,29 @@ class CrossoverK8Controller(BaseBudgetController):
                   for ind in individuals if ind.feasible]
         return exact_hv_3d(points, self.normalizer.reference)
 
+    def _state_row(self, active, proxy_rows):
+        return {
+            "instance": self.run_id,
+            "event_index": int(active["event_index"]),
+            "slot_fraction": min(1.0, self.evaluations / max(1, self.budget)),
+            "generation": int(active["generation"]),
+            "population_points": [
+                list(self.normalizer.transform(member.objectives))
+                for member in self.current_population if member.feasible
+            ],
+            "candidate_features": _pair_candidate_features(
+                active["proxy_rows"], active["roles"]),
+            "candidate_batch_tokens": [
+                _pair_batch_tokens(pair, self.batches_for_proxy)
+                for pair in active["pairs"]
+            ],
+            "candidate_roles": list(active["roles"]),
+            "candidate_fingerprints": [
+                list(values) for values in
+                active["fingerprints_after_mutation"]
+            ],
+        }
+
     def _commit_pre_evaluated(self, pair):
         if not self.has_budget(2):
             raise RuntimeError("logical objective evaluation budget exhausted")
@@ -263,9 +315,22 @@ class CrossoverK8Controller(BaseBudgetController):
         proxy_rows = _pair_proxy_rows(
             pairs, self.batches_for_proxy, self.arcs_for_proxy)
         gains = None
-        if self.selection_mode == "simple":
-            selected = min(range(len(pairs)), key=lambda index: (
-                proxy_rows[index]["score"], index != 1, index))
+        if self.selection_mode in ("simple", "transformer"):
+            active.update({
+                "proxy_rows": proxy_rows,
+                "fingerprints_after_mutation": [
+                    [fingerprint(child) for child in pair] for pair in pairs],
+            })
+            if self.selection_mode == "simple":
+                selected = min(range(len(pairs)), key=lambda index: (
+                    proxy_rows[index]["score"], index != 1, index))
+            else:
+                started = time.perf_counter()
+                selected = int(self.selection_policy.select(
+                    self._state_row(active, proxy_rows)))
+                self.inference_seconds += time.perf_counter() - started
+                if not 0 <= selected < len(pairs):
+                    raise ValueError("Transformer selected invalid C-K8 pair")
             chosen = pairs[selected]
             for child in chosen:
                 self.evaluate(function, child, batches, arcs, tt_dict,
@@ -284,11 +349,18 @@ class CrossoverK8Controller(BaseBudgetController):
             self.hidden_candidate_objective_evaluations += 2 * (len(pairs) - 1)
             base_hv = self._population_hv()
             gains = [self._population_hv(pair) - base_hv for pair in pairs]
-            selected = max(range(len(pairs)), key=lambda index: (
-                gains[index], sum(child.feasible for child in pairs[index]),
-                index == 0, -proxy_rows[index]["score"], -index))
+            if self.selection_mode == "oracle":
+                selected = max(range(len(pairs)), key=lambda index: (
+                    gains[index], sum(child.feasible for child in pairs[index]),
+                    index == 0, -proxy_rows[index]["score"], -index))
+            else:
+                selected = min(range(len(pairs)), key=lambda index: (
+                    proxy_rows[index]["score"], index != 1, index))
             chosen = pairs[selected]
-            self.oracle_gain_total += gains[selected]
+            if self.selection_mode == "oracle":
+                self.oracle_gain_total += gains[selected]
+            else:
+                self.simple_gain_total += gains[selected]
             self._commit_pre_evaluated(chosen)
 
         self.total_effective += int(selected != 0)
@@ -301,6 +373,26 @@ class CrossoverK8Controller(BaseBudgetController):
             "fingerprints_after_mutation": [
                 [fingerprint(child) for child in pair] for pair in pairs],
         })
+        if self.selection_mode == "collect_simple":
+            state = self._state_row(active, proxy_rows)
+            state.update({
+                "labels": [{
+                    "index": index,
+                    "objectives": [
+                        [float(value) for value in child.objectives]
+                        for child in pair
+                    ],
+                    "feasible": [bool(child.feasible) for child in pair],
+                    "hv_contribution": float(gains[index]),
+                    "fingerprints": list(
+                        active["fingerprints_after_mutation"][index]),
+                    "source": active["roles"][index],
+                } for index, pair in enumerate(pairs)],
+                "selected_index": int(selected),
+                "simple_selected_index": int(selected),
+                "additional_objective_evaluations": 14,
+            })
+            self.feedback_rows.append(state)
         return chosen
 
     def settle_crossover(self, child1, child2):
@@ -324,11 +416,13 @@ class CrossoverK8Controller(BaseBudgetController):
                 "objectives": (
                     [[float(value) for value in child.objectives]
                      for child in pair]
-                    if self.selection_mode == "oracle" or index == selected
+                    if self.selection_mode in ("oracle", "collect_simple")
+                    or index == selected
                     else None),
                 "feasible": (
                     [bool(child.feasible) for child in pair]
-                    if self.selection_mode == "oracle" or index == selected
+                    if self.selection_mode in ("oracle", "collect_simple")
+                    or index == selected
                     else None),
                 "oracle_hv_gain": (
                     None if active["gains"] is None
