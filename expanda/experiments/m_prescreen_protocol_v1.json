@@ -201,6 +201,11 @@
     "ccp_seed_base": 98100000,
     "oos_seed_base": 98200000,
     "algorithm_seeds": [910201, 910202, 910203, 910204, 910205, 910206, 910207, 910208, 910209, 910210],
+    "methods": ["BASE", "HEURISTIC_BALANCED", "TRANSFORMER_K8_SIZE200", "TRANSFORMER_K8_PPO_U002"],
+    "population": 20,
+    "evaluation_budget": 400,
+    "maximum_generations": 1000,
+    "simple_k8_included": false,
     "independent_oos_scenarios_per_instance": 5000,
     "rule": "Freeze one model and all baselines before opening final-test outputs; evaluate each method once on the same instances, seeds and scenarios"
   },

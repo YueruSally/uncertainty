@@ -83,3 +83,7 @@ oracle 审计以三个实例均为正、等实例平均 `+4.992%` 通过。`run_
 `run_m_prescreen_ppo_v1.sh` 在审稿核查通过后完成论文所需的 Transformer-PPO 阶段。PPO 梯度只使用 200 个训练实例已经保存的 exact-K8 候选反馈，固定执行 8 次 `gamma=0` 更新并保存 0/2/4/8。更新 0 是监督 Transformer 对照，不可伪装成 PPO；真正的 PPO checkpoint 只能从更新 2/4/8 中选择。
 
 选模阶段对每个候选 checkpoint 在全部 20 个验证实例上各执行一次完整 CCP100、pop20、B400 搜索，共 80 次搜索。验证实例不参与梯度；按相对更新 0 的平均最终 HV 选择 PPO checkpoint，并在并列时依次采用更多正实例和更早更新。结束后 `FROZEN_FORMAL_METHODS.json` 同时冻结监督 Transformer 与验证选中的 Transformer-PPO。该流程不读取 97M 的开发搜索输出来选模，也不打开 98M 的最终测试；下一步正式实验必须同时加载这两个冻结方法。
+
+20实例验证从真正的PPO更新2/4/8中选中更新2；其验证均值相对监督模型为负，因此PPO保留为论文要求的冻结消融，而不是事后删除。`run_m_prescreen_formal_v1.sh` 首次打开98M锁定测试，只比较 Base、Balanced、监督Transformer和PPO-U002；不包含简单K8。10个最终实例各用10个配对种子，全部保持CCP100、pop20、B400。随后对四种方法的最终前沿按每实例预先冻结的独立种子做OOS5000重评，并使用四方法共同HV参考点。
+
+正式实验一旦生成最终实例即写入`FINAL_TEST_OPENED`，结果不得用于重新选择模型、阈值、checkpoint或实验尺度。`pop250 × 200代`约需5万次评价，且超出B400模型的训练分布，不能在本轮临时替换；如需报告，应作为重新训练、重新验证的独立规模扩展实验。
