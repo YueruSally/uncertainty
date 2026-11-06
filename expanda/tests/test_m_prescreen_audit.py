@@ -20,6 +20,7 @@ class PrescreenInventoryTests(unittest.TestCase):
             good = root/'good'
             good.mkdir()
             (good/'configuration.json').write_text(json.dumps(config))
+            (good/'COMPLETE.json').write_text(json.dumps({'completed': True}))
             rows = [
                 {'q90_cost_after': 1, 'q90_emission_after': 2,
                  'q90_makespan_after': 3, 'feasible_after': True,
@@ -36,6 +37,7 @@ class PrescreenInventoryTests(unittest.TestCase):
             bad.mkdir()
             config['uncertainty']['scenario_count'] = 20
             (bad/'configuration.json').write_text(json.dumps(config))
+            (bad/'COMPLETE.json').write_text(json.dumps({'completed': True}))
             (bad/'mutation_outcomes.jsonl').write_text(json.dumps(rows[1])+'\n')
 
             result = collect([root], None)

@@ -79,10 +79,15 @@ def scan_audit(path):
 
 def valid_ccp100(path):
     config_path = path.parent/'configuration.json'
-    if not config_path.exists():
+    completion_path = next((path.parent/name for name in
+                            ('COMPLETE.json', 'RUN_COMPLETE.json')
+                            if (path.parent/name).exists()), None)
+    if not config_path.exists() or completion_path is None:
         return False
     config = read_json(config_path)
-    return (config.get('evaluation_mode') == 'ccp'
+    completion = read_json(completion_path)
+    return (completion.get('completed') is True
+            and config.get('evaluation_mode') == 'ccp'
             and config.get('training_size') == 100
             and float(config.get('alpha', -1)) == .9
             and config.get('population') == 20
