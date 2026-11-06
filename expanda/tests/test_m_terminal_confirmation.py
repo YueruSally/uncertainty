@@ -35,7 +35,11 @@ class TerminalConfirmationTests(unittest.TestCase):
             write_json(root/'SELECTED_POLICY.json',selected)
             write_json(root/'QUICK_RESULT.json',{'completed':True,'development_pass':True,'selected':selected})
             (root/'PIPELINE_COMPLETE').write_text('complete')
-            self.assertEqual(freeze_development(root),(plan,selected,bundle))
+            for protocol in ('single-intervention-ppo-v2','complete-terminal-feedback-v3'):
+                with self.subTest(protocol=protocol):
+                    plan['protocol']=protocol
+                    write_json(root/'PLAN.json',plan)
+                    self.assertEqual(freeze_development(root),(plan,selected,bundle))
             # A valid hash is insufficient if the checkpoint has different execution semantics.
             metadata['execution_mode']='repeated-decisions'
             save_checkpoint(checkpoint,metadata)

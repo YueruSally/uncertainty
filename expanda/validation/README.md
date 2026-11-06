@@ -1,6 +1,6 @@
 # Terminal-HV PPO 独立确认
 
-仅在开发目录 `QUICK_RESULT.json` 的 `development_pass=true` 后运行。冻结同一个选中模型，测试前不再训练或改阈值。支持 `terminal-hv-ppo-v1` 和 `single-intervention-ppo-v2`，从已冻结的开发配置自动识别，不能手动替换执行方式。
+仅在开发目录 `QUICK_RESULT.json` 的 `development_pass=true` 后运行。冻结同一个选中模型，测试前不再训练或改阈值。支持 `terminal-hv-ppo-v1`、`single-intervention-ppo-v2`、`complete-terminal-feedback-v3`，从已冻结的开发配置自动识别，不能手动替换执行方式。
 
 单次干预 v2 保留“一次概率采样、后续 Balanced”的原策略；不改为贪心选择，也不增加干预次数。程序核对首次决策输入与 Balanced 一致、推理中没有训练，以及没有切换时最终 HV 与 Balanced 相同。
 

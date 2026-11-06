@@ -45,7 +45,8 @@ SEARCH_SEED_BASE = 93_000_000
 OOS_SEED_BASE = 94_000_000
 OOS_COUNT = 5000
 DEVELOPMENT_MODES = {"terminal-hv-ppo-v1": "repeated-decisions",
-    "single-intervention-ppo-v2": "single-intervention"}
+    "single-intervention-ppo-v2": "single-intervention",
+    "complete-terminal-feedback-v3": "single-intervention"}
 
 
 def log(message):
