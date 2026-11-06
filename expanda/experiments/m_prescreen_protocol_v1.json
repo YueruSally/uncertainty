@@ -1,0 +1,77 @@
+{
+  "protocol": "m-prescreen-replace-v1",
+  "status": "frozen-design-before-training; implementation and outcomes pending",
+  "component": "M",
+  "decision": "Choose one of up to 8 fully constructed, distinct Replace children; candidate 0 is the exact Balanced child",
+  "candidate_limit": 8,
+  "candidate_generation": "Same legal target and repair executor as the current Balanced branch; deterministic private seeds; no objective evaluation before selection",
+  "optimization": {
+    "evaluation_mode": "ccp",
+    "scenario_count": 100,
+    "confidence": 0.9,
+    "population": 20,
+    "objective_evaluations_per_search": 400,
+    "same_initial_population_scenarios_normalization_and_budget": true,
+    "inference_evaluates_only_selected_child": true
+  },
+  "prediction": {
+    "outputs": ["normalized_q90_cost", "normalized_q90_emission", "normalized_q90_makespan", "feasibility_probability"],
+    "parent_q90_objectives_at_mutation": "usually unavailable after crossover; never used as inference input",
+    "candidate_input": "constructed child and current population available before objective evaluation",
+    "selection": "maximize exact 3D HV calculation on predicted objectives and current feasible population using frozen normalization and reference; tie or unsupported state selects Balanced",
+    "guarantee": "Balanced inclusion is an abstention option, not a guaranteed HV floor"
+  },
+  "historical_data": "ordinary mutation logs do not contain complete evaluated child encodings; the 384-state five-operator audit is not an eight-child offline test set",
+  "collection": {
+    "train_instances": ["train-S0-002", "train-S0-005", "train-S0-006", "train-S0-008", "train-S0-009", "train-S0-011"],
+    "validation_instances": ["train-S0-014", "train-S0-016"],
+    "collection_seeds": [910001, 910002],
+    "states_per_trajectory_cap": 32,
+    "additional_objective_evaluations": "count every extra candidate evaluation separately from search budget",
+    "split_unit": "instance, with all candidates from a state kept together",
+    "preprocessing": "fit objective and feature scales on training instances only"
+  },
+  "offline_screen": {
+    "data": "new matched K8 panel; the old five-operator panel is exploratory only",
+    "primary_metric": "mean actual selected-child HV contribution minus exact Balanced-child contribution over all held-out states",
+    "also_report": ["per-instance net gain", "switch rate", "feasibility errors", "negative-gain tail", "true additional evaluation count"],
+    "pass": "mean gain positive, each validation instance positive, and at least one non-Balanced child chosen; do not adjust this rule on validation outcomes"
+  },
+  "development_search": {
+    "instances": ["train-S0-021", "train-S0-022"],
+    "algorithm_seeds": [910101, 910102, 910103, 910104, 910105, 910106, 910107, 910108, 910109, 910110],
+    "main_methods": ["BASE", "HEURISTIC_BALANCED", "TRANSFORMER_PPO"],
+    "ablation": "same Transformer without PPO",
+    "report": ["mean paired final HV", "per-instance paired final HV", "optimization seconds", "candidate-construction seconds", "model inference seconds", "training evaluation count"],
+    "checkpoint_selection": "validation instances only; no development or final-test selection"
+  },
+  "ppo": {
+    "admission": "one frozen supervised model first completes the paired development search",
+    "updates_cap": 4,
+    "reward": "selected evaluated child's actual normalized population HV contribution",
+    "gamma": 0,
+    "qualification": "immediate reward does not guarantee final population HV gain; compare with the same pretrained checkpoint"
+  },
+  "development_gate": "predeclared paired mean final-HV difference versus Balanced positive on each development instance; report all ten seeds and no retry with revised threshold",
+  "final_test": {
+    "generator": "generate_s0_final_test_instances.py",
+    "generator_sha256": "486fde710def1ada46f6112898496d9c801c101c9cf3c54c74978af6b490e996",
+    "source_catalog": "original instance catalog with test-side OD pool",
+    "instance_count": 10,
+    "master_seed": 98000000,
+    "ccp_seed_base": 98100000,
+    "oos_seed_base": 98200000,
+    "algorithm_seeds": [910201, 910202, 910203, 910204, 910205, 910206, 910207, 910208, 910209, 910210],
+    "independent_oos_scenarios_per_instance": 5000,
+    "rule": "Freeze one model and all baselines before opening final-test outputs; evaluate each method once on the same instances, seeds and scenarios"
+  },
+  "prior_profile_screen": {
+    "completed": true,
+    "cross_seed_selected_profile_mean_percent": 0.1918,
+    "screen_pass": false,
+    "fixed_emission_mean_percent": 1.5593676412551432,
+    "posthoc_best_per_instance_mean_percent": 1.8970246705472116,
+    "posthoc_extra_over_best_fixed_percentage_points": 0.3376570292920684,
+    "interpretation": "Fixed Emission is a promising rule; instance-specific best is posthoc and offers a small, unconfirmed additional gain. The completed screen remains failed."
+  }
+}
