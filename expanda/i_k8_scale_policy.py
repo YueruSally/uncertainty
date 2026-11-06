@@ -12,7 +12,9 @@ class FrozenIInitializationRanker:
     """Load the fixed three-seed size-200 ensemble once per search run."""
 
     def __init__(self, model_bundle, digest_function):
-        if (model_bundle.get("protocol") != "i-k8-scale-transformer-curve-v1"
+        if (model_bundle.get("protocol") not in (
+                    "i-k8-scale-transformer-curve-v1",
+                    "i-k8-scale-ppo-bundle-v1")
                 or model_bundle.get("selected_size") != 200):
             raise ValueError("incorrect I-K8 Transformer bundle")
         selected = model_bundle.get("models", {}).get("200")
@@ -32,7 +34,9 @@ class FrozenIInitializationRanker:
                 if "weights_only" not in str(exc):
                     raise
                 checkpoint = torch.load(filename, map_location="cpu")
-            if (checkpoint.get("protocol") != "i-k8-scale-transformer-v1"
+            if (checkpoint.get("protocol") not in (
+                        "i-k8-scale-transformer-v1",
+                        "i-k8-scale-ppo-v1")
                     or checkpoint.get("training_instances") != 200
                     or checkpoint.get("width") != 16):
                 raise ValueError("I-K8 checkpoint identity mismatch")
