@@ -17,6 +17,12 @@ from transformer_ppo.controller import PPOController
 
 
 METHODS = ("HEURISTIC_BALANCED", "TRANSFORMER_K8_SIZE200")
+PPO_METHOD_PREFIX = "TRANSFORMER_K8_PPO_U"
+
+
+def is_transformer_method(method):
+    return method == "TRANSFORMER_K8_SIZE200" or method.startswith(
+        PPO_METHOD_PREFIX)
 
 
 def choose_first_maximum(values):
@@ -54,7 +60,8 @@ class FrozenScaleRanker:
             if expected is None or digest_function(filename) != expected:
                 raise ValueError(f"ranker checkpoint digest mismatch: {filename}")
             checkpoint = torch.load(filename, map_location="cpu")
-            if (checkpoint.get("protocol") != "m-prescreen-scale-ranker-v1"
+            if (checkpoint.get("protocol") not in (
+                    "m-prescreen-scale-ranker-v1", "m-prescreen-scale-ppo-v1")
                     or checkpoint.get("training_instances") != 200
                     or checkpoint.get("width") != 16):
                 raise ValueError("ranker checkpoint identity mismatch")
@@ -82,9 +89,9 @@ class FrozenScaleRanker:
 
 class ScaleSearchPolicy(CollectBalancedPolicy):
     def __init__(self, instance, seed, method, predictor=None):
-        if method not in METHODS:
+        if method != "HEURISTIC_BALANCED" and not is_transformer_method(method):
             raise ValueError(f"unknown scale-search method: {method}")
-        if (method == "TRANSFORMER_K8_SIZE200") != (predictor is not None):
+        if is_transformer_method(method) != (predictor is not None):
             raise ValueError("predictor must be supplied only for Transformer")
         super().__init__(instance, seed)
         self.search_method = method
@@ -139,7 +146,7 @@ class ScaleSearchController(CollectK8Controller):
             list(self.archive.normalizer.transform(member.objectives))
             for member in self.current_population if member.feasible]
         inference_seconds = 0.0
-        if self.search_method == "TRANSFORMER_K8_SIZE200" \
+        if is_transformer_method(self.search_method) \
                 and len(self.proposals) == 8 and points:
             row = {
                 "generation": self.generation,
@@ -160,7 +167,7 @@ class ScaleSearchController(CollectK8Controller):
         else:
             # Balanced is also the mandatory fallback for a non-exact pool.
             selected = 0
-            if self.search_method == "TRANSFORMER_K8_SIZE200":
+            if is_transformer_method(self.search_method):
                 self.unsupported_events += 1
         self.selected_proposal = selected
         self.selection_counts[str(selected)] += 1

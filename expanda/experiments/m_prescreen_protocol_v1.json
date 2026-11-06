@@ -152,6 +152,27 @@
     "model_freeze": "checkpoint hashes, execution commit, training/validation instance lists, training seeds, loss and all CCP100/pop20/B400 configuration saved before audit",
     "ppo_blocked_until_review": true
   },
+  "scale_ppo_training_and_selection": {
+    "status": "review audit passed; frozen before PPO outcomes",
+    "training_data": "stored exact-K8 feedback from the 200 generated training instances only",
+    "validation_data": "20 generated validation instances receive no gradient and are used only for complete-search checkpoint selection",
+    "updates": 8,
+    "saved_updates": [0, 2, 4, 8],
+    "ppo_checkpoint_candidates": [2, 4, 8],
+    "supervised_reference_update": 0,
+    "states_per_update": 1024,
+    "optimization_epochs": 4,
+    "minibatch_size": 128,
+    "actor_learning_rate": 0.00001,
+    "critic_learning_rate": 0.0001,
+    "clip_ratio": 0.2,
+    "entropy_coefficient": 0.002,
+    "gamma": 0,
+    "reward": "stored exact selected-candidate one-step HV contribution minus exact Balanced-candidate contribution",
+    "checkpoint_selection": "run CCP100/pop20/B400 once on every one of the 20 validation instances for updates 0/2/4/8; among updates 2/4/8 choose maximum mean paired final-HV percent versus supervised update0, then more positive instances, then earlier update",
+    "freeze": "freeze both the original supervised size-200 Transformer and the selected nonzero-update Transformer-PPO for the formal experiment",
+    "final_test_opened": false
+  },
   "development_search": {
     "instances": ["train-S0-021", "train-S0-022"],
     "algorithm_seeds": [910101, 910102, 910103, 910104, 910105, 910106, 910107, 910108, 910109, 910110],
