@@ -6,8 +6,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from m_prescreen_surrogate import (CandidateObjectiveTransformer,
-    choose_by_predicted_hv, fit_scaler, loss_value, pack_rows)
+from m_prescreen_surrogate import (CandidateGainTransformer,
+    CandidateObjectiveTransformer, choose_by_gain, choose_by_predicted_hv,
+    fit_scaler, gain_loss, gain_targets, loss_value, pack_rows)
 from transformer_ppo.archive import ObjectiveNormalizer
 from train_m_prescreen_surrogate import fit_one
 
@@ -61,6 +62,18 @@ class PrescreenSurrogateTests(unittest.TestCase):
         selected = choose_by_predicted_hv(self.rows[:2], prediction,
                                            probability, (1.1,1.1,1.1))
         np.testing.assert_array_equal(selected, [0,3])
+
+    def test_gain_ranker_fixes_balanced_at_zero_and_keeps_ties(self):
+        packed=pack_rows(self.rows,self.scaler,self.normalizer)
+        model=CandidateGainTransformer(packed[0].shape[-1],
+            packed[1].shape[-1],packed[2].shape[-1])
+        prediction=model(*packed[:4])
+        self.assertTrue(torch.equal(prediction[:,0],torch.zeros(3)))
+        loss=gain_loss(prediction,gain_targets(self.rows,.01))
+        self.assertTrue(torch.isfinite(loss))
+        np.testing.assert_array_equal(choose_by_gain(
+            [[0.,0.,-.1,-.1,-.1,-.1,-.1,-.1],
+             [0.,.2,.1,0.,0.,0.,0.,0.]]),[0,1])
 
     def test_scaler_uses_only_rows_passed_to_it(self):
         first = fit_scaler(self.rows[:2], self.normalizer)

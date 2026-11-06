@@ -26,11 +26,13 @@ class K8RunnerTests(unittest.TestCase):
                 'scenario_digest': 'frozen-scenarios'}
             write_json(path/'RUN_COMPLETE.json', result)
             write_json(path/'configuration.json', config)
-            validate_run(path, 'train-S0-002', 910001, 'frozen')
+            validate_run(path, 'train-S0-002', 910001, 'frozen',
+                         'm-prescreen-k8-collection-v1')
             config['uncertainty']['scenario_count'] = 20
             write_json(path/'configuration.json', config)
             with self.assertRaisesRegex(ValueError, 'invalid completed'):
-                validate_run(path, 'train-S0-002', 910001, 'frozen')
+                validate_run(path, 'train-S0-002', 910001, 'frozen',
+                             'm-prescreen-k8-collection-v1')
 
 
 if __name__ == '__main__':

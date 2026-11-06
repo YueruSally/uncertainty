@@ -59,7 +59,9 @@ def worker(args):
         raise RuntimeError('K8 data pool has invalid or duplicate candidates')
     write_json(args.out/'FEEDBACK.json', {'rows': rows,
         'additional_objective_evaluations': extra})
-    result.update(protocol='m-prescreen-k8-collection-v1',
+    result.update(protocol=('m-prescreen-k8-collection-v1'
+        if args.design == 'surrogate-v1' else
+        'm-prescreen-k8-ranker-validation-v2'),
         algorithm_seed=args.seed, instance_id=instance['instance_id'],
         plan_sha256=args.plan_sha,
         feedback_sha256=digest(args.out/'FEEDBACK.json'),
@@ -69,11 +71,11 @@ def worker(args):
     log(f"complete {instance['instance_id']} seed={args.seed} states={len(rows)} extra={extra}")
 
 
-def validate_run(folder, instance, seed, plan_hash):
+def validate_run(folder, instance, seed, plan_hash, expected_protocol):
     result = read_json(folder/'RUN_COMPLETE.json')
     panel = read_json(folder/'FEEDBACK.json')
     config = read_json(folder/'configuration.json')
-    if (result.get('protocol') != 'm-prescreen-k8-collection-v1' or
+    if (result.get('protocol') != expected_protocol or
             result.get('instance_id') != instance or
             result.get('algorithm_seed') != seed or
             result.get('plan_sha256') != plan_hash or
@@ -99,8 +101,11 @@ def validate_run(folder, instance, seed, plan_hash):
 def run_task(task):
     root, name, seed, plan_sha, args = task
     folder = root/'runs'/name/f'seed_{seed}'
+    expected_protocol = ('m-prescreen-k8-collection-v1'
+        if args.design == 'surrogate-v1' else
+        'm-prescreen-k8-ranker-validation-v2')
     if (folder/'RUN_COMPLETE.json').exists():
-        return validate_run(folder, name, seed, plan_sha)
+        return validate_run(folder, name, seed, plan_sha, expected_protocol)
     if folder.exists():
         interrupted = root/'interrupted_runs'/name/f'seed_{seed}_{int(time.time_ns())}'
         interrupted.parent.mkdir(parents=True, exist_ok=True)
@@ -112,7 +117,8 @@ def run_task(task):
     command = [sys.executable, '-u', str(Path(__file__).resolve()), '--worker',
         '--instance', str(args.instances/(name+'.json')),
         '--data', str(args.data), '--normalization', str(args.normalization),
-        '--out', str(folder), '--seed', str(seed), '--plan-sha', plan_sha]
+        '--out', str(folder), '--seed', str(seed), '--plan-sha', plan_sha,
+        '--design', args.design]
     env = {**os.environ, 'OMP_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1',
            'OPENBLAS_NUM_THREADS': '1'}
     started = time.monotonic()
@@ -123,7 +129,7 @@ def run_task(task):
         raise RuntimeError(f'{name} seed={seed} failed exit={process.returncode}; '
                            f'see {root/"logs"/f"{name}_{seed}.log"}')
     log(f'{name} seed={seed} elapsed={time.monotonic()-started:.1f}s')
-    return validate_run(folder, name, seed, plan_sha)
+    return validate_run(folder, name, seed, plan_sha, expected_protocol)
 
 
 def execute(args):
@@ -145,8 +151,22 @@ def execute(args):
             final_catalog.get('optimisation_outcomes_used') is not False or
             final_catalog.get('model_selection_outcomes_used') is not False):
         raise ValueError('final-test catalog is not the precommitted unopened panel')
-    names = protocol['collection']['train_instances'] + protocol['collection']['validation_instances']
-    seeds = protocol['collection']['collection_seeds']
+    if args.design == 'surrogate-v1':
+        names = (protocol['collection']['train_instances'] +
+                 protocol['collection']['validation_instances'])
+        seeds = protocol['collection']['collection_seeds']
+        plan_protocol = 'm-prescreen-k8-collection-v1'
+        roles = {'train_instances': protocol['collection']['train_instances'],
+                 'validation_instances': protocol['collection']['validation_instances']}
+        next_action = 'train a frozen objective surrogate on the saved K8 panel; do not open final-test outcomes'
+    else:
+        design = protocol['ranker_v2']
+        names = design['validation_instances']
+        seeds = design['validation_collection_seeds']
+        plan_protocol = 'm-prescreen-k8-ranker-validation-v2'
+        roles = {'train_instances': [],
+                 'validation_instances': design['validation_instances']}
+        next_action = 'train the precommitted direct-gain ranker using original training data and this new validation panel'
     inputs = [PROTOCOL, args.data, args.normalization,
         args.final_test_catalog,
         SOURCE/'m_prescreen_k8.py', SOURCE/'m_candidate_information.py',
@@ -158,7 +178,7 @@ def execute(args):
         if instance['instance_id'] != name or instance['source_data_sha256'] != digest(args.data):
             raise ValueError(f'wrong instance or source workbook: {name}')
         inputs.append(path)
-    plan = {'protocol': 'm-prescreen-k8-collection-v1',
+    plan = {'protocol': plan_protocol, 'design': args.design,
         'instances': names, 'seeds': seeds, 'scenario_count': 100,
         'population': 20, 'search_budget': 400,
         'states_per_run_cap': MAX_STATES,
@@ -183,8 +203,7 @@ def execute(args):
                 'additional_objective_evaluations': sum(
                     r['training_feedback_evaluations'] for r in results)})
     summary = {'completed': True, 'run_count': len(results),
-        'train_instances': protocol['collection']['train_instances'],
-        'validation_instances': protocol['collection']['validation_instances'],
+        **roles,
         'state_count': sum(r['feedback_state_count'] for r in results),
         'additional_objective_evaluations': sum(
             r['training_feedback_evaluations'] for r in results),
@@ -198,7 +217,7 @@ def execute(args):
                 root/'runs'/name/f'seed_{seed}'/'FEEDBACK.json')['rows'])
             for n in range(2,9)},
         'new_ppo_updates': 0,
-        'next_action': 'train a frozen objective surrogate on the saved K8 panel; do not open final-test outcomes'}
+        'next_action': next_action}
     write_json(root/'QUICK_RESULT.json', summary)
     (root/'COLLECTION_COMPLETE').write_text(plan_sha+'\n')
     log(json.dumps(summary, indent=2))
@@ -213,6 +232,8 @@ def main():
     parser.add_argument('--final-test-catalog', type=Path)
     parser.add_argument('--out', type=Path)
     parser.add_argument('--workers', type=int, default=2)
+    parser.add_argument('--design', choices=('surrogate-v1', 'ranker-v2'),
+                        default='surrogate-v1')
     parser.add_argument('--worker', action='store_true')
     parser.add_argument('--instance', type=Path)
     parser.add_argument('--seed', type=int)

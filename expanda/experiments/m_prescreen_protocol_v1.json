@@ -52,6 +52,23 @@
     "selection": "mean ensemble prediction; feasibility probability at least 0.5; exact HV calculation on predicted objectives; first tie keeps Balanced",
     "model_selection": "minimum loss on the two predeclared validation instances; no threshold scan"
   },
+  "ranker_v2": {
+    "reason_frozen_before_new_validation": "absolute objective prediction selected Balanced in all 108 old validation states despite positive oracle gain; train direct candidate-minus-Balanced one-step HV gain",
+    "old_validation_role": "development diagnosis only; never used to admit ranker v2",
+    "training_instances": ["train-S0-002", "train-S0-005", "train-S0-006", "train-S0-008", "train-S0-009", "train-S0-011"],
+    "validation_instances": ["train-S0-017", "train-S0-018"],
+    "validation_collection_seeds": [912001, 912002],
+    "architecture": "same batch-token and candidate-set Transformer; one scalar gain per candidate; Balanced output fixed to zero",
+    "training_seeds": [913001, 913002, 913003],
+    "epochs": 80,
+    "checkpoint_epochs": [10, 20, 40, 60, 80],
+    "batch_size": 16,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "target": "actual candidate one-step population HV contribution minus exact Balanced candidate contribution, divided by training-only RMS",
+    "selection": "argmax ensemble-mean predicted gain; candidate zero is fixed at zero and wins ties; no threshold scan",
+    "pass": "mean actual selected-minus-Balanced gain positive on each of train-S0-017 and train-S0-018, with at least one non-Balanced selection on each instance"
+  },
   "development_search": {
     "instances": ["train-S0-021", "train-S0-022"],
     "algorithm_seeds": [910101, 910102, 910103, 910104, 910105, 910106, 910107, 910108, 910109, 910110],

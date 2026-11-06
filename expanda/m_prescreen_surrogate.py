@@ -38,6 +38,34 @@ class CandidateObjectiveTransformer(nn.Module):
         return self.objective_head(hidden), self.feasibility_head(hidden).squeeze(-1)
 
 
+class CandidateGainTransformer(nn.Module):
+    """Predict candidate gain relative to Balanced; Balanced is exactly zero."""
+    def __init__(self, batch_feature_count, candidate_feature_count,
+                 context_feature_count, width=32):
+        super().__init__()
+        self.batch_projection = nn.Linear(batch_feature_count, width)
+        batch_layer = nn.TransformerEncoderLayer(width, 4, width*2,
+            dropout=0., activation='gelu', batch_first=True, norm_first=False)
+        self.batch_encoder = nn.TransformerEncoder(batch_layer, 1)
+        self.candidate_projection = nn.Linear(
+            width+candidate_feature_count+context_feature_count+1, width)
+        candidate_layer = nn.TransformerEncoderLayer(width, 4, width*2,
+            dropout=0., activation='gelu', batch_first=True, norm_first=False)
+        self.candidate_encoder = nn.TransformerEncoder(candidate_layer, 1)
+        self.gain_head = nn.Linear(width, 1)
+
+    def forward(self, batch_tokens, candidate_features, context, balanced):
+        states, candidates, batches, features = batch_tokens.shape
+        hidden = self.batch_projection(batch_tokens.reshape(
+            states*candidates, batches, features))
+        hidden = self.batch_encoder(hidden).mean(1).reshape(states, candidates, -1)
+        repeated = context[:, None, :].expand(-1, candidates, -1)
+        hidden = self.candidate_projection(torch.cat(
+            (hidden, candidate_features, repeated, balanced), dim=-1))
+        raw = self.gain_head(self.candidate_encoder(hidden)).squeeze(-1)
+        return torch.cat((torch.zeros_like(raw[:, :1]), raw[:, 1:]), dim=1)
+
+
 def state_context(row):
     points = np.asarray(row['population_points'], dtype=np.float64)
     if points.ndim != 2 or points.shape[1] != 3 or not len(points):
@@ -96,6 +124,29 @@ def pack_rows(rows, scaler, normalizer):
                     label['objectives']))-mean)/std
     return tuple(torch.as_tensor(value) for value in (
         batch, candidate, context, balanced, objectives, feasible))
+
+
+def gain_targets(rows, scale):
+    values = np.asarray([[float(label['hv_contribution'])-
+        float(row['labels'][0]['hv_contribution']) for label in row['labels']]
+        for row in rows], dtype=np.float32)
+    return torch.as_tensor(values/float(scale))
+
+
+def gain_loss(predicted, target):
+    direct = nn.functional.smooth_l1_loss(predicted[:, 1:], target[:, 1:])
+    pairwise = predicted[:, :, None]-predicted[:, None, :]
+    true_pairwise = target[:, :, None]-target[:, None, :]
+    return direct + .25*nn.functional.smooth_l1_loss(pairwise, true_pairwise)
+
+
+def choose_by_gain(predicted_gain):
+    selected = []
+    for gains in np.asarray(predicted_gain):
+        best = float(np.max(gains))
+        selected.append(next(index for index, value in enumerate(gains)
+                             if value >= best-1e-12))
+    return np.asarray(selected, dtype=int)
 
 
 def loss_value(predicted, logits, target, feasible):
