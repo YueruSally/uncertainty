@@ -191,7 +191,8 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
                 ccp_confidence=0.90,
                 uncertainty_profile="legacy",
                 crossover_reward_mode="archive_hv",
-                inference_controller_factories=None):
+                inference_controller_factories=None,
+                method_override=None):
     if pop_size < 2 or pop_size % 2 or generations < 1:
         raise ValueError("pop_size must be even and >=2; generations must be positive")
     if evaluation_budget is not None and evaluation_budget < pop_size + 4:
@@ -240,6 +241,9 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
             or set(inference_controller_factories) - {"BASE", "M"}
             or any(item.training for item in episode_trainers)):
         raise ValueError("custom inference controllers support frozen BASE/M runs only")
+    if method_override is not None and not (
+            component == "BASE" and "BASE" in inference_controller_factories):
+        raise ValueError("method_override requires a custom frozen BASE controller")
     policy_candidate_representations = {
         item.component: getattr(
             getattr(item, "config", None), "candidate_representation", "legacy")
@@ -527,7 +531,7 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
     graph_observation = build_graph_observation(
         nodes, regions, hold, proc, trans_cost, arcs, batches, timetables,
         candidate_representation)
-    method = (
+    method = str(method_override) if method_override is not None else (
         "base-nsga2" if component == "BASE" else
         "rule-initialization" if component == "RULE-I" else
         "rule-crossover" if component == "RULE-C" else
@@ -695,10 +699,16 @@ def run_episode(data: Path, instance_path: Path, out: Path, trainer, normalizer,
         "I": InitializationPPOController,
     }
     if component == "BASE":
-        controller = inference_controller_factories.get("BASE", BaseBudgetController)(
+        base_factory = inference_controller_factories.get(
+            "BASE", BaseBudgetController)
+        base_options = {}
+        if "BASE" in inference_controller_factories:
+            base_options.update(
+                reliable_options=options, batches=batches, arcs=arcs)
+        controller = base_factory(
             out, instance["instance_id"], config["scenario_digest"], evaluation_budget,
             method=method, instance=instance, seeds=seeds,
-            normalizer=episode_normalizer)
+            normalizer=episode_normalizer, **base_options)
     elif component == "RULE-I":
         controller = InitializationRuleController(
             out, instance["instance_id"], config["scenario_digest"],

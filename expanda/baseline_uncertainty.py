@@ -3521,6 +3521,12 @@ def run_nsga2(
     population: List[Individual] = []
     seed_zero_excess = 0
     for i in range(pop_size):
+        initialization_from_base = (
+            getattr(ACTIVE_MUTATION_LOGGER, "initial_individual_from_base", None)
+            if ACTIVE_MUTATION_LOGGER is not None
+            and getattr(ACTIVE_MUTATION_LOGGER, "controls_initialization", False)
+            else None
+        )
         if i < n_feasibility_seeds:
             ind, capacity_excess = capacity_aware_initial_individual(
                 batches, reliable_options, arc_caps)
@@ -3537,11 +3543,15 @@ def run_nsga2(
         else:
             if (ACTIVE_MUTATION_LOGGER is not None
                     and getattr(
-                        ACTIVE_MUTATION_LOGGER, "controls_initialization", False)):
+                        ACTIVE_MUTATION_LOGGER, "controls_initialization", False)
+                    and initialization_from_base is None):
                 ind = ACTIVE_MUTATION_LOGGER.initial_individual(
                     batches, path_lib, max_paths=3)
             else:
                 ind = random_initial_individual(batches, path_lib)
+        if initialization_from_base is not None:
+            ind = initialization_from_base(
+                ind, batches, path_lib, max_paths=3, slot_index=i)
         repair_missing_allocations(ind, batches, path_lib)
         evaluate_individual(ind, batches, arcs, tt_dict,
                         waiting_cost_per_teu_h, wait_emis_g_per_teu_h, **eval_kwargs)
