@@ -124,6 +124,72 @@ class InitializationK8Tests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_collect_simple_saves_eight_labels_without_changing_logical_budget(self):
+        with tempfile.TemporaryDirectory() as folder:
+            controller, batch, paths = self.controller(folder, "collect_simple")
+            try:
+                random.seed(53)
+                individual = controller.initial_individual(
+                    [batch], {("A", "B"): paths}, max_paths=3)
+                candidates = controller._active["candidates"]
+                index_by_id = {id(candidate): index
+                               for index, candidate in enumerate(candidates)}
+
+                def evaluate(candidate, *_args, **_kwargs):
+                    index = index_by_id[id(candidate)]
+                    value = 1.0 + index
+                    candidate.objectives = (value, value, value)
+                    candidate.feasible = candidate.feasible_hard = True
+
+                controller.evaluate(evaluate, individual)
+                self.assertEqual(controller.evaluations, 1)
+                self.assertEqual(controller.candidate_objective_evaluations, 8)
+                self.assertEqual(controller.hidden_candidate_objective_evaluations, 7)
+                self.assertEqual(len(controller.feedback_rows), 1)
+                row = controller.feedback_rows[0]
+                self.assertEqual(len(row["labels"]), 8)
+                self.assertEqual(row["candidate_roles"][0], "base")
+                self.assertEqual(row["additional_objective_evaluations"], 7)
+            finally:
+                controller.close()
+
+    def test_transformer_selects_one_candidate_without_hidden_evaluations(self):
+        class Policy:
+            def select(self, row):
+                self.row = row
+                return 3
+
+        with tempfile.TemporaryDirectory() as folder:
+            batch, paths, options, arcs = fixture()
+            normalizer = ObjectiveNormalizer(
+                (0.0, 0.0, 0.0), (10.0, 10.0, 10.0))
+            policy = Policy()
+            controller = InitializationK8Controller(
+                Path(folder), "run", "scenario", 400,
+                selection_mode="transformer", selection_policy=policy,
+                reliable_options=options, batches=[batch], arcs=arcs,
+                pool_size=8, normalizer=normalizer,
+                method="I_K8_TRANSFORMER", instance={}, seeds={})
+            calls = []
+            try:
+                random.seed(59)
+                individual = controller.initial_individual(
+                    [batch], {("A", "B"): paths}, max_paths=3)
+
+                def evaluate(candidate, *_args, **_kwargs):
+                    calls.append(id(candidate))
+                    candidate.objectives = (2.0, 2.0, 2.0)
+                    candidate.feasible = candidate.feasible_hard = True
+
+                controller.evaluate(evaluate, individual)
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(controller.evaluations, 1)
+                self.assertEqual(controller.candidate_objective_evaluations, 1)
+                self.assertEqual(controller.hidden_candidate_objective_evaluations, 0)
+                self.assertEqual(len(policy.row["candidate_features"]), 8)
+            finally:
+                controller.close()
+
     def test_final_hv_summary_requires_oracle_to_beat_simple(self):
         rows = []
         instances = ["i-1", "i-2", "i-3"]

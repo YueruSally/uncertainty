@@ -16,9 +16,81 @@ from .initialization_rule import _directed_path_ranking
 from .v2_controls import private_seed
 
 
-METHODS = ("balanced", "simple", "oracle")
+METHODS = ("balanced", "simple", "oracle", "collect_simple", "transformer")
 PROFILE_CANDIDATES = (
     "base", "joint_balanced", "cost", "emission", "time_reliability")
+
+
+def individual_batch_tokens(individual, batches):
+    """Encode a complete individual without evaluating CCP objectives."""
+    total_quantity = max(sum(float(batch.quantity) for batch in batches), 1e-12)
+    tokens = []
+    for batch in batches:
+        key = (batch.origin, batch.destination, batch.batch_id)
+        allocations = list(individual.od_allocations.get(key, ()))
+        values = [
+            float(batch.quantity) / total_quantity,
+            float(batch.ET) / 1000.0,
+            float(batch.LT) / 1000.0,
+            sum(float(item.share) for item in allocations),
+            float(len(allocations)),
+        ]
+        aggregate = [0.0] * 10
+        for allocation in allocations:
+            path = allocation.path
+            share = float(allocation.share)
+            arcs = list(path.arcs)
+            count = max(1, len(arcs))
+            aggregate[0] += share * float(path.base_cost_per_teu)
+            aggregate[1] += share * float(path.base_emission_per_teu)
+            aggregate[2] += share * float(path.base_travel_time_h)
+            aggregate[3] += share * sum(float(arc.distance) for arc in arcs)
+            aggregate[4] += share * min(
+                (float(arc.capacity) for arc in arcs), default=0.0
+            ) / max(float(batch.quantity), 1e-12)
+            aggregate[5] += share * len(arcs)
+            aggregate[6] += share * sum(
+                arc.mode == "road" for arc in arcs) / count
+            aggregate[7] += share * sum(
+                arc.mode == "rail" for arc in arcs) / count
+            aggregate[8] += share * sum(
+                arc.mode == "water" for arc in arcs) / count
+            aggregate[9] += share * sum(
+                bool(arc.is_border_arc) for arc in arcs) / count
+        row = values + aggregate
+        if not all(math.isfinite(value) for value in row):
+            raise ValueError("non-finite I-K8 batch token")
+        tokens.append(row)
+    return tokens
+
+
+def candidate_proxy_features(proxy_rows):
+    """Fixed pre-evaluation features for the eight complete candidates."""
+    result = []
+    for index, row in enumerate(proxy_rows):
+        role = (
+            PROFILE_CANDIDATES[index]
+            if index < len(PROFILE_CANDIDATES)
+            else "private_random"
+        )
+        values = [
+            float(row[name]) for name in (
+                "cost", "emission", "time", "capacity_excess", "lateness",
+                "missing", "scaled_cost", "scaled_emission", "scaled_time",
+                "scaled_capacity_excess", "scaled_lateness", "score"
+            )
+        ]
+        values.extend([
+            index / 7.0,
+            float(role == "base"),
+            float(role == "joint_balanced"),
+            float(role in ("cost", "emission", "time_reliability")),
+            float(role == "private_random"),
+        ])
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("non-finite I-K8 candidate feature")
+        result.append(values)
+    return result
 
 
 def _path_signature(path):
@@ -105,12 +177,16 @@ class InitializationK8Controller(BaseBudgetController):
     controls_mutation = False
 
     def __init__(self, *args, selection_mode, reliable_options, batches, arcs,
-                 pool_size=8, **kwargs):
+                 pool_size=8, selection_policy=None, **kwargs):
         if selection_mode not in METHODS:
             raise ValueError(f"selection_mode must be one of {METHODS}")
         if int(pool_size) != 8:
             raise ValueError("the frozen initialization screen requires K=8")
         self.selection_mode = selection_mode
+        if (selection_mode == "transformer") != (selection_policy is not None):
+            raise ValueError(
+                "selection_policy must be supplied only for transformer mode")
+        self.selection_policy = selection_policy
         self.reliable_options = dict(reliable_options)
         self.batches_for_proxy = tuple(batches)
         self.arcs_for_proxy = tuple(arcs)
@@ -124,6 +200,7 @@ class InitializationK8Controller(BaseBudgetController):
         self.selection_counts = Counter()
         self.oracle_gain_total = 0.0
         self.proxy_selected_gain_total = 0.0
+        self.feedback_rows = []
         super().__init__(*args, log_names=(
             "initialization_k8_candidates", "generation_summary"), **kwargs)
 
@@ -243,6 +320,46 @@ class InitializationK8Controller(BaseBudgetController):
                 "selection_mode": self.selection_mode,
             })
 
+    def _state_row(self, active, proxy_rows):
+        return {
+            "instance": self.run_id,
+            "event_index": int(active["event_index"]),
+            "slot_fraction": int(active["event_index"]) / 19.0,
+            "population_points": [
+                list(self.normalizer.transform(member.objectives))
+                for member in self.current_population if member.feasible
+            ],
+            "candidate_features": candidate_proxy_features(proxy_rows),
+            "candidate_batch_tokens": [
+                individual_batch_tokens(candidate, self.batches_for_proxy)
+                for candidate in active["candidates"]
+            ],
+            "candidate_fingerprints": list(active["fingerprints"]),
+            "candidate_roles": [
+                (PROFILE_CANDIDATES[index]
+                 if index < len(PROFILE_CANDIDATES) else "private_random")
+                for index in range(len(active["candidates"]))
+            ],
+        }
+
+    def _evaluate_pool(self, function, candidates, *args, **kwargs):
+        started = time.perf_counter()
+        for candidate in candidates:
+            function(candidate, *args, **kwargs)
+        self.objective_evaluation_seconds += time.perf_counter() - started
+        self.candidate_objective_evaluations += len(candidates)
+        self.hidden_candidate_objective_evaluations += len(candidates) - 1
+
+    def _commit_pool_selection(self, ind, candidates, selected_index):
+        self._copy_individual(ind, candidates[selected_index])
+        if not self.has_budget(1):
+            raise RuntimeError("logical objective evaluation budget exhausted")
+        self.evaluations += 1
+        ind._learning_eval_key = (self.scenario_id, fingerprint(ind))
+        ind._learning_eval_id = self.evaluations
+        self._archive_pending.append(
+            (ind.objectives, bool(ind.feasible), fingerprint(ind)))
+
     def evaluate(self, function, ind, *args, **kwargs):
         active = self._active
         if active is None or id(ind) != active["placeholder_id"]:
@@ -255,7 +372,9 @@ class InitializationK8Controller(BaseBudgetController):
         candidates = active["candidates"]
         proxy_rows = deterministic_proxy_rows(
             candidates, self.batches_for_proxy, self.arcs_for_proxy)
+        state_row = self._state_row(active, proxy_rows)
         gains = None
+        pool_commit_pending = False
         if self.selection_mode == "balanced":
             selected_index = 1
             self._copy_individual(ind, candidates[selected_index])
@@ -272,31 +391,35 @@ class InitializationK8Controller(BaseBudgetController):
             base_hv = self._population_hv()
             selected_gain = self._population_hv(ind) - base_hv
             self.proxy_selected_gain_total += selected_gain
-        else:
-            started = time.perf_counter()
-            for candidate in candidates:
-                function(candidate, *args, **kwargs)
-            self.objective_evaluation_seconds += time.perf_counter() - started
-            self.candidate_objective_evaluations += len(candidates)
-            self.hidden_candidate_objective_evaluations += len(candidates) - 1
+        elif self.selection_mode in ("oracle", "collect_simple"):
+            self._evaluate_pool(function, candidates, *args, **kwargs)
             base_hv = self._population_hv()
             gains = [self._population_hv(candidate) - base_hv
                      for candidate in candidates]
-            selected_index = max(
-                range(len(candidates)),
-                key=lambda index: (
-                    gains[index], bool(candidates[index].feasible),
-                    index == 1, -proxy_rows[index]["score"], -index))
-            self.oracle_gain_total += gains[selected_index]
-            self._copy_individual(ind, candidates[selected_index])
-            if not self.has_budget(1):
-                raise RuntimeError("logical objective evaluation budget exhausted")
-            self.evaluations += 1
-            ind._learning_eval_key = (self.scenario_id, fingerprint(ind))
-            ind._learning_eval_id = self.evaluations
-            self._archive_pending.append(
-                (ind.objectives, bool(ind.feasible), fingerprint(ind)))
+            if self.selection_mode == "oracle":
+                selected_index = max(
+                    range(len(candidates)),
+                    key=lambda index: (
+                        gains[index], bool(candidates[index].feasible),
+                        index == 1, -proxy_rows[index]["score"], -index))
+                self.oracle_gain_total += gains[selected_index]
+            else:
+                selected_index = min(
+                    range(len(candidates)),
+                    key=lambda index: (proxy_rows[index]["score"],
+                                       index != 1, index))
+                self.proxy_selected_gain_total += gains[selected_index]
+            pool_commit_pending = True
             result = None
+        else:
+            started = time.perf_counter()
+            selected_index = int(self.selection_policy.select(state_row))
+            self.inference_seconds += time.perf_counter() - started
+            if not 0 <= selected_index < len(candidates):
+                raise ValueError("Transformer selected an invalid I-K8 candidate")
+            self._copy_individual(ind, candidates[selected_index])
+            result = super().evaluate(function, ind, *args, **kwargs)
+            self.candidate_objective_evaluations += 1
 
         self.total_attempts += 1
         self.total_effective += int(
@@ -306,6 +429,29 @@ class InitializationK8Controller(BaseBudgetController):
                 else "private_random")
         self.selection_counts[role] += 1
         self._record(active, proxy_rows, selected_index, gains)
+        if self.selection_mode == "collect_simple":
+            labels = []
+            for index, candidate in enumerate(candidates):
+                objectives = [float(value) for value in candidate.objectives]
+                if not all(math.isfinite(value) for value in objectives):
+                    objectives = None
+                labels.append({
+                    "index": index,
+                    "objectives": objectives,
+                    "feasible": bool(candidate.feasible),
+                    "hv_contribution": float(gains[index]),
+                    "fingerprint": active["fingerprints"][index],
+                    "source": state_row["candidate_roles"][index],
+                })
+            state_row.update({
+                "labels": labels,
+                "selected_index": int(selected_index),
+                "simple_selected_index": int(selected_index),
+                "additional_objective_evaluations": len(candidates) - 1,
+            })
+            self.feedback_rows.append(state_row)
+        if pool_commit_pending:
+            self._commit_pool_selection(ind, candidates, selected_index)
         self.current_population.append(ind)
         self._active = None
         return result
