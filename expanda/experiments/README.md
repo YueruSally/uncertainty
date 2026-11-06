@@ -22,3 +22,9 @@ bash experiments/run_m_terminal_feedback_v3.sh
 进度是 `STATUS.json`，训练是 `PRETRAINING.json` 和 `TRAINING_PROGRESS.json`，最终结果是 `RESULT_TABLE.csv`、`QUICK_RESULT.json`。一次调用限 45 分钟；同一命令续跑复用分支与已提交更新。通过仍需新实例和独立情景验证。
 
 思路参考 [Bertsekas、Tsitsiklis、Wu 的 rollout 方法](https://www.mit.edu/~dimitrib/rollout.pdf)：尝试一个动作后沿用基准策略，用后续完整结果评价该动作。本文的完整反馈用于训练近似网络；其泛化或性能改进没有该论文条件性理论保证。
+
+## 固定延长训练：40 → 400 步
+
+`extend_terminal_feedback_training.py --source <完整 v3 输出目录>` 只读取已保存的动作最终收益，不启动搜索或 PPO。数据、网络、学习率、损失和实例划分不变；先从原始权重重建 Adam 前 40 步，核对旧训练指标和选中权重完全复现，再训练至 400 步。新增选模点预先固定为 80、120、200、300、400，保留原模型作对照。运行上限 120 秒，输出到源目录下独立的 `training_extension_400_v1`。
+
+结果是两个验证实例上基于已存分支的条件期望收益，不是新的搜索结果。只有两个实例均为正才建议小预算实际搜索；不自动启动搜索或 PPO。重复使用这些验证实例属于开发过程，仍需全新实例确认。完成后直接打印结果表，重复执行复用已完成结果。
