@@ -53,6 +53,7 @@
     "model_selection": "minimum loss on the two predeclared validation instances; no threshold scan"
   },
   "ranker_v2": {
+    "status": "superseded before new validation execution by within-instance temporal screen",
     "reason_frozen_before_new_validation": "absolute objective prediction selected Balanced in all 108 old validation states despite positive oracle gain; train direct candidate-minus-Balanced one-step HV gain",
     "old_validation_role": "development diagnosis only; never used to admit ranker v2",
     "training_instances": ["train-S0-002", "train-S0-005", "train-S0-006", "train-S0-008", "train-S0-009", "train-S0-011"],
@@ -68,6 +69,18 @@
     "target": "actual candidate one-step population HV contribution minus exact Balanced candidate contribution, divided by training-only RMS",
     "selection": "argmax ensemble-mean predicted gain; candidate zero is fixed at zero and wins ties; no threshold scan",
     "pass": "mean actual selected-minus-Balanced gain positive on each of train-S0-017 and train-S0-018, with at least one non-Balanced selection on each instance"
+  },
+  "within_instance_screen": {
+    "status": "frozen before temporal test outcomes",
+    "source_instances": ["train-S0-014", "train-S0-016"],
+    "split": "within each trajectory, sort by generation/evaluation/event; first half trains and second half tests",
+    "preprocessing": "fit separately per instance using its early-half states only",
+    "architecture_and_optimizer": "unchanged direct-gain ranker v2",
+    "training_seeds": [914001, 914002, 914003],
+    "epochs": 80,
+    "checkpoint_selection": "fixed final epoch; no late-half model selection or threshold",
+    "new_objective_evaluations": 0,
+    "pass": "late-half mean selected-minus-Balanced gain positive on both instances, with at least one late-half switch on each"
   },
   "development_search": {
     "instances": ["train-S0-021", "train-S0-022"],

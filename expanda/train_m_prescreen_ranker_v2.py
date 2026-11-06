@@ -161,6 +161,8 @@ def score(rows,prediction):
 
 def execute(args):
     protocol=read_json(PROTOCOL); design=protocol['ranker_v2']
+    if str(design.get('status','')).startswith('superseded'):
+        raise ValueError('cross-instance ranker v2 was superseded; use the within-instance temporal screen')
     original_rows,original_hashes=load_rows(args.training_collection.resolve(),protocol)
     train_names=set(design['training_instances'])
     train_rows=[row for row in original_rows if row['instance'] in train_names]

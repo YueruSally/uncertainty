@@ -161,6 +161,8 @@ def execute(args):
         next_action = 'train a frozen objective surrogate on the saved K8 panel; do not open final-test outcomes'
     else:
         design = protocol['ranker_v2']
+        if str(design.get('status','')).startswith('superseded'):
+            raise ValueError('ranker-v2 cross-instance collection was superseded; run the within-instance temporal screen')
         names = design['validation_instances']
         seeds = design['validation_collection_seeds']
         plan_protocol = 'm-prescreen-k8-ranker-validation-v2'
