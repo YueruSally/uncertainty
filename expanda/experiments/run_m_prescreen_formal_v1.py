@@ -133,9 +133,13 @@ def hierarchical_interval(values, seed=98300000):
         raise ValueError("hierarchical bootstrap requires a balanced grid")
     matrix = np.stack(arrays); rng = np.random.default_rng(seed)
     instance_indices = rng.integers(0, len(names), (50_000, len(names)))
-    run_indices = rng.integers(0, next(iter(lengths)),
-                               (50_000, len(names)))
-    means = matrix[instance_indices, run_indices].mean(1)
+    run_count = next(iter(lengths))
+    run_indices = rng.integers(
+        0, run_count, (50_000, len(names), run_count))
+    sampled = matrix[instance_indices[:, :, None], run_indices]
+    # Preserve both levels of the balanced design: resample instances, then
+    # resample all paired algorithm-seed runs within each sampled instance.
+    means = sampled.mean((1, 2))
     return [float(np.quantile(means, .025)),
             float(np.quantile(means, .975))]
 

@@ -57,6 +57,12 @@ class PrescreenFormalTests(unittest.TestCase):
         self.assertEqual(hierarchical_interval(values, 9),
                          hierarchical_interval(values, 9))
 
+    def test_hierarchical_interval_resamples_all_runs_within_instance(self):
+        low, high = hierarchical_interval({"only": list(range(10))}, 11)
+        self.assertGreater(low, 1.0)
+        self.assertLess(high, 8.0)
+        self.assertLess(high-low, 5.0)
+
     def test_optimization_summary_compares_ppo_with_supervised(self):
         gains = {BASE: -2, BALANCED: 0, SUPERVISED: 3, PPO: 4}
         rows = [run(name, seed, method, gains[method])
