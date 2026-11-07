@@ -13,6 +13,14 @@ from transformer_ppo.crossover_k8 import CrossoverK8Controller
 from transformer_ppo.initialization_k8 import InitializationK8Controller
 
 
+def create_component_directories(out):
+    root = Path(out) / "components"
+    root.mkdir(parents=True, exist_ok=False)
+    for component in ("I", "C"):
+        (root / component).mkdir()
+    return root
+
+
 class CombinedFrozenK8Controller(ScaleSearchController):
     """Run frozen I, C, and M selectors at their separate NSGA-II stages.
 
@@ -30,8 +38,7 @@ class CombinedFrozenK8Controller(ScaleSearchController):
         batches = tuple(kwargs["batches"])
         normalizer = kwargs["archive"].normalizer
         super().__init__(*args, **kwargs)
-        root = Path(self.out) / "components"
-        root.mkdir(parents=True, exist_ok=False)
+        root = create_component_directories(self.out)
         i_policy = FrozenIResidualGate(read_json(i_bundle), digest)
         c_policy = FrozenCResidualGate(read_json(c_bundle), digest)
         common = {
@@ -157,4 +164,4 @@ class CombinedFrozenK8Controller(ScaleSearchController):
         }
 
 
-__all__ = ["CombinedFrozenK8Controller"]
+__all__ = ["CombinedFrozenK8Controller", "create_component_directories"]

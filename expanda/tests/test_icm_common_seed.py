@@ -1,6 +1,9 @@
 import copy
+from pathlib import Path
+import tempfile
 import unittest
 
+from combined_k8_controller import create_component_directories
 from experiments.run_icm_common_seed_v1 import (
     BASE, C_HEURISTIC, C_TRANSFORMER, ICM_TRANSFORMER, INSTANCES,
     I_HEURISTIC, I_TRANSFORMER, METHODS, M_HEURISTIC, M_TRANSFORMER,
@@ -8,6 +11,12 @@ from experiments.run_icm_common_seed_v1 import (
 
 
 class ICMCommonSeedTests(unittest.TestCase):
+    def test_combined_controller_creates_child_log_directories(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = create_component_directories(Path(folder))
+            self.assertTrue((root / "I").is_dir())
+            self.assertTrue((root / "C").is_dir())
+
     def test_size_200_ranker_is_independent_of_failed_curve_admission_flag(self):
         i_bundle = {"protocol": "i-k8-directed-residual-v1"}
         c_bundle = {"protocol": "c-k8-simple-residual-v1"}
