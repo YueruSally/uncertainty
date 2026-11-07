@@ -190,3 +190,14 @@ validation-frozen threshold.  Existing 200/20-instance labels and 150 prior
 development runs are reused; only 30 paired B400 residual searches are new.
 Admission requires positive hierarchical-bootstrap lower bounds versus both
 Base and C-K8 Simple.  PPO and the locked final test remain disabled.
+
+## Common-seed I/C/M component and combination screen
+
+`run_icm_common_seed_v1.sh` compares Base, each component heuristic, each
+frozen supervised Transformer in isolation, and one I+C+M method on the same
+three instances and ten new algorithm seeds.  Every run uses CCP100, pop20,
+B400, the same paired initial population and scenarios, and zero hidden
+candidate evaluations.  In the combined method C uses its frozen complete-pair
+view for selection but defers execution to M, so each selected offspring is
+mutated at most once.  This screen performs no training or PPO update and does
+not open the locked final test.

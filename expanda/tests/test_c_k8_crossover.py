@@ -154,6 +154,45 @@ class CK8Tests(unittest.TestCase):
             finally:
                 controller.close()
 
+    def test_deferred_transformer_selects_pre_mutation_pair_for_m_stage(self):
+        class Policy:
+            def select(self, row):
+                self.row = row
+                return 3
+
+        policy = Policy()
+        with tempfile.TemporaryDirectory() as folder:
+            batch, p1, p2, lookup, arcs = fixture()
+            normalizer = ObjectiveNormalizer(
+                (0.0, 0.0, 0.0), (100.0, 100.0, 100.0),
+                reference=(1.1, 1.1, 1.1))
+            controller = CrossoverK8Controller(
+                Path(folder), "run", "scenario", 400,
+                selection_mode="transformer", selection_policy=policy,
+                reliable_options={}, batches=[batch], arcs=arcs, pool_size=8,
+                defer_selected_pair_mutation=True, normalizer=normalizer,
+                method="ICM", instance={}, seeds={})
+            try:
+                for parent in (p1, p2):
+                    parent.objectives = (80.0, 80.0, 80.0)
+                    parent.feasible = parent.feasible_hard = True
+                controller.current_population = [p1, p2]
+                c1, c2 = controller.crossover_common_node(
+                    p1, p2, [batch], {}, lookup)
+                with mock.patch.object(base, "MUTATION_RATE", 0.0):
+                    result = controller.process_crossover_pair(
+                        lambda *_args, **_kwargs: self.fail("must not evaluate"),
+                        c1, c2, [batch], {}, {}, lookup, arcs, 0.0, 0.0,
+                        reliable_options={})
+                self.assertIsNone(result)
+                self.assertEqual(controller._active["selected_index"], 3)
+                self.assertTrue(
+                    controller._active["deferred_selected_pair_mutation"])
+                self.assertEqual(controller.evaluations, 0)
+                self.assertEqual(controller.candidate_objective_evaluations, 0)
+            finally:
+                controller.close()
+
     def test_summary_uses_base_as_primary_reference(self):
         rows = []
         for name in ("A", "B", "C"):

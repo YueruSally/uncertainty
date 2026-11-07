@@ -144,7 +144,8 @@ class CrossoverK8Controller(BaseBudgetController):
     controls_mutation = False
 
     def __init__(self, *args, selection_mode, reliable_options, batches, arcs,
-                 pool_size=8, selection_policy=None, **kwargs):
+                 pool_size=8, selection_policy=None,
+                 defer_selected_pair_mutation=False, **kwargs):
         if selection_mode not in METHODS:
             raise ValueError(f"selection_mode must be one of {METHODS}")
         if int(pool_size) != 8:
@@ -154,6 +155,11 @@ class CrossoverK8Controller(BaseBudgetController):
             raise ValueError(
                 "selection_policy must be supplied only for transformer mode")
         self.selection_policy = selection_policy
+        self.defer_selected_pair_mutation = bool(
+            defer_selected_pair_mutation)
+        if self.defer_selected_pair_mutation and selection_mode != "transformer":
+            raise ValueError(
+                "deferred C-K8 mutation requires transformer selection")
         self.reliable_options = dict(reliable_options)
         self.batches_for_proxy = tuple(batches)
         self.arcs_for_proxy = tuple(arcs)
@@ -305,9 +311,19 @@ class CrossoverK8Controller(BaseBudgetController):
             self._active = None
             return None
         pairs = active["pairs"]
+        pre_mutation_pairs = (
+            deepcopy(pairs) if self.defer_selected_pair_mutation else None)
+        random_state = (
+            random.getstate() if self.defer_selected_pair_mutation else None)
         mutations = [self._paired_base_mutation(
             pairs, position, batches, path_lib, tt_dict, arc_lookup,
             reliable_options) for position in (0, 1)]
+        if self.defer_selected_pair_mutation:
+            # The frozen C model was trained on complete crossover followed by
+            # paired Base mutation.  Construct that exact pre-evaluation view
+            # for inference, then restore the stream and execute the selected
+            # crossover pair through the separate M component exactly once.
+            random.setstate(random_state)
         for pair in pairs:
             for child in pair:
                 base.repair_missing_allocations(child, batches, path_lib)
@@ -331,6 +347,26 @@ class CrossoverK8Controller(BaseBudgetController):
                 self.inference_seconds += time.perf_counter() - started
                 if not 0 <= selected < len(pairs):
                     raise ValueError("Transformer selected invalid C-K8 pair")
+            if self.defer_selected_pair_mutation:
+                chosen = pre_mutation_pairs[selected]
+                for target, source in zip((child1, child2), chosen):
+                    target.__dict__.clear()
+                    target.__dict__.update(deepcopy(source.__dict__))
+                self.total_effective += int(selected != 0)
+                self.selection_counts[active["roles"][selected]] += 1
+                active.update({
+                    "selected_index": int(selected),
+                    "proxy_rows": proxy_rows,
+                    "gains": None,
+                    "mutations": mutations,
+                    "deferred_selected_pair_mutation": True,
+                    "fingerprints_after_mutation": [
+                        [fingerprint(child) for child in pair]
+                        for pair in pairs],
+                })
+                # Returning None resumes the ordinary NSGA-II mutation stage,
+                # where the combined controller invokes M on each child.
+                return None
             chosen = pairs[selected]
             for child in chosen:
                 self.evaluate(function, child, batches, arcs, tt_dict,
@@ -400,6 +436,10 @@ class CrossoverK8Controller(BaseBudgetController):
         if active is None:
             return
         selected = active["selected_index"]
+        if active.get("deferred_selected_pair_mutation"):
+            active["pairs"][selected] = (child1, child2)
+            active["fingerprints_after_mutation"][selected] = [
+                fingerprint(child1), fingerprint(child2)]
         for index, (pair, role, proxy) in enumerate(zip(
                 active["pairs"], active["roles"], active["proxy_rows"])):
             self.append("crossover_k8_candidates", {
