@@ -308,12 +308,25 @@ def frozen_plan(a):
     }
 
 
+def freeze_or_verify_plan(plan_path, plan):
+    if plan_path.exists():
+        previous = read_json(plan_path)
+        if previous != plan:
+            changed = sorted(key for key in previous.keys() | plan.keys()
+                             if previous.get(key) != plan.get(key))
+            raise ValueError(
+                f"frozen common-seed plan changed ({', '.join(changed)}). "
+                f"Preserve {plan_path.parent} and restart with a new --out "
+                "directory. Do not delete PLAN.json or mix runs from "
+                "different code/model versions.")
+        return
+    write_json(plan_path, plan)
+
+
 def execute(a):
     root = a.out.resolve(); plan = frozen_plan(a)
     plan_path = root / "PLAN.json"
-    if plan_path.exists() and read_json(plan_path) != plan:
-        raise ValueError("frozen common-seed plan changed")
-    write_json(plan_path, plan)
+    freeze_or_verify_plan(plan_path, plan)
     if (root / "PIPELINE_COMPLETE").exists():
         log("already complete; see QUICK_RESULT.json"); return
     plan_sha = digest(plan_path); (root / "logs").mkdir(exist_ok=True)
@@ -371,13 +384,18 @@ def execute(a):
                 f"HV={row['final_hypervolume']:.7g}")
         return row
 
-    runs = []
+    # Complete one combined run before launching independent jobs, so an
+    # integration failure cannot interrupt concurrently running comparisons.
+    smoke = (INSTANCES[0], SEEDS[0], ICM_TRANSFORMER)
+    log("first verify one complete I+C+M run; it counts toward the 240 runs")
+    runs = [task(*smoke)]
     method_order = (ICM_TRANSFORMER, *(
         method for method in METHODS if method != ICM_TRANSFORMER))
     with ThreadPoolExecutor(max_workers=a.workers) as pool:
         futures = [pool.submit(task, name, seed, method)
                    for name in INSTANCES for seed in SEEDS
-                   for method in method_order]
+                   for method in method_order
+                   if (name, seed, method) != smoke]
         try:
             for future in as_completed(futures):
                 runs.append(future.result())

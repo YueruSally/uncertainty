@@ -196,8 +196,20 @@ Base and C-K8 Simple.  PPO and the locked final test remain disabled.
 `run_icm_common_seed_v1.sh` compares Base, each component heuristic, each
 frozen supervised Transformer in isolation, and one I+C+M method on the same
 three instances and ten new algorithm seeds.  Every run uses CCP100, pop20,
-B400, the same paired initial population and scenarios, and zero hidden
-candidate evaluations.  In the combined method C uses its frozen complete-pair
+B400, paired algorithm seeds and scenarios, and zero hidden candidate
+evaluations.  Methods that change I can change the realized initial population.
+In the combined method C uses its frozen complete-pair
 view for selection but defers execution to M, so each selected offspring is
 mutated at most once.  This screen performs no training or PPO update and does
 not open the locked final test.
+
+The first combined search completes before the remaining searches are launched;
+it is included in the 240-run budget.  The test wrapper also exercises a full
+CCP100/B400 combined-controller lifecycle on a synthetic graph with policy
+stand-ins and checks exactly 400 objective evaluations and no hidden evaluations.
+
+Resume only with identical frozen inputs.  A code or model hash change requires
+a new `OUT_ROOT`; retain the old directory and its `PLAN.json`, logs and runs.
+For recovery from the initial bundle/directory fixes, use
+`ccp_icm_common_seed_v1_3inst_10seed_b400_r2`.  Never remove or rewrite the old
+plan to make changed code reuse results from a different experiment identity.
