@@ -178,3 +178,15 @@ bounded 3-instance x 10-seed B400 comparison.  The new gate falls back to
 Directed unless an ensemble lower-confidence score clears its frozen
 validation threshold.  It neither changes crossover C nor opens the final
 test, and it never starts PPO automatically.
+
+## Simple-default C-K8 residual experiment
+
+`run_c_k8_residual_v1.sh` applies the same residual admission design to
+crossover without overwriting the frozen pre-residual implementation.  For
+each state it reproduces the deterministic C-K8 Simple decision from
+pre-evaluation proxy features, moves that candidate to residual index zero,
+and switches only when the three-model lower-confidence score clears the
+validation-frozen threshold.  Existing 200/20-instance labels and 150 prior
+development runs are reused; only 30 paired B400 residual searches are new.
+Admission requires positive hierarchical-bootstrap lower bounds versus both
+Base and C-K8 Simple.  PPO and the locked final test remain disabled.
