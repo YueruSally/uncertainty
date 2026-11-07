@@ -259,12 +259,19 @@ def summarize(runs):
     }
 
 
+def bundles_compatible(i_bundle, c_bundle, m_bundle):
+    return (i_bundle.get("protocol") == "i-k8-directed-residual-v1"
+            and c_bundle.get("protocol") == "c-k8-simple-residual-v1"
+            and m_bundle.get("protocol")
+            == "m-prescreen-scale-learning-curve-v1"
+            and len(m_bundle.get("models", {}).get("200", {}).get(
+                "checkpoints", ())) == 3)
+
+
 def frozen_plan(a):
     i_bundle = read_json(a.i_bundle); c_bundle = read_json(a.c_bundle)
     m_bundle = read_json(a.m_bundle)
-    if (i_bundle.get("protocol") != "i-k8-directed-residual-v1"
-            or c_bundle.get("protocol") != "c-k8-simple-residual-v1"
-            or m_bundle.get("selected_size") != 200):
+    if not bundles_compatible(i_bundle, c_bundle, m_bundle):
         raise ValueError("common-seed frozen bundles are incompatible")
     catalog = read_json(a.search_instances / "catalog.json")
     identity = dict(catalog); claimed = identity.pop("catalog_digest", None)

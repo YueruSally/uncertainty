@@ -4,10 +4,22 @@ import unittest
 from experiments.run_icm_common_seed_v1 import (
     BASE, C_HEURISTIC, C_TRANSFORMER, ICM_TRANSFORMER, INSTANCES,
     I_HEURISTIC, I_TRANSFORMER, METHODS, M_HEURISTIC, M_TRANSFORMER,
-    SEEDS, summarize)
+    SEEDS, bundles_compatible, summarize)
 
 
 class ICMCommonSeedTests(unittest.TestCase):
+    def test_size_200_ranker_is_independent_of_failed_curve_admission_flag(self):
+        i_bundle = {"protocol": "i-k8-directed-residual-v1"}
+        c_bundle = {"protocol": "c-k8-simple-residual-v1"}
+        m_bundle = {
+            "protocol": "m-prescreen-scale-learning-curve-v1",
+            "selected_size": None,
+            "models": {"200": {"checkpoints": ["one", "two", "three"]}},
+        }
+        self.assertTrue(bundles_compatible(i_bundle, c_bundle, m_bundle))
+        m_bundle["models"]["200"]["checkpoints"].pop()
+        self.assertFalse(bundles_compatible(i_bundle, c_bundle, m_bundle))
+
     def test_summary_compares_all_components_on_one_grid(self):
         factors = {
             BASE: 1.0, I_HEURISTIC: 1.10, I_TRANSFORMER: 1.12,
