@@ -167,3 +167,14 @@ Admission requires a positive lower hierarchical-bootstrap bound versus Base
 and positive mean gains versus both Base and K8 Simple on at least two of the
 three development instances.  The learning curve is diagnostic only; final
 test instances remain closed.
+
+## Directed-default I-K8 residual experiment
+
+`run_i_k8_residual_v1.sh` preserves the frozen pre-change I/C baseline at
+tag `ccp-ic-k8-before-residual-v1`.  It reuses the exact 200/20-instance
+I-K8 collection, trains a three-seed residual ranker relative to
+`I_DIRECTED_BALANCED` without new objective evaluations, and then runs one
+bounded 3-instance x 10-seed B400 comparison.  The new gate falls back to
+Directed unless an ensemble lower-confidence score clears its frozen
+validation threshold.  It neither changes crossover C nor opens the final
+test, and it never starts PPO automatically.
