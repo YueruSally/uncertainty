@@ -35,6 +35,53 @@ def fixture():
 
 
 class CK8Tests(unittest.TestCase):
+    def test_boost_selects_before_evaluation_and_uses_boost_mutation_rate(self):
+        for mode in ("simple", "transformer"):
+            for boost_rate in (0.0, 1.0):
+                with self.subTest(mode=mode, boost_rate=boost_rate), \
+                        tempfile.TemporaryDirectory() as folder:
+                    policy = mock.Mock()
+                    policy.select.return_value = 3
+                    controller, batch, p1, p2, lookup, arcs = self.controller(
+                        folder, mode, policy if mode == "transformer" else None)
+                    controller.phase, controller.generation = "boost", 0
+                    path_lib = {("A", "D"): [
+                        parent.od_allocations[("A", "D", 7)][0].path
+                        for parent in (p1, p2)]}
+                    evaluated = []
+
+                    def evaluate(child, *_args, **_kwargs):
+                        if mode == "transformer":
+                            self.assertEqual(policy.select.call_count, 1)
+                        evaluated.append(child)
+                        child.objectives = (10., 10., 10.)
+                        child.feasible = child.feasible_hard = True
+
+                    try:
+                        with mock.patch.object(base, "ACTIVE_MUTATION_LOGGER", controller), \
+                                mock.patch.object(base, "capacity_aware_initial_individual",
+                                                  return_value=(None, 0.)), \
+                                mock.patch.object(base, "crossover_hybrid",
+                                                  side_effect=controller.crossover_common_node), \
+                                mock.patch.object(base, "_evaluate_individual_impl",
+                                                  side_effect=evaluate), \
+                                mock.patch.object(base, "MUTATION_RATE", 1. - boost_rate), \
+                                mock.patch.object(controller, "_mutate_without_evaluation",
+                                                  return_value=("replace", True)) as mutate:
+                            base.feasibility_boost(
+                                [p1, p2], [batch], path_lib, {}, lookup,
+                                arcs, 0., 0., {}, {}, {}, boost_rounds=2,
+                                boost_mutation_rate=boost_rate)
+                        self.assertEqual(len(evaluated), 2)
+                        self.assertEqual(controller.evaluations, 2)
+                        self.assertEqual(controller.candidate_objective_evaluations, 2)
+                        self.assertEqual(controller.hidden_candidate_objective_evaluations, 0)
+                        self.assertEqual(mutate.call_count, 16 if boost_rate else 0)
+                        self.assertIsNone(controller._active)
+                        controller.finish_episode()
+                    finally:
+                        controller.close()
+
     def controller(self, folder, mode, policy=None):
         batch, parent1, parent2, lookup, arcs = fixture()
         normalizer = ObjectiveNormalizer(

@@ -3123,6 +3123,28 @@ def feasibility_boost(
             p1, p2 = random.sample(parents, 2)
             c1, c2 = crossover_hybrid(p1, p2, batches, tt_dict, arc_lookup)
             clear_inherited_evaluation_cache(c1, c2)
+            # K8 crossover must select its candidate pair before mutation and
+            # evaluation in boost too.  Its paired preview must use the boost
+            # coin, not the ordinary offspring mutation probability.
+            pair_processor = (
+                getattr(ACTIVE_MUTATION_LOGGER, "process_crossover_pair", None)
+                if ACTIVE_MUTATION_LOGGER is not None else None)
+            if pair_processor is not None:
+                for child in (c1, c2):
+                    repair_missing_allocations(child, batches, path_lib)
+                processed = pair_processor(
+                    _evaluate_individual_impl, c1, c2, batches, path_lib,
+                    tt_dict, arc_lookup, arcs, waiting_cost_per_teu_h,
+                    wait_emis_g_per_teu_h, reliable_options=reliable_options,
+                    paired_mutation_rate=boost_mutation_rate, **eval_kwargs)
+                if processed is not None:
+                    c1, c2 = processed
+                    if hasattr(ACTIVE_MUTATION_LOGGER, "settle_crossover"):
+                        ACTIVE_MUTATION_LOGGER.settle_crossover(c1, c2)
+                    new_inds.extend([c1, c2])
+                    if len(new_inds) >= boost_rounds:
+                        break
+                    continue
             for child in (c1, c2):
                 repair_missing_allocations(child, batches, path_lib)
                 if random.random() < boost_mutation_rate:

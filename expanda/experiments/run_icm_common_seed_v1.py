@@ -283,6 +283,7 @@ def frozen_plan(a):
     inputs = [a.data.resolve(), a.normalization.resolve(),
               a.i_bundle.resolve(), a.c_bundle.resolve(), a.m_bundle.resolve(),
               a.search_instances / "catalog.json", Path(__file__).resolve(),
+              SOURCE / "baseline_uncertainty.py",
               SOURCE / "combined_k8_controller.py", SOURCE / "i_k8_residual.py",
               SOURCE / "c_k8_residual.py", SOURCE / "m_prescreen_scale_policy.py",
               SOURCE / "transformer_ppo/initialization_k8.py",

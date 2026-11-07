@@ -213,3 +213,13 @@ a new `OUT_ROOT`; retain the old directory and its `PLAN.json`, logs and runs.
 For recovery from the initial bundle/directory fixes, use
 `ccp_icm_common_seed_v1_3inst_10seed_b400_r2`.  Never remove or rewrite the old
 plan to make changed code reuse results from a different experiment identity.
+
+The feasibility-boost path also calls the K8 pair selector before evaluation,
+with `FEASIBLE_BOOST_MUTATION_RATE` for its paired mutation preview.  A C-only
+controller returns an evaluated pair; the combined controller defers the
+selected pair to the ordinary boost mutation/evaluation loop.  Low-capacity
+CCP100 integration tests exercise both paths through all 400 evaluations.
+After this boost-routing fix, start in
+`ccp_icm_common_seed_v1_3inst_10seed_b400_r3`; the failed r2 run has already
+spent objective evaluations and its logs must be retained.  The plan now also
+hashes `baseline_uncertainty.py`, which owns the boost execution loop.

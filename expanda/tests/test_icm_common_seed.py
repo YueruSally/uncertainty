@@ -17,6 +17,7 @@ from m_operator_offline import write_json
 from tests.test_c_k8_crossover import fixture
 from transformer_ppo.archive import (
     ObjectiveNormalizer, RewardArchive, RewardConfig)
+from transformer_ppo.crossover_k8 import CrossoverK8Controller
 from experiments.run_icm_common_seed_v1 import (
     BASE, C_HEURISTIC, C_TRANSFORMER, ICM_TRANSFORMER, INSTANCES,
     I_HEURISTIC, I_TRANSFORMER, METHODS, M_HEURISTIC, M_TRANSFORMER,
@@ -45,6 +46,18 @@ class ICMCommonSeedTests(unittest.TestCase):
             self.assertTrue(fresh_plan.is_file())
 
     def test_combined_controller_completes_real_nsga2_lifecycle(self):
+        self._exercise_combined_controller(low_capacity=False)
+
+    def test_low_feasibility_boost_completes_combined_lifecycle(self):
+        self._exercise_combined_controller(low_capacity=True)
+
+    def test_low_feasibility_boost_completes_c_only_lifecycle(self):
+        for selection_mode in ("simple", "transformer"):
+            with self.subTest(selection_mode=selection_mode):
+                self._exercise_combined_controller(
+                    low_capacity=True, c_only=selection_mode)
+
+    def _exercise_combined_controller(self, low_capacity, c_only=None):
         # Only replace the unavailable server model loaders.  Exercise real
         # controller construction, CCP100 evaluation, I/C/M hooks and teardown.
         batch, p1, p2, _, arcs = fixture()
@@ -52,6 +65,8 @@ class ICMCommonSeedTests(unittest.TestCase):
                  for parent in (p1, p2)]
         for arc in arcs:
             arc.mode = "road"
+            if low_capacity:
+                arc.capacity = 1.0
         for path in paths:
             path.modes = ["road"] * len(path.arcs)
         options = {("A", "D", 7): [
@@ -89,18 +104,36 @@ class ICMCommonSeedTests(unittest.TestCase):
                                return_value=InitializationPolicy()), \
                     mock.patch("combined_k8_controller.FrozenCResidualGate",
                                return_value=CrossoverPolicy()):
-                controller = CombinedFrozenK8Controller(
-                    Path(folder), "fixture", "ccp100", 400,
-                    trainer=policy, archive=RewardArchive(normalizer),
-                    reward_config=RewardConfig(), batches=[batch],
-                    generations=1000, pop_size=20, graph_observation={},
-                    i_bundle="synthetic-i", c_bundle="synthetic-c",
-                    reliable_options=options, arcs=arcs,
-                    method=ICM_TRANSFORMER, instance={"instance_id": "fixture"},
-                    seeds={"algorithm": 930001})
+                common = dict(batches=[batch], reliable_options=options, arcs=arcs,
+                              instance={"instance_id": "fixture"},
+                              seeds={"algorithm": 930001})
+                if c_only:
+                    controller = CrossoverK8Controller(
+                        Path(folder), "fixture", "ccp100", 400,
+                        normalizer=normalizer, method="C_ONLY",
+                        selection_mode=c_only, selection_policy=(
+                            CrossoverPolicy() if c_only == "transformer" else None),
+                        **common)
+                    cross_controller = controller
+                else:
+                    controller = CombinedFrozenK8Controller(
+                        Path(folder), "fixture", "ccp100", 400,
+                        trainer=policy, archive=RewardArchive(normalizer),
+                        reward_config=RewardConfig(), generations=1000,
+                        pop_size=20, graph_observation={},
+                        i_bundle="synthetic-i", c_bundle="synthetic-c",
+                        method=ICM_TRANSFORMER, **common)
+                    cross_controller = controller.c_controller
                 base.ACTIVE_MUTATION_LOGGER = controller
                 try:
                     with contextlib.redirect_stdout(io.StringIO()), \
+                            mock.patch.object(base, "mutate_fixed",
+                                              wraps=base.mutate_fixed) as mutate, \
+                            mock.patch.object(cross_controller,
+                                              "process_crossover_pair",
+                                              wraps=cross_controller.process_crossover_pair) as process_pair, \
+                            mock.patch.object(base, "feasibility_boost",
+                                              wraps=base.feasibility_boost) as boost, \
                             mock.patch.object(base, "_evaluate_individual_impl",
                                               wraps=base._evaluate_individual_impl) as evaluate:
                         base.run_nsga2(
@@ -111,14 +144,27 @@ class ICMCommonSeedTests(unittest.TestCase):
                     report = controller.summary()
                     self.assertEqual(controller.evaluations, 400)
                     self.assertEqual(evaluate.call_count, 400)
-                    self.assertEqual(controller.i_controller.pool_events, 20)
-                    self.assertGreater(controller.c_controller.eligible_pool_events, 0)
-                    self.assertGreater(controller.pool_events, 0)
-                    self.assertEqual(report["combined_hidden_candidate_objective_evaluations"], 0)
+                    if low_capacity:
+                        self.assertGreater(boost.call_count, 0)
+                        self.assertTrue(any(
+                            call.kwargs.get("paired_mutation_rate")
+                            == base.FEASIBLE_BOOST_MUTATION_RATE
+                            for call in process_pair.call_args_list))
+                    else:
+                        self.assertEqual(boost.call_count, 0)
+                        self.assertGreater(controller.pool_events, 0)
+                    self.assertGreater(cross_controller.eligible_pool_events, 0)
+                    if c_only:
+                        self.assertEqual(report["crossover_k8_hidden_candidate_objective_evaluations"], 0)
+                    else:
+                        self.assertEqual(controller.i_controller.pool_events, 20)
+                        self.assertGreater(mutate.call_count, 0)
+                        self.assertEqual(report["combined_hidden_candidate_objective_evaluations"], 0)
                 finally:
                     controller.close()
-                    self.assertTrue(all(handle.closed for child in (
-                        controller, controller.i_controller, controller.c_controller)
+                    controllers = ((controller,) if c_only else (
+                        controller, controller.i_controller, controller.c_controller))
+                    self.assertTrue(all(handle.closed for child in controllers
                         for handle in child.files.values()))
         finally:
             for name, value in saved.items():

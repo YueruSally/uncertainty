@@ -240,9 +240,12 @@ class CrossoverK8Controller(BaseBudgetController):
 
     def _paired_base_mutation(self, candidate_pairs, position, batches,
                               path_lib, tt_dict, arc_lookup,
-                              reliable_options):
+                              reliable_options, mutation_rate=None):
         # The outer coin and candidate-zero stream exactly reproduce Base.
-        if random.random() >= base.MUTATION_RATE:
+        rate = base.MUTATION_RATE if mutation_rate is None else float(mutation_rate)
+        if not 0.0 <= rate <= 1.0:
+            raise ValueError("paired crossover mutation rate must be in [0, 1]")
+        if random.random() >= rate:
             return {"applied": False, "operator": None, "success": False}
         state = random.getstate(); reference_post = None; reference = None
         for index, pair in enumerate(candidate_pairs):
@@ -300,7 +303,7 @@ class CrossoverK8Controller(BaseBudgetController):
     def process_crossover_pair(
             self, function, child1, child2, batches, path_lib, tt_dict,
             arc_lookup, arcs, waiting_cost, waiting_emission,
-            reliable_options=None, **kwargs):
+            reliable_options=None, paired_mutation_rate=None, **kwargs):
         active = self._active
         if active is None:
             return None
@@ -317,7 +320,8 @@ class CrossoverK8Controller(BaseBudgetController):
             random.getstate() if self.defer_selected_pair_mutation else None)
         mutations = [self._paired_base_mutation(
             pairs, position, batches, path_lib, tt_dict, arc_lookup,
-            reliable_options) for position in (0, 1)]
+            reliable_options, mutation_rate=paired_mutation_rate)
+            for position in (0, 1)]
         if self.defer_selected_pair_mutation:
             # The frozen C model was trained on complete crossover followed by
             # paired Base mutation.  Construct that exact pre-evaluation view
