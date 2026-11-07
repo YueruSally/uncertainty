@@ -365,9 +365,12 @@ def execute(a):
         return row
 
     runs = []
+    method_order = (ICM_TRANSFORMER, *(
+        method for method in METHODS if method != ICM_TRANSFORMER))
     with ThreadPoolExecutor(max_workers=a.workers) as pool:
         futures = [pool.submit(task, name, seed, method)
-                   for name in INSTANCES for seed in SEEDS for method in METHODS]
+                   for name in INSTANCES for seed in SEEDS
+                   for method in method_order]
         try:
             for future in as_completed(futures):
                 runs.append(future.result())
