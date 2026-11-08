@@ -1,0 +1,7 @@
+formal_runs/
+runtime_inputs/
+assets/formal_instances/
+assets/source_catalog.json
+*.log
+__pycache__/
+*.pyc
