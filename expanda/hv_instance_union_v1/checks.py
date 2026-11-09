@@ -46,8 +46,37 @@ class HVChecks(unittest.TestCase):
             self.assertEqual(result['new_objective_evaluations'],0)
             b=r.read_json(out/'INSTANCE_BOUNDS.json')['instances']['i0']
             self.assertEqual(b['front_point_count_with_duplicates'],70)
+            # Add two combined arms without copying/replacing the original 700.
+            extension=Path(temp)/'extension';newout=Path(temp)/'nine-output'
+            combined=('I_C_M_K8_HEURISTIC','I_C_M_K8_TRANSFORMER')
+            cfg={**plan['config'],'protocol':'frozen-old-components-b400-icm-extension-v1',
+                 'methods':[*r.METHODS[:-1],*combined]}
+            nine={'config':cfg,'instances':plan['instances'],'runs':900,'new_runs':200,
+                  'source_root':str(source),'source_plan_sha256':plan['sha256'],
+                  'source_plan_file_sha256':r.digest(source/'PLAN.json'),
+                  'original_result_files':{str(last):r.digest(last)}}
+            nine['sha256']=r.hashlib.sha256(r.json.dumps(nine,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+            r.write_json(extension/'PLAN.json',nine)
+            for name in plan['instances']:
+                for seed in range(10):
+                    for index,method in enumerate(combined,7):
+                        folder=extension/'runs'/name/f'seed_{seed}'/method;point=[1+.02*seed+.03*index]*3
+                        r.write_json(folder/'RUN_COMPLETE.json',dict(completed=True,instance=name,algorithm_seed=seed,
+                            strategy=method,plan_sha256=nine['sha256'],real_objective_evaluation_count=400,
+                            scenario_digest=name,final_hypervolume=r.exact_hv_3d([[v/10 for v in point]],r.REFERENCE),optimisation_seconds=1))
+                        r.write_json(folder/'configuration.json',{'scenario_digest':name,'normalization':{
+                            'minimum':[0]*3,'maximum':[10]*3,'objective_divisor':[1]*3,'reference':list(r.REFERENCE)}})
+                        r.write_json(folder/'final_feasible_nondominated.json',[{'training_feasible':True,'source_run':name,
+                            'optimisation_objectives':dict(zip(r.OBJECTIVES,point))}])
+            with contextlib.redirect_stdout(io.StringIO()):result9=r.execute(extension,newout)
+            self.assertEqual(result9['runs'],900);self.assertEqual(result9['method_count'],9)
+            self.assertEqual(result9['methods'][combined[1]]['vs_rule']['reference'],combined[0])
+            b9=r.read_json(newout/'INSTANCE_BOUNDS.json')['instances']['i0']
+            self.assertEqual(b9['front_point_count_with_duplicates'],90)
+            self.assertGreater(b9['maximum'][0],b['maximum'][0])
             last.unlink()
             with self.assertRaises(FileNotFoundError):r.load_runs(source)
+            with self.assertRaises(FileNotFoundError):r.load_runs(extension)
 
     def test_bounds_use_union_not_global_front(self):
         # Each run has its own valid front. The poorer run still defines maxima.

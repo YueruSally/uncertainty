@@ -18,12 +18,29 @@ from transformer_ppo.archive import exact_hv_3d, nondominated
 METHODS=('BASE','I_DIRECTED_BALANCED','I_K8_RESIDUAL','C_K8_SIMPLE',
          'C_K8_RESIDUAL','M_BALANCED','M_K8_TRANSFORMER','I_C_M_K8_TRANSFORMER')
 RULES={'I_K8_RESIDUAL':'I_DIRECTED_BALANCED','C_K8_RESIDUAL':'C_K8_SIMPLE',
-       'M_K8_TRANSFORMER':'M_BALANCED'}
+       'M_K8_TRANSFORMER':'M_BALANCED','I_C_M_K8_TRANSFORMER':'I_C_M_K8_HEURISTIC'}
 OBJECTIVES=('cost','emission','makespan')
 REFERENCE=(1.1,1.1,1.1)
 
 
 def experiment_design(plan,plan_path):
+    if plan.get('config',{}).get('protocol')=='frozen-old-components-b400-icm-extension-v1':
+        config=plan['config'];methods=(*METHODS[:-1],'I_C_M_K8_HEURISTIC','I_C_M_K8_TRANSFORMER')
+        identity=dict(plan);claimed=identity.pop('sha256')
+        actual=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+        if actual!=claimed:raise ValueError('Combined extension plan digest mismatch')
+        original=Path(plan['source_root']);old_path=original/'PLAN.json';old=read_json(old_path)
+        previous=experiment_design(old,old_path)
+        if previous['protocol']!='frozen-old-components-b400-recheck-v1':raise ValueError('Combined extension must reuse the seven-method expansion')
+        if (tuple(config['methods'])!=methods or plan['runs']!=900 or plan['new_runs']!=200
+            or plan['instances']!=previous['instances'] or config['algorithm_seeds']!=previous['algorithm_seeds']
+            or plan['source_plan_sha256']!=previous['plan_sha'] or plan['source_plan_file_sha256']!=digest(old_path)):
+            raise ValueError('Combined extension and original grid do not match')
+        for path,expected in plan['original_result_files'].items():
+            if digest(Path(path))!=expected:raise ValueError(f'Reused result changed: {path}')
+        return {'instances':plan['instances'],'algorithm_seeds':config['algorithm_seeds'],'methods':methods,
+                'plan_sha':claimed,'base_bootstrap_seed':962000,'rule_bootstrap_seed':963000,'protocol':config['protocol'],
+                'reused_source':str(original),'reused_plan_sha':previous['plan_sha'],'reused_methods':list(previous['methods'])}
     if plan.get('config',{}).get('protocol')=='frozen-old-components-b400-recheck-v1':
         config=plan['config'];methods=METHODS[:-1]
         identity=dict(plan);claimed=identity.pop('sha256')
@@ -72,12 +89,15 @@ def load_runs(source):
         for seed in plan['algorithm_seeds']:
             scenarios=set()
             for method in plan['methods']:
-                folder=source/'runs'/name/f'seed_{seed}'/method
+                reused=method in plan.get('reused_methods',[])
+                run_root=Path(plan['reused_source']) if reused else source
+                expected_sha=plan['reused_plan_sha'] if reused else plan_sha
+                folder=run_root/'runs'/name/f'seed_{seed}'/method
                 paths=[folder/f for f in ('RUN_COMPLETE.json','configuration.json','final_feasible_nondominated.json')]
                 for path in paths:inputs[str(path.resolve())]=digest(path)
                 run,config,front=[read_json(p) for p in paths]
                 if (not run['completed'] or run['instance']!=name or run['algorithm_seed']!=seed
-                    or run['strategy']!=method or run['plan_sha256']!=plan_sha
+                    or run['strategy']!=method or run['plan_sha256']!=expected_sha
                     or run['real_objective_evaluation_count']!=400 or run['scenario_digest']!=config['scenario_digest']):
                     raise ValueError(f'Invalid original run: {folder}')
                 scenarios.add(run['scenario_digest'])
@@ -132,14 +152,15 @@ def execute(source,out):
     for i,method in enumerate(plan['methods']):
         actual=[r for r in rows if r['method']==method]
         vsbase=compare(rows,method,'BASE',plan['base_bootstrap_seed']+i)
-        vsrule=compare(rows,method,RULES[method],plan['rule_bootstrap_seed']+i) if method in RULES else None
+        has_rule=RULES.get(method) in plan['methods']
+        vsrule=compare(rows,method,RULES[method],plan['rule_bootstrap_seed']+i) if has_rule else None
         oldrows=[dict(r,hv=r['old_hv']) for r in rows]
         oldsummary=compare(oldrows,method,'BASE',plan['base_bootstrap_seed']+i)
         methods[method]={'vs_base':vsbase,'vs_rule':vsrule,'old_vs_base':oldsummary}
         p=vsbase['percent']
         table.append({'method':method,'old_mean_percent_vs_base':oldsummary['percent']['mean'],
               'mean_percent_vs_base':p['mean'],'ci_low':p['hierarchical_bootstrap_95ci_low'],'ci_high':p['hierarchical_bootstrap_95ci_high'],
-              'mean_absolute_vs_base':vsbase['absolute']['mean'],'rule':RULES.get(method),
+              'mean_absolute_vs_base':vsbase['absolute']['mean'],'rule':RULES.get(method) if has_rule else None,
               'mean_percent_vs_rule':vsrule['percent']['mean'] if vsrule else None,
               'rule_ci_low':vsrule['percent']['hierarchical_bootstrap_95ci_low'] if vsrule else None,
               'rule_ci_high':vsrule['percent']['hierarchical_bootstrap_95ci_high'] if vsrule else None,
