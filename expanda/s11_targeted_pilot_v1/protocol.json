@@ -1,0 +1,89 @@
+{
+  "protocol": "s11-targeted-supervised-pilot-v1",
+  "baseline_commit": "909315deea0f071cf4a9de1e0e921364519ee53e",
+  "configurations": [
+    "S11"
+  ],
+  "train_per_configuration": 2,
+  "validation_per_configuration": 1,
+  "screen_per_configuration": 2,
+  "population": 250,
+  "budget": 50000,
+  "progress_denominator": 50000,
+  "scenario_count": 100,
+  "confidence": 0.9,
+  "pool_size": 8,
+  "algorithm_seeds": [
+    981001
+  ],
+  "instance_master_seed": 124000000,
+  "ccp_seed_base": 126000000,
+  "collection_seed_base": 127000000,
+  "path_seed_offset": 1000000,
+  "extra_label_budget_per_component_instance": 384,
+  "states": {
+    "I": 48,
+    "C": 24,
+    "M": 48
+  },
+  "m_start_generation": 10,
+  "epochs": 30,
+  "batch_size": 64,
+  "width": 16,
+  "learning_rate": 0.0003,
+  "weight_decay": 0.0001,
+  "training_seeds": [
+    972001,
+    972002,
+    972003
+  ],
+  "checkpoint_epochs": [
+    10,
+    20,
+    30
+  ],
+  "gate_lambda": [
+    0.0,
+    0.5,
+    1.0
+  ],
+  "gate_threshold_scaled": [
+    0.0,
+    0.02,
+    0.05
+  ],
+  "checkpoint_rule": "joint ensemble checkpoint epoch and gate maximize configuration-equal validation mean net gain; ties prefer fewer switches then earlier epoch then lower lambda/threshold; all-rule fallback included",
+  "milestones": [
+    400,
+    1000,
+    5000,
+    20000,
+    50000
+  ],
+  "workers": 2,
+  "task_timeout_seconds": 14400,
+  "invocation_seconds": 172800,
+  "max_stalled_generations": 20,
+  "source_catalog_default": "/home/lunet/cokt2/uncertainty-transformer-ppo/expanda/transformer_ppo_runs/instances/catalog.json",
+  "source_catalog_digest": "9d4f557c7f61919c88a21df42dc6a2b56b36bcfdb812f8f45a81f9c8bf752087",
+  "ppo": false,
+  "independent_oos": false,
+  "final_test_opened": false,
+  "ranking": "No automatic promotion; report rule-vs-Base and learning-vs-rule, including failures. S11 development evidence only.",
+  "baseline_file_sha256": "bc0789171b9846851f868905f12a568659252b22e98d14a79f30ed59a4aa73b8",
+  "evaluation_cache": "reuse unchanged inherited individual when exact chromosome/scenario key is still valid; new constructed solutions are charged, even if an earlier unrelated individual had the same chromosome",
+  "calibration_per_configuration": 1,
+  "rule_variants": [
+    "LEGACY",
+    "GUARDED"
+  ],
+  "guard_max_relative_worsening": 0.02,
+  "loss": "weighted_pairwise_softplus + 0.5 * masked_smooth_l1_scaled_signed_residual",
+  "residual_regression_weight": 0.5,
+  "historical_code_commit": "cee38b1",
+  "primary_report_hv": "instance union min/max over final feasible fronts of every method and seed; reference=(1.1,1.1,1.1); reporting only",
+  "acceptance": "Directional pilot only: report rule-minus-Base and learn-minus-rule on both held-out development instances. Two instances and one seed cannot establish stable superiority. Stop after reporting, with no automatic expansion.",
+  "pilot_only": true,
+  "automatic_expansion": false,
+  "parent_version": "f6ff9f6"
+}
