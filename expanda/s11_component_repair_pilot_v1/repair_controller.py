@@ -40,7 +40,7 @@ def coordinate_capacity(ind, batches, options, arc_caps, rng, restarts, iteratio
         for v, index in zip(variables, selected):
             for r, flow in v[3][index].items():
                 loads[r] += flow
-        score = sum(excess(r, load) for r, load in loads.items())
+        score = sum(excess(r, loads[r]) for r in sorted(loads, key=repr))
         for step in range(iterations + 1):
             if score < best_score:
                 best_score = score; best = list(selected)
@@ -55,9 +55,9 @@ def coordinate_capacity(ind, batches, options, arc_caps, rng, restarts, iteratio
             for index, proposed in enumerate(variables[j][3]):
                 if index == selected[j]:
                     continue
-                touched = set(old) | set(proposed)
-                trial = score + sum(excess(r, loads[r] - old.get(r, 0.) + proposed.get(r, 0.))
-                                    - excess(r, loads[r]) for r in touched)
+                touched = sorted(set(old) | set(proposed), key=repr)
+                trial = score + sum(excess(r, loads.get(r, 0.) - old.get(r, 0.) + proposed.get(r, 0.))
+                                    - excess(r, loads.get(r, 0.)) for r in touched)
                 moves.append((trial, rng.random(), index))
             if not moves:
                 break
@@ -65,10 +65,10 @@ def coordinate_capacity(ind, batches, options, arc_caps, rng, restarts, iteratio
             if trial > score + 1e-9 and rng.random() >= .04:
                 break
             proposed = variables[j][3][index]
-            for r in set(old) | set(proposed):
+            for r in sorted(set(old) | set(proposed), key=repr):
                 loads[r] += proposed.get(r, 0.) - old.get(r, 0.)
             selected[j] = index
-            score = sum(excess(r, load) for r, load in loads.items())
+            score = sum(excess(r, loads[r]) for r in sorted(loads, key=repr))
         if best_score <= 1e-9:
             break
     child = base.Individual()
