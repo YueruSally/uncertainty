@@ -58,3 +58,10 @@ python3 -u audit_s0_joint_v1/step_gain.py
 不加载模型、不补采标签、不修改任何原始数据。表中的正负计数是实例均值的符号，不是每次改选的胜负。
 实例重采样区间仅作诊断，因为这些验证实例已经参与模型选择；不能等同最终搜索效果。
 检查：python3 audit_s0_joint_v1/step_gain_checks.py
+
+读取已完成checkpoint的训练回报与配对验证终局HV：
+python3 -u audit_s0_joint_v1/checkpoints.py
+同时检查旧S0 B400和默认目录ccp_icm_multiscale_joint_v1中的当前完整训练。
+只有验证面板全部完成时才计算配对均值；训练轮次用了不同实例，不能将回报均值直接看作训练改善。
+若已有SELECTED.json，则与实际完整验证记录核对选择结果，允许update0。
+不读取开发搜索结果进行checkpoint选择，不启动、不暂停任何实验。

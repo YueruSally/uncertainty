@@ -1,0 +1,16 @@
+{
+  "protocol": "multiscale-frozen-model-fastcheck-v1",
+  "configurations": ["S0", "S4", "S8"],
+  "instance_rule": "first validation instance per configuration in lexicographic order, fixed before outcomes",
+  "population": 250,
+  "budget": 5000,
+  "progress_denominator": 50000,
+  "ppo_update": 2,
+  "methods": ["BASE", "ICM_INDEPENDENT", "ICM_SHARED_SUPERVISED", "ICM_TERMINAL_PPO"],
+  "maximum_searches": 12,
+  "maximum_objective_evaluations": 60000,
+  "workers": 1,
+  "model_wait_seconds": 86400,
+  "primary_hv": "frozen training normalization; absolute paired differences",
+  "scope": "Early-budget validation diagnostic only. Does not select checkpoints, stop the full study, or change any full-study model, input, budget or method. No new PPO updates."
+}
