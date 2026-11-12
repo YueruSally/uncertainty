@@ -49,3 +49,12 @@ SAME_POOL_PER_TRAJECTORY.csv 保留每实例/轨迹/组件的重放详情。
 QUICK_RESULT.json 保存实际来源覆盖、权重变化、零新增评价记录；INPUT_MANIFEST.json 保存诊断输入哈希。
 
 程序检查：python3 audit_s0_joint_v1/checks.py
+
+进一步读取已有重放结果中的单步收益：
+python3 -u audit_s0_joint_v1/step_gain.py
+仅读取已生成的 SAME_POOL_PER_TRAJECTORY.csv 和 QUICK_RESULT.json，直接打印三组件汇总及60条逐实例结果。
+主指标先在实例内平均，再对20个验证实例等权；另列状态等权均值及仅改选状态的均值。
+后者使用“全部状态平均差 × 状态数 / 改选数”恢复；没有改选时记为缺失，不伪造为0。
+不加载模型、不补采标签、不修改任何原始数据。表中的正负计数是实例均值的符号，不是每次改选的胜负。
+实例重采样区间仅作诊断，因为这些验证实例已经参与模型选择；不能等同最终搜索效果。
+检查：python3 audit_s0_joint_v1/step_gain_checks.py
