@@ -4,17 +4,80 @@ import copy
 import csv
 import importlib.util
 import json
+import ctypes
+import errno
 import signal
 import sys
 import tempfile
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 HERE=Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE))
 import drain
 import resume
+import pidfd_compat
+
+
+class PidfdCompatibilityChecks(unittest.TestCase):
+    def test_native_python_bindings_preferred(self):
+        opened=Mock(return_value=77);sent=Mock()
+        with patch.object(pidfd_compat.sys,'platform','linux'),\
+             patch.object(pidfd_compat.os,'pidfd_open',opened,create=True),\
+             patch.object(pidfd_compat.signal,'pidfd_send_signal',sent,create=True),\
+             patch.object(pidfd_compat.ctypes,'CDLL') as libc:
+            api=pidfd_compat.PidfdAPI();self.assertEqual(api.open(123),77)
+            api.send(77,signal.SIGSTOP)
+            opened.assert_called_once_with(123,0)
+            sent.assert_called_once_with(77,signal.SIGSTOP,None,0)
+            libc.assert_not_called()
+
+    def test_missing_python_bindings_use_typed_linux_syscalls(self):
+        call=Mock(side_effect=[77,0]);libc=SimpleNamespace(syscall=call)
+        with patch.object(pidfd_compat.sys,'platform','linux'),\
+             patch.object(pidfd_compat.platform,'machine',return_value='x86_64'),\
+             patch.object(pidfd_compat.os,'pidfd_open',None,create=True),\
+             patch.object(pidfd_compat.signal,'pidfd_send_signal',None,create=True),\
+             patch.object(pidfd_compat.ctypes,'CDLL',return_value=libc),\
+             patch.object(pidfd_compat.os,'kill',side_effect=AssertionError('PID kill forbidden')):
+            api=pidfd_compat.PidfdAPI();self.assertEqual(api.open(123),77)
+            api.send(77,signal.SIGSTOP)
+            self.assertEqual(api.backend,'linux-pidfd-syscall/x86_64')
+            self.assertEqual([x.value for x in call.call_args_list[0].args],[434,123,0])
+            self.assertEqual([x.value for x in call.call_args_list[1].args],[424,77,signal.SIGSTOP,None,0])
+            self.assertIs(call.restype,ctypes.c_long)
+
+    def test_kernel_error_is_preserved(self):
+        api=pidfd_compat.PidfdAPI.__new__(pidfd_compat.PidfdAPI)
+        def unsupported(*args):
+            ctypes.set_errno(errno.ENOSYS);return -1
+        api.syscall=unsupported
+        with self.assertRaises(OSError) as raised:api.call(434,ctypes.c_int(123),ctypes.c_uint(0))
+        self.assertEqual(raised.exception.errno,errno.ENOSYS)
+
+    def test_unverified_abi_rejected_before_syscall(self):
+        with patch.object(pidfd_compat.sys,'platform','linux'),\
+             patch.object(pidfd_compat.platform,'machine',return_value='unverified'),\
+             patch.object(pidfd_compat.os,'pidfd_open',None,create=True),\
+             patch.object(pidfd_compat.ctypes,'CDLL') as libc:
+            with self.assertRaises(RuntimeError):pidfd_compat.PidfdAPI()
+            libc.assert_not_called()
+
+    def test_identity_mismatch_and_permission_failure_never_pause(self):
+        expected={'pid':123,'start':'old','uid':1,'args':['python','run.py']}
+        api=SimpleNamespace(open=Mock(return_value=77),send=Mock(),backend='test')
+        with patch.object(drain,'PidfdAPI',return_value=api),\
+             patch.object(drain,'process',return_value=dict(expected,start='reused')),\
+             patch.object(drain.os,'close') as close:
+            with self.assertRaises(RuntimeError):drain.PinnedProcess(expected)
+            api.send.assert_not_called();close.assert_called_once_with(77)
+        api.send.side_effect=PermissionError(errno.EPERM,'denied')
+        with patch.object(drain,'PidfdAPI',return_value=api),\
+             patch.object(drain,'process',return_value=expected),\
+             patch.object(drain.os,'close') as close:
+            with self.assertRaises(PermissionError):drain.PinnedProcess(expected)
+            api.send.assert_called_once_with(77,0);close.assert_called_once_with(77)
 
 
 class DrainChecks(unittest.TestCase):

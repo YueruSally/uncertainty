@@ -8,6 +8,7 @@ import json
 import os
 import signal
 import time
+from pidfd_compat import PidfdAPI
 
 
 def process(pid):
@@ -96,18 +97,23 @@ def finish_workers(handle, parent, workers, write_state, deadline, interval=2,
 
 class PinnedProcess:
     def __init__(self, expected):
-        if not hasattr(os, 'pidfd_open') or not hasattr(signal, 'pidfd_send_signal'):
-            raise RuntimeError('Linux Python with pidfd support is required for safe handoff')
-        self.fd = os.pidfd_open(expected['pid'])
+        self.api = PidfdAPI()
+        self.fd = self.api.open(expected['pid'])
         current = process(expected['pid'])
         if current is None or (current['start'], current['uid'], current['args']) != (
                 expected['start'], expected['uid'], expected['args']):
             os.close(self.fd)
             raise RuntimeError('Supervisor identity changed')
+        # Check kernel/permission support before sending any state-changing signal.
+        try:
+            self.api.send(self.fd,0)
+        except BaseException:
+            os.close(self.fd)
+            raise
 
     def send(self, signum):
         try:
-            signal.pidfd_send_signal(self.fd, signum)
+            self.api.send(self.fd, signum)
         except ProcessLookupError:
             if signum != signal.SIGCONT:
                 raise
@@ -125,7 +131,7 @@ def handoff(root, script, write_state, timeout):
     parent = candidates[0]
     handle = PinnedProcess(parent)
     write_state({'stage':'before_dispatch_pause', 'supervisor_pid':parent['pid'],
-                 'supervisor_start':parent['start']})
+                 'supervisor_start':parent['start'], 'pidfd_backend':handle.api.backend})
     def workers():
         children = [p for p in processes() if p['ppid'] == parent['pid'] and active(p)]
         if any(not matches(p, script, root, True) for p in children):

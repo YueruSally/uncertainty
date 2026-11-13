@@ -8,7 +8,14 @@
 python3 -u resume_multiscale_screen_v1/resume.py --take-over --workers 2
 
 默认源目录：transformer_ppo_runs/diagnostics/ccp_icm_multiscale_joint_v1
-默认新结果目录：transformer_ppo_runs/diagnostics/ccp_icm_multiscale_joint_v1_unique_resume_v1
+默认新结果目录：transformer_ppo_runs/diagnostics/ccp_icm_multiscale_joint_v1_unique_resume_v2
+
+兼容性修复：部分 Anaconda Python 未编译 pidfd 接口；程序会通过 libc.syscall
+调用相同的 Linux pidfd 系统调用，仍使用文件描述符固定进程身份，不退化为按PID发信号。
+兼容后端仅支持已核对的64位 x86_64/aarch64 ABI。内核不支持或权限不足会在暂停前报错。
+先做不影响实验进程的自检：
+python3 resume_multiscale_screen_v1/resume.py --check-handoff
+首次失败的 v1 目录原样保留。修复后使用 v2 输出目录，避免覆盖冻结的旧接续代码哈希。
 
 过程：
 1. 校验原 PLAN、全部冻结代码、模型权重、输入尺度、门控及至少两对已完成的完全相同结果。

@@ -275,12 +275,17 @@ def main():
     diag=EXPANDA/'transformer_ppo_runs/diagnostics'
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source',type=Path,default=diag/'ccp_icm_multiscale_joint_v1')
-    p.add_argument('--out',type=Path,default=diag/'ccp_icm_multiscale_joint_v1_unique_resume_v1')
+    p.add_argument('--out',type=Path,default=diag/'ccp_icm_multiscale_joint_v1_unique_resume_v2')
     p.add_argument('--workers',type=int,default=2)
     p.add_argument('--take-over',action='store_true',help='Stop old dispatch, finish current workers, then resume unique comparisons')
     p.add_argument('--recover',action='store_true',help='Resume the recorded old supervisor after a killed handoff process')
+    p.add_argument('--check-handoff',action='store_true',help='Check pidfd on this process only, without touching experiments')
     a=p.parse_args()
     if a.workers < 1:p.error('--workers must be positive')
+    if a.check_handoff:
+        from pidfd_compat import self_check
+        print('[MULTI-RESUME] '+json.dumps(self_check()),flush=True)
+        return
     try:
         execute(a)
     except Exception as e:
