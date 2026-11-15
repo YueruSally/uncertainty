@@ -164,6 +164,8 @@ def export_ppo(old, pilot_root, out):
     versions['pilot_v2']['selection']=read(pilot_root/'SELECTION.json')
     versions['new_table_deployed_checkpoint']=str(pilot_root/'checkpoints/update_001')
     versions['new_table_training']=dict(updates=3,policy_searches=9,paired_reference_searches=9,tuning_updates=[0,1,2,3],
+        configurations=pilot_plan['pilot']['configurations'],deployed_update=1,
+        policy_training_episodes_before_deployed_checkpoint=3,paired_references_before_deployed_checkpoint=3,
         qualification='u1 is best among updated checkpoints; u0 was best including initialization. u4/u8 belong only to the old experiment.')
     p.csv_write(out/'PPO_VALIDATION.csv',table);p.csv_write(out/'PPO_VALIDATION_PER_RUN.csv',raw)
     p.csv_write(out/'PPO_UPDATES.csv',updates);p.csv_write(out/'PPO_SEARCH_COSTS.csv',costs)

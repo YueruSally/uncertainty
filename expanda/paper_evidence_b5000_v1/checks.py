@@ -78,7 +78,7 @@ class EvidenceChecks(unittest.TestCase):
                             if u==0:cached.append(str(path))
                         if cfg in (0,4,8) and inst==0:
                             for u in (1,2,3):r.write(new/f'runs/tuning/u{u:03d}/greedy'/name/f'seed_{seed}/RUN_COMPLETE.json',dict(v,final_hypervolume=.4-u*.001))
-            r.write(new/'PLAN.json',dict(tuning=tuning,validation_baseline_files=cached))
+            r.write(new/'PLAN.json',dict(tuning=tuning,validation_baseline_files=cached,pilot=dict(configurations=['S0','S4','S8'])))
             v=dict(row(1,.4),real_objective_evaluation_count=5000)
             for i in range(32):r.write(old/f'terminal/rollouts/u{i//4+1:03d}/instance-{i}/RUN_COMPLETE.json',v)
             for i in range(9):
@@ -92,6 +92,7 @@ class EvidenceChecks(unittest.TestCase):
             self.assertEqual(q['new_table_training']['policy_searches'],9)
             self.assertEqual(q['new_table_training']['paired_reference_searches'],9)
             self.assertEqual(q['new_table_training']['tuning_updates'],[0,1,2,3])
+            self.assertEqual(q['new_table_training']['policy_training_episodes_before_deployed_checkpoint'],3)
             self.assertEqual(q['pilot_v2']['selection']['best_including_u0'],0)
             with (out/'PPO_VALIDATION.csv').open(encoding='utf-8-sig') as f:rows=list(csv.DictReader(f))
             self.assertEqual([int(x['runs']) for x in rows],[54,54,54,9,9,9,9])
