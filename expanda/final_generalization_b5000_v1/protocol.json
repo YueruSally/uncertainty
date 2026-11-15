@@ -1,0 +1,13 @@
+{
+  "version": "final-generalization-b5000-v1",
+  "configurations": ["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11"],
+  "instances_per_configuration": 3,
+  "algorithm_seeds": [1001001, 1001002, 1001003],
+  "instance_seed_base": 180000000,
+  "scenario_seed_base": 190000000,
+  "methods": ["BASE", "C_RULE", "ICM_SHARED_SUPERVISED", "ICM_TERMINAL_PPO"],
+  "primary_method": "ICM_SHARED_SUPERVISED",
+  "primary_endpoint": 5000,
+  "invocation_seconds": 172800,
+  "task_timeout_seconds": 7200
+}
