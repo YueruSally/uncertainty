@@ -1,0 +1,2 @@
+# Preserve the user-supplied CSV byte for byte (BOM, CRLF, empty columns).
+provided_results.csv -text -diff
