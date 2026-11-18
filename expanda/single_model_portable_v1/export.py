@@ -24,7 +24,11 @@ def read(p):
 
 
 def sha(p):
-    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+    value = hashlib.sha256()
+    with Path(p).open('rb') as f:
+        for block in iter(lambda: f.read(1024*1024), b''):
+            value.update(block)
+    return value.hexdigest()
 
 
 def dump(p, value):

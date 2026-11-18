@@ -34,12 +34,18 @@ def write(p, x):
 
 
 def sha(p):
-    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+    value = hashlib.sha256()
+    with Path(p).open('rb') as f:
+        for block in iter(lambda: f.read(1024*1024), b''):
+            value.update(block)
+    return value.hexdigest()
 
 
-def verify():
+def verify(include_wheels=True):
     manifest = read(PKG / 'MANIFEST.json')
     for name, expected in manifest['files'].items():
+        if name.startswith('wheelhouse/') and not include_wheels:
+            continue
         p = PKG / name
         if not p.is_file() or sha(p) != expected:
             raise ValueError('Missing/changed package file: ' + name)
@@ -125,7 +131,7 @@ def main():
     p.add_argument('--out', type=Path)
     p.add_argument('--worker', nargs=3, help=argparse.SUPPRESS)
     args = p.parse_args()
-    plan = verify()
+    plan = verify(include_wheels=not bool(args.worker))
     if args.check:
         s = runtime()
         from bridge import SharedPolicy, IndependentPolicy
@@ -177,7 +183,12 @@ def main():
             while pending:
                 done, pending = wait(pending, timeout=30, return_when=FIRST_COMPLETED)
                 for f in done:
-                    f.result()
+                    try:
+                        f.result()
+                    except Exception:
+                        for remaining in pending:
+                            remaining.cancel()
+                        raise
                     finished += 1
                 print('[SINGLE]', finished, '/', len(jobs), flush=True)
                 write(out/'STATUS.json', dict(completed=False, done=finished, total=len(jobs)))
