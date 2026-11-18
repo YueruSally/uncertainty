@@ -66,21 +66,68 @@ def main(root):
         f'Source: `{source}`', '',
         'No new searches. HV values are read from the final paired report. ',
         'W/T/L: difference > 1e-12 / absolute difference <= 1e-12 / difference < -1e-12.',
-        'Each configuration has one instance and three seeds. These are descriptive checks, not causal conclusions.', '',
-        '## All 5000-evaluation comparisons', '',
-        '| Method | Reference | W/T/L | Mean gain (%) | Median gain (%) | Mean gain in wins (%) | Mean gain in losses (%) |',
-        '|---|---|---|---:|---:|---:|---:|']
+        'Each configuration has one instance and three seeds. These are descriptive checks, not causal conclusions.']
     def fmt(values):
         return f'{mean(values):+.4f}' if values else '—'
-    for own, ref in comparisons:
-        rr = [r for r in details if r['method']==own and r['reference']==ref and r['evaluation']==5000]
-        gains = [r['percent'] for r in rr if r['percent'] != '']
-        counts = '/'.join(str(sum(r['W_T_L']==c for r in rr)) for c in 'WTL')
-        win = [r['percent'] for r in rr if r['W_T_L']=='W' and r['percent']!='']
-        lose = [r['percent'] for r in rr if r['W_T_L']=='L' and r['percent']!='']
-        avg = fmt(gains) if len(gains)==len(rr) else 'undefined'
-        med = f'{median(gains):+.4f}' if len(gains)==len(rr) else 'undefined'
-        report.append(f'| {own} | {ref} | {counts} | {avg} | {med} | {fmt(win)} | {fmt(lose)} |')
+    all_summary = []
+    for budget in (400,1000,5000):
+        report += ['', f'## All {budget}-evaluation comparisons', '',
+            '| Method | Reference | W/T/L | Mean gain (%) | Median gain (%) | Mean gain in wins (%) | Mean gain in losses (%) |',
+            '|---|---|---|---:|---:|---:|---:|']
+        for own, ref in comparisons:
+            rr = [r for r in details if r['method']==own and r['reference']==ref and r['evaluation']==budget]
+            if len(rr)!=27 or len({(r['instance'],r['seed']) for r in rr})!=27:
+                raise ValueError('Incomplete paired panel')
+            gains = [r['percent'] for r in rr if r['percent'] != '']
+            counts = [sum(r['W_T_L']==c for r in rr) for c in 'WTL']
+            win = [r['percent'] for r in rr if r['W_T_L']=='W' and r['percent']!='']
+            lose = [r['percent'] for r in rr if r['W_T_L']=='L' and r['percent']!='']
+            avg = fmt(gains) if len(gains)==len(rr) else 'undefined'
+            med = f'{median(gains):+.4f}' if len(gains)==len(rr) else 'undefined'
+            all_summary.append(dict(evaluation=budget,method=own,reference=ref,pairs=len(rr),
+                wins=counts[0],ties=counts[1],losses=counts[2],
+                mean_gain_percent=mean(gains) if len(gains)==len(rr) else '',
+                median_gain_percent=median(gains) if len(gains)==len(rr) else '',
+                mean_win_gain_percent=mean(win) if win else '',
+                mean_loss_gain_percent=mean(lose) if lose else ''))
+            report.append(f'| {own} | {ref} | {"/".join(map(str,counts))} | {avg} | {med} | {fmt(win)} | {fmt(lose)} |')
+    save('ALL_BUDGET_SUMMARY.csv', all_summary)
+    # Exact two-sided signed-rank sign-flip test at the instance level (at most 2^9 signs).
+    # Round HV differences at the reporting tolerance; omit numerical zeros (Wilcox convention).
+    from itertools import product
+    tests=[]
+    instance_rows=[]
+    for budget in (400,1000,5000):
+        for own,ref in comparisons:
+            grouped_instances=defaultdict(list)
+            for r in details:
+                if r['evaluation']==budget and r['method']==own and r['reference']==ref:
+                    grouped_instances[r['instance']].append(r['difference'])
+            if len(grouped_instances)!=9 or any(len(v)!=3 for v in grouped_instances.values()):
+                raise ValueError('Expected nine instances with three seeds each')
+            delta=[]
+            for inst,values in sorted(grouped_instances.items()):
+                raw=mean(values)
+                d=0. if abs(raw)<=1e-12 else round(raw,12)
+                instance_rows.append(dict(evaluation=budget,method=own,reference=ref,
+                    instance=inst,mean_hv_difference=raw,test_hv_difference=d))
+                if d:delta.append(d)
+            mags=sorted(abs(d) for d in delta)
+            ranks=[mean([i+1 for i,x in enumerate(mags) if x==abs(d)]) for d in delta]
+            observed=abs(sum(rank*(1 if d>0 else -1) for rank,d in zip(ranks,delta)))
+            null=[abs(sum(sign*rank for sign,rank in zip(signs,ranks)))
+                  for signs in product((-1,1),repeat=len(delta))]
+            pvalue=sum(x>=observed-1e-12 for x in null)/len(null)
+            tests.append(dict(evaluation=budget,method=own,reference=ref,instances=9,
+                nonzero_instances=len(delta),positive_instances=sum(d>0 for d in delta),
+                negative_instances=sum(d<0 for d in delta),p_two_sided_unadjusted=pvalue))
+    save('INSTANCE_MEAN_DIFFERENCES.csv',instance_rows)
+    save('WILCOXON_EXPLORATORY.csv',tests)
+    report += ['', '## Exploratory instance-level signed-rank test', '',
+        'See WILCOXON_EXPLORATORY.csv and INSTANCE_MEAN_DIFFERENCES.csv. Average the three paired absolute HV differences within each instance first.',
+        'Nine instances; two-sided exact sign-flip enumeration of signed ranks, average ranks for ties, numerical zeros omitted (1e-12 tolerance; remaining differences rounded to 12 decimals).',
+        'Unadjusted p-values across multiple exploratory comparisons; not confirmatory significance claims. Signed-rank interpretation assumes independent, suitably symmetric instance differences.',
+        'Remaining held-out instances should be reported separately from development data; any pooled analysis is supplemental.']
     report += ['', '## Priority checks: S0 combinations, S3 PPO, S5 crossover', '',
         '| Config | Seed | Method | Reference | Gain at 400 (%) | Gain at 1000 (%) | Gain at 5000 (%) |',
         '|---|---|---|---|---:|---:|---:|']
