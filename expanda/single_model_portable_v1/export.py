@@ -208,7 +208,8 @@ results/单个模型平均提升.csv 是用户本次提供的表格，原样保�
 训练源代码作为模型来源参考保留；本包只复现单成员推理搜索，未附训练标签或训练轨迹。
 ''',encoding='utf-8')
         for name in ('install.sh','run.sh'): (pkg/name).chmod(0o755)
-        files = {str(p.relative_to(pkg)):sha(p) for p in pkg.rglob('*') if p.is_file()}
+        files = {str(p.relative_to(pkg)):sha(p) for p in pkg.rglob('*')
+                 if p.is_file() and '__pycache__' not in p.parts and '.cache' not in p.parts}
         dump(pkg/'MANIFEST.json',dict(files=files,source_commit=VERSION,single_member=True,
                                      training_updates=0,provided_summary_verified=False))
         # Load the exact frozen weights with the bundled runtime before releasing an archive.
@@ -222,6 +223,8 @@ results/单个模型平均提升.csv 是用户本次提供的表格，原样保�
                         z.write(p,PACK+'/'+str(p.relative_to(pkg)))
             with ZipFile(tmp) as z:
                 if z.testzip() is not None: raise ValueError('Corrupt archive')
+                expected = {PACK+'/'+name for name in files} | {PACK+'/MANIFEST.json'}
+                if set(z.namelist()) != expected: raise ValueError('Archive and manifest file lists differ')
             tmp.replace(args.out)
         finally:
             if tmp.exists(): tmp.unlink()
