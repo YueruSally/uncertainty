@@ -20,10 +20,12 @@ EXP = Path(__file__).resolve().parent
 DEFAULT_SOURCE = EXP/'transformer_ppo_runs/diagnostics/ccp_fixed_q90_s0_s11_v1'
 CONFIGS = [f'S{i}' for i in range(12)]
 OBJECTIVES = ('cost', 'emission', 'makespan')
+FILE_LABELS = ('COST', 'EMISSION', 'TIME')
+OBJECTIVE_TITLES = ('Total cost', 'Total emissions', 'Completion time')
 XLABELS = ('Total cost (USD)', r'Total emissions (g CO$_2$)', 'Completion time (h)')
 PANEL_LABELS = ('(a) Total cost', '(b) Total emissions', '(c) Completion time')
 BLUE, ORANGE = '#4166ff', '#ff9800'
-SETTINGS = dict(version='fixed-q90-density-v1', representative='smallest exact decision SHA256',
+SETTINGS = dict(version='fixed-q90-density-v2', representative='smallest exact decision SHA256',
     fresh100_replicate=1, reference_size=1000, fresh_size=100,
     kernel='Gaussian', bandwidth='reference1000 sample SD (ddof=1) * 1000**(-1/5); same absolute bandwidth for both samples',
     grid_points=1024, extent='full observed range of both samples plus four bandwidths on either side',
@@ -172,24 +174,34 @@ def configuration_figure(cfg, series, destination):
     save_figure(fig,destination/(cfg+'_DENSITY_KDE')); plt.close(fig)
 
 
-def overview_figure(series, destination):
+def individual_figure(cfg, data, objective_index, destination):
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(5.2,3.8))
+    fig.subplots_adjust(left=.16,right=.97,bottom=.18,top=.88)
+    draw_panel(ax,data,XLABELS[objective_index])
+    ax.set_title(cfg+' | '+OBJECTIVE_TITLES[objective_index],fontsize=12,pad=12)
+    save_figure(fig,destination/(cfg+'_'+FILE_LABELS[objective_index]+'_KDE'))
+    plt.close(fig)
+
+
+def overview_figure(series, destination, objective_index):
     import matplotlib.pyplot as plt
     cols = min(3,len(series)); rows = math.ceil(len(series)/cols)
     fig, axes = plt.subplots(rows,cols,figsize=(4.05*cols,3.0*rows),squeeze=False)
     fig.subplots_adjust(left=.08,right=.985,bottom=.07,top=.95,hspace=.57,wspace=.36)
     for i,(cfg,data) in enumerate(series.items()):
         ax = axes.flat[i]
-        draw_panel(ax,data,'Completion time (h)',legend=i==0)
+        draw_panel(ax,data,XLABELS[objective_index],legend=i==0)
         ax.set_title(f'({chr(97+i)}) {cfg}',fontsize=11,fontfamily='DejaVu Serif',pad=8)
     for ax in list(axes.flat)[len(series):]:
         ax.set_visible(False)
-    fig.suptitle('Completion-time distributions: independent 1000 vs fresh 100',fontsize=13,y=.995)
-    save_figure(fig,destination/'TIME_CONFIGURATIONS_KDE'); plt.close(fig)
+    fig.suptitle(OBJECTIVE_TITLES[objective_index]+' distributions: independent 1000 vs fresh 100',fontsize=13,y=.995)
+    save_figure(fig,destination/(FILE_LABELS[objective_index]+'_CONFIGURATIONS_KDE')); plt.close(fig)
 
 
 def execute(args):
     root = args.root.resolve()
-    out = args.out.resolve() if args.out else root.with_name(root.name+'_density_figures_v1')
+    out = args.out.resolve() if args.out else root.with_name(root.name+'_density_figures_v2')
     if out==root or root in out.parents or out in root.parents:
         raise ValueError('Use a separate figure output directory; source audit remains unchanged')
     plan = read(root/'PLAN.json')
@@ -206,9 +218,15 @@ def execute(args):
     with (out/'.plot.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         pin(out/'PLOT_PLAN.json',dict(settings=SETTINGS,source_root=str(root),
+            configurations=args.configurations,
             script_sha256=digest(Path(__file__)),source_plan_sha256=plan['sha256']))
-        time_series = {}
+        all_series = {j:{} for j in range(3)}
+        completed = []
         for cfg in args.configurations:
+            write(out/'STATUS.json',dict(completed=False,stage='plotting',configuration=cfg,
+                completed_configurations=completed,new_searches=0,
+                new_objective_evaluations=0,training_updates=0))
+            print('[Q90-KDE] plotting',cfg,flush=True)
             big,small,meta = load_samples(root,cfg)
             series = [curves(big[j],small[j]) for j in range(3)]
             meta.update(settings=SETTINGS,bandwidth_by_objective={o:series[j]['bandwidth'] for j,o in enumerate(OBJECTIVES)},
@@ -216,6 +234,9 @@ def execute(args):
                 empirical_q90_fresh100={o:float(np.sort(small[j])[89]) for j,o in enumerate(OBJECTIVES)})
             pin(out/(cfg+'_PROVENANCE.json'),meta)
             configuration_figure(cfg,series,out)
+            for j,data in enumerate(series):
+                individual_figure(cfg,data,j,out)
+                all_series[j][cfg] = data
             tmp = out/(cfg+'_PLOTTED_DENSITIES.csv.writing')
             with tmp.open('w',encoding='utf-8-sig',newline='') as f:
                 writer = csv.writer(f); writer.writerow(['objective','x_original_units','density_1000','density_100','common_bandwidth'])
@@ -224,7 +245,7 @@ def execute(args):
                     if not d['degenerate']:
                         writer.writerows((obj,float(x),float(y),float(z),d['bandwidth']) for x,y,z in zip(d['x'],d['reference_density'],d['small_density']))
             tmp.replace(out/(cfg+'_PLOTTED_DENSITIES.csv'))
-            verify(meta['source_files']); time_series[cfg] = series[2]
+            verify(meta['source_files'])
             caption = (f'{cfg}. Distributions of total cost, total emissions and completion time for one fixed transport plan. '
                 'The plan is the predeclared smallest exact decision hash from the original audit. '
                 'Independent sets of 1,000 realizations and the first fresh set of 100 realizations are shown. '
@@ -241,9 +262,22 @@ def execute(args):
                 '图中的100和1000是随机实现数，不是搜索评价预算；原始样本、经验P90和误差统计均未修改。\n'
                 '单方案分布图只作说明，不能单独证明100次实现已经足够。\n',encoding='utf-8')
             print('[Q90-KDE] saved',out/(cfg+'_DENSITY_KDE.png'),flush=True)
-        overview_figure(time_series,out)
+            completed.append(cfg)
+        for j in range(3):
+            overview_figure(all_series[j],out,j)
+        (out/'README_CN.txt').write_text(
+            '100与1000次独立实现：固定方案分布图\n\n'
+            '每个配置保存成本、排放、时间单图和三目标组合图；另保存三个目标各自的跨配置总览。\n'
+            '文件名：S0_COST_KDE（成本）、S0_EMISSION_KDE（排放）、S0_TIME_KDE（时间）；其他配置同理。\n'
+            'COST_CONFIGURATIONS_KDE、EMISSION_CONFIGURATIONS_KDE、TIME_CONFIGURATIONS_KDE为跨配置总览。\n'
+            '每张图均有PNG、PDF、SVG；PNG可在VS Code文件栏直接点击查看。\n'
+            '图中文字为英文，中文解释在各配置CAPTION_CN.txt。\n'
+            '每个配置使用原核对预先指定的一条固定方案；蓝线为独立1000次实现，橙线为第一组新100次实现。\n'
+            '这些是目标值分布，不是CV分布，也不是全部方案或20组100次实现的汇总分布。\n'
+            '平滑仅用于可视化，同一目标共用绝对带宽；未改变样本、经验P90或原实验结果。\n',encoding='utf-8')
         write(out/'STATUS.json',dict(completed=True,configurations=args.configurations,new_searches=0,
-            new_objective_evaluations=0,training_updates=0,output_directory=str(out)))
+            new_objective_evaluations=0,training_updates=0,figures=4*len(args.configurations)+3,
+            formats=['png','pdf','svg'],output_directory=str(out)))
         print('[Q90-KDE] COMPLETE',out,flush=True)
 
 
