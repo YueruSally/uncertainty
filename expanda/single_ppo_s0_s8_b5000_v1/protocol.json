@@ -1,0 +1,72 @@
+{
+  "protocol": "single-ppo-s0-s8-b5000-v1",
+  "configurations": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+  ],
+  "population": 250,
+  "budget": 5000,
+  "milestones": [
+    400,
+    1000,
+    5000
+  ],
+  "updates": 3,
+  "episodes_per_update": 9,
+  "training_seed_base": 270100000,
+  "optimizer_seed_base": 270200000,
+  "optimizer_steps": 48,
+  "minibatch_per_component": 32,
+  "learning_rate": 3e-05,
+  "critic_learning_rate": 0.001,
+  "clip_ratio": 0.2,
+  "target_kl": 0.03,
+  "reference_kl_coefficient": 0.02,
+  "value_coefficient": 0.5,
+  "max_grad_norm": 1.0,
+  "temperature_grid": [
+    0.01,
+    0.025,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1.0
+  ],
+  "calibration_states_per_component_per_configuration": 48,
+  "calibration_target_mean_top_probability": 0.75,
+  "uniform_exploration": 0.01,
+  "reward": "terminal HV(policy) minus terminal HV(frozen shared greedy), same training instance/algorithm seed/scenarios; frozen training normalization",
+  "advantage": "paired terminal return minus old critic, standardized per component with equal episode weights, fixed for this update",
+  "weighting": "each optimizer step averages I/C/M losses equally; episodes are sampled equally within each component",
+  "critic": "value head learns paired terminal return; critic gradient does not modify shared actor representation",
+  "tuning": "First validation instance of every S0-S8 configuration, three common seeds; frozen-training HV.",
+  "confirmation": "Second validation instance of every S0-S8 configuration, three common seeds; selected checkpoint and u0 greedy; no reselection.",
+  "selection": "Select among u0,u1,u2,u3 by configuration-equal mean paired final HV difference versus u0 on tuning; ties earlier; u0 is eligible.",
+  "new_searches": 272,
+  "new_objective_evaluations_maximum": 1360000,
+  "first_preview": "After update1 and first fixed tuning seed for all nine configurations; diagnostic only, no early stopping.",
+  "final_test_opened": false,
+  "qualification": "Single member from initialization through all updates and deployment. All S0-S8 covered every update. Reused validation and 54 development pairs are development evidence; no independent-test claim.",
+  "training_member": 991001,
+  "validation_seeds": [
+    996001,
+    996002,
+    996003
+  ],
+  "screen_seeds": [
+    993001,
+    993002,
+    993003
+  ],
+  "development": "Fixed existing 18 S0-S8 instances x 3 seeds. Reuse Base/shared and all old raw fronts; selected updated PPO adds 54 searches, or reuse shared if u0 selected.",
+  "invocation_seconds": 172800,
+  "task_timeout_seconds": 14400
+}
