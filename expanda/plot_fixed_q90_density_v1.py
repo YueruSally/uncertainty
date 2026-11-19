@@ -234,6 +234,12 @@ def execute(args):
                 'Empirical q90 values and accuracy/ranking statistics are not recalculated from smoothed curves. '
                 'This illustrative fixed-plan distribution comparison is not by itself evidence that 100 realizations suffice.\n')
             (out/(cfg+'_CAPTION.txt')).write_text(caption,encoding='utf-8')
+            (out/(cfg+'_CAPTION_CN.txt')).write_text(
+                f'{cfg}：同一固定运输方案在独立1000次实现与第1组新100次实现下的成本、排放和完成时间分布。\n'
+                '方案沿用原精度核对预先指定的最小决策哈希；不按曲线重合程度挑选方案或100次实现组。\n'
+                '每个目标的两条曲线采用相同绝对带宽的高斯核密度估计；阴影是密度面积，不是置信区间。\n'
+                '图中的100和1000是随机实现数，不是搜索评价预算；原始样本、经验P90和误差统计均未修改。\n'
+                '单方案分布图只作说明，不能单独证明100次实现已经足够。\n',encoding='utf-8')
             print('[Q90-KDE] saved',out/(cfg+'_DENSITY_KDE.png'),flush=True)
         overview_figure(time_series,out)
         write(out/'STATUS.json',dict(completed=True,configurations=args.configurations,new_searches=0,
