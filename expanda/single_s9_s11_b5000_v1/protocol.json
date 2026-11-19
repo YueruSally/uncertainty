@@ -1,0 +1,15 @@
+{
+  "version": "single-s9-s11-b5000-v1",
+  "configurations": ["S9", "S10", "S11"],
+  "instances_per_configuration": 3,
+  "algorithm_seeds": [264000001, 264000002, 264000003],
+  "instance_seed_base": 260000000,
+  "scenario_seed_base": 262000000,
+  "methods": ["BASE", "C_RULE", "ICM_SHARED_SUPERVISED", "ICM_TERMINAL_PPO"],
+  "primary_method": "ICM_SHARED_SUPERVISED",
+  "primary_endpoint": 5000,
+  "training_seed": 991001,
+  "ppo_update": 1,
+  "invocation_seconds": 172800,
+  "task_timeout_seconds": 14400
+}
