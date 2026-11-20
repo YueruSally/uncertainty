@@ -186,16 +186,20 @@ def individual_figure(cfg, data, objective_index, destination):
 
 def overview_figure(series, destination, objective_index):
     import matplotlib.pyplot as plt
-    cols = min(3,len(series)); rows = math.ceil(len(series)/cols)
+    cols = 2 if len(series)==4 else min(3,len(series))
+    rows = math.ceil(len(series)/cols)
     fig, axes = plt.subplots(rows,cols,figsize=(4.05*cols,3.0*rows),squeeze=False)
-    fig.subplots_adjust(left=.08,right=.985,bottom=.07,top=.95,hspace=.57,wspace=.36)
+    fig.subplots_adjust(left=.08,right=.985,bottom=.07,
+        top=.86 if rows==1 else .89 if rows==2 else .95,hspace=.57,wspace=.36)
     for i,(cfg,data) in enumerate(series.items()):
         ax = axes.flat[i]
         draw_panel(ax,data,XLABELS[objective_index],legend=i==0)
         ax.set_title(f'({chr(97+i)}) {cfg}',fontsize=11,fontfamily='DejaVu Serif',pad=8)
     for ax in list(axes.flat)[len(series):]:
         ax.set_visible(False)
-    fig.suptitle(OBJECTIVE_TITLES[objective_index]+' distributions: independent 1000 vs fresh 100',fontsize=13,y=.995)
+    title = (OBJECTIVE_TITLES[objective_index]+' distributions: independent 1000 vs fresh 100'
+             if cols==3 else OBJECTIVE_TITLES[objective_index]+': 1000 vs 100 realizations')
+    fig.suptitle(title,fontsize=13,y=.995)
     save_figure(fig,destination/(FILE_LABELS[objective_index]+'_CONFIGURATIONS_KDE')); plt.close(fig)
 
 
