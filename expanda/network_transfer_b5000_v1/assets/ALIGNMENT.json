@@ -1,0 +1,16 @@
+{
+  "source_file_sha256": "78f930dbfe086f74cd23618f350fb8d0ea203895d81a596a3f8708f895570fa2",
+  "aligned_file_sha256": "eddaa07c8d81a9791b20a13352aa1228d57f52e5aa11f24c651243aa80e6225b",
+  "expanded_sha256": "62515c3bb4aca8b88fd1bd287ef8eb804494dfff23d04f4e798efecab09d4b83",
+  "added_nodes": [
+    "Shanghai",
+    "Ningbo"
+  ],
+  "background_flow_TEUday": {
+    "Khorgos": 500,
+    "Manzhouli": 450,
+    "Erenhot": 450
+  },
+  "preserved_existing_cell_values": true,
+  "original_files_modified": false
+}
