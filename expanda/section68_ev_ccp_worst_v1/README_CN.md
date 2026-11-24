@@ -45,3 +45,69 @@ python3 -B -u section68_ev_ccp_worst_v1/preflight.py
 后续仍须落实：保存/复用每实例 5000 个独立场景，三模型共用；三次完整试跑及
 全部输出检查；有同实例 Base 时逐点复现；交叉评价中 WC≥CCP；通过后才扩展到
 18 次搜索（最多两个并行），全部前沿复评及选中方案逐批到达时间等输出。
+
+## 已通过预检后的试跑入口
+
+```bash
+python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage pilot --workers 2
+```
+
+默认读取 `section68_preflight_20261124T155523046075Z`，新建
+`transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v1`。
+可用 `--preflight /绝对路径` 和 `--out /全新目录` 明确指定。
+已有目录必须显式 `--resume`；已完成任务必须通过所有输出哈希检查才能复用。
+未完成任务使用新的 `attempt_时间戳`，不覆盖上一次搜索或失败记录。
+准备过程失败且尚未生成 PLAN 时，应另指定全新目录；不删除旧目录来掩盖失败。
+
+启动流程：
+
+1. 检验源文件未变，读取完整服务器场景清单，并将当前 CPU、Python、节点总内存及
+   NumPy/PyTorch 与 `ccp_paper_evidence_b5000_v1/ENVIRONMENT.json` 比较。
+   节点核数和内存不声称是独占分配；历史分配未记录时保留为空。
+2. 匹配已有独立场景的实例身份及配置。出现同实例但无法解释的 OOS 文件或非空独立种子时停止，
+   不擅自另抽。可识别的原始网络场景包直接复用。
+3. 没有可复用匹配包时，用冻结的原采样器生成独立 5000 场景：S6 为种子 368500006，
+   S8 为 368500008。保存实际弧乘子、口岸延迟、事件映射、均值、随机种子和哈希；
+   优化 100 场景和 EV 平均输入也分别保存。没有更改任何 CV 或抽样规则。
+4. S6、种子 993001，EV/CCP/WORST 各运行一次。使用冻结的 Base 搜索函数，
+   仅通过本进程包装器显式切换 `evaluation_mode` 和 `ccp_confidence`。
+   没有修改冻结源文件或其默认行为。I/C/M 附加控制器和模型均关闭。
+5. 每次检查搜索实际使用的名义路径及场景摘要；在原优化输入上逐方案精确复现
+   最终前沿目标值，再复评全部前沿。保存两个选中方案的逐场景目标和逐批到达时间，
+   并核对 WC≥CCP、逐批最晚到达值与完工时间完全一致。
+6. 若试跑实际次数不是恰好 5000，记录实际次数并停在 `stopped_after_pilot`。
+   不补造评价次数，不为补足预算更改 Base 的原子操作规则。
+
+EV 是均值**输入**的一次评价，不是将 100 个情景的输出求平均。
+铁路节点均值仍为 40.6 小时；当前两端节点组成的跨境事件均值为 81.2 小时。
+CCP/WORST 使用同一个 100 场景包，分别取第 90 小和最大值；独立复评 P90 为第 4500 小。
+
+输出在每个任务的 `attempt_*` 中：
+
+- `search/`：原求解器配置、预算计数、完整最终前沿及日志。
+- `FINAL_FRONT.json`、`SELECTION.json`：完整决策、模型目标及选方案的缩放和索引。
+- `FRONT_OOS_SUMMARY.csv`：所有前沿方案的三目标均值、P90、最大值和准时率。
+- `minimum_cost_SCENARIOS.*`、`compromise_SCENARIOS.*`：各选中方案的三目标逐场景值；
+  NPZ 同时包含批次 ID、截止时间、5000 列的逐批到达时间。
+- `*_BATCH_ARRIVALS.csv`：逐批、逐场景到达时间和整批准时判定。
+- `CROSS_EVALUATION.csv`、`ROUTE_METRICS.csv`、`CHECKS.json`、`COMPLETE.json`。
+
+准时率对批次×场景等权；每批以全部正份额路径的最晚到达时间判定，不按货量加权。
+路径数按不同的正份额路径计数；铁路口岸按每条分配路径访问的铁路跨境节点计 TEU，
+海运航线按有向海运弧计 TEU，方式份额按 TEU·km 计。
+成本最低的平局按时间、排放、精确决策 ID 处理；折中解距离相同时采用相同后续排序。
+恒定目标维度的归一化贡献为零。
+
+完成后查看 `STATUS.json` 中的 `pilot.results` 指向的 `PILOT_RESULTS_*`：
+`PER_SEED.csv`、`SEED_MEANS.csv`、`PAIRED_VS_EV.csv`、`PAIRED_SEED_MEANS.csv`、
+`ROUTE_METRICS.csv`、`ROUTE_SEED_MEANS.csv`、`RUNTIME.csv`、`REPORT_CN.txt`。
+运行时间沿用原求解器的 `optimisation_seconds`，复评时间单独报告。
+
+只有 `stage=pilot_passed` 后继续完整 18 次：
+
+```bash
+python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage all --workers 2 --resume
+```
+
+该命令重新核验输入、环境及试跑输出后复用已完成三次。正式汇总也使用新的
+`RESULTS_时间戳` 目录。任何失败均写入 `FAILURE_*.json` 并停止，不修改历史结果。
