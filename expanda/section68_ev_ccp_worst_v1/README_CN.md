@@ -59,6 +59,27 @@ python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage pilot --workers 2
 未完成任务使用新的 `attempt_时间戳`，不覆盖上一次搜索或失败记录。
 准备过程失败且尚未生成 PLAN 时，应另指定全新目录；不删除旧目录来掩盖失败。
 
+### 已报告的 MemTotal 差异
+
+2026-11-24，历史记录的 `total_node_memory_bytes=33564069888`，本次为
+`33565057024`，相差 987136 字节（0.94140625 MiB，约 0.002941%）。
+此字段取自 Linux `/proc/meminfo` 的 `MemTotal`，表示内核报告的可用总内存，
+不是物理内存条容量，也不是给实验独占分配的内存。当前记录未查明差异原因。
+
+默认仍逐项严格核对。显式选项 `--accept-memtotal-pair ORIGINAL_BYTES CURRENT_BYTES`
+仅接受这一对具体字节数；历史值、本次值任一不匹配，或主机、CPU、Python、数值库
+等其他检查不通过，仍停止。原环境文件不改写。差异原值、字节数和百分比存入
+新目录的 `ENVIRONMENT.json` 并纳入文件哈希；例外写入冻结的 `PLAN.json`。
+恢复运行使用冻结的例外，并保存新的 `ENVIRONMENT_RECHECK_*.json`。
+
+保留停止记录，另建新目录试跑：
+
+```bash
+python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage pilot --workers 2 \
+  --out transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v2 \
+  --accept-memtotal-pair 33564069888 33565057024
+```
+
 启动流程：
 
 1. 检验源文件未变，读取完整服务器场景清单，并将当前 CPU、Python、节点总内存及

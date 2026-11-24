@@ -43,7 +43,7 @@ def status(root, **fields):
     print('[SECTION68]', json.dumps(r, ensure_ascii=False), flush=True)
 
 
-def environment_review(preflight_dir):
+def environment_review(preflight_dir, accepted_memtotal_pair=None):
     old_path = DIAG/'ccp_paper_evidence_b5000_v1/ENVIRONMENT.json'
     old = read(old_path)
     now_cpu = command(['lscpu', '-J'])
@@ -54,8 +54,27 @@ def environment_review(preflight_dir):
     got = dict(hostname=socket.gethostname(), python=platform.python_version(),
         cpu_model=cpu.get('Model name'), logical_cpus=os.cpu_count(), total_node_memory_bytes=memory_kb*1024)
     expected = {k: old.get(k) for k in got}
-    # Exact machine and total memory check. Never call total cores/RAM a reservation.
-    if got != expected:
+    # MemTotal is kernel-reported usable RAM, not installed or reserved RAM.
+    # Keep strict comparison by default. An explicit exception binds BOTH byte
+    # counts; it cannot hide a change to another environment field or a third
+    # memory value. Never change the historical evidence to make it match.
+    memory_key = 'total_node_memory_bytes'
+    memory_exception = None
+    if accepted_memtotal_pair is not None:
+        pair = list(accepted_memtotal_pair)
+        if (len(pair) != 2 or any(type(v) is not int or v <= 0 for v in pair)
+                or pair[0] == pair[1]
+                or pair != [expected[memory_key], got[memory_key]]):
+            raise ValueError('Explicit MemTotal pair must match original and current bytes exactly: '+
+                             json.dumps(dict(requested=pair, original=expected[memory_key], current=got[memory_key])))
+        delta = pair[1] - pair[0]
+        memory_exception = dict(original_bytes=pair[0], current_bytes=pair[1],
+            difference_bytes=delta, difference_mib=delta/(1024**2),
+            difference_percent=100*delta/pair[0],
+            scope='Explicit acceptance of this reported MemTotal difference only; cause not established')
+    unresolved = [k for k in got if got[k] != expected[k]
+                  and not (k == memory_key and memory_exception is not None)]
+    if unresolved:
         raise ValueError('Environment differs or original evidence lacks fields: '+json.dumps(dict(current=got, original=expected)))
     packages={k:importlib.metadata.version(k) for k in ('numpy','torch','pandas','openpyxl','matplotlib')}
     for k in ('numpy','torch'):
@@ -63,10 +82,15 @@ def environment_review(preflight_dir):
             raise ValueError(f'Package differs from original evidence: {k}, current={packages[k]}, original={old.get(k)}')
     return dict(passed=True, original_file=str(old_path), original_sha256=sha(old_path),
         current=got, original=expected, current_affinity=sorted(os.sched_getaffinity(0)),
+        memtotal_exact_match=got[memory_key] == expected[memory_key],
+        accepted_memtotal_exception=memory_exception,
         workers_limit=2, numerical_threads=1, packages=packages,
         historical_reserved_cores=old.get('historical_allocated_cores'),
         historical_reserved_memory_bytes=old.get('historical_allocated_memory_bytes'),
-        qualification='Node hardware and Python match recorded evidence. Unknown historical resource reservations remain unknown.')
+        qualification=('Hostname, CPU identity/count, Python and numerical-library versions match recorded evidence. '
+                       'MemTotal is kernel-reported usable RAM, not installed capacity or a resource reservation. '
+                       'Any explicitly accepted MemTotal difference is recorded separately; its cause is not established. '
+                       'Unknown historical resource reservations remain unknown.'))
 
 
 def inspect_existing_sources(audit, selected, out):
@@ -139,15 +163,18 @@ def prepare(args, root):
     verify(read(audit/'SOURCE_HASHES.json'))
     if socket.gethostname().split('.')[0] != 'lnx-grid-41':
         raise ValueError('Must run on lnx-grid-41')
-    env = environment_review(audit)
+    accepted_memory = getattr(args, 'accept_memtotal_pair', None)
+    env = environment_review(audit, accepted_memory)
     save(root/'ENVIRONMENT.json', env)
-    print('[SECTION68] Original environment verified', flush=True)
+    print('[SECTION68] Environment checks passed; MemTotal exception:',
+          env['accepted_memtotal_exception'], flush=True)
     reuse = inspect_existing_sources(audit, p['selected'], root)
     t5 = read(Path(p['sources'][0])/'PLAN.json')
     files = read(audit/'SOURCE_HASHES.json')
     for name in ('PREFLIGHT.json', 'SOURCE_HASHES.json', 'EXISTING_SCENARIO_AND_ENVIRONMENT_FILES.json', 'ENVIRONMENT.json'):
         files[str(audit/name)] = sha(audit/name)
     files[env['original_file']] = env['original_sha256']
+    files[str(root/'ENVIRONMENT.json')] = sha(root/'ENVIRONMENT.json')
     for path in HERE.glob('*.py'):
         files[str(path)] = sha(path)
     (root/'instances').mkdir(); (root/'scenarios').mkdir(); (root/'runs').mkdir(); (root/'logs').mkdir()
@@ -205,6 +232,7 @@ def prepare(args, root):
         prepared_at_utc=stamp(), commit=command(['git','rev-parse','HEAD']),
         selected=selected, tasks=tasks, settings=t5['settings'], normalization=t5['normalization'],
         uncertainty=p['uncertainty'], files=files, workers_limit=2,
+        environment_policy=dict(accepted_memtotal_pair=accepted_memory),
         independent_size=5000, quantile='ceil(alpha*N)-th smallest; no interpolation',
         timing='Original solver optimisation_seconds; re-evaluation measured separately',
         pilot_task_indices=[0,1,2], final_searches=18,
@@ -488,7 +516,12 @@ def main(args):
             raise ValueError('Frozen plan changed')
         verify(plan['files'])
         # Recheck hardware for a resumed job too.
-        environment_review(Path(plan['preflight']))
+        accepted_memory = plan.get('environment_policy', {}).get('accepted_memtotal_pair')
+        requested_memory = getattr(args, 'accept_memtotal_pair', None)
+        if requested_memory is not None and requested_memory != accepted_memory:
+            raise ValueError('MemTotal exception differs from frozen plan; use a new output directory')
+        env = environment_review(Path(plan['preflight']), accepted_memory)
+        save(root/('ENVIRONMENT_RECHECK_'+stamp()+'.json'), env)
         if args.stage=='prepare':
             status(root,completed=False,stage='ready_for_pilot',done=0,total=18); return
         run_tasks(root,plan,[0,1,2],args.workers)
@@ -522,6 +555,8 @@ if __name__=='__main__':
     p.add_argument('--stage',choices=('prepare','pilot','all'),default='pilot')
     p.add_argument('--workers',type=int,default=2)
     p.add_argument('--resume',action='store_true')
+    p.add_argument('--accept-memtotal-pair',type=int,nargs=2,metavar=('ORIGINAL_BYTES','CURRENT_BYTES'),
+                   help='Explicitly accept only this exact reported MemTotal difference; all other environment checks stay strict')
     p.add_argument('--worker',action='store_true')
     p.add_argument('--task-index',type=int)
     p.add_argument('--attempt',type=Path)
