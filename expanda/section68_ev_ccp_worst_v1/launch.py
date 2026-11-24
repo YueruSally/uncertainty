@@ -160,6 +160,8 @@ def prepare(args, root):
     p = read(audit/'PREFLIGHT.json')
     if not p['completed'] or p['status'] != 'awaiting_source_review' or not all(c['passed'] for c in p['checks']):
         raise ValueError('Preflight not passed')
+    if p.get('nominal_options_context_version') != 2:
+        raise ValueError('Regenerate preflight with corrected border-event initialization; old nominal option hashes cannot be reused')
     verify(read(audit/'SOURCE_HASHES.json'))
     if socket.gethostname().split('.')[0] != 'lnx-grid-41':
         raise ValueError('Must run on lnx-grid-41')
@@ -407,22 +409,24 @@ def run_tasks(root,plan,indices,workers):
                 p=subprocess.Popen([sys.executable,'-B','-u',str(HERE/'launch.py'),'--worker',
                     '--out',str(root),'--task-index',str(i),'--attempt',str(attempt)],stdout=f,stderr=subprocess.STDOUT,
                     cwd=EXP,start_new_session=True)
-                running.append((i,p,f,log)); print('[SECTION68] Start',task,'PID=',p.pid,'log=',log,flush=True)
+                running.append((i,p,f,log,attempt)); print('[SECTION68] Start',task,'PID=',p.pid,'log=',log,flush=True)
             for item in list(running):
-                i,p,f,log=item
+                i,p,f,log,attempt=item
                 if p.poll() is not None:
                     f.close(); running.remove(item)
                     if p.returncode or completed_task(root,plan['tasks'][i],plan) is None:
-                        raise RuntimeError(f'Task {i} stopped; inspect {log}')
+                        failure=attempt/'FAILURE.json'
+                        detail=read(failure)['error'] if failure.exists() else '\n'.join(log.read_text(errors='replace').splitlines()[-20:])
+                        raise RuntimeError(f'Task {i} stopped: {detail}; inspect {log}')
             if time.monotonic()-last>=15:
                 done=sum(completed_task(root,t,plan) is not None for t in plan['tasks'])
                 status(root,completed=False,stage='pilot' if len(indices)==3 else 'formal',done=done,total=18,
-                       running=[dict(index=i,pid=p.pid,log=str(log)) for i,p,_,log in running])
+                       running=[dict(index=i,pid=p.pid,log=str(log)) for i,p,_,log,_ in running])
                 last=time.monotonic()
             if pending or running:
                 time.sleep(1)
     finally:
-        for _,p,f,_ in running:
+        for _,p,f,_,_ in running:
             # Only processes created by this invocation; no broad kill/pkill.
             if p.poll() is None:
                 p.terminate(); p.wait(timeout=30)

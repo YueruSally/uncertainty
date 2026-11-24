@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 import numpy as np
 
-from preflight import ENGINE, DATA, EXP, canonical, read, sha, save
+from preflight import ENGINE, DATA, EXP, canonical, read, sha, save, option_description
 
 OBJECTIVES = ('cost', 'emission', 'makespan')
 sys.path.insert(0, str(ENGINE / 'support'))
@@ -234,13 +234,14 @@ def search(instance, settings, task, out, plan_sha, model, expected_options_sha)
 
     def inspect_options(*args, **kwargs):
         options = original_options(*args, **kwargs)
-        description = [dict(batch=list(key), options=[dict(nodes=o.path.nodes, modes=o.path.modes,
-            on_time_probability=o.on_time_probability, max_lateness_h=o.max_lateness_h,
-            resources=sorted([(repr(k), v) for k, v in o.resources.items()])) for o in items])
-            for key, items in sorted(options.items())]
+        description = option_description(options)
         got = canonical(description)
         if got != expected_options_sha:
-            raise ValueError('Search nominal path set differs from preflight')
+            diagnostic = out/'NOMINAL_PATH_MISMATCH.json'
+            save(diagnostic, dict(expected_sha256=expected_options_sha, actual_sha256=got,
+                border_event_definition_count=len(base.BORDER_EVENT_DEFINITIONS),
+                actual_options=description))
+            raise ValueError('Search nominal path set differs from preflight; see '+str(diagnostic))
         checked.append(got)
         return options
 

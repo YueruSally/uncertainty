@@ -49,12 +49,14 @@ python3 -B -u section68_ev_ccp_worst_v1/preflight.py
 ## 已通过预检后的试跑入口
 
 ```bash
-python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage pilot --workers 2
+python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage pilot --workers 2 \
+  --preflight transformer_ppo_runs/diagnostics/section68_preflight_v3 \
+  --out transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v3
 ```
 
-默认读取 `section68_preflight_20261124T155523046075Z`，新建
-`transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v1`。
-可用 `--preflight /绝对路径` 和 `--out /全新目录` 明确指定。
+先运行预检生成新报告，再用 `--preflight /绝对路径` 和 `--out /全新目录` 明确指定。
+旧的 `section68_preflight_20261124T155523046075Z` 缺少全局过境事件初始化，
+其名义路径容量摘要不可复用；新启动器要求 `nominal_options_context_version=2`。
 已有目录必须显式 `--resume`；已完成任务必须通过所有输出哈希检查才能复用。
 未完成任务使用新的 `attempt_时间戳`，不覆盖上一次搜索或失败记录。
 准备过程失败且尚未生成 PLAN 时，应另指定全新目录；不删除旧目录来掩盖失败。
@@ -72,13 +74,33 @@ python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage pilot --workers 2
 新目录的 `ENVIRONMENT.json` 并纳入文件哈希；例外写入冻结的 `PLAN.json`。
 恢复运行使用冻结的例外，并保存新的 `ENVIRONMENT_RECHECK_*.json`。
 
-保留停止记录，另建新目录试跑：
+保留停止记录，重新预检后在新目录试跑：
 
 ```bash
+python3 -B -u section68_ev_ccp_worst_v1/preflight.py \
+  --out transformer_ppo_runs/diagnostics/section68_preflight_v3
+
 python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage pilot --workers 2 \
-  --out transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v2 \
+  --preflight transformer_ppo_runs/diagnostics/section68_preflight_v3 \
+  --out transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v3 \
   --accept-memtotal-pair 33564069888 33565057024
 ```
+
+### 预检与搜索的过境事件初始化修复
+
+旧预检只把事件定义传给场景构造函数，没有设置求解器的全局
+`BORDER_EVENT_DEFINITIONS`。名义容量模拟另行读取这个全局变量，因此得到的
+部分容量占用日期与实际 `run_episode` 不同。S6 验证实例的旧摘要
+`c35b5db94f996cc476db66fc1ff0e91073bbf90e8716c08a48d2ef4af6a087da`
+已在本地独立复现。路径次序、运输方式和名义到达诊断相同，但 387 个路径选项的
+容量映射不同；其中一例的 Moscow→Duisburg 公路弧由第 12 天变为第 13 天。
+这属于新预检程序的初始化错误，不是更改主实验的路径或求解规则。
+
+修复后，预检先按冻结 `run_episode` 加载同一份过境事件定义，并在每个实例前
+清空活动场景和路径缓存，模拟搜索子进程的初始状态。预检和搜索共用相同的摘要
+序列化函数，仍严格比较全部路径顺序、诊断和容量映射；不放宽或删除哈希检查。
+若再发生不一致，子进程保存 `NOMINAL_PATH_MISMATCH.json` 的实际选项和两份摘要，
+父进程直接显示该子进程的具体错误，不再只显示 `Task stopped`。
 
 启动流程：
 
@@ -127,7 +149,8 @@ CCP/WORST 使用同一个 100 场景包，分别取第 90 小和最大值；独�
 只有 `stage=pilot_passed` 后继续完整 18 次：
 
 ```bash
-python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage all --workers 2 --resume
+python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage all --workers 2 --resume \
+  --out transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v3
 ```
 
 该命令重新核验输入、环境及试跑输出后复用已完成三次。正式汇总也使用新的

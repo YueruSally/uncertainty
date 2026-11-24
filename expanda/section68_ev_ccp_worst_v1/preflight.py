@@ -49,6 +49,27 @@ def canonical(obj):
                                      allow_nan=False).encode()).hexdigest()
 
 
+def initialize_nominal_context(base):
+    """Match a fresh frozen run_episode before building nominal options.
+
+    The capacity simulation reads BORDER_EVENT_DEFINITIONS globally, even
+    when the arrival simulation receives an explicit ScenarioSet. Merely
+    passing definitions to build_scenario_set therefore is not sufficient.
+    """
+    definitions = base.load_border_event_definitions(base.DEFAULT_BORDER_EVENT_DATA_FILE)
+    base.BORDER_EVENT_DEFINITIONS = definitions
+    base.ACTIVE_SCENARIO_SET = None
+    base._PATH_SCENARIO_CACHE = {}
+    return definitions
+
+
+def option_description(options):
+    return [dict(batch=list(key), options=[dict(nodes=o.path.nodes, modes=o.path.modes,
+            on_time_probability=o.on_time_probability, max_lateness_h=o.max_lateness_h,
+            resources=sorted([(repr(k), v) for k, v in o.resources.items()])) for o in items])
+            for key, items in sorted(options.items())]
+
+
 def save(path, obj):
     # A fresh audit directory is mandatory: never replace an earlier report.
     with Path(path).open('x', encoding='utf-8') as stream:
@@ -219,10 +240,17 @@ def main(args):
               dict(checked_runs=len(audits), resolved_scenario_count=u['scenario_count'],
                    default_scenario_count=u['default_scenario_count'], differences=failures,
                    detail_file=str(out/'UNCERTAINTY_AUDIT.json')))
+        definitions = initialize_nominal_context(base)
+        report['nominal_options_context_version'] = 2
+        report['nominal_options_context'] = dict(
+            border_event_definitions_file=str(base.DEFAULT_BORDER_EVENT_DATA_FILE),
+            border_event_definitions_sha256=sha(base.DEFAULT_BORDER_EVENT_DATA_FILE),
+            border_event_definition_count=len(definitions),
+            active_scenario_before_options=None, fresh_path_cache_each_instance=True,
+            convention='Same global border-event initialization as a fresh frozen run_episode')
         network = base.load_network_from_extended(str(DATA))
         arcs = network[5]
         border = base.load_border_delay_map_from_workbook(DATA, include_customs=False)
-        definitions = base.load_border_event_definitions(base.DEFAULT_BORDER_EVENT_DATA_FILE)
         ev = base.build_expected_value_scenario_set(arcs, border, seed=0,
             border_event_definitions=definitions, border_mean_source='node_border')
         check('EV 平均输入', ev.size == 1 and not ev.stochastic
@@ -264,18 +292,13 @@ def main(args):
                     check('Table 5 同实例场景 ' + cfg, r['scenario_digest'] == scenario_digest(scenario), r['scenario_digest'])
             # Paths and feasibility checks do not evaluate a complete plan.
             # The original Table 5 engine uses a nominal option set for CCP.
+            initialize_nominal_context(base)
             tt = base.build_timetable_dict(network[6])
             lookup = base.build_arc_lookup(arcs)
             random.seed(e['path_seed']); np.random.seed(e['path_seed'] % (2**32-1))
             paths = base.build_path_library(network[0], network[1], arcs, batches, tt, lookup)
             options_ev = base.build_reliable_path_options(batches, paths, tt, network[13], border, ev, mode='deterministic')
             options_ccp = base.build_reliable_path_options(batches, paths, tt, network[13], border, ev, mode='ev')
-
-            def option_description(options):
-                return [dict(batch=list(key), options=[dict(nodes=o.path.nodes, modes=o.path.modes,
-                        on_time_probability=o.on_time_probability, max_lateness_h=o.max_lateness_h,
-                        resources=sorted([(repr(k), v) for k, v in o.resources.items()])) for o in items])
-                        for key, items in sorted(options.items())]
 
             a_options, b_options = option_description(options_ev), option_description(options_ccp)
             check('相同名义可行路径集 ' + cfg, a_options == b_options
