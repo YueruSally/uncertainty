@@ -155,3 +155,24 @@ python3 -B -u section68_ev_ccp_worst_v1/launch.py --stage all --workers 2 --resu
 
 该命令重新核验输入、环境及试跑输出后复用已完成三次。正式汇总也使用新的
 `RESULTS_时间戳` 目录。任何失败均写入 `FAILURE_*.json` 并停止，不修改历史结果。
+
+## 已确认接受原 Base 的预算上限停止规则后续跑
+
+2026-11-24 的 v3 试跑实际次数为 EV 5000、CCP 4999、WORST 4999。
+用户确认采用“5000 次上限，保留原停止规则”继续。原 `launch.py` 和冻结的
+`PLAN.json` 均不改写，避免破坏已有文件哈希及三个试跑结果的关联。
+改用单独入口：
+
+```bash
+python3 -B -u section68_ev_ccp_worst_v1/resume_budget_cap.py \
+  --out transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v3 \
+  --workers 2 --accept-original-budget-stop
+```
+
+入口重新核验冻结输入、环境和完成记录；必须已有全部三次试跑。只接受
+`4999 + atomic_pair_budget_remainder` 或 `5000 + evaluation_cap`，不补评价、不改计数。
+已有任务通过哈希检查后复用，最多两次搜索并行；中断后重复同一命令。
+新增 `BUDGET_CAP_CONTINUATION_时间戳.json`，记录本次明确接受的规则、旧计划哈希、
+入口代码哈希、commit、原状态和已完成任务。正式输出另存 `RESULTS_时间戳`，
+其中 `BUDGET_POLICY.json` 记录政策来源和各次实际次数。历史试跑报告保留。
+`STATUS.json` 更新当前进度，历史状态继续追加到 `PROGRESS.jsonl`。
