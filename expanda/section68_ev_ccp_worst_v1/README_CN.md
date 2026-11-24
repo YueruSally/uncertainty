@@ -176,3 +176,21 @@ python3 -B -u section68_ev_ccp_worst_v1/resume_budget_cap.py \
 入口代码哈希、commit、原状态和已完成任务。正式输出另存 `RESULTS_时间戳`，
 其中 `BUDGET_POLICY.json` 记录政策来源和各次实际次数。历史试跑报告保留。
 `STATUS.json` 更新当前进度，历史状态继续追加到 `PROGRESS.jsonl`。
+
+## EV 是否为单次平均输入评价：只读核对
+
+```bash
+python3 -B -u section68_ev_ccp_worst_v1/audit_evaluation_modes.py \
+  --root transformer_ppo_runs/diagnostics/section68_ev_ccp_worst_runs_v3
+```
+
+读取冻结计划、18 次完成记录和场景包，检查 EV 的 `evaluation_mode=deterministic`、
+`training_size=1`、`stochastic=false`，且每条弧乘子为 1、口岸事件延误为设定均值。
+CCP/最坏情况检查 100 个优化场景及对应置信水平。分别列出目标评价耗时、其他搜索
+耗时和总搜索耗时；后者不包含独立场景复评。保存至新的 `EVALUATION_MODE_AUDIT_*`。
+不调用搜索或评价器，不生成随机场景，也不改写原结果。
+
+论文中的 EV 标签在这轮适配器里对应底层 `deterministic` 分支：对平均输入评价，
+目标直接取长度为 1 的数组的第 0 项。底层另有 `risk_metric=ev` 的场景输出均值
+分支，本轮 EV 搜索没有使用该分支。通用日志中的 `ccp_evaluation_count` 字段沿用
+历史名称，在 EV 下也是方案评价计数，不能由字段名推断实现数为 100。
