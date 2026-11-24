@@ -188,7 +188,7 @@ def main(args):
               dict(transport_multiplier=1,
                    rail_node_means=sorted({v for k,v in border.items() if k[1]=='rail'}),
                    rail_crossing_event_means=sorted({v for k,v in ev.border_event_mean_h.items() if k[2]=='rail'}),
-                   convention='沿用 Table 5：跨境弧的事件均值为两端节点均值之和；40.6+40.6=81.2，不是每个过境事件40.6')))
+                   convention='沿用 Table 5：跨境弧的事件均值为两端节点均值之和；40.6+40.6=81.2，不是每个过境事件40.6'))
         a = np.arange(1, 101, dtype=float)
         check('CCP 和最坏情况次序统计量', base.empirical_ccp_quantile(a, .9) == 90
               and base.empirical_ccp_quantile(a, 1.) == 100
