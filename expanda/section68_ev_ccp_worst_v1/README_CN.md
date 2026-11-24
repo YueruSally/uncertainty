@@ -29,8 +29,14 @@ python3 -B -u section68_ev_ccp_worst_v1/preflight.py
    1000 次参考目标样本包不能代替 5000 个原始网络场景。
 
 输出：`PREFLIGHT.json`、`SELECTED_INSTANCES.csv`、`SOURCE_HASHES.json`、
-`ENVIRONMENT.json`、两个实例的完整副本及名义路径选项、
+`ENVIRONMENT.json`、`UNCERTAINTY_AUDIT.json`、两个实例的完整副本及名义路径选项、
 `EXISTING_SCENARIO_AND_ENVIRONMENT_FILES.json`。
+
+不确定性核对逐项比较原记录中的全部采样输入，以及分布名称、独立性与冻结 SAA 标志。
+`sampling_diagnostics` 是每个实例实际抽样后的统计输出，单独保留，不与参数字典比较。
+`default_scenario_count=200` 是配置模板默认值；实际场景数由 `scenario_count=100`
+及搜索记录的 `training_size=100` 核对。真实参数缺失、不同或出现未知字段仍立即停止，
+差异的字段名、原值、预期值写入 `UNCERTAINTY_AUDIT.json`。
 
 `completed=true` 仅表示本入口完成。`ready_for_pilot=false` 表示尚未核对
 论文 6.1 的原环境与独立场景来源，不可据此声称正式实验已开跑或已完成。

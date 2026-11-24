@@ -75,6 +75,46 @@ def literal_assignments(path):
     return out
 
 
+def field_differences(actual, expected, prefix='uncertainty'):
+    """Compare all input fields exactly, including nested CV/cap maps."""
+    if not isinstance(actual, dict) or not isinstance(expected, dict):
+        return [] if actual == expected else [dict(field=prefix, actual=actual, expected=expected)]
+    result = []
+    for key in sorted(set(actual) | set(expected)):
+        label = prefix + '.' + key
+        if key not in actual or key not in expected:
+            result.append(dict(field=label, actual_present=key in actual,
+                               expected_present=key in expected,
+                               actual=actual.get(key), expected=expected.get(key)))
+        else:
+            result.extend(field_differences(actual[key], expected[key], label))
+    return result
+
+
+def uncertainty_audit(recorded, profile):
+    # episode.py saves the resolved profile PLUS these protocol assertions
+    # and realised sampling diagnostics. Diagnostics depend on the instance's
+    # random scenarios; they are outputs, not sampler configuration inputs.
+    expected = dict(profile, distribution='lognormal',
+                    transport_arc_independence=True, border_event_independence=True,
+                    transport_border_independence=True, frozen_saa=True)
+    if not isinstance(recorded, dict):
+        return dict(passed=False, differences=[dict(field='uncertainty',
+                    actual=recorded, expected='object')])
+    inputs = {k: v for k, v in recorded.items() if k != 'sampling_diagnostics'}
+    differences = field_differences(inputs, expected)
+    diagnostics = recorded.get('sampling_diagnostics')
+    if (not isinstance(diagnostics, dict)
+            or any(not isinstance(diagnostics.get(k), dict)
+                   for k in ('transport_multiplier', 'border_multiplier'))):
+        differences.append(dict(field='uncertainty.sampling_diagnostics',
+                                actual=diagnostics, expected='transport_multiplier and border_multiplier objects'))
+    return dict(passed=not differences, differences=differences,
+                compared_inputs=inputs, expected_inputs=expected,
+                sampling_diagnostics=diagnostics,
+                diagnostics_role='Realised sample summaries; retained, not compared to configuration inputs')
+
+
 def main(args):
     out = args.out.resolve()
     sources = [args.table5.resolve(), args.ppo.resolve()]
@@ -171,7 +211,14 @@ def main(args):
         from run_ev_ccp_oos_pilot import scenario_digest
         check('冻结评价器', Path(base.__file__).resolve() == ENGINE/'baseline_uncertainty.py', base.__file__)
         u = resolve_uncertainty_profile('ccp', 'transport_border_saa_v1', 100)
-        check('不确定性设置', all(c['uncertainty'] == u for _, _, c in base_rows), u)
+        audits = [dict(record=name, instance=r['instance'], seed=r['seed'],
+                       **uncertainty_audit(c.get('uncertainty'), u)) for name, r, c in base_rows]
+        save(out/'UNCERTAINTY_AUDIT.json', audits)
+        failures = [dict(record=a['record'], differences=a['differences']) for a in audits if not a['passed']]
+        check('不确定性设置', not failures,
+              dict(checked_runs=len(audits), resolved_scenario_count=u['scenario_count'],
+                   default_scenario_count=u['default_scenario_count'], differences=failures,
+                   detail_file=str(out/'UNCERTAINTY_AUDIT.json')))
         network = base.load_network_from_extended(str(DATA))
         arcs = network[5]
         border = base.load_border_delay_map_from_workbook(DATA, include_customs=False)
