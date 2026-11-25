@@ -152,6 +152,29 @@ def source_plan(table, root, files, alpha):
     return plan, sorted(seeds)
 
 
+def source_record_key(path, method, entries, seeds):
+    """Use saved identity, not a presumed instance/seed/method directory depth.
+
+    Original shared runs and current PPO development runs end directly in
+    instance/seed/RUN_COMPLETE.json. Most other runs have an extra method
+    directory. Their completed JSON records are the identity authority.
+    For a missing file only, recognized instance/seed path components locate
+    its expected slot so the inventory can report the actual missing file.
+    """
+    names = {e['instance_id'] for e in entries}
+    if path.is_file():
+        record = read(path)
+        name, seed = record['instance'], record['seed']
+        require(isinstance(name, str) and name in names and type(seed) is int and seed in seeds,
+                '来源记录中的实例或种子不在计划中: ' + str(path))
+        return method, name, seed
+    candidates = {(method, path.parts[i-1], seed)
+                  for i, part in enumerate(path.parts) if i > 0 and path.parts[i-1] in names
+                  for seed in seeds if part == f'seed_{seed}'}
+    require(len(candidates) == 1, '来源文件缺失，且无法定位计划中的实例/种子: ' + str(path))
+    return next(iter(candidates))
+
+
 def inspect_run(table, root, plan, entry, method, seed, path, files, alpha):
     for f in (path, path.parent / 'configuration.json', path.parent / 'final_feasible_nondominated.json'):
         retain(f, files, plan['files'].get(str(f)))
@@ -211,12 +234,11 @@ def inventory(roots, out, alpha=.9):
                 continue
             for name in paths:
                 path = Path(name)
-                # Folder names are used so missing RUN_COMPLETE files can still be listed.
                 try:
-                    key = (method, path.parent.parent.parent.name, int(path.parent.parent.name.removeprefix('seed_')))
+                    key = source_record_key(path, method, plan['entries'], seeds)
                     require(key not in sources, '来源列表中运行重复')
                     sources[key] = path
-                except (ValueError, IndexError) as exc:
+                except (OSError, ValueError, KeyError, TypeError, IndexError) as exc:
                     errors.append(dict(table=table, method=method, instance='', seed='', path=name, reason=str(exc)))
         expected_source_keys = set()
         for entry in plan['entries']:

@@ -33,6 +33,9 @@ Table 7没有大网络Base，本入口不生成或假定该对照。
 
 检查每个运行的 `RUN_COMPLETE.json`、`configuration.json`、
 `final_feasible_nondominated.json`、实例文件、网络及来源哈希。
+实例和搜索种子以 `RUN_COMPLETE.json` 中的字段为准，不假定目录一定包含方法层。
+原共享监督和当前PPO的 `实例/seed_种子/RUN_COMPLETE.json`，以及其他方法的
+`实例/seed_种子/方法/RUN_COMPLETE.json` 均可读取；哈希与身份核对不变。
 最终解必须包含全部批次的路径节点、运输方式、非负份额，份额和为1；
 决策指纹必须一致，解的目标值必须与完成记录的实际最终前沿相同。
 搜索预算是5000；沿用历史的原子子代停止规则，实际4999或5000都逐项记录。
